@@ -1,0 +1,11 @@
+node_modules/
+web/dist/
+web/coverage/
+
+api/vendor/
+api/.env
+api/storage/*.key
+api/bootstrap/cache/*.php
+
+.DS_Store
+*.log

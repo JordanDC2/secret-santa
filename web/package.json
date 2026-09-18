@@ -1,0 +1,49 @@
+{
+	"name": "secret-santa-web",
+	"version": "1.0.0",
+	"description": "Web UI for Secret Santa",
+	"private": true,
+	"scripts": {
+		"start": "vite",
+		"build": "tsc --noEmit && vite build",
+		"preview": "vite preview",
+		"test": "npx jest",
+		"lint": "npx eslint ./src --ext .ts --ext .tsx"
+	},
+	"dependencies": {
+		"@fortawesome/fontawesome-svg-core": "^6.7.2",
+		"@fortawesome/free-regular-svg-icons": "^6.7.2",
+		"@fortawesome/free-solid-svg-icons": "^6.7.2",
+		"@fortawesome/react-fontawesome": "^0.2.2",
+		"@mantine/core": "^7.17.0",
+		"@mantine/form": "^7.17.0",
+		"@mantine/hooks": "^7.17.0",
+		"@reduxjs/toolkit": "^2.5.0",
+		"lodash": "^4.17.21",
+		"react": "^18.3.1",
+		"react-dom": "^18.3.1",
+		"react-redux": "^9.2.0",
+		"react-router-dom": "^6.28.1"
+	},
+	"devDependencies": {
+		"@eslint/compat": "^1.4.1",
+		"@eslint/eslintrc": "^3.3.1",
+		"@eslint/js": "^9.39.1",
+		"@stylistic/eslint-plugin": "^5.5.0",
+		"@types/jest": "^29.5.14",
+		"@types/lodash": "^4.17.14",
+		"@types/react": "^18.3.18",
+		"@types/react-dom": "^18.3.5",
+		"@vitejs/plugin-react": "^4.3.4",
+		"eslint": "^9.39.1",
+		"eslint-plugin-react": "^7.37.5",
+		"eslint-plugin-react-hooks": "^7.0.1",
+		"jest": "^29.7.0",
+		"less": "^4.2.2",
+		"ts-jest": "^29.2.5",
+		"typescript": "^5.9.3",
+		"typescript-eslint": "^8.46.3",
+		"vite": "^6.0.7",
+		"vite-tsconfig-paths": "^5.1.4"
+	}
+}
