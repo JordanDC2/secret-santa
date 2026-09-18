@@ -37,6 +37,11 @@ export const login = createAsyncThunk(
 	}
 );
 
+export const logout = createAsyncThunk(
+	"auth/logout",
+	() => apiClient.post<void>("/auth/logout")
+);
+
 export const register = createAsyncThunk(
 	"auth/register",
 	async (
@@ -59,12 +64,7 @@ export const register = createAsyncThunk(
 const authSlice = createSlice({
 	name: "auth",
 	initialState,
-	reducers: {
-		loggedOut(state) {
-			state.user = null;
-			state.status = "unauthenticated";
-		}
-	},
+	reducers: {},
 	extraReducers: (builder) => {
 		builder
 			.addCase(fetchCurrentUser.pending, (state) => {
@@ -97,9 +97,12 @@ const authSlice = createSlice({
 			})
 			.addCase(register.rejected, (state, action) => {
 				state.error = action.payload as string;
+			})
+			.addCase(logout.fulfilled, (state) => {
+				state.user = null;
+				state.status = "unauthenticated";
 			});
 	}
 });
 
-export const { loggedOut } = authSlice.actions;
 export default authSlice.reducer;

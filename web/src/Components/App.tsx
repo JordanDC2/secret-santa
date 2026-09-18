@@ -6,6 +6,7 @@ import { fetchCurrentUser } from "Data/Redux/AuthSlice";
 import LoginPage from "Components/Auth/LoginPage";
 import RegisterPage from "Components/Auth/RegisterPage";
 import DashboardPage from "Components/Dashboard/DashboardPage";
+import AuthenticatedLayout from "Components/Layout/AuthenticatedLayout";
 
 export default function App() {
 	const dispatch = useDispatch<AppDispatch>();
@@ -27,10 +28,9 @@ export default function App() {
 					path="/register"
 					element={ status === "authenticated" ? <Navigate to="/" /> : <RegisterPage /> }
 				/>
-				<Route
-					path="/"
-					element={ status === "authenticated" ? <DashboardPage /> : <Navigate to="/login" /> }
-				/>
+				<Route element={ <AuthenticatedLayout /> }>
+					<Route path="/" element={ <DashboardPage /> } />
+				</Route>
 			</Routes>
 		</BrowserRouter>
 	);
