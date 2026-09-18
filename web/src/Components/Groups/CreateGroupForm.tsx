@@ -1,30 +1,22 @@
 import { useState } from "react";
 import { Alert, Button, Group, Stack, TextInput } from "@mantine/core";
-import { useDispatch } from "react-redux";
-import type { AppDispatch } from "Data/Redux/Store";
-import { createGroup } from "Data/Redux/GroupsSlice";
+import { useCreateGroupMutation } from "Data/Hooks/Groups";
+import { apiErrorMessage } from "Data/Api/Client";
 
 export default function CreateGroupForm() {
-	const dispatch = useDispatch<AppDispatch>();
+	const createGroup = useCreateGroupMutation();
 	const [ name, setName ] = useState("");
-	const [ error, setError ] = useState<string | null>(null);
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 
-		dispatch(createGroup({ name })).unwrap().then(
-			() => {
-				setError(null);
-				setName("");
-			},
-			(rejection: string) => setError(rejection)
-		);
+		createGroup.mutate({ name }, { onSuccess: () => setName("") });
 	}
 
 	return (
 		<form onSubmit={ handleSubmit }>
 			<Stack>
-				{ error && <Alert color="red">{ error }</Alert> }
+				{ createGroup.isError && <Alert color="red">{ apiErrorMessage(createGroup.error) }</Alert> }
 				<Group align="flex-end">
 					<TextInput
 						label="Group name"
@@ -33,7 +25,7 @@ export default function CreateGroupForm() {
 						onChange={ (event) => setName(event.currentTarget.value) }
 						required
 					/>
-					<Button type="submit">Create group</Button>
+					<Button type="submit" loading={ createGroup.isPending }>Create group</Button>
 				</Group>
 			</Stack>
 		</form>

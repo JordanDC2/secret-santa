@@ -70,6 +70,12 @@ async function request<TResponse>(
 	return response.json() as Promise<TResponse>;
 }
 
+export function apiErrorMessage(error: unknown): string {
+	return error instanceof ApiError
+		? error.message
+		: "Something went wrong. Please try again.";
+}
+
 export const apiClient = {
 	get: <TResponse>(path: string) => request<TResponse>(path),
 	post: <TResponse>(path: string, body?: unknown) => request<TResponse>(path, {

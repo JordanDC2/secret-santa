@@ -1,17 +1,25 @@
 import { Badge, Card, Group, Stack, Text as MantineText, Title } from "@mantine/core";
-import { useSelector } from "react-redux";
-import type { RootState } from "Data/Redux/Store";
+import { useGroupsQuery } from "Data/Hooks/Groups";
+import { apiErrorMessage } from "Data/Api/Client";
 
 export default function GroupList() {
-	const groups = useSelector((state: RootState) => state.groups.groups);
+	const groupsQuery = useGroupsQuery();
 
-	if (groups.length === 0) {
+	if (groupsQuery.isPending) {
+		return <MantineText c="dimmed">Loading your groups...</MantineText>;
+	}
+
+	if (groupsQuery.isError) {
+		return <MantineText c="red">{ apiErrorMessage(groupsQuery.error) }</MantineText>;
+	}
+
+	if (groupsQuery.data.length === 0) {
 		return <MantineText c="dimmed">You haven&apos;t joined or created any groups yet.</MantineText>;
 	}
 
 	return (
 		<Stack>
-			{ groups.map((group) => (
+			{ groupsQuery.data.map((group) => (
 				<Card key={ group.id } withBorder padding="md" radius="md">
 					<Group justify="space-between">
 						<Title order={ 4 }>{ group.name }</Title>

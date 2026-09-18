@@ -12,20 +12,18 @@ import {
 	Title
 } from "@mantine/core";
 import { Link } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import type { AppDispatch, RootState } from "Data/Redux/Store";
-import { login } from "Data/Redux/AuthSlice";
+import { useAuth } from "Components/Contexts/Auth";
+import { apiErrorMessage } from "Data/Api/Client";
 
 export default function LoginPage() {
-	const dispatch = useDispatch<AppDispatch>();
-	const error = useSelector((state: RootState) => state.auth.error);
+	const { login } = useAuth();
 	const [ email, setEmail ] = useState("");
 	const [ password, setPassword ] = useState("");
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 
-		dispatch(login({ email, password }));
+		login.mutate({ email, password });
 	}
 
 	return (
@@ -36,7 +34,7 @@ export default function LoginPage() {
 				radius="md">
 				<form onSubmit={ handleSubmit }>
 					<Stack>
-						{ error && <Alert color="red">{ error }</Alert> }
+						{ login.isError && <Alert color="red">{ apiErrorMessage(login.error) }</Alert> }
 						<TextInput
 							label="Email"
 							value={ email }
@@ -49,7 +47,7 @@ export default function LoginPage() {
 							onChange={ (event) => setPassword(event.currentTarget.value) }
 							required
 						/>
-						<Button type="submit">Log in</Button>
+						<Button type="submit" loading={ login.isPending }>Log in</Button>
 					</Stack>
 				</form>
 			</Paper>

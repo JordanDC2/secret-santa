@@ -12,13 +12,11 @@ import {
 	Title
 } from "@mantine/core";
 import { Link } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import type { AppDispatch, RootState } from "Data/Redux/Store";
-import { register } from "Data/Redux/AuthSlice";
+import { useAuth } from "Components/Contexts/Auth";
+import { apiErrorMessage } from "Data/Api/Client";
 
 export default function RegisterPage() {
-	const dispatch = useDispatch<AppDispatch>();
-	const error = useSelector((state: RootState) => state.auth.error);
+	const { register } = useAuth();
 	const [ name, setName ] = useState("");
 	const [ email, setEmail ] = useState("");
 	const [ password, setPassword ] = useState("");
@@ -27,7 +25,7 @@ export default function RegisterPage() {
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 
-		dispatch(register({ name, email, password, passwordConfirmation }));
+		register.mutate({ name, email, password, passwordConfirmation });
 	}
 
 	return (
@@ -38,7 +36,7 @@ export default function RegisterPage() {
 				radius="md">
 				<form onSubmit={ handleSubmit }>
 					<Stack>
-						{ error && <Alert color="red">{ error }</Alert> }
+						{ register.isError && <Alert color="red">{ apiErrorMessage(register.error) }</Alert> }
 						<TextInput
 							label="Name"
 							value={ name }
@@ -63,7 +61,7 @@ export default function RegisterPage() {
 							onChange={ (event) => setPasswordConfirmation(event.currentTarget.value) }
 							required
 						/>
-						<Button type="submit">Create account</Button>
+						<Button type="submit" loading={ register.isPending }>Create account</Button>
 					</Stack>
 				</form>
 			</Paper>

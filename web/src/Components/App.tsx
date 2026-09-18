@@ -1,37 +1,47 @@
-import { useEffect } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { MantineProvider } from "@mantine/core";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import type { AppDispatch, RootState } from "Data/Redux/Store";
-import { fetchCurrentUser } from "Data/Redux/AuthSlice";
+import { AuthProvider, useAuth } from "Components/Contexts/Auth";
 import LoginPage from "Components/Auth/LoginPage";
 import RegisterPage from "Components/Auth/RegisterPage";
 import DashboardPage from "Components/Dashboard/DashboardPage";
 import AuthenticatedLayout from "Components/Layout/AuthenticatedLayout";
 
-export default function App() {
-	const dispatch = useDispatch<AppDispatch>();
-	const status = useSelector((state: RootState) => state.auth.status);
+const queryClient = new QueryClient();
 
-	useEffect(() => {
-		dispatch(fetchCurrentUser());
-	}, [ dispatch ]);
+function AppRoutes() {
+	const { status } = useAuth();
 
-	if (status === "idle" || status === "loading") {
+	if (status === "loading") {
 		return null;
 	}
 
 	return (
-		<BrowserRouter>
-			<Routes>
-				<Route path="/login" element={ status === "authenticated" ? <Navigate to="/" /> : <LoginPage /> } />
-				<Route
-					path="/register"
-					element={ status === "authenticated" ? <Navigate to="/" /> : <RegisterPage /> }
-				/>
-				<Route element={ <AuthenticatedLayout /> }>
-					<Route path="/" element={ <DashboardPage /> } />
-				</Route>
-			</Routes>
-		</BrowserRouter>
+		<Routes>
+			<Route path="/login" element={ status === "authenticated" ? <Navigate to="/" /> : <LoginPage /> } />
+			<Route
+				path="/register"
+				element={ status === "authenticated" ? <Navigate to="/" /> : <RegisterPage /> }
+			/>
+			<Route element={ <AuthenticatedLayout /> }>
+				<Route path="/" element={ <DashboardPage /> } />
+			</Route>
+		</Routes>
+	);
+}
+
+export default function App() {
+	return (
+		<QueryClientProvider client={ queryClient }>
+			<MantineProvider>
+				<AuthProvider>
+					<BrowserRouter>
+						<AppRoutes />
+					</BrowserRouter>
+				</AuthProvider>
+			</MantineProvider>
+			<ReactQueryDevtools initialIsOpen={ false } />
+		</QueryClientProvider>
 	);
 }
