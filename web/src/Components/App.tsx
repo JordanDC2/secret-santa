@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "Data/Redux/Store";
 import { fetchCurrentUser } from "Data/Redux/AuthSlice";
 import LoginPage from "Components/Auth/LoginPage";
+import RegisterPage from "Components/Auth/RegisterPage";
 import DashboardPage from "Components/Dashboard/DashboardPage";
 
 export default function App() {
@@ -22,7 +23,14 @@ export default function App() {
 		<BrowserRouter>
 			<Routes>
 				<Route path="/login" element={ status === "authenticated" ? <Navigate to="/" /> : <LoginPage /> } />
-				<Route path="/" element={ status === "authenticated" ? <DashboardPage /> : <Navigate to="/login" /> } />
+				<Route
+					path="/register"
+					element={ status === "authenticated" ? <Navigate to="/" /> : <RegisterPage /> }
+				/>
+				<Route
+					path="/"
+					element={ status === "authenticated" ? <DashboardPage /> : <Navigate to="/login" /> }
+				/>
 			</Routes>
 		</BrowserRouter>
 	);

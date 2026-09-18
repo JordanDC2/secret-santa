@@ -1,3 +1,20 @@
+export type IApiErrorBody = {
+	message: string;
+	errors?: Record<string, string[]>;
+};
+
+export class ApiError extends Error {
+	status: number;
+	errors?: Record<string, string[]>;
+
+	constructor(status: number, body: IApiErrorBody) {
+		super(body.message);
+
+		this.status = status;
+		this.errors = body.errors;
+	}
+}
+
 const BASE_URL = "";
 
 async function getCsrfCookie(): Promise<void> {
@@ -39,7 +56,11 @@ async function request<TResponse>(
 	});
 
 	if (!response.ok) {
-		throw new Error(`Request to ${ path } failed with status ${ response.status }`);
+		const body: IApiErrorBody = await response.json().catch(() => ({
+			message: `Request to ${ path } failed with status ${ response.status }`
+		}));
+
+		throw new ApiError(response.status, body);
 	}
 
 	if (response.status === 204) {

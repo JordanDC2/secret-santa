@@ -14,18 +14,20 @@ import {
 import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch, RootState } from "Data/Redux/Store";
-import { login } from "Data/Redux/AuthSlice";
+import { register } from "Data/Redux/AuthSlice";
 
-export default function LoginPage() {
+export default function RegisterPage() {
 	const dispatch = useDispatch<AppDispatch>();
 	const error = useSelector((state: RootState) => state.auth.error);
+	const [ name, setName ] = useState("");
 	const [ email, setEmail ] = useState("");
 	const [ password, setPassword ] = useState("");
+	const [ passwordConfirmation, setPasswordConfirmation ] = useState("");
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 
-		dispatch(login({ email, password }));
+		dispatch(register({ name, email, password, passwordConfirmation }));
 	}
 
 	return (
@@ -38,6 +40,12 @@ export default function LoginPage() {
 					<Stack>
 						{ error && <Alert color="red">{ error }</Alert> }
 						<TextInput
+							label="Name"
+							value={ name }
+							onChange={ (event) => setName(event.currentTarget.value) }
+							required
+						/>
+						<TextInput
 							label="Email"
 							value={ email }
 							onChange={ (event) => setEmail(event.currentTarget.value) }
@@ -49,13 +57,19 @@ export default function LoginPage() {
 							onChange={ (event) => setPassword(event.currentTarget.value) }
 							required
 						/>
-						<Button type="submit">Log in</Button>
+						<PasswordInput
+							label="Confirm password"
+							value={ passwordConfirmation }
+							onChange={ (event) => setPasswordConfirmation(event.currentTarget.value) }
+							required
+						/>
+						<Button type="submit">Create account</Button>
 					</Stack>
 				</form>
 			</Paper>
 
 			<MantineText ta="center" mt="md">
-				Don&apos;t have an account? <Anchor component={ Link } to="/register">Create one</Anchor>
+				Already have an account? <Anchor component={ Link } to="/login">Log in</Anchor>
 			</MantineText>
 		</Container>
 	);
