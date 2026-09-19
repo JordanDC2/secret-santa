@@ -1,0 +1,49 @@
+<?php
+
+namespace App\Actions\Groups;
+
+use App\Models\Group;
+use App\Notifications\SecretSantaAssigned;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+
+class DrawNames
+{
+    public function __construct(
+        private readonly GenerateAssignments $generateAssignments
+    ) {}
+
+    public function __invoke(Group $group): Group
+    {
+        $members = $group->members;
+
+        if ($members->count() < 2) {
+            throw ValidationException::withMessages([
+                'group' => ['A group needs at least 2 members before names can be drawn.'],
+            ]);
+        }
+
+        $assignments = ($this->generateAssignments)($members->pluck('id')->all());
+
+        DB::transaction(function () use ($group, $assignments) {
+            $group->assignments()->delete();
+
+            foreach ($assignments as $giverId => $receiverId) {
+                $group->assignments()->create([
+                    'giver_id' => $giverId,
+                    'receiver_id' => $receiverId,
+                ]);
+            }
+
+            $group->update(['drawn_at' => now()]);
+        });
+
+        foreach ($members as $giver) {
+            $receiver = $members->firstWhere('id', $assignments[$giver->id]);
+
+            $giver->notify(new SecretSantaAssigned($group, $receiver));
+        }
+
+        return $group->refresh();
+    }
+}

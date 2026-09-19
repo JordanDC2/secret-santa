@@ -4,4 +4,6 @@ export type IGroup = {
 	joinCode: string;
 	isOwner: boolean;
 	membersCount: number;
+	isDrawn: boolean;
+	myAssignment: { recipientName: string } | null;
 };

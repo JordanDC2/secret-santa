@@ -32,6 +32,14 @@ class GroupPolicy
     }
 
     /**
+     * Determine whether the user can draw names for the group.
+     */
+    public function draw(User $user, Group $group): bool
+    {
+        return $user->id === $group->owner_id;
+    }
+
+    /**
      * Determine whether the user can update the model.
      */
     public function update(User $user, Group $group): bool

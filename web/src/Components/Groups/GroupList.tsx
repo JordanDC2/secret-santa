@@ -1,6 +1,7 @@
-import { Badge, Card, Group, Stack, Text as MantineText, Title } from "@mantine/core";
+import { Stack, Text as MantineText } from "@mantine/core";
 import { useGroupsQuery } from "Data/Hooks/Groups";
 import { apiErrorMessage } from "Data/Api/Client";
+import GroupCard from "Components/Groups/GroupCard";
 
 export default function GroupList() {
 	const groupsQuery = useGroupsQuery();
@@ -19,20 +20,7 @@ export default function GroupList() {
 
 	return (
 		<Stack>
-			{ groupsQuery.data.map((group) => (
-				<Card key={ group.id } withBorder padding="md" radius="md">
-					<Group justify="space-between">
-						<Title order={ 4 }>{ group.name }</Title>
-						{ group.isOwner && <Badge color="blue">Owner</Badge> }
-					</Group>
-					<MantineText size="sm" c="dimmed">
-						{ group.membersCount } member{ group.membersCount === 1 ? "" : "s" }
-					</MantineText>
-					<MantineText size="sm" mt="xs">
-						Invite code: <MantineText span fw={ 700 }>{ group.joinCode }</MantineText>
-					</MantineText>
-				</Card>
-			)) }
+			{ groupsQuery.data.map((group) => <GroupCard key={ group.id } group={ group } />) }
 		</Stack>
 	);
 }
