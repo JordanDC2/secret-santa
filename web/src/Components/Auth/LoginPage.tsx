@@ -1,19 +1,9 @@
 import { useState } from "react";
-import {
-	Anchor,
-	Alert,
-	Button,
-	Container,
-	Paper,
-	PasswordInput,
-	Stack,
-	Text as MantineText,
-	TextInput,
-	Title
-} from "@mantine/core";
+import { Anchor, Alert, Button, PasswordInput, Stack, Text as MantineText, TextInput } from "@mantine/core";
 import { Link } from "react-router-dom";
 import { useAuth } from "Components/Contexts/Auth";
 import { apiErrorMessage } from "Data/Api/Client";
+import AuthLayout from "Components/Layout/AuthLayout";
 
 export default function LoginPage() {
 	const { login } = useAuth();
@@ -27,34 +17,29 @@ export default function LoginPage() {
 	}
 
 	return (
-		<Container size={ 420 } my={ 80 }>
-			<Title ta="center">Secret Santa</Title>
-
-			<Paper withBorder shadow="md" p={ 30 } mt={ 30 }
-				radius="md">
-				<form onSubmit={ handleSubmit }>
-					<Stack>
-						{ login.isError && <Alert color="red">{ apiErrorMessage(login.error) }</Alert> }
-						<TextInput
-							label="Email"
-							value={ email }
-							onChange={ (event) => setEmail(event.currentTarget.value) }
-							required
-						/>
-						<PasswordInput
-							label="Password"
-							value={ password }
-							onChange={ (event) => setPassword(event.currentTarget.value) }
-							required
-						/>
-						<Button type="submit" loading={ login.isPending }>Log in</Button>
-					</Stack>
-				</form>
-			</Paper>
+		<AuthLayout subtitle="Ho ho ho! Sign in to find out who needs a gift 🎁">
+			<form onSubmit={ handleSubmit }>
+				<Stack>
+					{ login.isError && <Alert color="red">{ apiErrorMessage(login.error) }</Alert> }
+					<TextInput
+						label="Email"
+						value={ email }
+						onChange={ (event) => setEmail(event.currentTarget.value) }
+						required
+					/>
+					<PasswordInput
+						label="Password"
+						value={ password }
+						onChange={ (event) => setPassword(event.currentTarget.value) }
+						required
+					/>
+					<Button type="submit" color="red" loading={ login.isPending }>🎄 Log in</Button>
+				</Stack>
+			</form>
 
 			<MantineText ta="center" mt="md">
 				Don&apos;t have an account? <Anchor component={ Link } to="/register">Create one</Anchor>
 			</MantineText>
-		</Container>
+		</AuthLayout>
 	);
 }

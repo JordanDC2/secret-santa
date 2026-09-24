@@ -7,6 +7,7 @@ import LoginPage from "Components/Auth/LoginPage";
 import RegisterPage from "Components/Auth/RegisterPage";
 import DashboardPage from "Components/Dashboard/DashboardPage";
 import AuthenticatedLayout from "Components/Layout/AuthenticatedLayout";
+import { theme } from "Data/Theme";
 
 const queryClient = new QueryClient();
 
@@ -34,7 +35,7 @@ function AppRoutes() {
 export default function App() {
 	return (
 		<QueryClientProvider client={ queryClient }>
-			<MantineProvider>
+			<MantineProvider theme={ theme }>
 				<AuthProvider>
 					<BrowserRouter>
 						<AppRoutes />

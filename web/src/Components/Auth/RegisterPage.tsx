@@ -1,19 +1,9 @@
 import { useState } from "react";
-import {
-	Anchor,
-	Alert,
-	Button,
-	Container,
-	Paper,
-	PasswordInput,
-	Stack,
-	Text as MantineText,
-	TextInput,
-	Title
-} from "@mantine/core";
+import { Anchor, Alert, Button, PasswordInput, Stack, Text as MantineText, TextInput } from "@mantine/core";
 import { Link } from "react-router-dom";
 import { useAuth } from "Components/Contexts/Auth";
 import { apiErrorMessage } from "Data/Api/Client";
+import AuthLayout from "Components/Layout/AuthLayout";
 
 export default function RegisterPage() {
 	const { register } = useAuth();
@@ -29,46 +19,41 @@ export default function RegisterPage() {
 	}
 
 	return (
-		<Container size={ 420 } my={ 80 }>
-			<Title ta="center">Secret Santa</Title>
-
-			<Paper withBorder shadow="md" p={ 30 } mt={ 30 }
-				radius="md">
-				<form onSubmit={ handleSubmit }>
-					<Stack>
-						{ register.isError && <Alert color="red">{ apiErrorMessage(register.error) }</Alert> }
-						<TextInput
-							label="Name"
-							value={ name }
-							onChange={ (event) => setName(event.currentTarget.value) }
-							required
-						/>
-						<TextInput
-							label="Email"
-							value={ email }
-							onChange={ (event) => setEmail(event.currentTarget.value) }
-							required
-						/>
-						<PasswordInput
-							label="Password"
-							value={ password }
-							onChange={ (event) => setPassword(event.currentTarget.value) }
-							required
-						/>
-						<PasswordInput
-							label="Confirm password"
-							value={ passwordConfirmation }
-							onChange={ (event) => setPasswordConfirmation(event.currentTarget.value) }
-							required
-						/>
-						<Button type="submit" loading={ register.isPending }>Create account</Button>
-					</Stack>
-				</form>
-			</Paper>
+		<AuthLayout subtitle="Join the nice list — create your account 🎁">
+			<form onSubmit={ handleSubmit }>
+				<Stack>
+					{ register.isError && <Alert color="red">{ apiErrorMessage(register.error) }</Alert> }
+					<TextInput
+						label="Name"
+						value={ name }
+						onChange={ (event) => setName(event.currentTarget.value) }
+						required
+					/>
+					<TextInput
+						label="Email"
+						value={ email }
+						onChange={ (event) => setEmail(event.currentTarget.value) }
+						required
+					/>
+					<PasswordInput
+						label="Password"
+						value={ password }
+						onChange={ (event) => setPassword(event.currentTarget.value) }
+						required
+					/>
+					<PasswordInput
+						label="Confirm password"
+						value={ passwordConfirmation }
+						onChange={ (event) => setPasswordConfirmation(event.currentTarget.value) }
+						required
+					/>
+					<Button type="submit" color="red" loading={ register.isPending }>🎄 Create account</Button>
+				</Stack>
+			</form>
 
 			<MantineText ta="center" mt="md">
 				Already have an account? <Anchor component={ Link } to="/login">Log in</Anchor>
 			</MantineText>
-		</Container>
+		</AuthLayout>
 	);
 }

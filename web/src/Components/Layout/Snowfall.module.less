@@ -1,0 +1,27 @@
+.snowfall {
+	position: fixed;
+	inset: 0;
+	overflow: hidden;
+	pointer-events: none;
+	z-index: 0;
+}
+
+.snowflake {
+	position: absolute;
+	top: -5%;
+	color: #ffffff;
+	opacity: 0.85;
+	animation-name: fall;
+	animation-timing-function: linear;
+	animation-iteration-count: infinite;
+}
+
+@keyframes fall {
+	0% {
+		transform: translateY(-5vh) translateX(0);
+	}
+
+	100% {
+		transform: translateY(105vh) translateX(20px);
+	}
+}
