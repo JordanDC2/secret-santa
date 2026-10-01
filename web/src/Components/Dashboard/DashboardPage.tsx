@@ -1,8 +1,10 @@
-import { Container, Divider, Stack, Title } from "@mantine/core";
+import { Container, Stack, Title } from "@mantine/core";
 import { useAuth } from "Components/Contexts/Auth";
 import CreateGroupForm from "Components/Groups/CreateGroupForm";
 import JoinGroupForm from "Components/Groups/JoinGroupForm";
 import GroupList from "Components/Groups/GroupList";
+import CandyCaneDivider from "Components/Layout/CandyCaneDivider";
+import classes from "Components/Dashboard/DashboardPage.module.less";
 
 export default function DashboardPage() {
 	const { user } = useAuth();
@@ -10,24 +12,26 @@ export default function DashboardPage() {
 	return (
 		<Container my={ 40 }>
 			<Stack gap="xl">
-				<Title>Welcome{ user ? `, ${ user.name }` : "" }</Title>
+				<h1 className={ classes.welcome }>
+					🎄 Welcome{ user ? `, ${ user.name }` : "" }!
+				</h1>
 
 				<Stack>
-					<Title order={ 3 }>Your groups</Title>
+					<Title order={ 3 }>🎁 Your groups</Title>
 					<GroupList />
 				</Stack>
 
-				<Divider />
+				<CandyCaneDivider />
 
 				<Stack>
-					<Title order={ 3 }>Create a group</Title>
+					<Title order={ 3 }>✨ Create a group</Title>
 					<CreateGroupForm />
 				</Stack>
 
-				<Divider />
+				<CandyCaneDivider />
 
 				<Stack>
-					<Title order={ 3 }>Join a group</Title>
+					<Title order={ 3 }>🔑 Join a group</Title>
 					<JoinGroupForm />
 				</Stack>
 			</Stack>
