@@ -1,4 +1,6 @@
 .page {
+	// Contain child margins; otherwise a page's bottom margin escapes and exposes the body below the gradient.
+	display: flow-root;
 	min-height: 100vh;
 	background: linear-gradient(
 		180deg,
