@@ -20,13 +20,10 @@ function AppRoutes() {
 
 	return (
 		<Routes>
-			<Route path="/login" element={ status === "authenticated" ? <Navigate to="/" /> : <LoginPage /> } />
-			<Route
-				path="/register"
-				element={ status === "authenticated" ? <Navigate to="/" /> : <RegisterPage /> }
-			/>
-			<Route element={ <AuthenticatedLayout /> }>
-				<Route path="/" element={ <DashboardPage /> } />
+			<Route path="/login" element={status === "authenticated" ? <Navigate to="/" /> : <LoginPage />} />
+			<Route path="/register" element={status === "authenticated" ? <Navigate to="/" /> : <RegisterPage />} />
+			<Route element={<AuthenticatedLayout />}>
+				<Route path="/" element={<DashboardPage />} />
 			</Route>
 		</Routes>
 	);
@@ -34,15 +31,15 @@ function AppRoutes() {
 
 export default function App() {
 	return (
-		<QueryClientProvider client={ queryClient }>
-			<MantineProvider theme={ theme }>
+		<QueryClientProvider client={queryClient}>
+			<MantineProvider theme={theme}>
 				<AuthProvider>
 					<BrowserRouter>
 						<AppRoutes />
 					</BrowserRouter>
 				</AuthProvider>
 			</MantineProvider>
-			<ReactQueryDevtools initialIsOpen={ false } />
+			<ReactQueryDevtools initialIsOpen={false} />
 		</QueryClientProvider>
 	);
 }

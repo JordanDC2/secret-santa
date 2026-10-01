@@ -8,30 +8,34 @@ function randomBetween(min: number, max: number): number {
 }
 
 export default function Snowfall() {
-	const snowflakes = useMemo(() => Array.from({ length: SNOWFLAKE_COUNT }, (_, index) => ({
-		id: index,
-		left: randomBetween(0, 100),
-		duration: randomBetween(8, 18),
-		delay: randomBetween(0, 10),
-		size: randomBetween(0.6, 1.6)
-	})), []);
+	const snowflakes = useMemo(
+		() =>
+			Array.from({ length: SNOWFLAKE_COUNT }, (_, index) => ({
+				id: index,
+				left: randomBetween(0, 100),
+				duration: randomBetween(8, 18),
+				delay: randomBetween(0, 10),
+				size: randomBetween(0.6, 1.6),
+			})),
+		[],
+	);
 
 	return (
-		<div className={ classes.snowfall } aria-hidden="true">
-			{ snowflakes.map((flake) => (
+		<div className={classes.snowfall} aria-hidden="true">
+			{snowflakes.map((flake) => (
 				<span
-					key={ flake.id }
-					className={ classes.snowflake }
-					style={ {
-						left: `${ flake.left }%`,
-						animationDuration: `${ flake.duration }s`,
-						animationDelay: `${ flake.delay }s`,
-						fontSize: `${ flake.size }rem`
-					} }
+					key={flake.id}
+					className={classes.snowflake}
+					style={{
+						left: `${flake.left}%`,
+						animationDuration: `${flake.duration}s`,
+						animationDelay: `${flake.delay}s`,
+						fontSize: `${flake.size}rem`,
+					}}
 				>
 					❄
 				</span>
-			)) }
+			))}
 		</div>
 	);
 }

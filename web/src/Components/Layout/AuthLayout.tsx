@@ -9,13 +9,13 @@ type IAuthLayoutProps = PropsWithChildren<{
 
 export default function AuthLayout({ subtitle, children }: IAuthLayoutProps) {
 	return (
-		<div className={ classes.wrapper }>
+		<div className={classes.wrapper}>
 			<Snowfall />
-			<div className={ classes.content }>
-				<h1 className={ classes.title }>🎅 Secret Santa</h1>
-				<p className={ classes.subtitle }>{ subtitle }</p>
-				<Paper shadow="xl" p={ 30 } radius="lg" className={ classes.card }>
-					{ children }
+			<div className={classes.content}>
+				<h1 className={classes.title}>🎅 Secret Santa</h1>
+				<p className={classes.subtitle}>{subtitle}</p>
+				<Paper shadow="xl" p={30} radius="lg" className={classes.card}>
+					{children}
 				</Paper>
 			</div>
 		</div>

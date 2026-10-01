@@ -10,28 +10,26 @@ export default function DashboardPage() {
 	const { user } = useAuth();
 
 	return (
-		<Container my={ 40 }>
+		<Container my={40}>
 			<Stack gap="xl">
-				<h1 className={ classes.welcome }>
-					🎄 Welcome{ user ? `, ${ user.name }` : "" }!
-				</h1>
+				<h1 className={classes.welcome}>🎄 Welcome{user ? `, ${user.name}` : ""}!</h1>
 
 				<Stack>
-					<Title order={ 3 }>🎁 Your groups</Title>
+					<Title order={3}>🎁 Your groups</Title>
 					<GroupList />
 				</Stack>
 
 				<CandyCaneDivider />
 
 				<Stack>
-					<Title order={ 3 }>✨ Create a group</Title>
+					<Title order={3}>✨ Create a group</Title>
 					<CreateGroupForm />
 				</Stack>
 
 				<CandyCaneDivider />
 
 				<Stack>
-					<Title order={ 3 }>🔑 Join a group</Title>
+					<Title order={3}>🔑 Join a group</Title>
 					<JoinGroupForm />
 				</Stack>
 			</Stack>

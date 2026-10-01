@@ -11,7 +11,7 @@ export default function AuthenticatedLayout() {
 	}
 
 	return (
-		<div className={ classes.page }>
+		<div className={classes.page}>
 			<AppHeader />
 			<Outlet />
 		</div>

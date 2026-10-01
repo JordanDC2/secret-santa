@@ -11,7 +11,7 @@ export default function GroupList() {
 	}
 
 	if (groupsQuery.isError) {
-		return <MantineText c="red">{ apiErrorMessage(groupsQuery.error) }</MantineText>;
+		return <MantineText c="red">{apiErrorMessage(groupsQuery.error)}</MantineText>;
 	}
 
 	if (groupsQuery.data.length === 0) {
@@ -20,7 +20,9 @@ export default function GroupList() {
 
 	return (
 		<Stack>
-			{ groupsQuery.data.map((group) => <GroupCard key={ group.id } group={ group } />) }
+			{groupsQuery.data.map((group) => (
+				<GroupCard key={group.id} group={group} />
+			))}
 		</Stack>
 	);
 }

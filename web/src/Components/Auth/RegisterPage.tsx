@@ -7,10 +7,10 @@ import AuthLayout from "Components/Layout/AuthLayout";
 
 export default function RegisterPage() {
 	const { register } = useAuth();
-	const [ name, setName ] = useState("");
-	const [ email, setEmail ] = useState("");
-	const [ password, setPassword ] = useState("");
-	const [ passwordConfirmation, setPasswordConfirmation ] = useState("");
+	const [name, setName] = useState("");
+	const [email, setEmail] = useState("");
+	const [password, setPassword] = useState("");
+	const [passwordConfirmation, setPasswordConfirmation] = useState("");
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -20,39 +20,34 @@ export default function RegisterPage() {
 
 	return (
 		<AuthLayout subtitle="Join the nice list — create your account 🎁">
-			<form onSubmit={ handleSubmit }>
+			<form onSubmit={handleSubmit}>
 				<Stack>
-					{ register.isError && <Alert color="red">{ apiErrorMessage(register.error) }</Alert> }
-					<TextInput
-						label="Name"
-						value={ name }
-						onChange={ (event) => setName(event.currentTarget.value) }
-						required
-					/>
-					<TextInput
-						label="Email"
-						value={ email }
-						onChange={ (event) => setEmail(event.currentTarget.value) }
-						required
-					/>
+					{register.isError && <Alert color="red">{apiErrorMessage(register.error)}</Alert>}
+					<TextInput label="Name" value={name} onChange={(event) => setName(event.currentTarget.value)} required />
+					<TextInput label="Email" value={email} onChange={(event) => setEmail(event.currentTarget.value)} required />
 					<PasswordInput
 						label="Password"
-						value={ password }
-						onChange={ (event) => setPassword(event.currentTarget.value) }
+						value={password}
+						onChange={(event) => setPassword(event.currentTarget.value)}
 						required
 					/>
 					<PasswordInput
 						label="Confirm password"
-						value={ passwordConfirmation }
-						onChange={ (event) => setPasswordConfirmation(event.currentTarget.value) }
+						value={passwordConfirmation}
+						onChange={(event) => setPasswordConfirmation(event.currentTarget.value)}
 						required
 					/>
-					<Button type="submit" color="red" loading={ register.isPending }>🎄 Create account</Button>
+					<Button type="submit" color="red" loading={register.isPending}>
+						🎄 Create account
+					</Button>
 				</Stack>
 			</form>
 
 			<MantineText ta="center" mt="md">
-				Already have an account? <Anchor component={ Link } to="/login">Log in</Anchor>
+				Already have an account?{" "}
+				<Anchor component={Link} to="/login">
+					Log in
+				</Anchor>
 			</MantineText>
 		</AuthLayout>
 	);

@@ -7,8 +7,8 @@ import AuthLayout from "Components/Layout/AuthLayout";
 
 export default function LoginPage() {
 	const { login } = useAuth();
-	const [ email, setEmail ] = useState("");
-	const [ password, setPassword ] = useState("");
+	const [email, setEmail] = useState("");
+	const [password, setPassword] = useState("");
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -18,27 +18,27 @@ export default function LoginPage() {
 
 	return (
 		<AuthLayout subtitle="Ho ho ho! Sign in to find out who needs a gift 🎁">
-			<form onSubmit={ handleSubmit }>
+			<form onSubmit={handleSubmit}>
 				<Stack>
-					{ login.isError && <Alert color="red">{ apiErrorMessage(login.error) }</Alert> }
-					<TextInput
-						label="Email"
-						value={ email }
-						onChange={ (event) => setEmail(event.currentTarget.value) }
-						required
-					/>
+					{login.isError && <Alert color="red">{apiErrorMessage(login.error)}</Alert>}
+					<TextInput label="Email" value={email} onChange={(event) => setEmail(event.currentTarget.value)} required />
 					<PasswordInput
 						label="Password"
-						value={ password }
-						onChange={ (event) => setPassword(event.currentTarget.value) }
+						value={password}
+						onChange={(event) => setPassword(event.currentTarget.value)}
 						required
 					/>
-					<Button type="submit" color="red" loading={ login.isPending }>🎄 Log in</Button>
+					<Button type="submit" color="red" loading={login.isPending}>
+						🎄 Log in
+					</Button>
 				</Stack>
 			</form>
 
 			<MantineText ta="center" mt="md">
-				Don&apos;t have an account? <Anchor component={ Link } to="/register">Create one</Anchor>
+				Don&apos;t have an account?{" "}
+				<Anchor component={Link} to="/register">
+					Create one
+				</Anchor>
 			</MantineText>
 		</AuthLayout>
 	);

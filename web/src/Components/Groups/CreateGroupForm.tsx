@@ -5,7 +5,7 @@ import { apiErrorMessage } from "Data/Api/Client";
 
 export default function CreateGroupForm() {
 	const createGroup = useCreateGroupMutation();
-	const [ name, setName ] = useState("");
+	const [name, setName] = useState("");
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -14,18 +14,20 @@ export default function CreateGroupForm() {
 	}
 
 	return (
-		<form onSubmit={ handleSubmit }>
+		<form onSubmit={handleSubmit}>
 			<Stack>
-				{ createGroup.isError && <Alert color="red">{ apiErrorMessage(createGroup.error) }</Alert> }
+				{createGroup.isError && <Alert color="red">{apiErrorMessage(createGroup.error)}</Alert>}
 				<Group align="flex-end">
 					<TextInput
 						label="Group name"
 						placeholder="Office Secret Santa"
-						value={ name }
-						onChange={ (event) => setName(event.currentTarget.value) }
+						value={name}
+						onChange={(event) => setName(event.currentTarget.value)}
 						required
 					/>
-					<Button type="submit" loading={ createGroup.isPending }>Create group</Button>
+					<Button type="submit" loading={createGroup.isPending}>
+						Create group
+					</Button>
 				</Group>
 			</Stack>
 		</form>
