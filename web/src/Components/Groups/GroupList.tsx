@@ -1,5 +1,5 @@
 import { Stack, Text as MantineText } from "@mantine/core";
-import { useGroupsQuery } from "Data/Hooks/Groups";
+import { useGroupsQuery } from "Components/Groups/hooks";
 import { apiErrorMessage } from "Data/Api/Client";
 import GroupCard from "Components/Groups/GroupCard";
 

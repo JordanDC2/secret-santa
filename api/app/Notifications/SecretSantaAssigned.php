@@ -27,7 +27,7 @@ class SecretSantaAssigned extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000');
+        $frontendUrl = config('app.frontend_url');
 
         return (new MailMessage)
             ->subject("🎁 Your Secret Santa assignment for {$this->group->name}")

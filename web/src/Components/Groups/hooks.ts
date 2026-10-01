@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { IGroup } from "Data/Interfaces/IGroup";
+import type { IGroup } from "Components/Groups/types";
 import { apiClient } from "Data/Api/Client";
 
 const GROUPS_QUERY_KEY = ["groups"];

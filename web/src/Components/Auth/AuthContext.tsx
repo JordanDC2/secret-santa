@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, type PropsWithChildren } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { UseMutationResult } from "@tanstack/react-query";
-import type { IUser } from "Data/Interfaces/IUser";
+import type { IUser } from "Components/Auth/types";
 import { apiClient } from "Data/Api/Client";
 
 const CURRENT_USER_QUERY_KEY = ["auth", "user"];

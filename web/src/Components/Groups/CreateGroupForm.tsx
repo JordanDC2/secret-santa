@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Alert, Button, Group, Stack, TextInput } from "@mantine/core";
-import { useCreateGroupMutation } from "Data/Hooks/Groups";
+import { useCreateGroupMutation } from "Components/Groups/hooks";
 import { apiErrorMessage } from "Data/Api/Client";
 
 export default function CreateGroupForm() {

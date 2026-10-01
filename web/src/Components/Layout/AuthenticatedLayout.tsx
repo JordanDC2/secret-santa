@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from "react-router-dom";
-import { useAuth } from "Components/Contexts/Auth";
+import { useAuth } from "Components/Auth/AuthContext";
 import AppHeader from "Components/Layout/AppHeader";
 import classes from "Components/Layout/AuthenticatedLayout.module.less";
 

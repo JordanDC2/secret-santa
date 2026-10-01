@@ -38,36 +38,4 @@ class GroupPolicy
     {
         return $user->id === $group->owner_id;
     }
-
-    /**
-     * Determine whether the user can update the model.
-     */
-    public function update(User $user, Group $group): bool
-    {
-        return false;
-    }
-
-    /**
-     * Determine whether the user can delete the model.
-     */
-    public function delete(User $user, Group $group): bool
-    {
-        return false;
-    }
-
-    /**
-     * Determine whether the user can restore the model.
-     */
-    public function restore(User $user, Group $group): bool
-    {
-        return false;
-    }
-
-    /**
-     * Determine whether the user can permanently delete the model.
-     */
-    public function forceDelete(User $user, Group $group): bool
-    {
-        return false;
-    }
 }

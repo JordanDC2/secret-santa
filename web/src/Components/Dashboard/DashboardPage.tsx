@@ -1,5 +1,5 @@
 import { Container, Stack, Title } from "@mantine/core";
-import { useAuth } from "Components/Contexts/Auth";
+import { useAuth } from "Components/Auth/AuthContext";
 import CreateGroupForm from "Components/Groups/CreateGroupForm";
 import JoinGroupForm from "Components/Groups/JoinGroupForm";
 import GroupList from "Components/Groups/GroupList";

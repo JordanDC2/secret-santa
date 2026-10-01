@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Anchor, Alert, Button, PasswordInput, Stack, Text as MantineText, TextInput } from "@mantine/core";
 import { Link } from "react-router-dom";
-import { useAuth } from "Components/Contexts/Auth";
+import { useAuth } from "Components/Auth/AuthContext";
 import { apiErrorMessage } from "Data/Api/Client";
 import AuthLayout from "Components/Layout/AuthLayout";
 

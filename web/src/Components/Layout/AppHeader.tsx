@@ -1,5 +1,5 @@
 import { Button, Container, Group, Text as MantineText } from "@mantine/core";
-import { useAuth } from "Components/Contexts/Auth";
+import { useAuth } from "Components/Auth/AuthContext";
 import classes from "Components/Layout/AppHeader.module.less";
 
 export default function AppHeader() {
