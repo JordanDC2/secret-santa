@@ -5,10 +5,15 @@ namespace App\Notifications;
 use App\Models\Group;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Queue\Attributes\Backoff;
+use Illuminate\Queue\Attributes\Tries;
 
-class SecretSantaAssigned extends Notification
+#[Tries(4)]
+#[Backoff(10, 60, 300)]
+class SecretSantaAssigned extends Notification implements ShouldQueue
 {
     use Queueable;
 
