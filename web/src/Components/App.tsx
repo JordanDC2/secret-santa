@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { MantineProvider } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "Components/Auth/AuthContext";
 import ForgotPasswordPage from "Components/Auth/ForgotPasswordPage";
@@ -14,6 +15,13 @@ import MyWishlistPage from "Components/Wishlist/MyWishlistPage";
 import { theme } from "Data/Theme";
 
 const queryClient = new QueryClient();
+
+/** The devtools' floating button covers page controls on phone-sized screens. */
+function DevtoolsOnLargerScreens() {
+	const isPhoneSized = useMediaQuery("(max-width: 48em)");
+
+	return isPhoneSized ? null : <ReactQueryDevtools initialIsOpen={false} />;
+}
 
 function AppRoutes() {
 	const { status } = useAuth();
@@ -50,7 +58,7 @@ export default function App() {
 					</BrowserRouter>
 				</AuthProvider>
 			</MantineProvider>
-			<ReactQueryDevtools initialIsOpen={false} />
+			<DevtoolsOnLargerScreens />
 		</QueryClientProvider>
 	);
 }

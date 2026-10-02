@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "Components/Auth/AuthContext";
 import { apiErrorMessage } from "Data/Api/Client";
 import AuthLayout from "Components/Layout/AuthLayout";
+import Emoji from "Components/Common/Emoji";
 
 export default function LoginPage() {
 	const { login } = useAuth();
@@ -33,8 +34,8 @@ export default function LoginPage() {
 							Forgot password?
 						</Anchor>
 					</Group>
-					<Button type="submit" color="red" loading={login.isPending}>
-						🎄 Log in
+					<Button type="submit" color="red" loading={login.isPending} leftSection={<Emoji>🎄</Emoji>}>
+						Log in
 					</Button>
 				</Stack>
 			</form>

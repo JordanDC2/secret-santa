@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useForgotPasswordMutation } from "Components/Auth/hooks";
 import { apiErrorMessage } from "Data/Api/Client";
 import AuthLayout from "Components/Layout/AuthLayout";
+import Emoji from "Components/Common/Emoji";
 
 export default function ForgotPasswordPage() {
 	const forgotPassword = useForgotPasswordMutation();
@@ -32,8 +33,8 @@ export default function ForgotPasswordPage() {
 							onChange={(event) => setEmail(event.currentTarget.value)}
 							required
 						/>
-						<Button type="submit" color="red" loading={forgotPassword.isPending}>
-							✉️ Send reset link
+						<Button type="submit" color="red" loading={forgotPassword.isPending} leftSection={<Emoji>✉️</Emoji>}>
+							Send reset link
 						</Button>
 					</Stack>
 				</form>

@@ -8,6 +8,7 @@ import type { IWishlistItem } from "Components/Wishlist/types";
 import WishlistItemRow from "Components/Wishlist/WishlistItemRow";
 import { apiErrorMessage } from "Data/Api/Client";
 import classes from "Components/Wishlist/WishlistPage.module.less";
+import Emoji from "Components/Common/Emoji";
 
 export default function MemberWishlistPage() {
 	const { user } = useAuth();
@@ -65,12 +66,13 @@ function MemberWishlist({ userId }: { userId: number }) {
 		if (!item.claim) {
 			return (
 				<Button
+					leftSection={<Emoji>🎁</Emoji>}
 					size="xs"
 					color="green"
 					loading={isThisItem}
 					onClick={() => (claimNeedsConfirm ? setConfirmingClaimId(item.id) : claimItem(item.id))}
 				>
-					🎁 I&apos;ll get this
+					I&apos;ll get this
 				</Button>
 			);
 		}

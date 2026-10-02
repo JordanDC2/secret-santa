@@ -8,6 +8,7 @@ import WishlistItemRow from "Components/Wishlist/WishlistItemRow";
 import WishlistItemFormModal from "Components/Wishlist/WishlistItemFormModal";
 import { apiErrorMessage } from "Data/Api/Client";
 import classes from "Components/Wishlist/WishlistPage.module.less";
+import Emoji from "Components/Common/Emoji";
 
 type IModalState = { opened: boolean; item: IWishlistItem | null; key: number };
 
@@ -26,8 +27,8 @@ export default function MyWishlistPage() {
 			<Stack gap="lg">
 				<Group justify="space-between">
 					<h1 className={classes.title}>📝 My wishlist</h1>
-					<Button color="red" onClick={() => openModal(null)}>
-						🎁 Add item
+					<Button color="red" leftSection={<Emoji>🎁</Emoji>} onClick={() => openModal(null)}>
+						Add item
 					</Button>
 				</Group>
 				<MantineText c="dimmed">

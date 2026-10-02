@@ -1,5 +1,6 @@
 import { Alert, Button, Group, Input, Modal, NumberInput, Rating, Stack, TextInput, Textarea } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import Emoji from "Components/Common/Emoji";
 import { useSaveWishlistItemMutation } from "Components/Wishlist/hooks";
 import type { IWishlistItem } from "Components/Wishlist/types";
 import { apiErrorMessage } from "Data/Api/Client";
@@ -84,8 +85,13 @@ export default function WishlistItemFormModal({ opened, item, onClose }: IWishli
 						<Button variant="subtle" onClick={onClose}>
 							Cancel
 						</Button>
-						<Button type="submit" color="red" loading={saveItem.isPending}>
-							{item ? "Save" : "🎁 Add item"}
+						<Button
+							type="submit"
+							color="red"
+							loading={saveItem.isPending}
+							leftSection={item ? undefined : <Emoji>🎁</Emoji>}
+						>
+							{item ? "Save" : "Add item"}
 						</Button>
 					</Group>
 				</Stack>

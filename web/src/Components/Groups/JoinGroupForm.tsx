@@ -17,8 +17,9 @@ export default function JoinGroupForm() {
 		<form onSubmit={handleSubmit}>
 			<Stack>
 				{joinGroup.isError && <Alert color="red">{apiErrorMessage(joinGroup.error)}</Alert>}
-				<Group align="flex-end">
+				<Group align="flex-end" wrap="nowrap">
 					<TextInput
+						flex={1}
 						label="Join code"
 						placeholder="ABC123"
 						value={joinCode}

@@ -1,4 +1,4 @@
-import { Container, Stack, Title } from "@mantine/core";
+import { Card, Container, SimpleGrid, Stack, Title } from "@mantine/core";
 import { useAuth } from "Components/Auth/AuthContext";
 import CreateGroupForm from "Components/Groups/CreateGroupForm";
 import JoinGroupForm from "Components/Groups/JoinGroupForm";
@@ -21,17 +21,20 @@ export default function DashboardPage() {
 
 				<CandyCaneDivider />
 
-				<Stack>
-					<Title order={3}>✨ Create a group</Title>
-					<CreateGroupForm />
-				</Stack>
-
-				<CandyCaneDivider />
-
-				<Stack>
-					<Title order={3}>🔑 Join a group</Title>
-					<JoinGroupForm />
-				</Stack>
+				<SimpleGrid cols={{ base: 1, sm: 2 }}>
+					<Card withBorder padding="lg" radius="md">
+						<Title order={4} mb="sm">
+							✨ Create a group
+						</Title>
+						<CreateGroupForm />
+					</Card>
+					<Card withBorder padding="lg" radius="md">
+						<Title order={4} mb="sm">
+							🔑 Join a group
+						</Title>
+						<JoinGroupForm />
+					</Card>
+				</SimpleGrid>
 			</Stack>
 		</Container>
 	);

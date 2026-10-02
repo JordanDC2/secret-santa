@@ -17,8 +17,9 @@ export default function CreateGroupForm() {
 		<form onSubmit={handleSubmit}>
 			<Stack>
 				{createGroup.isError && <Alert color="red">{apiErrorMessage(createGroup.error)}</Alert>}
-				<Group align="flex-end">
+				<Group align="flex-end" wrap="nowrap">
 					<TextInput
+						flex={1}
 						label="Group name"
 						placeholder="Office Secret Santa"
 						value={name}
