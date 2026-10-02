@@ -8,6 +8,7 @@ use App\Http\Controllers\Auth\LoginHandler;
 use App\Http\Controllers\Auth\LogoutHandler;
 use App\Http\Controllers\Auth\RegisterHandler;
 use App\Http\Controllers\Auth\ResetPasswordHandler;
+use App\Http\Controllers\Group\DrawDetailsController;
 use App\Http\Controllers\Group\DrawHandler;
 use App\Http\Controllers\Group\ExclusionController;
 use App\Http\Controllers\Group\JoinHandler;
@@ -56,6 +57,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('groups/{group}/draw', DrawHandler::class)->name('groups.draw');
 
     Route::post('groups/{group}/leave', LeaveHandler::class)->name('groups.leave');
+
+    Route::get('groups/{group}/draw/check', [DrawDetailsController::class, 'check'])->name('groups.draw.check');
+
+    Route::get('groups/{group}/draw/assignments', [DrawDetailsController::class, 'assignments'])->name('groups.draw.assignments');
 
     // scoped(): an exclusion id only resolves inside the group in the URL.
     Route::apiResource('groups.exclusions', ExclusionController::class)

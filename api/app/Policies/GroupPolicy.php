@@ -48,6 +48,14 @@ class GroupPolicy
     }
 
     /**
+     * Only the owner can check the draw or see who drew whom.
+     */
+    public function viewDraw(User $user, Group $group): bool
+    {
+        return $user->id === $group->owner_id;
+    }
+
+    /**
      * Determine whether the user can draw names for the group.
      */
     public function draw(User $user, Group $group): bool

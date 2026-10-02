@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
-#[Fillable(['name', 'owner_id', 'join_code', 'drawn_at'])]
+#[Fillable(['name', 'description', 'owner_id', 'join_code', 'drawn_at'])]
 class Group extends Model
 {
     use HasFactory;

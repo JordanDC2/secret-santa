@@ -3,8 +3,10 @@ import { Badge, Button, Card, Group, Stack, Text as MantineText } from "@mantine
 import type { IGroup } from "Components/Groups/types";
 import AssignmentReveal from "Components/Groups/AssignmentReveal";
 import DeleteGroupControl from "Components/Groups/DeleteGroupControl";
+import DrawDetailsModal from "Components/Groups/DrawDetailsModal";
 import DrawNamesControl from "Components/Groups/DrawNamesControl";
 import ExclusionsModal from "Components/Groups/ExclusionsModal";
+import GroupDescription from "Components/Groups/GroupDescription";
 import GroupMembers from "Components/Groups/GroupMembers";
 import GroupNameEditor from "Components/Groups/GroupNameEditor";
 import InviteCode from "Components/Groups/InviteCode";
@@ -14,22 +16,13 @@ type IGroupCardProps = {
 	group: IGroup;
 };
 
-function GroupStatus({ group }: IGroupCardProps) {
+/** A one-line status for members, shown in the footer row beside Leave group. */
+function statusMessage(group: IGroup): string | null {
 	if (!group.isDrawn) {
-		return group.isOwner ? null : (
-			<MantineText size="sm" c="dimmed">
-				Waiting for the group owner to draw names.
-			</MantineText>
-		);
+		return group.isOwner ? null : "Waiting for the group owner to draw names.";
 	}
 
-	return group.myAssignment ? (
-		<AssignmentReveal recipientId={group.myAssignment.recipientId} recipientName={group.myAssignment.recipientName} />
-	) : (
-		<MantineText size="sm" c="dimmed">
-			Names have already been drawn for this group.
-		</MantineText>
-	);
+	return group.myAssignment ? null : "Names have already been drawn for this group.";
 }
 
 type IGroupAction = "draw" | "delete" | "leave";
@@ -38,6 +31,8 @@ export default function GroupCard({ group }: IGroupCardProps) {
 	// Only one "are you sure?" panel at a time, and it takes the whole footer.
 	const [openAction, setOpenAction] = useState<IGroupAction | null>(null);
 	const [exclusionsOpen, setExclusionsOpen] = useState(false);
+	const [drawDetailsOpen, setDrawDetailsOpen] = useState(false);
+	const canViewDraw = group.isOwner && group.isDrawn;
 	const canDraw = group.isOwner && !group.isDrawn;
 	const canLeave = !group.isOwner && !group.isDrawn;
 
@@ -58,6 +53,7 @@ export default function GroupCard({ group }: IGroupCardProps) {
 		leave: canLeave ? <LeaveGroupControl groupId={group.id} groupName={group.name} {...confirmState("leave")} /> : null,
 	};
 	const hasControls = Object.values(controls).some(Boolean);
+	const message = statusMessage(group);
 
 	return (
 		<Card withBorder padding="lg" radius="md">
@@ -71,15 +67,21 @@ export default function GroupCard({ group }: IGroupCardProps) {
 				</MantineText>
 				<InviteCode code={group.joinCode} />
 			</Group>
+			<GroupDescription groupId={group.id} description={group.description} canEdit={group.isOwner} />
 			<GroupMembers members={group.members} />
 
 			<Card.Section inheritPadding py="md" mt="md" withBorder>
 				<Stack gap="md">
-					<GroupStatus group={group} />
+					{group.myAssignment && (
+						<AssignmentReveal
+							recipientId={group.myAssignment.recipientId}
+							recipientName={group.myAssignment.recipientName}
+						/>
+					)}
 
 					{openAction
 						? controls[openAction]
-						: hasControls && (
+						: (hasControls || message) && (
 								<Group justify="space-between" align="center">
 									{canDraw ? (
 										<Group gap="sm">
@@ -93,6 +95,14 @@ export default function GroupCard({ group }: IGroupCardProps) {
 												)}
 											</Button>
 										</Group>
+									) : canViewDraw ? (
+										<Button variant="default" onClick={() => setDrawDetailsOpen(true)}>
+											Draw details
+										</Button>
+									) : message ? (
+										<MantineText size="sm" c="dimmed">
+											{message}
+										</MantineText>
 									) : (
 										<span />
 									)}
@@ -101,6 +111,9 @@ export default function GroupCard({ group }: IGroupCardProps) {
 							)}
 				</Stack>
 			</Card.Section>
+			{canViewDraw && (
+				<DrawDetailsModal group={group} opened={drawDetailsOpen} onClose={() => setDrawDetailsOpen(false)} />
+			)}
 			{canDraw && <ExclusionsModal group={group} opened={exclusionsOpen} onClose={() => setExclusionsOpen(false)} />}
 		</Card>
 	);

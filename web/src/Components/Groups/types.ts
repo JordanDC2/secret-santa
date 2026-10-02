@@ -1,6 +1,7 @@
 export type IGroup = {
 	id: number;
 	name: string;
+	description: string | null;
 	joinCode: string;
 	isOwner: boolean;
 	membersCount: number;
@@ -17,4 +18,14 @@ export type IGroupExclusion = {
 	receiver: { id: number; name: string };
 	/** Two-way: the receiver can't draw the giver either. */
 	mutual: boolean;
+};
+
+export type IDrawCheck = {
+	verified: boolean;
+	checks: { label: string; passed: boolean; problems: string[] }[];
+};
+
+export type IDrawPair = {
+	giver: { id: number; name: string };
+	receiver: { id: number; name: string };
 };

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ActionIcon, Button, Group, TextInput, Title, Tooltip } from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPenToSquare } from "@fortawesome/free-regular-svg-icons";
-import { useRenameGroupMutation } from "Components/Groups/hooks";
+import { useUpdateGroupMutation } from "Components/Groups/hooks";
 import { apiErrorMessage } from "Data/Api/Client";
 
 type IGroupNameEditorProps = {
@@ -13,7 +13,7 @@ type IGroupNameEditorProps = {
 
 /** The group's title; owners can click the pencil to rename it in place. */
 export default function GroupNameEditor({ groupId, name, canRename }: IGroupNameEditorProps) {
-	const renameGroup = useRenameGroupMutation();
+	const renameGroup = useUpdateGroupMutation();
 	const [draft, setDraft] = useState<string | null>(null);
 
 	function stopEditing() {
@@ -29,7 +29,7 @@ export default function GroupNameEditor({ groupId, name, canRename }: IGroupName
 			return;
 		}
 
-		renameGroup.mutate({ groupId, name: trimmed }, { onSuccess: stopEditing });
+		renameGroup.mutate({ groupId, changes: { name: trimmed } }, { onSuccess: stopEditing });
 	}
 
 	if (draft === null) {

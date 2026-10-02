@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { IGroup, IGroupExclusion } from "Components/Groups/types";
+import type { IDrawCheck, IDrawPair, IGroup, IGroupExclusion } from "Components/Groups/types";
 import { apiClient } from "Data/Api/Client";
 
 export const GROUPS_QUERY_KEY = ["groups"];
@@ -10,6 +10,7 @@ function mapGroup(raw: Record<string, unknown>): IGroup {
 	return {
 		id: raw.id as number,
 		name: raw.name as string,
+		description: raw.description as string | null,
 		joinCode: raw.join_code as string,
 		isOwner: raw.is_owner as boolean,
 		membersCount: raw.members_count as number,
@@ -92,12 +93,19 @@ export function useLeaveGroupMutation() {
 	});
 }
 
-export function useRenameGroupMutation() {
+/** Owner edits to a group's name and/or description. */
+export function useUpdateGroupMutation() {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async ({ groupId, name }: { groupId: number; name: string }) => {
-			const group = await apiClient.patch<Record<string, unknown>>(`/groups/${groupId}`, { name });
+		mutationFn: async ({
+			groupId,
+			changes,
+		}: {
+			groupId: number;
+			changes: { name?: string; description?: string | null };
+		}) => {
+			const group = await apiClient.patch<Record<string, unknown>>(`/groups/${groupId}`, changes);
 
 			return mapGroup(group);
 		},
@@ -136,5 +144,21 @@ export function useRemoveExclusionMutation(groupId: number) {
 	return useMutation({
 		mutationFn: (exclusionId: number) => apiClient.delete<void>(`/groups/${groupId}/exclusions/${exclusionId}`),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: GROUPS_QUERY_KEY }),
+	});
+}
+
+export function useDrawCheckQuery(groupId: number, enabled: boolean) {
+	return useQuery({
+		queryKey: ["groups", groupId, "draw", "check"],
+		queryFn: () => apiClient.get<IDrawCheck>(`/groups/${groupId}/draw/check`),
+		enabled,
+	});
+}
+
+export function useDrawPairsQuery(groupId: number, enabled: boolean) {
+	return useQuery({
+		queryKey: ["groups", groupId, "draw", "pairs"],
+		queryFn: () => apiClient.get<IDrawPair[]>(`/groups/${groupId}/draw/assignments`),
+		enabled,
 	});
 }
