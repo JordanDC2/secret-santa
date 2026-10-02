@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\RegisterHandler;
 use App\Http\Controllers\Auth\ResetPasswordHandler;
 use App\Http\Controllers\Group\DrawHandler;
 use App\Http\Controllers\Group\JoinHandler;
+use App\Http\Controllers\Group\LeaveHandler;
 use App\Http\Controllers\GroupController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -38,5 +39,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('groups/{group}/draw', DrawHandler::class)->name('groups.draw');
 
-    Route::apiResource('groups', GroupController::class)->only(['index', 'store', 'show']);
+    Route::post('groups/{group}/leave', LeaveHandler::class)->name('groups.leave');
+
+    Route::apiResource('groups', GroupController::class)->only(['index', 'store', 'show', 'destroy']);
 });

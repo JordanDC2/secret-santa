@@ -8,6 +8,7 @@ use App\Http\Resources\GroupResource;
 use App\Models\Group;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 class GroupController extends Controller
 {
@@ -33,5 +34,13 @@ class GroupController extends Controller
     public function show(Group $group): GroupResource
     {
         return new GroupResource($group->loadCount('members'));
+    }
+
+    public function destroy(Group $group): Response
+    {
+        // Memberships and assignments cascade at the database level.
+        $group->delete();
+
+        return response()->noContent();
     }
 }

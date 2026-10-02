@@ -38,4 +38,20 @@ class GroupPolicy
     {
         return $user->id === $group->owner_id;
     }
+
+    /**
+     * Determine whether the user can delete the group.
+     */
+    public function delete(User $user, Group $group): bool
+    {
+        return $user->id === $group->owner_id;
+    }
+
+    /**
+     * Determine whether the user can leave the group. Owners delete it instead.
+     */
+    public function leave(User $user, Group $group): bool
+    {
+        return $user->id !== $group->owner_id && $this->view($user, $group);
+    }
 }

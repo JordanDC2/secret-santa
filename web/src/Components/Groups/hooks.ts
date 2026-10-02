@@ -69,3 +69,21 @@ export function useDrawNamesMutation() {
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: GROUPS_QUERY_KEY }),
 	});
 }
+
+export function useDeleteGroupMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (groupId: number) => apiClient.delete<void>(`/groups/${groupId}`),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: GROUPS_QUERY_KEY }),
+	});
+}
+
+export function useLeaveGroupMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (groupId: number) => apiClient.post<void>(`/groups/${groupId}/leave`),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: GROUPS_QUERY_KEY }),
+	});
+}
