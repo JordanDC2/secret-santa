@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\Account\DeleteAccountHandler;
+use App\Http\Controllers\Account\UpdatePasswordHandler;
+use App\Http\Controllers\Account\UpdateProfileHandler;
 use App\Http\Controllers\Auth\ForgotPasswordHandler;
 use App\Http\Controllers\Auth\LoginHandler;
 use App\Http\Controllers\Auth\LogoutHandler;
@@ -37,6 +40,14 @@ Route::prefix('auth')->name('auth.')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
+    });
+
+    Route::prefix('account')->name('account.')->group(function () {
+        Route::patch('profile', UpdateProfileHandler::class)->name('profile');
+
+        Route::put('password', UpdatePasswordHandler::class)->name('password');
+
+        Route::delete('/', DeleteAccountHandler::class)->name('destroy');
     });
 
     Route::post('groups/join', JoinHandler::class)->name('groups.join');

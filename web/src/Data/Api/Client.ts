@@ -67,6 +67,20 @@ export function apiErrorMessage(error: unknown): string {
 	return error instanceof ApiError ? error.message : "Something went wrong. Please try again.";
 }
 
+/**
+ * The first validation message per field, for showing errors under the input they belong to.
+ * `fieldNames` maps the API's snake_case names to the form's, e.g. { current_password: "currentPassword" }.
+ */
+export function apiFieldErrors(error: unknown, fieldNames: Record<string, string> = {}): Record<string, string> {
+	if (!(error instanceof ApiError) || !error.errors) {
+		return {};
+	}
+
+	return Object.fromEntries(
+		Object.entries(error.errors).map(([field, messages]) => [fieldNames[field] ?? field, messages[0]]),
+	);
+}
+
 export const apiClient = {
 	get: <TResponse>(path: string) => request<TResponse>(path),
 	post: <TResponse>(path: string, body?: unknown) =>
@@ -79,5 +93,14 @@ export const apiClient = {
 			method: "PATCH",
 			body: body === undefined ? undefined : JSON.stringify(body),
 		}),
-	delete: <TResponse>(path: string) => request<TResponse>(path, { method: "DELETE" }),
+	put: <TResponse>(path: string, body?: unknown) =>
+		request<TResponse>(path, {
+			method: "PUT",
+			body: body === undefined ? undefined : JSON.stringify(body),
+		}),
+	delete: <TResponse>(path: string, body?: unknown) =>
+		request<TResponse>(path, {
+			method: "DELETE",
+			body: body === undefined ? undefined : JSON.stringify(body),
+		}),
 };

@@ -4,7 +4,7 @@ import type { UseMutationResult } from "@tanstack/react-query";
 import type { IUser } from "Components/Auth/types";
 import { apiClient } from "Data/Api/Client";
 
-const CURRENT_USER_QUERY_KEY = ["auth", "user"];
+export const CURRENT_USER_QUERY_KEY = ["auth", "user"];
 
 type ILoginPayload = { email: string; password: string };
 type IRegisterPayload = { name: string; email: string; password: string; passwordConfirmation: string };

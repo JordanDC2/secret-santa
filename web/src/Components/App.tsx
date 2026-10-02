@@ -3,6 +3,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { MantineProvider } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import AccountPage from "Components/Account/AccountPage";
 import { AuthProvider, useAuth } from "Components/Auth/AuthContext";
 import ForgotPasswordPage from "Components/Auth/ForgotPasswordPage";
 import LoginPage from "Components/Auth/LoginPage";
@@ -42,6 +43,7 @@ function AppRoutes() {
 			<Route element={<AuthenticatedLayout />}>
 				<Route path="/" element={<DashboardPage />} />
 				<Route path="/wishlist" element={<MyWishlistPage />} />
+				<Route path="/account" element={<AccountPage />} />
 				<Route path="/wishlists/:userId" element={<MemberWishlistPage />} />
 			</Route>
 		</Routes>

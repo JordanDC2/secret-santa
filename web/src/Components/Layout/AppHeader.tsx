@@ -17,6 +17,9 @@ export default function AppHeader() {
 						<Anchor component={Link} to="/wishlist" className={classes.navLink}>
 							📝 My wishlist
 						</Anchor>
+						<Anchor component={Link} to="/account" className={classes.navLink}>
+							⚙️ Account
+						</Anchor>
 						{user && (
 							<MantineText size="sm" c="gray.4" visibleFrom="sm">
 								{user.email}
