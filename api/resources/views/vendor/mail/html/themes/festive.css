@@ -14,6 +14,12 @@ body *:not(html):not(style):not(br):not(tr):not(code) {
     position: relative;
 }
 
+/* The wrapper table carries the gradient; html/body/wrapper at full height keep it
+   from stopping short of the window bottom in tall views. */
+html {
+    height: 100%;
+}
+
 body {
     -webkit-text-size-adjust: none;
     background-color: #1a3a2e;
@@ -94,6 +100,7 @@ img {
     -premailer-width: 100%;
     background-color: #1a3a2e;
     background-image: linear-gradient(135deg, #0f2027 0%, #1a3a2e 45%, #7a1f2b 100%);
+    height: 100%;
     margin: 0;
     padding: 0;
     width: 100%;
