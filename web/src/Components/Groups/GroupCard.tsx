@@ -11,6 +11,7 @@ import GroupMembers from "Components/Groups/GroupMembers";
 import GroupNameEditor from "Components/Groups/GroupNameEditor";
 import InviteCode from "Components/Groups/InviteCode";
 import LeaveGroupControl from "Components/Groups/LeaveGroupControl";
+import classes from "Components/Groups/GroupCard.module.less";
 
 type IGroupCardProps = {
 	group: IGroup;
@@ -59,7 +60,11 @@ export default function GroupCard({ group }: IGroupCardProps) {
 		<Card withBorder padding="lg" radius="md">
 			<Group justify="space-between" wrap="nowrap" align="flex-start">
 				<GroupNameEditor groupId={group.id} name={group.name} canRename={group.isOwner} />
-				{group.isOwner && <Badge color="blue">Owner</Badge>}
+				{group.isOwner && (
+					<Badge color="green" variant="light">
+						Owner
+					</Badge>
+				)}
 			</Group>
 			<Group gap="md" mt={4}>
 				<MantineText size="sm" c="dimmed">
@@ -100,13 +105,13 @@ export default function GroupCard({ group }: IGroupCardProps) {
 											Draw details
 										</Button>
 									) : message ? (
-										<MantineText size="sm" c="dimmed">
+										<MantineText size="sm" c="dimmed" className={classes.footerMessage}>
 											{message}
 										</MantineText>
 									) : (
 										<span />
 									)}
-									{controls.delete ?? controls.leave}
+									<div className={classes.endControl}>{controls.delete ?? controls.leave}</div>
 								</Group>
 							)}
 				</Stack>

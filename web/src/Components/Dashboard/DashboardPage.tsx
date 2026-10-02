@@ -4,7 +4,7 @@ import CreateGroupForm from "Components/Groups/CreateGroupForm";
 import JoinGroupForm from "Components/Groups/JoinGroupForm";
 import GroupList from "Components/Groups/GroupList";
 import CandyCaneDivider from "Components/Layout/CandyCaneDivider";
-import classes from "Components/Dashboard/DashboardPage.module.less";
+import PageTitle from "Components/Layout/PageTitle";
 
 export default function DashboardPage() {
 	const { user } = useAuth();
@@ -12,7 +12,7 @@ export default function DashboardPage() {
 	return (
 		<Container my={40}>
 			<Stack gap="xl">
-				<h1 className={classes.welcome}>🎄 Welcome{user ? `, ${user.name}` : ""}!</h1>
+				<PageTitle>🎄 Welcome{user ? `, ${user.name}` : ""}!</PageTitle>
 
 				<Stack>
 					<Title order={3}>🎁 Your groups</Title>

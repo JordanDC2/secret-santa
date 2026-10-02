@@ -1,0 +1,11 @@
+/* A zero flex-basis lets a member's status text shrink and wrap instead of pushing
+   "Leave group" onto its own line on phones; the row itself can still wrap for owners. */
+.footerMessage {
+	flex: 1 1 0;
+	min-width: 0;
+}
+
+/* Keeps Delete/Leave on the right even when the footer wraps onto two lines on phones. */
+.endControl {
+	margin-left: auto;
+}

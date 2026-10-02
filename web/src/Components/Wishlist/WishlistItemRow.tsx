@@ -22,11 +22,12 @@ export default function WishlistItemRow({ item, status, actions, dimmed = false 
 		<Accordion.Item value={String(item.id)} className={dimmed ? classes.dimmed : undefined}>
 			<Accordion.Control>
 				<Group justify="space-between" gap="xs">
-					<MantineText fw={600} className={classes.name}>
-						{item.name}
-					</MantineText>
+					{/* The claim badge sits under the name so it never gets squeezed on phones. */}
+					<Stack gap={4} className={classes.name}>
+						<MantineText fw={600}>{item.name}</MantineText>
+						{status && <div>{status}</div>}
+					</Stack>
 					<Group gap="sm" wrap="nowrap">
-						{status}
 						{item.price !== null && (
 							<MantineText size="sm" fw={600} className={classes.price}>
 								{priceFormatter.format(item.price)}

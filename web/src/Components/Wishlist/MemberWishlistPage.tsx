@@ -1,4 +1,4 @@
-import { Accordion, Alert, Anchor, Badge, Button, Container, Stack, Text as MantineText } from "@mantine/core";
+import { Accordion, Alert, Anchor, Button, Container, Stack, Text as MantineText } from "@mantine/core";
 import { useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { useAuth } from "Components/Auth/AuthContext";
@@ -8,6 +8,7 @@ import WishlistLiveUpdates from "Components/Wishlist/WishlistLiveUpdates";
 import { liveUpdatesEnabled } from "Data/Api/LiveUpdates";
 import type { IWishlistItem } from "Components/Wishlist/types";
 import WishlistItemRow from "Components/Wishlist/WishlistItemRow";
+import PageTitle from "Components/Layout/PageTitle";
 import { apiErrorMessage } from "Data/Api/Client";
 import classes from "Components/Wishlist/WishlistPage.module.less";
 import Emoji from "Components/Common/Emoji";
@@ -28,10 +29,15 @@ function claimStatus(item: IWishlistItem) {
 		return null;
 	}
 
+	// Plain text rather than a Badge: badges never wrap, and this sits in a narrow column on phones.
 	return item.claim.claimedByMe ? (
-		<Badge color="green">You&apos;re getting this</Badge>
+		<MantineText size="xs" fw={700} c="green.8">
+			✓ You&apos;re getting this
+		</MantineText>
 	) : (
-		<Badge color="gray">Claimed by {item.claim.claimedByName}</Badge>
+		<MantineText size="xs" fw={600} c="dimmed">
+			Claimed by {item.claim.claimedByName}
+		</MantineText>
 	);
 }
 
@@ -109,7 +115,7 @@ function MemberWishlist({ userId }: { userId: number }) {
 
 				{wishlistQuery.isSuccess && (
 					<>
-						<h1 className={classes.title}>📝 {wishlistQuery.data.user.name}&apos;s wishlist</h1>
+						<PageTitle>📝 {wishlistQuery.data.user.name}&apos;s wishlist</PageTitle>
 						<AssignmentNotice owner={wishlistQuery.data.user} myRecipients={wishlistQuery.data.myRecipients} />
 						<MantineText c="dimmed">
 							Claim something so nobody else buys it too. {wishlistQuery.data.user.name} can&apos;t see who claimed

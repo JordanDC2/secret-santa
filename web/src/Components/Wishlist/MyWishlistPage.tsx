@@ -6,6 +6,7 @@ import { useDeleteWishlistItemMutation, useMyWishlistQuery } from "Components/Wi
 import type { IWishlistItem } from "Components/Wishlist/types";
 import WishlistItemRow from "Components/Wishlist/WishlistItemRow";
 import WishlistItemFormModal from "Components/Wishlist/WishlistItemFormModal";
+import PageTitle from "Components/Layout/PageTitle";
 import { apiErrorMessage } from "Data/Api/Client";
 import classes from "Components/Wishlist/WishlistPage.module.less";
 import Emoji from "Components/Common/Emoji";
@@ -26,7 +27,7 @@ export default function MyWishlistPage() {
 		<Container my={40}>
 			<Stack gap="lg">
 				<Group justify="space-between">
-					<h1 className={classes.title}>📝 My wishlist</h1>
+					<PageTitle>📝 My wishlist</PageTitle>
 					<Button color="red" leftSection={<Emoji>🎁</Emoji>} onClick={() => openModal(null)}>
 						Add item
 					</Button>
