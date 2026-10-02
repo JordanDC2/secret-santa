@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Anchor, Alert, Button, PasswordInput, Stack, Text as MantineText, TextInput } from "@mantine/core";
+import { Anchor, Alert, Button, Group, PasswordInput, Stack, Text as MantineText, TextInput } from "@mantine/core";
 import { Link } from "react-router-dom";
 import { useAuth } from "Components/Auth/AuthContext";
 import { apiErrorMessage } from "Data/Api/Client";
@@ -28,6 +28,11 @@ export default function LoginPage() {
 						onChange={(event) => setPassword(event.currentTarget.value)}
 						required
 					/>
+					<Group justify="flex-end">
+						<Anchor component={Link} to="/forgot-password" size="sm">
+							Forgot password?
+						</Anchor>
+					</Group>
 					<Button type="submit" color="red" loading={login.isPending}>
 						🎄 Log in
 					</Button>

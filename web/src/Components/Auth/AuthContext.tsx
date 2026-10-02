@@ -51,7 +51,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
 		},
 	});
 
-	const status: IAuthContext["status"] = currentUserQuery.isPending
+	// Only the first check counts as loading. A logged-out user has no cached data, so
+	// background refetches (e.g. on window focus) report isPending again and would
+	// otherwise unmount every page mid-interaction.
+	const status: IAuthContext["status"] = !currentUserQuery.isFetched
 		? "loading"
 		: currentUserQuery.data
 			? "authenticated"

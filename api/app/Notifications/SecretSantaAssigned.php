@@ -6,7 +6,6 @@ use App\Models\Group;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Queue\Attributes\Backoff;
 use Illuminate\Queue\Attributes\Tries;
@@ -30,13 +29,14 @@ class SecretSantaAssigned extends Notification implements ShouldQueue
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(object $notifiable): ElfMailMessage
     {
         $frontendUrl = config('app.frontend_url');
 
-        return (new MailMessage)
+        return (new ElfMailMessage)
             ->subject("🎁 Your Secret Santa assignment for {$this->group->name}")
-            ->greeting("Ho ho ho, {$notifiable->name}!")
+            ->greeting("Hi {$notifiable->name}!")
+            ->line('I have news straight from the North Pole!')
             ->line("The names have been drawn for **{$this->group->name}**.")
             ->line('You are the Secret Santa for:')
             ->line("## {$this->recipient->name}")

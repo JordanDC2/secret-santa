@@ -115,4 +115,23 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Markdown Mail Settings
+    |--------------------------------------------------------------------------
+    |
+    | Notification emails use the festive theme in
+    | resources/views/vendor/mail/html/themes, which mirrors the web app's
+    | colors. Templates not overridden there fall back to Laravel's own.
+    |
+    */
+
+    'markdown' => [
+        'theme' => 'festive',
+
+        'paths' => [
+            resource_path('views/vendor/mail'),
+        ],
+    ],
+
 ];
