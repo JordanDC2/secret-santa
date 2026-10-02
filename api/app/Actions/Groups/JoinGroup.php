@@ -25,6 +25,14 @@ class JoinGroup
             ]);
         }
 
+        // Everyone's assignment was set at the draw, so a newcomer would have no one to
+        // buy for and no one buying for them.
+        if ($group->is_drawn) {
+            throw ValidationException::withMessages([
+                'join_code' => ["Names have already been drawn for this group, so it isn't taking new members."],
+            ]);
+        }
+
         $group->members()->attach($user);
 
         return $group;
