@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\Groups\CreateGroup;
 use App\Events\GroupChanged;
 use App\Http\Requests\Group\CreateRequest;
+use App\Http\Requests\Group\UpdateRequest;
 use App\Http\Resources\GroupResource;
 use App\Models\Group;
 use Illuminate\Http\Request;
@@ -34,6 +35,15 @@ class GroupController extends Controller
 
     public function show(Group $group): GroupResource
     {
+        return new GroupResource($group->loadCount('members'));
+    }
+
+    public function update(UpdateRequest $request, Group $group): GroupResource
+    {
+        $group->update(['name' => $request->string('name')->trim()->value()]);
+
+        GroupChanged::dispatch($group->id);
+
         return new GroupResource($group->loadCount('members'));
     }
 

@@ -25,7 +25,7 @@ class LiveUpdatesTest extends TestCase
         Notification::fake();
     }
 
-    public function test_joining_leaving_drawing_and_deleting_announce_a_group_change(): void
+    public function test_joining_leaving_renaming_drawing_and_deleting_announce_a_group_change(): void
     {
         $group = Group::factory()->create();
         $friend = User::factory()->create();
@@ -36,10 +36,11 @@ class LiveUpdatesTest extends TestCase
         $this->postJson(route('groups.join'), ['join_code' => $group->join_code])->assertSuccessful();
 
         Sanctum::actingAs($group->owner);
+        $this->patchJson(route('groups.update', $group), ['name' => 'Renamed'])->assertOk();
         $this->postJson(route('groups.draw', $group))->assertOk();
         $this->deleteJson(route('groups.destroy', $group))->assertNoContent();
 
-        Event::assertDispatchedTimes(GroupChanged::class, 5);
+        Event::assertDispatchedTimes(GroupChanged::class, 6);
         Event::assertDispatched(GroupChanged::class, fn (GroupChanged $event) => $event->groupId === $group->id);
     }
 

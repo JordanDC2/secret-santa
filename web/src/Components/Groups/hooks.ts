@@ -90,3 +90,16 @@ export function useLeaveGroupMutation() {
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: GROUPS_QUERY_KEY }),
 	});
 }
+
+export function useRenameGroupMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async ({ groupId, name }: { groupId: number; name: string }) => {
+			const group = await apiClient.patch<Record<string, unknown>>(`/groups/${groupId}`, { name });
+
+			return mapGroup(group);
+		},
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: GROUPS_QUERY_KEY }),
+	});
+}

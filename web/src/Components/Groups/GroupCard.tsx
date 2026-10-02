@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Badge, Card, Group, Stack, Text as MantineText, Title } from "@mantine/core";
+import { Badge, Card, Group, Stack, Text as MantineText } from "@mantine/core";
 import type { IGroup } from "Components/Groups/types";
 import AssignmentReveal from "Components/Groups/AssignmentReveal";
 import DeleteGroupControl from "Components/Groups/DeleteGroupControl";
 import DrawNamesControl from "Components/Groups/DrawNamesControl";
 import GroupMembers from "Components/Groups/GroupMembers";
+import GroupNameEditor from "Components/Groups/GroupNameEditor";
 import InviteCode from "Components/Groups/InviteCode";
 import LeaveGroupControl from "Components/Groups/LeaveGroupControl";
 
@@ -58,8 +59,8 @@ export default function GroupCard({ group }: IGroupCardProps) {
 
 	return (
 		<Card withBorder padding="lg" radius="md">
-			<Group justify="space-between" wrap="nowrap">
-				<Title order={4}>{group.name}</Title>
+			<Group justify="space-between" wrap="nowrap" align="flex-start">
+				<GroupNameEditor groupId={group.id} name={group.name} canRename={group.isOwner} />
 				{group.isOwner && <Badge color="blue">Owner</Badge>}
 			</Group>
 			<Group gap="md" mt={4}>

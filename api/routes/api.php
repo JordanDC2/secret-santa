@@ -55,5 +55,5 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('users/{user}/wishlist', MemberWishlistHandler::class)->name('users.wishlist');
 
-    Route::apiResource('groups', GroupController::class)->only(['index', 'store', 'show', 'destroy']);
+    Route::apiResource('groups', GroupController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
 });

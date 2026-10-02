@@ -27,6 +27,42 @@ class GroupLifecycleTest extends TestCase
         $this->assertDatabaseMissing('secret_santa_assignments', ['group_id' => $group->id]);
     }
 
+    public function test_owner_can_rename_the_group_even_after_the_draw(): void
+    {
+        $group = $this->groupWithMember();
+        $group->update(['drawn_at' => now()]);
+
+        Sanctum::actingAs($group->owner);
+
+        $this->patchJson(route('groups.update', $group), ['name' => '  Cousins 2026  '])
+            ->assertOk()
+            ->assertJsonPath('name', 'Cousins 2026');
+
+        $this->assertSame('Cousins 2026', $group->fresh()->name);
+    }
+
+    public function test_member_cannot_rename_the_group(): void
+    {
+        $group = $this->groupWithMember();
+
+        Sanctum::actingAs($this->memberOf($group));
+
+        $this->patchJson(route('groups.update', $group), ['name' => 'Hijacked'])->assertForbidden();
+
+        $this->assertNotSame('Hijacked', $group->fresh()->name);
+    }
+
+    public function test_group_name_is_required(): void
+    {
+        $group = $this->groupWithMember();
+
+        Sanctum::actingAs($group->owner);
+
+        $this->patchJson(route('groups.update', $group), ['name' => ''])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('name');
+    }
+
     public function test_member_cannot_delete_the_group(): void
     {
         $group = $this->groupWithMember();
