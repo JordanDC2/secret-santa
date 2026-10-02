@@ -36,7 +36,7 @@ function claimStatus(item: IWishlistItem) {
 		</MantineText>
 	) : (
 		<MantineText size="xs" fw={600} c="dimmed">
-			Claimed by {item.claim.claimedByName}
+			Claimed by {item.claim.claimedByName ?? "someone"}
 		</MantineText>
 	);
 }

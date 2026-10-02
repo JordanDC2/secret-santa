@@ -17,7 +17,7 @@ function mapItem(raw: Record<string, unknown>): IWishlistItem {
 		rating: raw.rating as number,
 		...(claim !== undefined && {
 			claim: claim
-				? { claimedByMe: claim.claimed_by_me as boolean, claimedByName: claim.claimed_by_name as string }
+				? { claimedByMe: claim.claimed_by_me as boolean, claimedByName: claim.claimed_by_name as string | null }
 				: null,
 		}),
 	};

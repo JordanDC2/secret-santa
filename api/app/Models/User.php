@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable(['name', 'email', 'password'])]
@@ -58,6 +59,20 @@ class User extends Authenticatable
     public function claimedWishlistItems(): HasMany
     {
         return $this->hasMany(WishlistItem::class, 'claimed_by_id');
+    }
+
+    /**
+     * Ids of everyone in at least one of this user's groups (including this user).
+     *
+     * @return array<int>
+     */
+    public function groupMateIds(): array
+    {
+        return DB::table('group_user')
+            ->whereIn('group_id', $this->groups()->select('groups.id'))
+            ->distinct()
+            ->pluck('user_id')
+            ->all();
     }
 
     public function sharesGroupWith(User $other): bool

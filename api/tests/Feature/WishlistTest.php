@@ -102,6 +102,28 @@ class WishlistTest extends TestCase
         $this->getJson(route('users.wishlist', $owner))->assertOk()->assertJsonPath('my_recipients', []);
     }
 
+    public function test_claimers_outside_your_groups_stay_anonymous(): void
+    {
+        [$owner, $friend] = $this->groupMates();
+        $stranger = User::factory()->create();
+        $otherGroup = Group::factory()->for($stranger, 'owner')->create();
+        $otherGroup->members()->attach($owner);
+        $item = WishlistItem::factory()->for($owner, 'owner')->claimedBy($stranger)->create();
+
+        Sanctum::actingAs($friend);
+        $this->getJson(route('users.wishlist', $owner))
+            ->assertOk()
+            ->assertJsonPath('items.0.claim.claimed_by_name', null)
+            ->assertJsonPath('items.0.claim.claimed_by_me', false);
+
+        // Someone who does share a group with the claimer still sees their name.
+        $otherGroup->members()->attach($friend);
+        $this->getJson(route('users.wishlist', $owner))
+            ->assertJsonPath('items.0.claim.claimed_by_name', $stranger->name);
+
+        $this->assertModelExists($item);
+    }
+
     public function test_someone_outside_the_owners_groups_cannot_view_their_list(): void
     {
         [$owner] = $this->groupMates();

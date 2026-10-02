@@ -27,7 +27,8 @@ class WishlistItemResource extends JsonResource
             // surprise can't leak through the browser's network tab.
             'claim' => $this->when($viewer->id !== $this->user_id, fn () => $this->claimed_by_id ? [
                 'claimed_by_me' => $this->claimed_by_id === $viewer->id,
-                'claimed_by_name' => $this->claimedBy->name,
+                // Null when the claimer isn't in any of the viewer's groups (see MemberWishlistHandler).
+                'claimed_by_name' => $this->claimedBy?->name,
             ] : null),
         ];
     }

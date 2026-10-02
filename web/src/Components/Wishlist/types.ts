@@ -1,6 +1,7 @@
 export type IWishlistClaim = {
 	claimedByMe: boolean;
-	claimedByName: string;
+	/** Null when the claimer isn't in any of your groups. */
+	claimedByName: string | null;
 };
 
 export type IWishlistItem = {
