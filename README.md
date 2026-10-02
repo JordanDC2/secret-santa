@@ -20,8 +20,9 @@ cd api && composer install && cp .env.example .env && php artisan key:generate &
 cd ../web && npm install
 ```
 
-Set `RESEND_API_KEY` in `api/.env` to send real email. Until a sending domain is verified in Resend,
-the `onboarding@resend.dev` sender only delivers to the email address on your Resend account.
+Email goes out through Gmail SMTP from `secretsantamailerclient@gmail.com`. Set `MAIL_PASSWORD` in
+`api/.env` to a Google app password for that account (requires 2-Step Verification), not its login
+password.
 
 ## Running locally
 
