@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { IGroup } from "Components/Groups/types";
+import type { IGroup, IGroupExclusion } from "Components/Groups/types";
 import { apiClient } from "Data/Api/Client";
 
 export const GROUPS_QUERY_KEY = ["groups"];
@@ -14,6 +14,7 @@ function mapGroup(raw: Record<string, unknown>): IGroup {
 		isOwner: raw.is_owner as boolean,
 		membersCount: raw.members_count as number,
 		isDrawn: raw.is_drawn as boolean,
+		...(raw.exclusions_count !== undefined && { exclusionsCount: raw.exclusions_count as number }),
 		members: raw.members as IGroup["members"],
 		myAssignment: myAssignment
 			? { recipientId: myAssignment.recipient_id as number, recipientName: myAssignment.recipient_name as string }
@@ -100,6 +101,40 @@ export function useRenameGroupMutation() {
 
 			return mapGroup(group);
 		},
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: GROUPS_QUERY_KEY }),
+	});
+}
+
+const exclusionsQueryKey = (groupId: number) => ["groups", groupId, "exclusions"];
+
+export function useExclusionsQuery(groupId: number, enabled: boolean) {
+	return useQuery({
+		queryKey: exclusionsQueryKey(groupId),
+		queryFn: () => apiClient.get<IGroupExclusion[]>(`/groups/${groupId}/exclusions`),
+		enabled,
+	});
+}
+
+export function useAddExclusionMutation(groupId: number) {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (details: { giverId: number; receiverId: number; mutual: boolean }) =>
+			apiClient.post<IGroupExclusion>(`/groups/${groupId}/exclusions`, {
+				giver_id: details.giverId,
+				receiver_id: details.receiverId,
+				mutual: details.mutual,
+			}),
+		// ["groups"] is a prefix of the exclusions key, so this refreshes the list and the card's count.
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: GROUPS_QUERY_KEY }),
+	});
+}
+
+export function useRemoveExclusionMutation(groupId: number) {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (exclusionId: number) => apiClient.delete<void>(`/groups/${groupId}/exclusions/${exclusionId}`),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: GROUPS_QUERY_KEY }),
 	});
 }

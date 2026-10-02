@@ -24,7 +24,14 @@ class DrawNames
             ]);
         }
 
-        $assignments = ($this->generateAssignments)($members->pluck('id')->all());
+        $memberIds = $members->pluck('id')->all();
+        $assignments = ($this->generateAssignments)($memberIds, $group->blockedPairsAmong($memberIds));
+
+        if ($assignments === null) {
+            throw ValidationException::withMessages([
+                'group' => ['These exclusions leave no way to match everyone. Remove one and try again.'],
+            ]);
+        }
 
         DB::transaction(function () use ($group, $assignments) {
             $group->assignments()->delete();

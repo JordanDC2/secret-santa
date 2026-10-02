@@ -20,6 +20,7 @@ class LeaveGroup
         }
 
         $group->members()->detach($user);
+        $group->exclusions()->where(fn ($query) => $query->where('giver_id', $user->id)->orWhere('receiver_id', $user->id))->delete();
 
         GroupChanged::dispatch($group->id);
     }

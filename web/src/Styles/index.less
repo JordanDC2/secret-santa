@@ -11,6 +11,50 @@
 	--festive-white: #ffffff;
 }
 
+/*
+ * Mantine's keyboard focus ring defaults to the primary color (red), which reads like an
+ * error. Same ring and same when-to-show rules, in the Draw Names button's green.
+ */
+.mantine-focus-auto:focus-visible,
+.mantine-focus-always:focus {
+	outline-color: var(--mantine-color-green-7);
+}
+
+/*
+ * Focused inputs get a festive green-to-red gradient border: a transparent border lets a
+ * gradient background layer (border-box) show through around a solid inner layer
+ * (padding-box). Covers every Mantine input via its documented
+ * static class; password fields put the class on the bordered wrapper, hence :focus-within.
+ * Fields with a validation error keep their red border.
+ */
+.mantine-Input-input:not([data-error]):focus,
+.mantine-Input-input:not([data-error]):focus-within {
+	border-color: transparent;
+	background:
+		linear-gradient(var(--input-bg), var(--input-bg)) padding-box,
+		linear-gradient(135deg, var(--mantine-color-green-6) 0%, var(--festive-red) 100%) border-box;
+}
+
+/*
+ * A soft glow in the same gradient, drawn as a faded layer just behind the field inside
+ * Mantine's documented input wrapper, so it peeks out without changing the field's size.
+ * `isolation` keeps the layer behind the input but in front of the card underneath.
+ */
+.mantine-Input-wrapper {
+	isolation: isolate;
+}
+
+.mantine-Input-wrapper:focus-within:not(:has([data-error]))::before {
+	content: "";
+	position: absolute;
+	inset: -3px;
+	z-index: -1;
+	border-radius: calc(var(--mantine-radius-sm) + 3px);
+	background: linear-gradient(135deg, var(--mantine-color-green-6) 0%, var(--festive-red) 100%);
+	opacity: 0.3;
+	pointer-events: none;
+}
+
 html,
 body {
 	margin: 0;

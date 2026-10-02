@@ -27,6 +27,8 @@ class GroupResource extends JsonResource
                 'name' => $member->name,
             ])->values(),
             'is_drawn' => $this->is_drawn,
+            // Only the owner learns about exclusions, not even how many there are.
+            'exclusions_count' => $this->when($this->owner_id === $request->user()->id, fn () => $this->exclusions()->count()),
             'my_assignment' => $myAssignment ? [
                 'recipient_id' => $myAssignment->receiver->id,
                 'recipient_name' => $myAssignment->receiver->name,

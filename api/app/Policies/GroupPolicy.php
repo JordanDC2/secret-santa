@@ -40,6 +40,14 @@ class GroupPolicy
     }
 
     /**
+     * Only the owner sees or edits who can't draw whom.
+     */
+    public function manageExclusions(User $user, Group $group): bool
+    {
+        return $user->id === $group->owner_id;
+    }
+
+    /**
      * Determine whether the user can draw names for the group.
      */
     public function draw(User $user, Group $group): bool

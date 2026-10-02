@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\LogoutHandler;
 use App\Http\Controllers\Auth\RegisterHandler;
 use App\Http\Controllers\Auth\ResetPasswordHandler;
 use App\Http\Controllers\Group\DrawHandler;
+use App\Http\Controllers\Group\ExclusionController;
 use App\Http\Controllers\Group\JoinHandler;
 use App\Http\Controllers\Group\LeaveHandler;
 use App\Http\Controllers\GroupController;
@@ -55,6 +56,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('groups/{group}/draw', DrawHandler::class)->name('groups.draw');
 
     Route::post('groups/{group}/leave', LeaveHandler::class)->name('groups.leave');
+
+    // scoped(): an exclusion id only resolves inside the group in the URL.
+    Route::apiResource('groups.exclusions', ExclusionController::class)
+        ->only(['index', 'store', 'destroy'])
+        ->scoped();
 
     Route::prefix('wishlist')->name('wishlist.')->group(function () {
         Route::apiResource('items', WishlistItemController::class)->except('show');

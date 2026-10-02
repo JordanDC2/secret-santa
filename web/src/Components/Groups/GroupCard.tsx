@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Badge, Card, Group, Stack, Text as MantineText } from "@mantine/core";
+import { Badge, Button, Card, Group, Stack, Text as MantineText } from "@mantine/core";
 import type { IGroup } from "Components/Groups/types";
 import AssignmentReveal from "Components/Groups/AssignmentReveal";
 import DeleteGroupControl from "Components/Groups/DeleteGroupControl";
 import DrawNamesControl from "Components/Groups/DrawNamesControl";
+import ExclusionsModal from "Components/Groups/ExclusionsModal";
 import GroupMembers from "Components/Groups/GroupMembers";
 import GroupNameEditor from "Components/Groups/GroupNameEditor";
 import InviteCode from "Components/Groups/InviteCode";
@@ -36,6 +37,7 @@ type IGroupAction = "draw" | "delete" | "leave";
 export default function GroupCard({ group }: IGroupCardProps) {
 	// Only one "are you sure?" panel at a time, and it takes the whole footer.
 	const [openAction, setOpenAction] = useState<IGroupAction | null>(null);
+	const [exclusionsOpen, setExclusionsOpen] = useState(false);
 	const canDraw = group.isOwner && !group.isDrawn;
 	const canLeave = !group.isOwner && !group.isDrawn;
 
@@ -79,12 +81,27 @@ export default function GroupCard({ group }: IGroupCardProps) {
 						? controls[openAction]
 						: hasControls && (
 								<Group justify="space-between" align="center">
-									{controls.draw ?? <span />}
+									{canDraw ? (
+										<Group gap="sm">
+											{controls.draw}
+											<Button variant="default" onClick={() => setExclusionsOpen(true)}>
+												Exclusions
+												{Boolean(group.exclusionsCount) && (
+													<Badge size="sm" circle ml={6}>
+														{group.exclusionsCount}
+													</Badge>
+												)}
+											</Button>
+										</Group>
+									) : (
+										<span />
+									)}
 									{controls.delete ?? controls.leave}
 								</Group>
 							)}
 				</Stack>
 			</Card.Section>
+			{canDraw && <ExclusionsModal group={group} opened={exclusionsOpen} onClose={() => setExclusionsOpen(false)} />}
 		</Card>
 	);
 }

@@ -54,6 +54,27 @@ class Group extends Model
         return $this->hasMany(SecretSantaAssignment::class);
     }
 
+    public function exclusions(): HasMany
+    {
+        return $this->hasMany(GroupExclusion::class);
+    }
+
+    /**
+     * Every directed pair the draw must avoid, limited to current members.
+     *
+     * @param  array<int>  $memberIds
+     * @return array<int, array{int, int}>
+     */
+    public function blockedPairsAmong(array $memberIds): array
+    {
+        return $this->exclusions()
+            ->whereIn('giver_id', $memberIds)
+            ->whereIn('receiver_id', $memberIds)
+            ->get()
+            ->flatMap(fn (GroupExclusion $exclusion) => $exclusion->blockedPairs())
+            ->all();
+    }
+
     public function assignmentFor(User $user): ?SecretSantaAssignment
     {
         if (! $this->drawn_at) {
