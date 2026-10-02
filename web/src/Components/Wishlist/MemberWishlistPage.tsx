@@ -4,6 +4,8 @@ import { Link, Navigate, useParams } from "react-router-dom";
 import { useAuth } from "Components/Auth/AuthContext";
 import AssignmentNotice from "Components/Wishlist/AssignmentNotice";
 import { useClaimMutation, useMemberWishlistQuery } from "Components/Wishlist/hooks";
+import WishlistLiveUpdates from "Components/Wishlist/WishlistLiveUpdates";
+import { liveUpdatesEnabled } from "Data/Api/LiveUpdates";
 import type { IWishlistItem } from "Components/Wishlist/types";
 import WishlistItemRow from "Components/Wishlist/WishlistItemRow";
 import { apiErrorMessage } from "Data/Api/Client";
@@ -95,6 +97,7 @@ function MemberWishlist({ userId }: { userId: number }) {
 
 	return (
 		<Container my={40}>
+			{liveUpdatesEnabled() && <WishlistLiveUpdates ownerId={userId} />}
 			<Stack gap="lg">
 				<Anchor component={Link} to="/" size="sm">
 					← Back to your groups

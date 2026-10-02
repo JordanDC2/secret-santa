@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { IGroup } from "Components/Groups/types";
 import { apiClient } from "Data/Api/Client";
 
-const GROUPS_QUERY_KEY = ["groups"];
+export const GROUPS_QUERY_KEY = ["groups"];
 
 function mapGroup(raw: Record<string, unknown>): IGroup {
 	const myAssignment = raw.my_assignment as Record<string, unknown> | null;

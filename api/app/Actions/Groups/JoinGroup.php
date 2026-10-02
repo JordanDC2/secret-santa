@@ -2,6 +2,7 @@
 
 namespace App\Actions\Groups;
 
+use App\Events\GroupChanged;
 use App\Models\Group;
 use App\Models\User;
 use Illuminate\Support\Str;
@@ -34,6 +35,8 @@ class JoinGroup
         }
 
         $group->members()->attach($user);
+
+        GroupChanged::dispatch($group->id);
 
         return $group;
     }

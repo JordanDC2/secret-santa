@@ -3,7 +3,7 @@ import type { IMemberWishlist, IWishlistItem, IWishlistItemDetails } from "Compo
 import { apiClient } from "Data/Api/Client";
 
 const MY_WISHLIST_QUERY_KEY = ["wishlist", "mine"];
-const memberWishlistQueryKey = (userId: number) => ["wishlist", "member", userId];
+export const memberWishlistQueryKey = (userId: number) => ["wishlist", "member", userId];
 
 function mapItem(raw: Record<string, unknown>): IWishlistItem {
 	const claim = raw.claim as Record<string, unknown> | null | undefined;

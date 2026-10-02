@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Groups\CreateGroup;
+use App\Events\GroupChanged;
 use App\Http\Requests\Group\CreateRequest;
 use App\Http\Resources\GroupResource;
 use App\Models\Group;
@@ -40,6 +41,8 @@ class GroupController extends Controller
     {
         // Memberships and assignments cascade at the database level.
         $group->delete();
+
+        GroupChanged::dispatch($group->id);
 
         return response()->noContent();
     }

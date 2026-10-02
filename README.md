@@ -29,12 +29,22 @@ password.
 Run each in its own terminal:
 
 ```bash
-cd api && php artisan serve --no-reload   # API on :8000
-cd api && php artisan queue:work          # delivers assignment emails
-cd web && npm start                       # app on :3000
+cd api && php artisan serve --no-reload                       # API on :8000
+cd api && php artisan queue:work --queue=broadcasts,default   # live updates, then emails
+cd api && php artisan reverb:start                            # WebSockets on :8080
+cd web && npm start                                           # app on :3000
 ```
 
+Restart `serve` and `queue:work` after changing `api/.env`; both keep the values they started with.
+
+Live updates: Reverb pushes "something changed" events (group joins/leaves/draws/deletes,
+wishlist edits and claims) and the page re-fetches through the API. Vite proxies `/app` to
+Reverb and reads the `VITE_REVERB_*` values from `api/.env`. A wishlist's owner can't
+subscribe to their own list's channel, so claims never reach them.
+
 Assignment emails are queued, so nothing is sent unless the queue worker is running.
+When testing with fake addresses, run only `php artisan queue:work --queue=broadcasts`
+so live updates work but no email goes out.
 Failed sends retry automatically; ones that exhaust their retries land in `failed_jobs`
 (`php artisan queue:failed`, `php artisan queue:retry all`).
 

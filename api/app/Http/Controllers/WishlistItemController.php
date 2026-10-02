@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\WishlistChanged;
 use App\Http\Requests\Wishlist\WishlistItemRequest;
 use App\Http\Resources\WishlistItemResource;
 use App\Models\WishlistItem;
@@ -26,12 +27,18 @@ class WishlistItemController extends Controller
 
     public function store(WishlistItemRequest $request): WishlistItemResource
     {
-        return new WishlistItemResource($request->user()->wishlistItems()->create($request->validated()));
+        $item = $request->user()->wishlistItems()->create($request->validated());
+
+        WishlistChanged::dispatch($item->user_id);
+
+        return new WishlistItemResource($item);
     }
 
     public function update(WishlistItemRequest $request, WishlistItem $item): WishlistItemResource
     {
         $item->update($request->validated());
+
+        WishlistChanged::dispatch($item->user_id);
 
         return new WishlistItemResource($item);
     }
@@ -39,6 +46,8 @@ class WishlistItemController extends Controller
     public function destroy(WishlistItem $item): Response
     {
         $item->delete();
+
+        WishlistChanged::dispatch($item->user_id);
 
         return response()->noContent();
     }

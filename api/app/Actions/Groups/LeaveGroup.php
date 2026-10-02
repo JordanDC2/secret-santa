@@ -2,6 +2,7 @@
 
 namespace App\Actions\Groups;
 
+use App\Events\GroupChanged;
 use App\Models\Group;
 use App\Models\User;
 use Illuminate\Validation\ValidationException;
@@ -19,5 +20,7 @@ class LeaveGroup
         }
 
         $group->members()->detach($user);
+
+        GroupChanged::dispatch($group->id);
     }
 }

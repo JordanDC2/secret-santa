@@ -2,6 +2,7 @@
 
 namespace App\Actions\Groups;
 
+use App\Events\GroupChanged;
 use App\Models\Group;
 use App\Notifications\SecretSantaAssigned;
 use Illuminate\Support\Facades\DB;
@@ -37,6 +38,8 @@ class DrawNames
 
             $group->update(['drawn_at' => now()]);
         });
+
+        GroupChanged::dispatch($group->id);
 
         foreach ($members as $giver) {
             $receiver = $members->firstWhere('id', $assignments[$giver->id]);
