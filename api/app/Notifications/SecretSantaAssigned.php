@@ -31,7 +31,7 @@ class SecretSantaAssigned extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): ElfMailMessage
     {
-        $frontendUrl = config('app.frontend_url');
+        $wishlistUrl = config('app.frontend_url')."/wishlists/{$this->recipient->id}";
 
         return (new ElfMailMessage)
             ->subject("🎁 Your Secret Santa assignment for {$this->group->name}")
@@ -41,6 +41,6 @@ class SecretSantaAssigned extends Notification implements ShouldQueue
             ->line('You are the Secret Santa for:')
             ->line("## {$this->recipient->name}")
             ->line('Keep it a secret, and happy gifting! 🎄')
-            ->action('View Your Group', $frontendUrl);
+            ->action("View {$this->recipient->name}'s Wishlist", $wishlistUrl);
     }
 }

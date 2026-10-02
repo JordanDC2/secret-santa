@@ -1,6 +1,7 @@
 import { Badge, Card, Group, Text as MantineText, Title } from "@mantine/core";
 import type { IGroup } from "Components/Groups/types";
 import AssignmentReveal from "Components/Groups/AssignmentReveal";
+import GroupMembers from "Components/Groups/GroupMembers";
 import DeleteGroupControl from "Components/Groups/DeleteGroupControl";
 import DrawNamesControl from "Components/Groups/DrawNamesControl";
 import LeaveGroupControl from "Components/Groups/LeaveGroupControl";
@@ -26,6 +27,8 @@ export default function GroupCard({ group }: IGroupCardProps) {
 				</MantineText>
 			</MantineText>
 
+			<GroupMembers members={group.members} />
+
 			{!group.isDrawn && group.isOwner && <DrawNamesControl groupId={group.id} />}
 
 			{!group.isDrawn && !group.isOwner && (
@@ -34,7 +37,12 @@ export default function GroupCard({ group }: IGroupCardProps) {
 				</MantineText>
 			)}
 
-			{group.isDrawn && group.myAssignment && <AssignmentReveal recipientName={group.myAssignment.recipientName} />}
+			{group.isDrawn && group.myAssignment && (
+				<AssignmentReveal
+					recipientId={group.myAssignment.recipientId}
+					recipientName={group.myAssignment.recipientName}
+				/>
+			)}
 
 			{group.isDrawn && !group.myAssignment && (
 				<MantineText size="sm" c="dimmed" mt="md">

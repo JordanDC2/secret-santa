@@ -9,6 +9,10 @@ use App\Http\Controllers\Group\DrawHandler;
 use App\Http\Controllers\Group\JoinHandler;
 use App\Http\Controllers\Group\LeaveHandler;
 use App\Http\Controllers\GroupController;
+use App\Http\Controllers\Wishlist\ClaimHandler;
+use App\Http\Controllers\Wishlist\MemberWishlistHandler;
+use App\Http\Controllers\Wishlist\UnclaimHandler;
+use App\Http\Controllers\WishlistItemController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -40,6 +44,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('groups/{group}/draw', DrawHandler::class)->name('groups.draw');
 
     Route::post('groups/{group}/leave', LeaveHandler::class)->name('groups.leave');
+
+    Route::prefix('wishlist')->name('wishlist.')->group(function () {
+        Route::apiResource('items', WishlistItemController::class)->except('show');
+
+        Route::post('items/{item}/claim', ClaimHandler::class)->name('items.claim');
+
+        Route::delete('items/{item}/claim', UnclaimHandler::class)->name('items.unclaim');
+    });
+
+    Route::get('users/{user}/wishlist', MemberWishlistHandler::class)->name('users.wishlist');
 
     Route::apiResource('groups', GroupController::class)->only(['index', 'store', 'show', 'destroy']);
 });

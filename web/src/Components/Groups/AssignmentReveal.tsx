@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Button, Card, Stack, Text as MantineText, Title } from "@mantine/core";
+import { Link } from "react-router-dom";
 
 type IAssignmentRevealProps = {
+	recipientId: number;
 	recipientName: string;
 };
 
-export default function AssignmentReveal({ recipientName }: IAssignmentRevealProps) {
+export default function AssignmentReveal({ recipientId, recipientName }: IAssignmentRevealProps) {
 	const [revealed, setRevealed] = useState(false);
 
 	return (
@@ -16,6 +18,9 @@ export default function AssignmentReveal({ recipientName }: IAssignmentRevealPro
 						You&apos;re the Secret Santa for:
 					</MantineText>
 					<Title order={4}>🎁 {recipientName}</Title>
+					<Button component={Link} to={`/wishlists/${recipientId}`} color="green" size="xs">
+						📝 See their wishlist
+					</Button>
 					<Button variant="subtle" size="xs" onClick={() => setRevealed(false)}>
 						Hide
 					</Button>

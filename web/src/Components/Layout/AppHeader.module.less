@@ -7,3 +7,28 @@
 	font-size: 1.75rem;
 	color: var(--festive-white);
 }
+
+/* Scoped under .header so these win over the theme's app-wide link styles. */
+.header .homeLink {
+	&:hover,
+	&:focus-visible {
+		background-color: transparent;
+		box-shadow: none;
+		opacity: 0.85;
+	}
+}
+
+/* A pill that lights up on hover; the theme's light highlight would glare on the dark header. */
+.header .navLink {
+	color: var(--festive-gold);
+	font-weight: 600;
+	padding: 4px var(--mantine-spacing-sm);
+	border-radius: var(--mantine-radius-xl);
+
+	&:hover,
+	&:focus-visible {
+		color: var(--festive-white);
+		background-color: rgba(255, 255, 255, 0.14);
+		box-shadow: none;
+	}
+}

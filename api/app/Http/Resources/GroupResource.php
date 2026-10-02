@@ -22,8 +22,13 @@ class GroupResource extends JsonResource
             'join_code' => $this->join_code,
             'is_owner' => $this->owner_id === $request->user()->id,
             'members_count' => $this->members_count,
+            'members' => $this->members->map(fn ($member) => [
+                'id' => $member->id,
+                'name' => $member->name,
+            ])->values(),
             'is_drawn' => $this->is_drawn,
             'my_assignment' => $myAssignment ? [
+                'recipient_id' => $myAssignment->receiver->id,
                 'recipient_name' => $myAssignment->receiver->name,
             ] : null,
         ];

@@ -1,0 +1,19 @@
+/*
+ * App-wide link style: no underline. Hovering paints a soft highlight behind the
+ * text instead. box-shadow extends the highlight past the text without padding,
+ * so links inside sentences don't shift the surrounding layout.
+ */
+.anchor {
+	border-radius: var(--mantine-radius-xs);
+	transition:
+		background-color 120ms ease,
+		box-shadow 120ms ease,
+		color 120ms ease;
+
+	&:hover,
+	&:focus-visible {
+		color: var(--mantine-color-red-9);
+		background-color: var(--mantine-color-red-0);
+		box-shadow: 0 0 0 3px var(--mantine-color-red-0);
+	}
+}

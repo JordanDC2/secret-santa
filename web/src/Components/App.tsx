@@ -9,6 +9,8 @@ import RegisterPage from "Components/Auth/RegisterPage";
 import ResetPasswordPage from "Components/Auth/ResetPasswordPage";
 import DashboardPage from "Components/Dashboard/DashboardPage";
 import AuthenticatedLayout from "Components/Layout/AuthenticatedLayout";
+import MemberWishlistPage from "Components/Wishlist/MemberWishlistPage";
+import MyWishlistPage from "Components/Wishlist/MyWishlistPage";
 import { theme } from "Data/Theme";
 
 const queryClient = new QueryClient();
@@ -31,6 +33,8 @@ function AppRoutes() {
 			<Route path="/reset-password" element={<ResetPasswordPage />} />
 			<Route element={<AuthenticatedLayout />}>
 				<Route path="/" element={<DashboardPage />} />
+				<Route path="/wishlist" element={<MyWishlistPage />} />
+				<Route path="/wishlists/:userId" element={<MemberWishlistPage />} />
 			</Route>
 		</Routes>
 	);

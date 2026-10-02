@@ -38,6 +38,21 @@ class DrawNamesTest extends TestCase
         Notification::assertCount(4);
     }
 
+    public function test_assignment_email_links_to_the_recipients_wishlist(): void
+    {
+        Notification::fake();
+        $group = $this->groupWithMembers(1);
+
+        Sanctum::actingAs($group->owner);
+
+        $this->postJson(route('groups.draw', $group))->assertOk();
+
+        Notification::assertSentTo($group->owner, SecretSantaAssigned::class, function (SecretSantaAssigned $notification) use ($group) {
+            return $notification->toMail($group->owner)->actionUrl
+                === config('app.frontend_url')."/wishlists/{$notification->recipient->id}";
+        });
+    }
+
     public function test_assignment_emails_are_queued_rather_than_sent_inline(): void
     {
         Queue::fake();

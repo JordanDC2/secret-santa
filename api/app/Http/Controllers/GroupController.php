@@ -19,7 +19,7 @@ class GroupController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
-        $groups = $request->user()->groups()->withCount('members')->get();
+        $groups = $request->user()->groups()->with('members')->withCount('members')->get();
 
         return GroupResource::collection($groups);
     }

@@ -7,6 +7,7 @@ use App\Notifications\ResetPasswordLink;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -47,5 +48,30 @@ class User extends Authenticatable
     public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
     {
         $this->notify(new ResetPasswordLink($token));
+    }
+
+    public function wishlistItems(): HasMany
+    {
+        return $this->hasMany(WishlistItem::class);
+    }
+
+    public function sharesGroupWith(User $other): bool
+    {
+        return $this->groups()
+            ->whereHas('members', fn ($members) => $members->whereKey($other->id))
+            ->exists();
+    }
+
+    /**
+     * Everyone this user is buying for as a Secret Santa, across all drawn groups.
+     *
+     * @return Collection<int, User>
+     */
+    public function secretSantaRecipients(): Collection
+    {
+        return User::whereIn(
+            'id',
+            SecretSantaAssignment::where('giver_id', $this->id)->select('receiver_id'),
+        )->orderBy('name')->get();
     }
 }

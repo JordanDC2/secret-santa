@@ -14,7 +14,10 @@ function mapGroup(raw: Record<string, unknown>): IGroup {
 		isOwner: raw.is_owner as boolean,
 		membersCount: raw.members_count as number,
 		isDrawn: raw.is_drawn as boolean,
-		myAssignment: myAssignment ? { recipientName: myAssignment.recipient_name as string } : null,
+		members: raw.members as IGroup["members"],
+		myAssignment: myAssignment
+			? { recipientId: myAssignment.recipient_id as number, recipientName: myAssignment.recipient_name as string }
+			: null,
 	};
 }
 

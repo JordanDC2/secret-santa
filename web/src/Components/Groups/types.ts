@@ -5,5 +5,6 @@ export type IGroup = {
 	isOwner: boolean;
 	membersCount: number;
 	isDrawn: boolean;
-	myAssignment: { recipientName: string } | null;
+	members: { id: number; name: string }[];
+	myAssignment: { recipientId: number; recipientName: string } | null;
 };
