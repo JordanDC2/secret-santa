@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import SnowflakeIcon from "Components/Common/FestiveIcons/SnowflakeIcon";
 import classes from "Components/Layout/Snowfall.module.less";
 
 const SNOWFLAKE_COUNT = 40;
@@ -33,7 +34,7 @@ export default function Snowfall() {
 						fontSize: `${flake.size}rem`,
 					}}
 				>
-					❄
+					<SnowflakeIcon />
 				</span>
 			))}
 		</div>

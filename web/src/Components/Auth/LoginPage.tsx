@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 import { useAuth } from "Components/Auth/AuthContext";
 import { apiErrorMessage } from "Data/Api/Client";
 import AuthLayout from "Components/Layout/AuthLayout";
-import Emoji from "Components/Common/Emoji";
 
 export default function LoginPage() {
 	const { login } = useAuth();
@@ -18,7 +17,7 @@ export default function LoginPage() {
 	}
 
 	return (
-		<AuthLayout subtitle="Ho ho ho! Sign in to find out who needs a gift 🎁">
+		<AuthLayout subtitle="Ho ho ho! Sign in to find out who needs a gift.">
 			<form onSubmit={handleSubmit}>
 				<Stack>
 					{login.isError && <Alert color="red">{apiErrorMessage(login.error)}</Alert>}
@@ -34,7 +33,7 @@ export default function LoginPage() {
 							Forgot password?
 						</Anchor>
 					</Group>
-					<Button type="submit" color="red" loading={login.isPending} leftSection={<Emoji>🎄</Emoji>}>
+					<Button type="submit" color="red" loading={login.isPending}>
 						Log in
 					</Button>
 				</Stack>

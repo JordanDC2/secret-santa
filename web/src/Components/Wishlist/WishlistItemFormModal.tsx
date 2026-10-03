@@ -12,7 +12,8 @@ import {
 	Textarea,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import Emoji from "Components/Common/Emoji";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { useLinkPreviewMutation, useSaveWishlistItemMutation } from "Components/Wishlist/hooks";
 import WishlistItemImage from "Components/Wishlist/WishlistItemImage";
 import type { IWishlistItem } from "Components/Wishlist/types";
@@ -175,7 +176,7 @@ export default function WishlistItemFormModal({ opened, item, onClose }: IWishli
 							type="submit"
 							color="red"
 							loading={saveItem.isPending}
-							leftSection={item ? undefined : <Emoji>🎁</Emoji>}
+							leftSection={item ? undefined : <FontAwesomeIcon icon={faPlus} />}
 						>
 							{item ? "Save" : "Add item"}
 						</Button>

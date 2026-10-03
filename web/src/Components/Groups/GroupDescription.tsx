@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ActionIcon, Box, Button, Group, Text as MantineText, Textarea, Tooltip } from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPenToSquare } from "@fortawesome/free-regular-svg-icons";
+import { faThumbtack } from "@fortawesome/free-solid-svg-icons";
 import { useUpdateGroupMutation } from "Components/Groups/hooks";
 import { apiErrorMessage } from "Data/Api/Client";
 import classes from "Components/Groups/GroupDescription.module.less";
@@ -17,7 +18,7 @@ type IGroupDescriptionProps = {
 function NoteLabel() {
 	return (
 		<MantineText size="xs" fw={700} tt="uppercase" c="dimmed" className={classes.label}>
-			📌 Group note
+			<FontAwesomeIcon icon={faThumbtack} /> Group note
 		</MantineText>
 	);
 }

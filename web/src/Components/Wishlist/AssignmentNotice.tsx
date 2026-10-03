@@ -1,7 +1,9 @@
 import { Fragment, type ReactNode } from "react";
 import { Alert, Anchor } from "@mantine/core";
 import { Link } from "react-router-dom";
+import GiftTagIcon from "Components/Common/FestiveIcons/GiftTagIcon";
 import type { IMyRecipient, IWishlistPerson } from "Components/Wishlist/types";
+import classes from "Components/Wishlist/AssignmentNotice.module.less";
 
 type IAssignmentNoticeProps = {
 	owner: IWishlistPerson;
@@ -33,7 +35,12 @@ export default function AssignmentNotice({ owner, myRecipients }: IAssignmentNot
 
 	if (groupsWhereIDrewOwner.length > 0) {
 		return (
-			<Alert color="green" title="🎅 This is your Secret Santa person!">
+			<Alert
+				color="green"
+				icon={<GiftTagIcon size={34} />}
+				classNames={{ icon: classes.tagIcon }}
+				title="This is your Secret Santa person!"
+			>
 				You drew {owner.name} in{" "}
 				{joinNames(
 					groupsWhereIDrewOwner.map((recipient) => ({

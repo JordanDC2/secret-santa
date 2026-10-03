@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Accordion, Button, Container, Group, Stack, Text as MantineText } from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPenToSquare, faTrashCan } from "@fortawesome/free-regular-svg-icons";
+import { faPlus } from "@fortawesome/free-solid-svg-icons";
+import WishListIcon from "Components/Common/FestiveIcons/WishListIcon";
 import { useDeleteWishlistItemMutation, useMyWishlistQuery } from "Components/Wishlist/hooks";
 import type { IWishlistItem } from "Components/Wishlist/types";
 import WishlistItemRow from "Components/Wishlist/WishlistItemRow";
@@ -9,7 +11,6 @@ import WishlistItemFormModal from "Components/Wishlist/WishlistItemFormModal";
 import PageTitle from "Components/Layout/PageTitle";
 import { apiErrorMessage } from "Data/Api/Client";
 import classes from "Components/Wishlist/WishlistPage.module.less";
-import Emoji from "Components/Common/Emoji";
 
 type IModalState = { opened: boolean; item: IWishlistItem | null; key: number };
 
@@ -27,8 +28,8 @@ export default function MyWishlistPage() {
 		<Container my={40}>
 			<Stack gap="lg">
 				<Group justify="space-between">
-					<PageTitle>📝 My wishlist</PageTitle>
-					<Button color="red" leftSection={<Emoji>🎁</Emoji>} onClick={() => openModal(null)}>
+					<PageTitle icon={<WishListIcon />}>My wishlist</PageTitle>
+					<Button color="red" leftSection={<FontAwesomeIcon icon={faPlus} />} onClick={() => openModal(null)}>
 						Add item
 					</Button>
 				</Group>

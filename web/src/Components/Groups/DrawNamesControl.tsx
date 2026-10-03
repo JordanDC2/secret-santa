@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button, Checkbox, Group, Stack, Text as MantineText } from "@mantine/core";
-import Emoji from "Components/Common/Emoji";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faShuffle } from "@fortawesome/free-solid-svg-icons";
 import { useDrawNamesMutation } from "Components/Groups/hooks";
 import ConfirmAction, { type IConfirmState } from "Components/Groups/ConfirmAction";
 
@@ -22,7 +23,7 @@ export default function DrawNamesControl({
 	if (membersCount < 2) {
 		return (
 			<Group gap="sm">
-				<Button color="green" disabled leftSection={<Emoji>🎄</Emoji>}>
+				<Button color="green" disabled leftSection={<FontAwesomeIcon icon={faShuffle} />}>
 					Draw Names
 				</Button>
 				<MantineText size="sm" c="dimmed">
@@ -36,7 +37,7 @@ export default function DrawNamesControl({
 		<ConfirmAction
 			{...confirmState}
 			triggerLabel="Draw Names"
-			triggerLeftSection={<Emoji>🎄</Emoji>}
+			triggerLeftSection={<FontAwesomeIcon icon={faShuffle} />}
 			prompt={
 				<Stack gap="sm">
 					<span>Draw names now? Everyone will be emailed their assignment, and this can&apos;t be undone.</span>

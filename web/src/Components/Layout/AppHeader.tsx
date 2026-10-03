@@ -1,5 +1,8 @@
 import { Anchor, Button, Container, Group, Text as MantineText } from "@mantine/core";
 import { Link } from "react-router-dom";
+import SantaHatIcon from "Components/Common/FestiveIcons/SantaHatIcon";
+import StockingIcon from "Components/Common/FestiveIcons/StockingIcon";
+import WishListIcon from "Components/Common/FestiveIcons/WishListIcon";
 import { useAuth } from "Components/Auth/AuthContext";
 import classes from "Components/Layout/AppHeader.module.less";
 
@@ -11,14 +14,19 @@ export default function AppHeader() {
 			<Container size="lg" py="sm">
 				<Group justify="space-between">
 					<Anchor component={Link} to="/" className={classes.homeLink}>
-						<span className={classes.title}>🎅 Secret Santa</span>
+						<span className={classes.title}>
+							<SantaHatIcon size="1.15em" />
+							Secret Santa
+						</span>
 					</Anchor>
 					<Group>
 						<Anchor component={Link} to="/wishlist" className={classes.navLink}>
-							📝 My wishlist
+							<WishListIcon size="1.3em" />
+							My wishlist
 						</Anchor>
 						<Anchor component={Link} to="/account" className={classes.navLink}>
-							⚙️ Account
+							<StockingIcon size="1.3em" />
+							Account
 						</Anchor>
 						{user && (
 							<MantineText size="sm" c="gray.4" visibleFrom="sm">

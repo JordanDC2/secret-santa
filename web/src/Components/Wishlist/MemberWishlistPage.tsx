@@ -1,6 +1,9 @@
 import { Accordion, Alert, Anchor, Button, Container, NumberInput, Stack, Text as MantineText } from "@mantine/core";
 import { useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faGift } from "@fortawesome/free-solid-svg-icons";
+import WishListIcon from "Components/Common/FestiveIcons/WishListIcon";
 import { useAuth } from "Components/Auth/AuthContext";
 import AssignmentNotice from "Components/Wishlist/AssignmentNotice";
 import ClaimStatus, { remainingQuantity } from "Components/Wishlist/ClaimStatus";
@@ -12,7 +15,6 @@ import WishlistItemRow from "Components/Wishlist/WishlistItemRow";
 import PageTitle from "Components/Layout/PageTitle";
 import { apiErrorMessage } from "Data/Api/Client";
 import classes from "Components/Wishlist/WishlistPage.module.less";
-import Emoji from "Components/Common/Emoji";
 
 export default function MemberWishlistPage() {
 	const { user } = useAuth();
@@ -86,7 +88,7 @@ function MemberWishlist({ userId }: { userId: number }) {
 				)}
 				{remaining > 0 && (
 					<Button
-						leftSection={<Emoji>🎁</Emoji>}
+						leftSection={<FontAwesomeIcon icon={faGift} />}
 						size="xs"
 						color="green"
 						loading={isThisItem}
@@ -127,7 +129,7 @@ function MemberWishlist({ userId }: { userId: number }) {
 
 				{wishlistQuery.isSuccess && (
 					<>
-						<PageTitle>📝 {wishlistQuery.data.user.name}&apos;s wishlist</PageTitle>
+						<PageTitle icon={<WishListIcon />}>{wishlistQuery.data.user.name}&apos;s wishlist</PageTitle>
 						<AssignmentNotice owner={wishlistQuery.data.user} myRecipients={wishlistQuery.data.myRecipients} />
 						<MantineText c="dimmed">
 							Claim something so nobody else buys it too. {wishlistQuery.data.user.name} can&apos;t see who claimed

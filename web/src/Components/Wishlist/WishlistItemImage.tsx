@@ -1,5 +1,5 @@
 import { useState } from "react";
-import Emoji from "Components/Common/Emoji";
+import GiftBoxIcon from "Components/Common/FestiveIcons/GiftBoxIcon";
 import classes from "Components/Wishlist/WishlistItemImage.module.less";
 
 type IWishlistItemImageProps = {
@@ -28,8 +28,8 @@ export default function WishlistItemImage({ src, alt, size }: IWishlistItemImage
 					onError={() => setFailedSrc(src)}
 				/>
 			) : (
-				<span className={classes.placeholder} style={{ fontSize: size * 0.45 }}>
-					<Emoji>🎁</Emoji>
+				<span className={classes.placeholder}>
+					<GiftBoxIcon size={size * 0.55} />
 				</span>
 			)}
 		</div>

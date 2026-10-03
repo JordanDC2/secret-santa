@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 import { useAuth } from "Components/Auth/AuthContext";
 import { apiErrorMessage } from "Data/Api/Client";
 import AuthLayout from "Components/Layout/AuthLayout";
-import Emoji from "Components/Common/Emoji";
 
 export default function RegisterPage() {
 	const { register } = useAuth();
@@ -20,7 +19,7 @@ export default function RegisterPage() {
 	}
 
 	return (
-		<AuthLayout subtitle="Join the nice list — create your account 🎁">
+		<AuthLayout subtitle="Join the nice list and create your account.">
 			<form onSubmit={handleSubmit}>
 				<Stack>
 					{register.isError && <Alert color="red">{apiErrorMessage(register.error)}</Alert>}
@@ -38,7 +37,7 @@ export default function RegisterPage() {
 						onChange={(event) => setPasswordConfirmation(event.currentTarget.value)}
 						required
 					/>
-					<Button type="submit" color="red" loading={register.isPending} leftSection={<Emoji>🎄</Emoji>}>
+					<Button type="submit" color="red" loading={register.isPending}>
 						Create account
 					</Button>
 				</Stack>

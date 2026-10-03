@@ -33,7 +33,7 @@ export default function DrawDetailsModal({ group, opened, onClose }: IDrawDetail
 					<>
 						<Alert
 							color={checkQuery.data.verified ? "green" : "red"}
-							title={checkQuery.data.verified ? "Draw verified 🎄" : "Something's off with this draw"}
+							title={checkQuery.data.verified ? "Draw verified" : "Something's off with this draw"}
 						>
 							{checkQuery.data.verified
 								? "Everything checks out, without revealing who drew whom."
@@ -87,7 +87,7 @@ export default function DrawDetailsModal({ group, opened, onClose }: IDrawDetail
 									{pairsQuery.data.map((pair) => (
 										<Table.Tr key={pair.giver.id}>
 											<Table.Td>{pair.giver.name}</Table.Td>
-											<Table.Td>🎁 {pair.receiver.name}</Table.Td>
+											<Table.Td>{pair.receiver.name}</Table.Td>
 										</Table.Tr>
 									))}
 								</Table.Tbody>

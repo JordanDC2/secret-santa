@@ -4,7 +4,6 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useResetPasswordMutation } from "Components/Auth/hooks";
 import { apiErrorMessage } from "Data/Api/Client";
 import AuthLayout from "Components/Layout/AuthLayout";
-import Emoji from "Components/Common/Emoji";
 
 export default function ResetPasswordPage() {
 	const [searchParams] = useSearchParams();
@@ -38,12 +37,12 @@ export default function ResetPasswordPage() {
 
 	if (resetPassword.isSuccess) {
 		return (
-			<AuthLayout subtitle="You're back on the nice list 🎄">
+			<AuthLayout subtitle="You're back on the nice list!">
 				<Stack>
 					<Alert color="green" title="Password updated">
 						{resetPassword.data.message}
 					</Alert>
-					<Button component={Link} to="/login" color="red" leftSection={<Emoji>🎄</Emoji>}>
+					<Button component={Link} to="/login" color="red">
 						Log in
 					</Button>
 				</Stack>
@@ -68,7 +67,7 @@ export default function ResetPasswordPage() {
 						onChange={(event) => setPasswordConfirmation(event.currentTarget.value)}
 						required
 					/>
-					<Button type="submit" color="red" loading={resetPassword.isPending} leftSection={<Emoji>🔑</Emoji>}>
+					<Button type="submit" color="red" loading={resetPassword.isPending}>
 						Reset password
 					</Button>
 				</Stack>

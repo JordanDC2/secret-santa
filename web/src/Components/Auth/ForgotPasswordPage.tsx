@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Anchor, Alert, Button, Stack, Text as MantineText, TextInput } from "@mantine/core";
 import { Link } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPaperPlane } from "@fortawesome/free-solid-svg-icons";
 import { useForgotPasswordMutation } from "Components/Auth/hooks";
 import { apiErrorMessage } from "Data/Api/Client";
 import AuthLayout from "Components/Layout/AuthLayout";
-import Emoji from "Components/Common/Emoji";
 
 export default function ForgotPasswordPage() {
 	const forgotPassword = useForgotPasswordMutation();
@@ -17,7 +18,7 @@ export default function ForgotPasswordPage() {
 	}
 
 	return (
-		<AuthLayout subtitle="Lost your password? The elves will send you a new key 🔑">
+		<AuthLayout subtitle="Lost your password? The elves will send you a new key.">
 			{forgotPassword.isSuccess ? (
 				<Alert color="green" title="Check your inbox">
 					{forgotPassword.data.message} It may take a minute to arrive, so peek in your spam folder too.
@@ -33,7 +34,12 @@ export default function ForgotPasswordPage() {
 							onChange={(event) => setEmail(event.currentTarget.value)}
 							required
 						/>
-						<Button type="submit" color="red" loading={forgotPassword.isPending} leftSection={<Emoji>✉️</Emoji>}>
+						<Button
+							type="submit"
+							color="red"
+							loading={forgotPassword.isPending}
+							leftSection={<FontAwesomeIcon icon={faPaperPlane} />}
+						>
 							Send reset link
 						</Button>
 					</Stack>

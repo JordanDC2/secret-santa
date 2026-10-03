@@ -3,7 +3,7 @@ import { Box, Button, Group, Text as MantineText } from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEyeSlash } from "@fortawesome/free-regular-svg-icons";
 import { Link } from "react-router-dom";
-import Emoji from "Components/Common/Emoji";
+import { faEye, faListUl } from "@fortawesome/free-solid-svg-icons";
 import classes from "Components/Groups/AssignmentReveal.module.less";
 
 type IAssignmentRevealProps = {
@@ -16,7 +16,13 @@ export default function AssignmentReveal({ recipientId, recipientName }: IAssign
 
 	if (!revealed) {
 		return (
-			<Button variant="light" color="green" fullWidth leftSection={<Emoji>🎁</Emoji>} onClick={() => setRevealed(true)}>
+			<Button
+				variant="light"
+				color="green"
+				fullWidth
+				leftSection={<FontAwesomeIcon icon={faEye} />}
+				onClick={() => setRevealed(true)}
+			>
 				Reveal my assignment
 			</Button>
 		);
@@ -37,7 +43,7 @@ export default function AssignmentReveal({ recipientId, recipientName }: IAssign
 						to={`/wishlists/${recipientId}`}
 						size="xs"
 						color="green"
-						leftSection={<Emoji>📝</Emoji>}
+						leftSection={<FontAwesomeIcon icon={faListUl} />}
 					>
 						Wishlist
 					</Button>
