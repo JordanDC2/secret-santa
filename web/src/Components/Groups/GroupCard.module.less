@@ -1,6 +1,20 @@
-/* A long group name wraps rather than squeezing the badge down to "OWN…". */
+/*
+ * Name on the left, Owner badge + menu on the right. The name wraps first (zero flex-basis);
+ * only when it can't get any narrower (its longest word plus the rename pencil) does the
+ * badge + menu drop to their own line, still on the right, instead of overflowing the card.
+ */
+.header {
+	row-gap: var(--mantine-spacing-xs);
+}
+
+.nameColumn {
+	flex: 1 1 0;
+}
+
+/* Never squeezed down to "OWN…". */
 .ownerBadge {
 	flex-shrink: 0;
+	margin-left: auto;
 }
 
 /* A zero flex-basis lets a member's status text shrink and wrap instead of pushing

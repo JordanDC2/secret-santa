@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Badge, Button, Card, Group, Stack, Text as MantineText } from "@mantine/core";
+import { ActionIcon, Badge, Button, Card, Group, Menu, Stack, Text as MantineText } from "@mantine/core";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEllipsis, faTrashCan } from "@fortawesome/free-solid-svg-icons";
 import type { IGroup } from "Components/Groups/types";
 import AssignmentReveal from "Components/Groups/AssignmentReveal";
 import DeleteGroupControl from "Components/Groups/DeleteGroupControl";
@@ -67,12 +69,34 @@ export default function GroupCard({ group }: IGroupCardProps) {
 
 	return (
 		<Card withBorder padding="lg" radius="md">
-			<Group justify="space-between" wrap="nowrap" align="flex-start">
-				<GroupNameEditor groupId={group.id} name={group.name} canRename={group.isOwner} />
+			<Group justify="space-between" align="flex-start" className={classes.header}>
+				<div className={classes.nameColumn}>
+					<GroupNameEditor groupId={group.id} name={group.name} canRename={group.isOwner} />
+				</div>
 				{group.isOwner && (
-					<Badge color="green" variant="light" className={classes.ownerBadge}>
-						Owner
-					</Badge>
+					<Group gap={4} wrap="nowrap" className={classes.ownerBadge}>
+						<Badge color="green" variant="light">
+							Owner
+						</Badge>
+						{/* Owner-only and destructive, so it lives in a menu instead of crowding the footer's
+						    buttons; picking it opens the usual "are you sure?" panel there. */}
+						<Menu position="bottom-end" withinPortal>
+							<Menu.Target>
+								<ActionIcon variant="subtle" color="gray" aria-label={`More actions for ${group.name}`}>
+									<FontAwesomeIcon icon={faEllipsis} />
+								</ActionIcon>
+							</Menu.Target>
+							<Menu.Dropdown>
+								<Menu.Item
+									color="red"
+									leftSection={<FontAwesomeIcon icon={faTrashCan} />}
+									onClick={() => setOpenAction("delete")}
+								>
+									Delete group
+								</Menu.Item>
+							</Menu.Dropdown>
+						</Menu>
+					</Group>
 				)}
 			</Group>
 			<Group gap="md" mt={4}>
@@ -123,7 +147,7 @@ export default function GroupCard({ group }: IGroupCardProps) {
 									) : (
 										<span />
 									)}
-									<div className={classes.endControl}>{controls.delete ?? controls.leave}</div>
+									{controls.leave && <div className={classes.endControl}>{controls.leave}</div>}
 								</Group>
 							)}
 				</Stack>

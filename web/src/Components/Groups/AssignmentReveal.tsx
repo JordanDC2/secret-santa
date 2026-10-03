@@ -30,14 +30,13 @@ export default function AssignmentReveal({ recipientId, recipientName }: IAssign
 
 	return (
 		<Box className={classes.reveal}>
+			{/* The label gets its own line so the buttons can sit beside the name, not under it. */}
+			<MantineText size="xs" fw={700} tt="uppercase" c="dimmed" className={classes.label}>
+				You&apos;re the Secret Santa for
+			</MantineText>
 			<Group justify="space-between" gap="sm">
-				<div>
-					<MantineText size="xs" fw={700} tt="uppercase" c="dimmed" className={classes.label}>
-						You&apos;re the Secret Santa for
-					</MantineText>
-					<div className={classes.name}>{recipientName}</div>
-				</div>
-				<Group gap="xs">
+				<div className={classes.name}>{recipientName}</div>
+				<Group gap="xs" className={classes.actions}>
 					<Button
 						component={Link}
 						to={`/wishlists/${recipientId}`}
