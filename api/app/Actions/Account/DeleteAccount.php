@@ -21,6 +21,7 @@ class DeleteAccount
         DB::transaction(function () use ($user) {
             $user->ownedGroups()->delete();
             $user->tokens()->delete();
+            $user->endOtherSessions();
             $user->delete();
         });
 

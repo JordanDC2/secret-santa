@@ -16,6 +16,12 @@ class DrawNames
 
     public function __invoke(Group $group): Group
     {
+        if ($group->is_drawn) {
+            throw ValidationException::withMessages([
+                'group' => ['Names have already been drawn for this group.'],
+            ]);
+        }
+
         $members = $group->members;
 
         if ($members->count() < 2) {
@@ -34,6 +40,16 @@ class DrawNames
         }
 
         DB::transaction(function () use ($group, $assignments) {
+            // Claim the draw with a single conditional update: if two requests race (say, a
+            // double-click), only one can flip drawn_at, so assignments and emails happen once.
+            $claimed = Group::whereKey($group->id)->whereNull('drawn_at')->update(['drawn_at' => now()]);
+
+            if (! $claimed) {
+                throw ValidationException::withMessages([
+                    'group' => ['Names have already been drawn for this group.'],
+                ]);
+            }
+
             $group->assignments()->delete();
 
             foreach ($assignments as $giverId => $receiverId) {
@@ -42,8 +58,6 @@ class DrawNames
                     'receiver_id' => $receiverId,
                 ]);
             }
-
-            $group->update(['drawn_at' => now()]);
         });
 
         GroupChanged::dispatch($group->id);

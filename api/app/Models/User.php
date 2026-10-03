@@ -75,6 +75,22 @@ class User extends Authenticatable
             ->all();
     }
 
+    /**
+     * Sign this user out everywhere except (optionally) the current session, so a password
+     * change or reset also locks out anyone who got into the account.
+     */
+    public function endOtherSessions(?string $keepSessionId = null): void
+    {
+        if (config('session.driver') !== 'database') {
+            return;
+        }
+
+        DB::table(config('session.table', 'sessions'))
+            ->where('user_id', $this->id)
+            ->when($keepSessionId, fn ($query) => $query->where('id', '!=', $keepSessionId))
+            ->delete();
+    }
+
     public function sharesGroupWith(User $other): bool
     {
         return $this->groups()

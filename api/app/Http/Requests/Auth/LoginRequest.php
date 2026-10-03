@@ -21,4 +21,15 @@ class LoginRequest extends FormRequest
             'password' => ['required', 'string'],
         ];
     }
+
+    /**
+     * Emails are case-insensitive: store and compare them lowercased so "Holly@x.com" and
+     * "holly@x.com" are the same account.
+     */
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->input('email'))) {
+            $this->merge(['email' => strtolower(trim($this->input('email')))]);
+        }
+    }
 }

@@ -22,9 +22,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->name('auth.')->group(function () {
-    Route::post('register', RegisterHandler::class)->name('register');
+    Route::post('register', RegisterHandler::class)->middleware('throttle:register')->name('register');
 
-    Route::post('login', LoginHandler::class)->name('login');
+    Route::post('login', LoginHandler::class)->middleware('throttle:login')->name('login');
 
     Route::post('forgot-password', ForgotPasswordHandler::class)
         ->middleware('throttle:6,1')
@@ -52,7 +52,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/', DeleteAccountHandler::class)->name('destroy');
     });
 
-    Route::post('groups/join', JoinHandler::class)->name('groups.join');
+    Route::post('groups/join', JoinHandler::class)->middleware('throttle:join')->name('groups.join');
 
     Route::post('groups/{group}/draw', DrawHandler::class)->name('groups.draw');
 

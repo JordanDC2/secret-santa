@@ -36,15 +36,17 @@ class SecretSantaAssigned extends Notification implements ShouldQueue
 
         return (new ElfMailMessage)
             ->subject("🎁 Your Secret Santa assignment for {$this->group->name}")
-            ->greeting("Hi {$notifiable->name}!")
+            ->greeting('Hi '.ElfMailMessage::plain($notifiable->name).'!')
             ->line('I have news straight from the North Pole!')
-            ->line("The names have been drawn for **{$this->group->name}**.")
+            ->line('The names have been drawn for **'.ElfMailMessage::plain($this->group->name).'**.')
             ->when($this->group->description, fn (ElfMailMessage $message, string $description) => $message
                 ->line($this->ownerNote($description)))
             ->line('You are the Secret Santa for:')
-            ->line("## {$this->recipient->name}")
+            ->line('## '.ElfMailMessage::plain($this->recipient->name))
             ->line('Keep it a secret, and happy gifting! 🎄')
-            ->action("View {$this->recipient->name}'s Wishlist", $wishlistUrl);
+            // No names in the button label: Laravel repeats it in the footer as Markdown, where a
+            // crafted name would become a link. The name is shown escaped just above instead.
+            ->action('View Their Wishlist', $wishlistUrl);
     }
 
     /**
@@ -54,7 +56,8 @@ class SecretSantaAssigned extends Notification implements ShouldQueue
      */
     private function ownerNote(string $description): HtmlString
     {
-        $escape = fn (string $text): string => e(preg_replace('/([\\\\`*_{}\[\]()#+\-.!|>~<])/', '\\\\$1', $text));
+        // This line is raw HTML (to keep line breaks), so HTML-escape on top of the Markdown escape.
+        $escape = fn (string $text): string => e(ElfMailMessage::plain($text));
 
         return new HtmlString(
             '<strong>A note from '.$escape($this->group->owner->name).':</strong><br>'.nl2br($escape($description), false),

@@ -34,7 +34,7 @@ class ResetPasswordLink extends Notification implements ShouldQueue
 
         return (new ElfMailMessage)
             ->subject('🔑 Reset your Secret Santa password')
-            ->greeting("Hi {$notifiable->name}!")
+            ->greeting('Hi '.ElfMailMessage::plain($notifiable->name).'!')
             ->line("I heard you forgot your password. Don't worry, it happens to the best of us. Even Santa misplaces his list sometimes!")
             ->action('Reset Password', $url)
             ->line("This link melts like a snowflake in {$expiresInMinutes} minutes.")

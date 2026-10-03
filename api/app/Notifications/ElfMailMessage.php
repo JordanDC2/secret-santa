@@ -20,4 +20,15 @@ class ElfMailMessage extends MailMessage
     {
         return config('mail.from.name');
     }
+
+    /**
+     * Escape text someone typed (names, group names) before it goes into the email body,
+     * which is parsed as Markdown: otherwise "[Free gift](https://...)" in a name would
+     * become a real link in an email sent from our trusted address. HTML is escaped later
+     * by the mail template, so this only neutralizes Markdown syntax.
+     */
+    public static function plain(string $text): string
+    {
+        return preg_replace('/([\\\\`*_{}\[\]()#+\-.!|>~<])/', '\\\\$1', $text);
+    }
 }

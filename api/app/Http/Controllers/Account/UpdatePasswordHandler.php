@@ -11,10 +11,14 @@ class UpdatePasswordHandler extends Controller
 {
     public function __invoke(UpdatePasswordRequest $request): Response
     {
-        $request->user()->forceFill([
+        $user = $request->user();
+
+        $user->forceFill([
             'password' => $request->string('password')->value(),
             'remember_token' => Str::random(60),
         ])->save();
+
+        $user->endOtherSessions($request->hasSession() ? $request->session()->getId() : null);
 
         return response()->noContent();
     }

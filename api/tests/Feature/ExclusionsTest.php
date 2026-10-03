@@ -92,7 +92,8 @@ class ExclusionsTest extends TestCase
         Sanctum::actingAs($group->owner);
 
         for ($i = 0; $i < 20; $i++) {
-            $group->update(['drawn_at' => null]);
+            // Reset straight in the database; the in-memory model is stale after each draw.
+            Group::whereKey($group->id)->update(['drawn_at' => null]);
             $this->postJson(route('groups.draw', $group))->assertOk();
 
             $drawn = $group->assignments()->pluck('receiver_id', 'giver_id');

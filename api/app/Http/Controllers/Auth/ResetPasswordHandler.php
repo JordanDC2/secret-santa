@@ -23,6 +23,9 @@ class ResetPasswordHandler extends Controller
                     'remember_token' => Str::random(60),
                 ])->save();
 
+                // Whoever reset it isn't signed in here, so end every session for the account.
+                $user->endOtherSessions();
+
                 event(new PasswordReset($user));
             },
         );

@@ -4,6 +4,17 @@
 YOUR_HOSTNAME {
 	encode zstd gzip
 
+	# Security headers: force HTTPS for a year (HSTS), block being framed by other sites
+	# (clickjacking), stop MIME sniffing, and keep full URLs out of the Referer header.
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
 	# Live updates: WebSocket connections go to Reverb, which only listens on 127.0.0.1.
 	@reverb path /app /app/*
 	handle @reverb {
