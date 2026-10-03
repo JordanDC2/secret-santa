@@ -23,6 +23,7 @@ class LinkPreviewTest extends TestCase
         'localhost' => ['127.0.0.1'],
         'sneaky.example' => ['93.184.216.36', '10.0.0.7'],
         'metadata.example' => ['169.254.169.254'],
+        'www.amazon.com' => ['93.184.216.37'],
     ];
 
     protected function setUp(): void
@@ -94,6 +95,27 @@ class LinkPreviewTest extends TestCase
             'name' => 'Kindle Paperwhite',
             'price' => 159.99,
             'image_url' => 'https://cdn.shop.example/kindle.png',
+        ]);
+    }
+
+    public function test_reads_amazon_product_pages(): void
+    {
+        // Amazon has no Open Graph or schema.org data, only its own markup.
+        Http::fake(['www.amazon.com/*' => Http::response(<<<'HTML'
+            <!doctype html><html><head><meta name="title" content="Amazon.com: Socks : Clothing"></head><body>
+            <span id="productTitle" class="a-size-medium">   adidas Men&#39;s Athletic
+                Crew Socks   </span>
+            <span class="a-price priceToPay apex-pricetopay-value"><span class="a-offscreen"> </span>
+                <span aria-hidden="true"><span class="a-price-symbol">$</span><span class="a-price-whole">18<span class="a-price-decimal">.</span></span><span class="a-price-fraction">19</span></span></span>
+            <img id="landingImage" src="https://m.media-amazon.com/images/I/socks._SX342_.jpg"
+                data-old-hires="https://m.media-amazon.com/images/I/socks._SL1500_.jpg">
+            </body></html>
+        HTML, 200, ['Content-Type' => 'text/html;charset=UTF-8'])]);
+
+        $this->previewAs('https://www.amazon.com/adidas-Socks/dp/B008YA0Z44?th=1&psc=1')->assertExactJson([
+            'name' => "adidas Men's Athletic Crew Socks",
+            'price' => 18.19,
+            'image_url' => 'https://m.media-amazon.com/images/I/socks._SL1500_.jpg',
         ]);
     }
 

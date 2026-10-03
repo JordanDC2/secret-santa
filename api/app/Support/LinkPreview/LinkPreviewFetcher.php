@@ -4,9 +4,10 @@ namespace App\Support\LinkPreview;
 
 use DOMDocument;
 use DOMXPath;
+use GuzzleHttp\Exception\TransferException;
+use GuzzleHttp\Handler\CurlHandler;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
-use Psr\Http\Message\StreamInterface;
 use Throwable;
 
 /**
@@ -17,7 +18,8 @@ class LinkPreviewFetcher
 {
     private const MAX_REDIRECTS = 3;
 
-    private const MAX_BYTES = 2_000_000;
+    // Amazon product pages alone run about 3 MB.
+    private const MAX_BYTES = 5_000_000;
 
     public function __construct(private readonly HostResolver $resolver) {}
 
@@ -26,16 +28,19 @@ class LinkPreviewFetcher
      */
     public function fetch(string $url): array
     {
-        $empty = ['name' => null, 'price' => null, 'image_url' => null];
-        $html = $this->download($url, $finalUrl);
+        $page = $this->download($url);
 
-        return $html === null ? $empty : $this->parse($html, $finalUrl);
+        return $page === null
+            ? ['name' => null, 'price' => null, 'image_url' => null]
+            : $this->parse($page['html'], $page['url']);
     }
 
     /**
      * Follows redirects by hand so every hop gets the same safety check.
+     *
+     * @return array{html: string, url: string}|null The page and the address it finally came from.
      */
-    private function download(string $url, ?string &$finalUrl): ?string
+    private function download(string $url): ?array
     {
         for ($hop = 0; $hop <= self::MAX_REDIRECTS; $hop++) {
             $safe = SafeUrl::check($url, $this->resolver);
@@ -45,12 +50,18 @@ class LinkPreviewFetcher
             }
 
             try {
-                $response = Http::withOptions([
-                    'allow_redirects' => false,
-                    'stream' => true,
-                    // Connect only to the address we just checked (no DNS rebinding).
-                    'curl' => [CURLOPT_RESOLVE => ["{$safe->host}:{$safe->port}:{$safe->ip}"]],
-                ])
+                // Force curl: Guzzle hands streamed requests to PHP streams, which ignore curl options.
+                $response = Http::setHandler(new CurlHandler)
+                    ->withOptions([
+                        'allow_redirects' => false,
+                        'curl' => [
+                            // Connect only to the address we just checked (no DNS rebinding).
+                            CURLOPT_RESOLVE => ["{$safe->host}:{$safe->port}:{$safe->ip}"],
+                            // Give up on oversized pages instead of downloading all of them.
+                            CURLOPT_NOPROGRESS => false,
+                            CURLOPT_XFERINFOFUNCTION => fn ($curl, int $total, int $received) => $received > self::MAX_BYTES ? 1 : 0,
+                        ],
+                    ])
                     ->connectTimeout(4)
                     ->timeout(8)
                     ->withHeaders([
@@ -59,7 +70,7 @@ class LinkPreviewFetcher
                         'Accept-Language' => 'en-US,en;q=0.8',
                     ])
                     ->get($safe->url);
-            } catch (ConnectionException) {
+            } catch (ConnectionException|TransferException) {
                 return null;
             }
 
@@ -73,23 +84,10 @@ class LinkPreviewFetcher
                 return null;
             }
 
-            $finalUrl = $safe->url;
-
-            return $this->readCapped($response->toPsrResponse()->getBody());
+            return ['html' => substr($response->body(), 0, self::MAX_BYTES), 'url' => $safe->url];
         }
 
         return null;
-    }
-
-    private function readCapped(StreamInterface $body): string
-    {
-        $html = '';
-
-        while (! $body->eof() && strlen($html) < self::MAX_BYTES) {
-            $html .= $body->read(65536);
-        }
-
-        return substr($html, 0, self::MAX_BYTES);
     }
 
     /**
@@ -103,13 +101,16 @@ class LinkPreviewFetcher
         $xpath = new DOMXPath($document);
 
         $product = $this->jsonLdProduct($xpath);
+        $amazon = AmazonProductPage::matches($pageUrl) ? AmazonProductPage::read($xpath, $pageUrl) : [];
         $meta = fn (string ...$names) => $this->meta($xpath, $names);
 
         // Only deliberate product metadata: a plain <title> is often a bot-check or
         // "please wait" page ("Hang Tight! Routing to checkout..") rather than the product.
-        $name = $product['name'] ?? $meta('og:title', 'twitter:title');
-        $price = $product['price'] ?? $this->toPrice($meta('product:price:amount', 'og:price:amount'));
-        $image = $product['image'] ?? $meta('og:image:secure_url', 'og:image', 'twitter:image', 'twitter:image:src');
+        $name = $product['name'] ?? $amazon['name'] ?? $meta('og:title', 'twitter:title');
+        $price = $product['price']
+            ?? $this->toPrice($amazon['price'] ?? null)
+            ?? $this->toPrice($meta('product:price:amount', 'og:price:amount'));
+        $image = $product['image'] ?? $amazon['image'] ?? $meta('og:image:secure_url', 'og:image', 'twitter:image', 'twitter:image:src');
 
         $imageUrl = $image ? $this->absoluteUrl($image, $pageUrl) : null;
 
