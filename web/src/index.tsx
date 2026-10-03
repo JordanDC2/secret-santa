@@ -1,8 +1,10 @@
+// Mantine's base styles must load before any component's CSS module, or Mantine's rules win
+// ties against the app's own classes (e.g. a modal title's custom font size).
+import "@mantine/core/styles.css";
+import "Styles/index.less";
 import { createRoot } from "react-dom/client";
 import App from "Components/App";
 import { configureLiveUpdates } from "Data/Api/LiveUpdates";
-import "@mantine/core/styles.css";
-import "Styles/index.less";
 
 const root = document.getElementById("app");
 

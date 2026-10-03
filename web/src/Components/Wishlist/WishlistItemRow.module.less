@@ -1,14 +1,21 @@
 /*
- * Image + name take the room they need (at least ~14rem); when quantity, price and stars
- * no longer fit beside them (phones), those wrap onto their own line, kept to the right.
+ * Image + name take the free space and quantity, price and stars sit to their right. On
+ * phones (below Mantine's xs breakpoint, 36em) every row puts those on their own
+ * right-aligned line, so the whole list lays out the same way however long each name is.
  */
 .summary {
-	flex: 1 1 14rem;
+	flex: 1;
 	min-width: 0;
 }
 
 .meta {
 	margin-left: auto;
+}
+
+@media (max-width: 36em) {
+	.summary {
+		flex-basis: 100%;
+	}
 }
 
 .name {

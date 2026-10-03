@@ -18,6 +18,7 @@ import { useLinkPreviewMutation, useSaveWishlistItemMutation } from "Components/
 import WishlistItemImage from "Components/Wishlist/WishlistItemImage";
 import type { IWishlistItem } from "Components/Wishlist/types";
 import { apiErrorMessage } from "Data/Api/Client";
+import classes from "Components/Wishlist/WishlistItemFormModal.module.less";
 
 /** Give this a fresh `key` each time it opens so the form starts from `item`. */
 type IWishlistItemFormModalProps = {
@@ -97,7 +98,7 @@ export default function WishlistItemFormModal({ opened, item, onClose }: IWishli
 							description="Paste a product link, then fetch to fill in any empty fields we can."
 							placeholder="https://"
 							type="url"
-							style={{ flex: 1 }}
+							className={classes.linkField}
 							data-autofocus={item ? undefined : true}
 							{...form.getInputProps("url")}
 						/>

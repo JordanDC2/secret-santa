@@ -19,7 +19,8 @@ export default function AppHeader() {
 							Secret Santa
 						</span>
 					</Anchor>
-					<Group>
+					{/* xs gap: the nav pills carry their own padding, and it keeps them on one row on phones. */}
+					<Group gap="xs">
 						<Anchor component={Link} to="/wishlist" className={classes.navLink}>
 							<WishListIcon size="1.3em" />
 							My wishlist
