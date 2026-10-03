@@ -19,7 +19,8 @@ export default defineConfig({
 				changeOrigin: true,
 			},
 			// Reverb's WebSocket endpoint; production's web server proxies the same path.
-			"/app": {
+			// A plain "/app" key is a prefix match and would also catch /apple-touch-icon.png.
+			"^/app(/|$)": {
 				target: "ws://localhost:8080",
 				ws: true,
 			},
