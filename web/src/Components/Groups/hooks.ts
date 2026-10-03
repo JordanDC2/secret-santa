@@ -15,6 +15,7 @@ function mapGroup(raw: Record<string, unknown>): IGroup {
 		isOwner: raw.is_owner as boolean,
 		membersCount: raw.members_count as number,
 		isDrawn: raw.is_drawn as boolean,
+		hasPreviousDraw: raw.has_previous_draw as boolean,
 		...(raw.exclusions_count !== undefined && { exclusionsCount: raw.exclusions_count as number }),
 		members: raw.members as IGroup["members"],
 		myAssignment: myAssignment
@@ -66,8 +67,10 @@ export function useDrawNamesMutation() {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async (groupId: number) => {
-			const group = await apiClient.post<Record<string, unknown>>(`/groups/${groupId}/draw`);
+		mutationFn: async ({ groupId, avoidPreviousMatches }: { groupId: number; avoidPreviousMatches: boolean }) => {
+			const group = await apiClient.post<Record<string, unknown>>(`/groups/${groupId}/draw`, {
+				avoid_previous_matches: avoidPreviousMatches,
+			});
 
 			return mapGroup(group);
 		},
@@ -160,5 +163,18 @@ export function useDrawPairsQuery(groupId: number, enabled: boolean) {
 		queryKey: ["groups", groupId, "draw", "pairs"],
 		queryFn: () => apiClient.get<IDrawPair[]>(`/groups/${groupId}/draw/assignments`),
 		enabled,
+	});
+}
+
+export function useStartNewDrawMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async (groupId: number) => {
+			const group = await apiClient.post<Record<string, unknown>>(`/groups/${groupId}/new-draw`);
+
+			return mapGroup(group);
+		},
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: GROUPS_QUERY_KEY }),
 	});
 }

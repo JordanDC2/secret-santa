@@ -11,6 +11,7 @@ import GroupMembers from "Components/Groups/GroupMembers";
 import GroupNameEditor from "Components/Groups/GroupNameEditor";
 import InviteCode from "Components/Groups/InviteCode";
 import LeaveGroupControl from "Components/Groups/LeaveGroupControl";
+import StartNewDrawControl from "Components/Groups/StartNewDrawControl";
 import classes from "Components/Groups/GroupCard.module.less";
 
 type IGroupCardProps = {
@@ -26,7 +27,7 @@ function statusMessage(group: IGroup): string | null {
 	return group.myAssignment ? null : "Names have already been drawn for this group.";
 }
 
-type IGroupAction = "draw" | "delete" | "leave";
+type IGroupAction = "draw" | "newDraw" | "delete" | "leave";
 
 export default function GroupCard({ group }: IGroupCardProps) {
 	// Only one "are you sure?" panel at a time, and it takes the whole footer.
@@ -46,7 +47,15 @@ export default function GroupCard({ group }: IGroupCardProps) {
 
 	const controls: Record<IGroupAction, JSX.Element | null> = {
 		draw: canDraw ? (
-			<DrawNamesControl groupId={group.id} membersCount={group.membersCount} {...confirmState("draw")} />
+			<DrawNamesControl
+				groupId={group.id}
+				membersCount={group.membersCount}
+				hasPreviousDraw={group.hasPreviousDraw}
+				{...confirmState("draw")}
+			/>
+		) : null,
+		newDraw: canViewDraw ? (
+			<StartNewDrawControl groupId={group.id} groupName={group.name} {...confirmState("newDraw")} />
 		) : null,
 		delete: group.isOwner ? (
 			<DeleteGroupControl groupId={group.id} groupName={group.name} {...confirmState("delete")} />
@@ -101,9 +110,12 @@ export default function GroupCard({ group }: IGroupCardProps) {
 											</Button>
 										</Group>
 									) : canViewDraw ? (
-										<Button variant="default" onClick={() => setDrawDetailsOpen(true)}>
-											Draw details
-										</Button>
+										<Group gap="sm">
+											<Button variant="default" onClick={() => setDrawDetailsOpen(true)}>
+												Draw details
+											</Button>
+											{controls.newDraw}
+										</Group>
 									) : message ? (
 										<MantineText size="sm" c="dimmed" className={classes.footerMessage}>
 											{message}

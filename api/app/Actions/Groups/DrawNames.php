@@ -14,7 +14,10 @@ class DrawNames
         private readonly GenerateAssignments $generateAssignments
     ) {}
 
-    public function __invoke(Group $group): Group
+    /**
+     * @param  bool  $avoidPreviousMatches  Nobody gets the same person as in the group's last draw.
+     */
+    public function __invoke(Group $group, bool $avoidPreviousMatches = true): Group
     {
         if ($group->is_drawn) {
             throw ValidationException::withMessages([
@@ -31,11 +34,18 @@ class DrawNames
         }
 
         $memberIds = $members->pluck('id')->all();
-        $assignments = ($this->generateAssignments)($memberIds, $group->blockedPairsAmong($memberIds));
+        $avoidingPrevious = $avoidPreviousMatches && $group->draw_number > 1;
+        $blockedPairs = [
+            ...$group->blockedPairsAmong($memberIds),
+            ...($avoidingPrevious ? $group->previousDrawPairsAmong($memberIds) : []),
+        ];
+        $assignments = ($this->generateAssignments)($memberIds, $blockedPairs);
 
         if ($assignments === null) {
             throw ValidationException::withMessages([
-                'group' => ['These exclusions leave no way to match everyone. Remove one and try again.'],
+                'group' => [$avoidingPrevious
+                    ? "Avoiding last draw's matches leaves no way to match everyone. Try again without that option."
+                    : 'These exclusions leave no way to match everyone. Remove one and try again.'],
             ]);
         }
 
@@ -50,10 +60,11 @@ class DrawNames
                 ]);
             }
 
-            $group->assignments()->delete();
+            $group->currentAssignments()->delete();
 
             foreach ($assignments as $giverId => $receiverId) {
                 $group->assignments()->create([
+                    'draw_number' => $group->draw_number,
                     'giver_id' => $giverId,
                     'receiver_id' => $receiverId,
                 ]);

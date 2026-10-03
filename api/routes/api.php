@@ -13,6 +13,7 @@ use App\Http\Controllers\Group\DrawHandler;
 use App\Http\Controllers\Group\ExclusionController;
 use App\Http\Controllers\Group\JoinHandler;
 use App\Http\Controllers\Group\LeaveHandler;
+use App\Http\Controllers\Group\StartNewDrawHandler;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\Wishlist\ClaimHandler;
 use App\Http\Controllers\Wishlist\MemberWishlistHandler;
@@ -55,6 +56,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('groups/join', JoinHandler::class)->middleware('throttle:join')->name('groups.join');
 
     Route::post('groups/{group}/draw', DrawHandler::class)->name('groups.draw');
+
+    Route::post('groups/{group}/new-draw', StartNewDrawHandler::class)->name('groups.new-draw');
 
     Route::post('groups/{group}/leave', LeaveHandler::class)->name('groups.leave');
 

@@ -16,7 +16,7 @@ class VerifyDraw
     public function __invoke(Group $group): array
     {
         $members = $group->members()->get(['users.id', 'users.name'])->keyBy('id');
-        $assignments = $group->assignments()->get();
+        $assignments = $group->currentAssignments()->get();
         $name = fn (int $id): string => $members[$id]->name ?? 'A former member';
 
         $checks = [

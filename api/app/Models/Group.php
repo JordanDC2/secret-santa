@@ -11,15 +11,25 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
-#[Fillable(['name', 'description', 'owner_id', 'join_code', 'drawn_at'])]
+#[Fillable(['name', 'description', 'owner_id', 'join_code', 'drawn_at', 'draw_number'])]
 class Group extends Model
 {
     use HasFactory;
+
+    /**
+     * Matches the column default, so a group created in memory already knows it's on draw 1.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'draw_number' => 1,
+    ];
 
     protected function casts(): array
     {
         return [
             'drawn_at' => 'datetime',
+            'draw_number' => 'integer',
         ];
     }
 
@@ -49,9 +59,38 @@ class Group extends Model
         return $this->belongsToMany(User::class)->withTimestamps();
     }
 
+    /**
+     * Every draw's assignments, including past draws kept as history.
+     */
     public function assignments(): HasMany
     {
         return $this->hasMany(SecretSantaAssignment::class);
+    }
+
+    /**
+     * Assignments from the group's current draw only.
+     */
+    public function currentAssignments(): HasMany
+    {
+        return $this->assignments()->where('draw_number', $this->draw_number);
+    }
+
+    /**
+     * Last draw's [giver, receiver] pairs among the given members, so a new draw can avoid
+     * giving anyone the same person again.
+     *
+     * @param  array<int>  $memberIds
+     * @return array<int, array{int, int}>
+     */
+    public function previousDrawPairsAmong(array $memberIds): array
+    {
+        return $this->assignments()
+            ->where('draw_number', $this->draw_number - 1)
+            ->whereIn('giver_id', $memberIds)
+            ->whereIn('receiver_id', $memberIds)
+            ->get()
+            ->map(fn (SecretSantaAssignment $assignment) => [$assignment->giver_id, $assignment->receiver_id])
+            ->all();
     }
 
     public function exclusions(): HasMany
@@ -81,7 +120,7 @@ class Group extends Model
             return null;
         }
 
-        return $this->assignments()->where('giver_id', $user->id)->with('receiver')->first();
+        return $this->currentAssignments()->where('giver_id', $user->id)->with('receiver')->first();
     }
 
     protected function isDrawn(): Attribute

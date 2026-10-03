@@ -85,12 +85,17 @@ class WishlistTest extends TestCase
         [$owner, $friend, $cousin] = $this->groupMates(3);
         $group = $owner->ownedGroups()->first();
         $group->assignments()->create(['giver_id' => $friend->id, 'receiver_id' => $cousin->id]);
+        $group->update(['drawn_at' => now()]);
 
         Sanctum::actingAs($friend);
 
         $this->getJson(route('users.wishlist', $owner))
             ->assertOk()
-            ->assertJsonPath('my_recipients', [['id' => $cousin->id, 'name' => $cousin->name]]);
+            ->assertJsonPath('my_recipients', [[
+                'id' => $cousin->id,
+                'name' => $cousin->name,
+                'group' => ['id' => $group->id, 'name' => $group->name],
+            ]]);
     }
 
     public function test_viewer_without_an_assignment_gets_no_recipients(): void

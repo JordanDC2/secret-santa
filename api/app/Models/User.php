@@ -99,15 +99,23 @@ class User extends Authenticatable
     }
 
     /**
-     * Everyone this user is buying for as a Secret Santa, across all drawn groups.
+     * This user's current Secret Santa assignments (who they're buying for, and in which
+     * group), across every group whose names are currently drawn.
      *
-     * @return Collection<int, User>
+     * @return Collection<int, SecretSantaAssignment>
      */
     public function secretSantaRecipients(): Collection
     {
-        return User::whereIn(
-            'id',
-            SecretSantaAssignment::where('giver_id', $this->id)->select('receiver_id'),
-        )->orderBy('name')->get();
+        return SecretSantaAssignment::query()
+            ->select('secret_santa_assignments.*')
+            ->join('groups', 'groups.id', '=', 'secret_santa_assignments.group_id')
+            ->where('secret_santa_assignments.giver_id', $this->id)
+            // Only each group's current, drawn round: old rounds and reset groups don't count.
+            ->whereNotNull('groups.drawn_at')
+            ->whereColumn('secret_santa_assignments.draw_number', 'groups.draw_number')
+            ->with('receiver', 'group')
+            ->get()
+            ->sortBy(fn (SecretSantaAssignment $assignment) => [$assignment->receiver->name, $assignment->group->name])
+            ->values();
     }
 }

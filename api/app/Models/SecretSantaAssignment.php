@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['group_id', 'giver_id', 'receiver_id'])]
+#[Fillable(['group_id', 'draw_number', 'giver_id', 'receiver_id'])]
 class SecretSantaAssignment extends Model
 {
     public function group(): BelongsTo

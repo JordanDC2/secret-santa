@@ -19,9 +19,12 @@ export type IWishlistItemDetails = Pick<IWishlistItem, "name" | "url" | "price" 
 
 export type IWishlistPerson = { id: number; name: string };
 
+/** One of your current Secret Santa assignments: who you're buying for, and in which group. */
+export type IMyRecipient = IWishlistPerson & { group: { id: number; name: string } };
+
 export type IMemberWishlist = {
 	user: IWishlistPerson;
 	items: IWishlistItem[];
 	/** Who the viewer is buying for as a Secret Santa; empty before any draw. */
-	myRecipients: IWishlistPerson[];
+	myRecipients: IMyRecipient[];
 };

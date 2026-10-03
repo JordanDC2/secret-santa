@@ -6,6 +6,8 @@ export type IGroup = {
 	isOwner: boolean;
 	membersCount: number;
 	isDrawn: boolean;
+	/** True once the group has started a new draw at least once (offers "avoid last draw's matches"). */
+	hasPreviousDraw: boolean;
 	/** Only present for the owner. */
 	exclusionsCount?: number;
 	members: { id: number; name: string }[];

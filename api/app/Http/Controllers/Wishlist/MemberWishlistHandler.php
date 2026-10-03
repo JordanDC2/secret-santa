@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Wishlist;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\WishlistItemResource;
+use App\Models\SecretSantaAssignment;
 use App\Models\User;
 use App\Models\WishlistItem;
 use Illuminate\Http\JsonResponse;
@@ -29,10 +30,14 @@ class MemberWishlistHandler extends Controller
         return response()->json([
             'user' => ['id' => $user->id, 'name' => $user->name],
             'items' => WishlistItemResource::collection($items),
-            // Lets the page warn when you're about to claim a gift for someone who
-            // isn't your Secret Santa person.
+            // Who you're buying for in each group's current draw, so the page can say "you drew
+            // this person in <group>" or warn that they aren't your person.
             'my_recipients' => $request->user()->secretSantaRecipients()
-                ->map(fn (User $recipient) => ['id' => $recipient->id, 'name' => $recipient->name])
+                ->map(fn (SecretSantaAssignment $assignment) => [
+                    'id' => $assignment->receiver->id,
+                    'name' => $assignment->receiver->name,
+                    'group' => ['id' => $assignment->group->id, 'name' => $assignment->group->name],
+                ])
                 ->values(),
         ]);
     }

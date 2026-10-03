@@ -26,7 +26,7 @@ class DrawDetailsController extends Controller
     {
         $this->authorizeDrawn($group);
 
-        $pairs = $group->assignments()->with('giver', 'receiver')->get()
+        $pairs = $group->currentAssignments()->with('giver', 'receiver')->get()
             ->map(fn (SecretSantaAssignment $assignment) => [
                 'giver' => ['id' => $assignment->giver->id, 'name' => $assignment->giver->name],
                 'receiver' => ['id' => $assignment->receiver->id, 'name' => $assignment->receiver->name],
