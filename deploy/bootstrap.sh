@@ -156,6 +156,8 @@ mkdir -p /var/log/caddy
 chown caddy:caddy /var/log/caddy 2>/dev/null || true
 sed "s/YOUR_HOSTNAME/${SITE_HOST}/g" "$APP_DIR/deploy/Caddyfile" > /etc/caddy/Caddyfile
 caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+# validate runs as root and creates the log file root-only; the caddy service needs it.
+chown -R caddy:caddy /var/log/caddy 2>/dev/null || true
 
 step "Background services, backups and DuckDNS"
 mkdir -p /etc/systemd/system /etc/sudoers.d /etc/cron.d
