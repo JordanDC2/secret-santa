@@ -118,6 +118,8 @@ class LinkPreviewTest extends TestCase
             'price' => 18.19,
             'image_url' => 'https://m.media-amazon.com/images/I/socks._SL1500_.jpg',
         ]);
+
+        Http::assertSent(fn (Request $request) => $request->hasHeader('Accept-Encoding', 'gzip, deflate'));
     }
 
     public function test_a_plain_page_title_is_not_used_as_the_item_name(): void

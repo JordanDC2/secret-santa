@@ -69,6 +69,9 @@ class LinkPreviewFetcher
                         'User-Agent' => 'Mozilla/5.0 (compatible; SecretSantaLinkPreview/1.0)',
                         'Accept' => 'text/html,application/xhtml+xml',
                         'Accept-Language' => 'en-US,en;q=0.8',
+                        // Guzzle strips curl's default Accept-Encoding, and some shops (Amazon)
+                        // answer requests without one with a bot-check page instead.
+                        'Accept-Encoding' => 'gzip, deflate',
                     ])
                     ->get($safe->url);
             } catch (ConnectionException|TransferException) {
