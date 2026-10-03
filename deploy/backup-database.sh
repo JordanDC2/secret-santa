@@ -8,7 +8,10 @@ DATABASE=/var/www/secret-santa/api/database/database.sqlite
 BACKUP_DIR=/var/backups/secret-santa
 KEEP=14
 
+# Backups hold everyone's data: root-only folder and files.
+umask 077
 mkdir -p "$BACKUP_DIR"
+chmod 700 "$BACKUP_DIR"
 sqlite3 "$DATABASE" ".backup '$BACKUP_DIR/database-$(date +%F).sqlite'"
 gzip -f "$BACKUP_DIR/database-$(date +%F).sqlite"
 ls -1t "$BACKUP_DIR"/database-*.sqlite.gz | tail -n +$((KEEP + 1)) | xargs -r rm --
