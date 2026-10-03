@@ -20,6 +20,7 @@ class WishlistItemRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             // Only web links, so a crafted "javascript:" URL can't run when someone clicks it.
             'url' => ['nullable', 'url:http,https', 'max:2048'],
+            'image_url' => ['nullable', 'url:http,https', 'max:2048'],
             'price' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'rating' => ['required', 'integer', 'between:1,5'],

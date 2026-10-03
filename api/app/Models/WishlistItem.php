@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['name', 'url', 'price', 'notes', 'rating'])]
+#[Fillable(['name', 'url', 'image_url', 'price', 'notes', 'rating'])]
 class WishlistItem extends Model
 {
     /** @use HasFactory<WishlistItemFactory> */

@@ -20,6 +20,7 @@ class WishlistItemResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'url' => $this->url,
+            'image_url' => $this->image_url,
             'price' => $this->price,
             'notes' => $this->notes,
             'rating' => $this->rating,

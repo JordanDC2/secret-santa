@@ -44,5 +44,8 @@ class AppServiceProvider extends ServiceProvider
 
         // Join codes are 6 characters, so cap guesses per signed-in user.
         RateLimiter::for('join', fn (Request $request) => Limit::perMinute(10)->by($request->user()?->id ?: $request->ip()));
+
+        // Each preview makes the server fetch an outside page, so keep it modest.
+        RateLimiter::for('link-preview', fn (Request $request) => Limit::perMinute(20)->by($request->user()?->id ?: $request->ip()));
     }
 }

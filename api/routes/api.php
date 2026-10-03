@@ -16,6 +16,7 @@ use App\Http\Controllers\Group\LeaveHandler;
 use App\Http\Controllers\Group\StartNewDrawHandler;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\Wishlist\ClaimHandler;
+use App\Http\Controllers\Wishlist\LinkPreviewHandler;
 use App\Http\Controllers\Wishlist\MemberWishlistHandler;
 use App\Http\Controllers\Wishlist\UnclaimHandler;
 use App\Http\Controllers\WishlistItemController;
@@ -74,6 +75,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('items', WishlistItemController::class)->except('show');
 
         Route::post('items/{item}/claim', ClaimHandler::class)->name('items.claim');
+
+        Route::post('link-preview', LinkPreviewHandler::class)->middleware('throttle:link-preview')->name('link-preview');
 
         Route::delete('items/{item}/claim', UnclaimHandler::class)->name('items.unclaim');
     });

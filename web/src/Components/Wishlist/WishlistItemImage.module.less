@@ -1,0 +1,23 @@
+.frame {
+	flex-shrink: 0;
+	overflow: hidden;
+	border-radius: var(--mantine-radius-md);
+	border: 1px solid var(--mantine-color-default-border);
+	background-color: var(--festive-cream);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+/* Product photos come in every shape; show the whole thing on a white tile. */
+.image {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	background-color: var(--mantine-color-white);
+}
+
+.placeholder {
+	opacity: 0.45;
+	line-height: 1;
+}

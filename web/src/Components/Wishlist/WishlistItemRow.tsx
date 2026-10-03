@@ -3,6 +3,7 @@ import { Accordion, Button, Group, Rating, Stack, Text as MantineText } from "@m
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowUpRightFromSquare } from "@fortawesome/free-solid-svg-icons";
 import type { IWishlistItem } from "Components/Wishlist/types";
+import WishlistItemImage from "Components/Wishlist/WishlistItemImage";
 import classes from "Components/Wishlist/WishlistItemRow.module.less";
 
 const priceFormatter = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
@@ -22,11 +23,14 @@ export default function WishlistItemRow({ item, status, actions, dimmed = false 
 		<Accordion.Item value={String(item.id)} className={dimmed ? classes.dimmed : undefined}>
 			<Accordion.Control>
 				<Group justify="space-between" gap="xs">
-					{/* The claim badge sits under the name so it never gets squeezed on phones. */}
-					<Stack gap={4} className={classes.name}>
-						<MantineText fw={600}>{item.name}</MantineText>
-						{status && <div>{status}</div>}
-					</Stack>
+					<Group gap="sm" wrap="nowrap" className={classes.name}>
+						<WishlistItemImage src={item.imageUrl} alt="" size={44} />
+						{/* The claim status sits under the name so it never gets squeezed on phones. */}
+						<Stack gap={4} className={classes.name}>
+							<MantineText fw={600}>{item.name}</MantineText>
+							{status && <div>{status}</div>}
+						</Stack>
+					</Group>
 					<Group gap="sm" wrap="nowrap">
 						{item.price !== null && (
 							<MantineText size="sm" fw={600} className={classes.price}>
@@ -39,9 +43,12 @@ export default function WishlistItemRow({ item, status, actions, dimmed = false 
 			</Accordion.Control>
 			<Accordion.Panel>
 				<Stack gap="sm">
-					<MantineText size="sm" c={item.notes ? undefined : "dimmed"} className={classes.notes}>
-						{item.notes ?? "No notes."}
-					</MantineText>
+					<Group gap="md" align="flex-start" wrap="nowrap">
+						{item.imageUrl && <WishlistItemImage src={item.imageUrl} alt={item.name} size={120} />}
+						<MantineText size="sm" c={item.notes ? undefined : "dimmed"} className={classes.notes}>
+							{item.notes ?? "No notes."}
+						</MantineText>
+					</Group>
 					<Group justify="space-between" gap="xs">
 						{item.url ? (
 							<Button

@@ -8,6 +8,8 @@ export type IWishlistItem = {
 	id: number;
 	name: string;
 	url: string | null;
+	/** The shop's product image, found from the item's link. */
+	imageUrl: string | null;
 	price: number | null;
 	notes: string | null;
 	rating: number;
@@ -15,7 +17,10 @@ export type IWishlistItem = {
 	claim?: IWishlistClaim | null;
 };
 
-export type IWishlistItemDetails = Pick<IWishlistItem, "name" | "url" | "price" | "notes" | "rating">;
+export type IWishlistItemDetails = Pick<IWishlistItem, "name" | "url" | "imageUrl" | "price" | "notes" | "rating">;
+
+/** What the server could read from a product link; any field may be missing. */
+export type ILinkPreview = { name: string | null; price: number | null; imageUrl: string | null };
 
 export type IWishlistPerson = { id: number; name: string };
 
