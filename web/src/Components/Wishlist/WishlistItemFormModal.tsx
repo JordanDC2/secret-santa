@@ -1,10 +1,8 @@
-import { useRef } from "react";
 import {
 	Alert,
 	Button,
 	Group,
 	Input,
-	Loader,
 	Modal,
 	NumberInput,
 	Rating,
@@ -54,18 +52,11 @@ export default function WishlistItemFormModal({ opened, item, onClose }: IWishli
 	const saveItem = useSaveWishlistItemMutation();
 	const form = useForm<IFormValues>({ initialValues: initialValues(item) });
 	const linkPreview = useLinkPreviewMutation();
-	const lastLookedUp = useRef(item?.url ?? "");
+	const linkLooksValid = /^https?:\/\/\S+\.\S+/i.test(form.values.url.trim());
 
 	/** Fill in whatever the link's page tells us, but only into fields that are still empty. */
-	function lookUpLink(url: string) {
-		const trimmed = url.trim();
-
-		if (!/^https?:\/\/\S+\.\S+/i.test(trimmed) || trimmed === lastLookedUp.current) {
-			return;
-		}
-
-		lastLookedUp.current = trimmed;
-		linkPreview.mutate(trimmed, {
+	function lookUpLink() {
+		linkPreview.mutate(form.values.url.trim(), {
 			onSuccess: (preview) =>
 				// Read the latest values: the person may have typed while we were fetching.
 				form.setValues((current) => ({
@@ -99,17 +90,30 @@ export default function WishlistItemFormModal({ opened, item, onClose }: IWishli
 			<form onSubmit={form.onSubmit(handleSubmit)}>
 				<Stack>
 					{saveItem.isError && <Alert color="red">{apiErrorMessage(saveItem.error)}</Alert>}
-					<TextInput
-						label="Link"
-						description="Paste a product link and we'll fill in any empty fields we can."
-						placeholder="https://"
-						type="url"
-						data-autofocus={item ? undefined : true}
-						rightSection={linkPreview.isPending ? <Loader size="xs" /> : undefined}
-						{...form.getInputProps("url")}
-						onBlur={(event) => lookUpLink(event.currentTarget.value)}
-						onPaste={(event) => lookUpLink(event.clipboardData.getData("text"))}
-					/>
+					<Group gap="xs" align="flex-end" wrap="nowrap">
+						<TextInput
+							label="Link"
+							description="Paste a product link, then fetch to fill in any empty fields we can."
+							placeholder="https://"
+							type="url"
+							style={{ flex: 1 }}
+							data-autofocus={item ? undefined : true}
+							{...form.getInputProps("url")}
+						/>
+						<Button variant="light" onClick={lookUpLink} disabled={!linkLooksValid} loading={linkPreview.isPending}>
+							Fetch
+						</Button>
+					</Group>
+					{linkPreview.isError && (
+						<MantineText size="xs" c="red">
+							{apiErrorMessage(linkPreview.error)}
+						</MantineText>
+					)}
+					{linkPreview.isSuccess && Object.values(linkPreview.data).every((value) => value === null) && (
+						<MantineText size="xs" c="dimmed">
+							We couldn't find any details on that page. You can fill them in yourself.
+						</MantineText>
+					)}
 					<TextInput
 						label="What is it?"
 						required
@@ -126,7 +130,7 @@ export default function WishlistItemFormModal({ opened, item, onClose }: IWishli
 							<MantineText size="xs" c="dimmed">
 								{linkPreview.isSuccess
 									? "That page didn't share a picture."
-									: "No image yet. Paste a link above and we'll grab the shop's picture if it has one."}
+									: "No image yet. Fetch a link above and we'll grab the shop's picture if it has one."}
 							</MantineText>
 						)}
 					</Group>
