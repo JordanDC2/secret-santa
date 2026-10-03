@@ -1,3 +1,8 @@
+/* A long group name wraps rather than squeezing the badge down to "OWN…". */
+.ownerBadge {
+	flex-shrink: 0;
+}
+
 /* A zero flex-basis lets a member's status text shrink and wrap instead of pushing
    "Leave group" onto its own line on phones; the row itself can still wrap for owners. */
 .footerMessage {

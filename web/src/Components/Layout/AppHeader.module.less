@@ -31,6 +31,13 @@
 	align-items: center;
 	gap: 6px;
 
+	/* Narrow phones (e.g. a Galaxy Z Fold's 344px cover screen): tighter pills keep the
+	   nav and "Log out" on one row. 36em is Mantine's xs breakpoint. */
+	@media (max-width: 36em) {
+		padding: 4px 6px;
+		gap: 4px;
+	}
+
 	&:hover,
 	&:focus-visible {
 		color: var(--festive-white);

@@ -23,7 +23,8 @@
 
 .title {
 	font-family: var(--festive-font);
-	font-size: 3.5rem;
+	/* Scales down on narrow phones so "Secret Santa" stays on one line; full size from ~430px. */
+	font-size: clamp(2.5rem, 13vw, 3.5rem);
 	line-height: 1;
 	text-align: center;
 	color: var(--festive-white);

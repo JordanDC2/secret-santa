@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPenToSquare } from "@fortawesome/free-regular-svg-icons";
 import { useUpdateGroupMutation } from "Components/Groups/hooks";
 import { apiErrorMessage } from "Data/Api/Client";
+import classes from "Components/Groups/GroupNameEditor.module.less";
 
 type IGroupNameEditorProps = {
 	groupId: number;
@@ -33,23 +34,32 @@ export default function GroupNameEditor({ groupId, name, canRename }: IGroupName
 	}
 
 	if (draft === null) {
+		const lastSpace = name.lastIndexOf(" ");
+		const leadingWords = name.slice(0, lastSpace + 1);
+		const lastWord = name.slice(lastSpace + 1);
+
 		return (
-			<Group gap={6} wrap="nowrap">
-				<Title order={4}>{name}</Title>
-				{canRename && (
-					<Tooltip label="Rename group" withArrow>
-						<ActionIcon
-							variant="subtle"
-							color="gray"
-							size="sm"
-							aria-label="Rename group"
-							onClick={() => setDraft(name)}
-						>
-							<FontAwesomeIcon icon={faPenToSquare} />
-						</ActionIcon>
-					</Tooltip>
-				)}
-			</Group>
+			<Title order={4}>
+				{leadingWords}
+				{/* The last word and the pencil never break apart, so the pencil can't wrap onto a line alone. */}
+				<span className={classes.lastWord}>
+					{lastWord}
+					{canRename && (
+						<Tooltip label="Rename group" withArrow>
+							<ActionIcon
+								variant="subtle"
+								color="gray"
+								size="sm"
+								aria-label="Rename group"
+								className={classes.renameButton}
+								onClick={() => setDraft(name)}
+							>
+								<FontAwesomeIcon icon={faPenToSquare} />
+							</ActionIcon>
+						</Tooltip>
+					)}
+				</span>
+			</Title>
 		);
 	}
 

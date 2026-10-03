@@ -70,7 +70,7 @@ export default function GroupCard({ group }: IGroupCardProps) {
 			<Group justify="space-between" wrap="nowrap" align="flex-start">
 				<GroupNameEditor groupId={group.id} name={group.name} canRename={group.isOwner} />
 				{group.isOwner && (
-					<Badge color="green" variant="light">
+					<Badge color="green" variant="light" className={classes.ownerBadge}>
 						Owner
 					</Badge>
 				)}

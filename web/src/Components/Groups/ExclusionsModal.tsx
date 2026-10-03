@@ -8,6 +8,7 @@ import {
 	Modal,
 	Paper,
 	Select,
+	SimpleGrid,
 	Stack,
 	Text as MantineText,
 	Tooltip,
@@ -115,7 +116,8 @@ export default function ExclusionsModal({ group, opened, onClose }: IExclusionsM
 					<form onSubmit={handleAdd}>
 						<Stack gap="sm">
 							<MantineText fw={600}>Add an exclusion</MantineText>
-							<Group grow align="flex-start">
+							{/* Side by side from xs up; stacked on narrow phones so names aren't cut off. */}
+							<SimpleGrid cols={{ base: 1, xs: 2 }} spacing="sm">
 								<Select
 									// The modal focuses this on open, instead of its close button.
 									data-autofocus
@@ -139,7 +141,7 @@ export default function ExclusionsModal({ group, opened, onClose }: IExclusionsM
 									onChange={setReceiverId}
 									required
 								/>
-							</Group>
+							</SimpleGrid>
 							<Checkbox
 								label="Both ways"
 								description="Most exclusions, like couples, go both ways."
