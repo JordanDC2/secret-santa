@@ -22,6 +22,7 @@ class WishlistItemRequest extends FormRequest
             'url' => ['nullable', 'url:http,https', 'max:2048'],
             'image_url' => ['nullable', 'url:http,https', 'max:2048'],
             'price' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
+            'quantity' => ['sometimes', 'integer', 'between:1,99'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'rating' => ['required', 'integer', 'between:1,5'],
         ];

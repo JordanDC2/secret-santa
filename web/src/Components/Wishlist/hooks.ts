@@ -14,11 +14,16 @@ function mapItem(raw: Record<string, unknown>): IWishlistItem {
 		url: raw.url as string | null,
 		imageUrl: (raw.image_url as string | null) ?? null,
 		price: raw.price === null ? null : Number(raw.price),
+		quantity: (raw.quantity as number | undefined) ?? 1,
 		notes: raw.notes as string | null,
 		rating: raw.rating as number,
 		...(claim !== undefined && {
 			claim: claim
-				? { claimedByMe: claim.claimed_by_me as boolean, claimedByName: claim.claimed_by_name as string | null }
+				? {
+						claimed: claim.claimed as number,
+						mine: claim.mine as number,
+						others: claim.others as { name: string | null; quantity: number }[],
+					}
 				: null,
 		}),
 	};
@@ -80,9 +85,9 @@ export function useClaimMutation(ownerId: number) {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: ({ itemId, claim }: { itemId: number; claim: boolean }) =>
+		mutationFn: ({ itemId, claim, quantity = 1 }: { itemId: number; claim: boolean; quantity?: number }) =>
 			claim
-				? apiClient.post<Record<string, unknown>>(`/wishlist/items/${itemId}/claim`)
+				? apiClient.post<Record<string, unknown>>(`/wishlist/items/${itemId}/claim`, { quantity })
 				: apiClient.delete<Record<string, unknown>>(`/wishlist/items/${itemId}/claim`),
 		// Refetch on failure too: a "someone already claimed this" error means our copy is stale.
 		onSettled: () => queryClient.invalidateQueries({ queryKey: memberWishlistQueryKey(ownerId) }),

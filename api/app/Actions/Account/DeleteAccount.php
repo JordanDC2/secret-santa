@@ -5,6 +5,7 @@ namespace App\Actions\Account;
 use App\Events\GroupChanged;
 use App\Events\WishlistChanged;
 use App\Models\User;
+use App\Models\WishlistItem;
 use Illuminate\Support\Facades\DB;
 
 class DeleteAccount
@@ -16,7 +17,9 @@ class DeleteAccount
     public function __invoke(User $user): void
     {
         $affectedGroupIds = $user->groups()->pluck('groups.id');
-        $claimedFromOwnerIds = $user->claimedWishlistItems()->distinct()->pluck('user_id');
+        $claimedFromOwnerIds = WishlistItem::whereHas('claims', fn ($claims) => $claims->where('user_id', $user->id))
+            ->distinct()
+            ->pluck('user_id');
 
         DB::transaction(function () use ($user) {
             $user->ownedGroups()->delete();

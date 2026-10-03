@@ -33,6 +33,7 @@ type IFormValues = {
 	url: string;
 	imageUrl: string;
 	price: number | string;
+	quantity: number | string;
 	notes: string;
 	rating: number;
 };
@@ -43,6 +44,7 @@ function initialValues(item: IWishlistItem | null): IFormValues {
 		url: item?.url ?? "",
 		imageUrl: item?.imageUrl ?? "",
 		price: item?.price ?? "",
+		quantity: item?.quantity ?? 1,
 		notes: item?.notes ?? "",
 		rating: item?.rating ?? 3,
 	};
@@ -83,6 +85,7 @@ export default function WishlistItemFormModal({ opened, item, onClose }: IWishli
 					url: values.url.trim() || null,
 					imageUrl: values.imageUrl || null,
 					price: values.price === "" ? null : Number(values.price),
+					quantity: Number(values.quantity) || 1,
 					notes: values.notes.trim() || null,
 					rating: values.rating,
 				},
@@ -127,15 +130,25 @@ export default function WishlistItemFormModal({ opened, item, onClose }: IWishli
 							</MantineText>
 						)}
 					</Group>
-					<NumberInput
-						label="Price"
-						prefix="$"
-						min={0}
-						decimalScale={2}
-						fixedDecimalScale
-						thousandSeparator=","
-						{...form.getInputProps("price")}
-					/>
+					<Group grow align="flex-start">
+						<NumberInput
+							label="Price"
+							prefix="$"
+							min={0}
+							decimalScale={2}
+							fixedDecimalScale
+							thousandSeparator=","
+							{...form.getInputProps("price")}
+						/>
+						<NumberInput
+							label="How many?"
+							min={1}
+							max={99}
+							allowDecimal={false}
+							clampBehavior="strict"
+							{...form.getInputProps("quantity")}
+						/>
+					</Group>
 					<Textarea
 						label="Notes"
 						placeholder="Size, color, model, anything that helps"

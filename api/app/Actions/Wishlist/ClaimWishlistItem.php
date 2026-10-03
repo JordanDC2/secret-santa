@@ -4,24 +4,46 @@ namespace App\Actions\Wishlist;
 
 use App\Models\User;
 use App\Models\WishlistItem;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ClaimWishlistItem
 {
-    public function __invoke(User $user, WishlistItem $item): WishlistItem
+    /**
+     * Claims some of an item for this user, adding to anything they already claimed.
+     */
+    public function __invoke(User $user, WishlistItem $item, int $quantity = 1): WishlistItem
     {
-        // A single conditional update, so two people claiming at the same moment
-        // can't both succeed.
-        $claimed = WishlistItem::whereKey($item->id)
-            ->whereNull('claimed_by_id')
-            ->update(['claimed_by_id' => $user->id, 'claimed_at' => now()]);
+        DB::transaction(function () use ($user, $item, $quantity) {
+            // Take the item's write lock before counting, so two people grabbing the last
+            // one at the same moment can't both get it. lockForUpdate covers databases with
+            // row locks; the no-op update makes SQLite hold its write lock from here on.
+            WishlistItem::whereKey($item->id)->lockForUpdate()->update(['quantity' => DB::raw('quantity')]);
 
-        if (! $claimed) {
-            throw ValidationException::withMessages([
-                'item' => ['Someone has already claimed this gift.'],
-            ]);
-        }
+            $fresh = WishlistItem::with('claims')->findOrFail($item->id);
+            $remaining = $fresh->remainingQuantity();
 
-        return $item->refresh()->load('claimedBy');
+            if ($remaining === 0) {
+                throw ValidationException::withMessages([
+                    'item' => ['Someone has already claimed this gift.'],
+                ]);
+            }
+
+            if ($quantity > $remaining) {
+                throw ValidationException::withMessages([
+                    'quantity' => ["Only {$remaining} left to claim."],
+                ]);
+            }
+
+            $mine = $fresh->claims->firstWhere('user_id', $user->id);
+
+            if ($mine) {
+                $mine->increment('quantity', $quantity);
+            } else {
+                $fresh->claims()->create(['user_id' => $user->id, 'quantity' => $quantity]);
+            }
+        });
+
+        return $item->refresh()->load('claims.user');
     }
 }

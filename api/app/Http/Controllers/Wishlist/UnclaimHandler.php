@@ -13,7 +13,9 @@ class UnclaimHandler extends Controller
     {
         $this->authorize('unclaim', $item);
 
-        $item->forceFill(['claimed_by_id' => null, 'claimed_at' => null])->save();
+        // Undo removes this person's whole claim on the item; others' claims stay.
+        $item->claims()->where('user_id', request()->user()->id)->delete();
+        $item->load('claims.user');
 
         WishlistChanged::dispatch($item->user_id);
 

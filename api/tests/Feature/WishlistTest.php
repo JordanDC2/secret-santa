@@ -75,8 +75,8 @@ class WishlistTest extends TestCase
         $this->getJson(route('users.wishlist', $owner))
             ->assertOk()
             ->assertJsonPath('user.name', $owner->name)
-            ->assertJsonPath('items.0.claim.claimed_by_name', $cousin->name)
-            ->assertJsonPath('items.0.claim.claimed_by_me', false)
+            ->assertJsonPath('items.0.claim.others.0.name', $cousin->name)
+            ->assertJsonPath('items.0.claim.mine', 0)
             ->assertJsonPath('items.1.claim', null);
     }
 
@@ -118,13 +118,13 @@ class WishlistTest extends TestCase
         Sanctum::actingAs($friend);
         $this->getJson(route('users.wishlist', $owner))
             ->assertOk()
-            ->assertJsonPath('items.0.claim.claimed_by_name', null)
-            ->assertJsonPath('items.0.claim.claimed_by_me', false);
+            ->assertJsonPath('items.0.claim.others.0.name', null)
+            ->assertJsonPath('items.0.claim.mine', 0);
 
         // Someone who does share a group with the claimer still sees their name.
         $otherGroup->members()->attach($friend);
         $this->getJson(route('users.wishlist', $owner))
-            ->assertJsonPath('items.0.claim.claimed_by_name', $stranger->name);
+            ->assertJsonPath('items.0.claim.others.0.name', $stranger->name);
 
         $this->assertModelExists($item);
     }
@@ -147,13 +147,13 @@ class WishlistTest extends TestCase
 
         $this->postJson(route('wishlist.items.claim', $item))
             ->assertOk()
-            ->assertJsonPath('claim.claimed_by_me', true);
+            ->assertJsonPath('claim.mine', 1);
 
         $this->deleteJson(route('wishlist.items.unclaim', $item))
             ->assertOk()
             ->assertJsonPath('claim', null);
 
-        $this->assertNull($item->fresh()->claimed_by_id);
+        $this->assertSame(0, $item->claims()->count());
     }
 
     public function test_an_item_cannot_be_claimed_twice(): void
@@ -167,7 +167,7 @@ class WishlistTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors('item');
 
-        $this->assertSame($cousin->id, $item->fresh()->claimed_by_id);
+        $this->assertSame([$cousin->id], $item->claims()->pluck('user_id')->all());
     }
 
     public function test_only_the_claimer_can_unclaim(): void

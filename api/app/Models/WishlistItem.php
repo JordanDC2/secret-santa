@@ -8,19 +8,29 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'url', 'image_url', 'price', 'notes', 'rating'])]
+#[Fillable(['name', 'url', 'image_url', 'price', 'quantity', 'notes', 'rating'])]
 class WishlistItem extends Model
 {
     /** @use HasFactory<WishlistItemFactory> */
     use HasFactory;
+
+    /**
+     * Matches the column default, so a new item reports quantity 1 before it's reloaded.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'quantity' => 1,
+    ];
 
     protected function casts(): array
     {
         return [
             'price' => 'decimal:2',
             'rating' => 'integer',
-            'claimed_at' => 'datetime',
+            'quantity' => 'integer',
         ];
     }
 
@@ -29,9 +39,17 @@ class WishlistItem extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function claimedBy(): BelongsTo
+    public function claims(): HasMany
     {
-        return $this->belongsTo(User::class, 'claimed_by_id');
+        return $this->hasMany(WishlistClaim::class);
+    }
+
+    /**
+     * How many are still up for grabs. Uses loaded claims when present.
+     */
+    public function remainingQuantity(): int
+    {
+        return max(0, $this->quantity - $this->claims->sum('quantity'));
     }
 
     /**

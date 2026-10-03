@@ -117,7 +117,7 @@ class RepeatDrawsTest extends TestCase
 
         $this->postJson(route('groups.new-draw', $group))->assertOk();
 
-        $this->assertSame($claimer->id, $item->fresh()->claimed_by_id);
+        $this->assertSame([$claimer->id], $item->claims()->pluck('user_id')->all());
     }
 
     private function groupOf(int $size): Group

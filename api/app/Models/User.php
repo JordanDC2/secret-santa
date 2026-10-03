@@ -56,9 +56,9 @@ class User extends Authenticatable
         return $this->hasMany(WishlistItem::class);
     }
 
-    public function claimedWishlistItems(): HasMany
+    public function wishlistClaims(): HasMany
     {
-        return $this->hasMany(WishlistItem::class, 'claimed_by_id');
+        return $this->hasMany(WishlistClaim::class);
     }
 
     /**

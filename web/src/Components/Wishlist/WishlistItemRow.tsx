@@ -27,7 +27,15 @@ export default function WishlistItemRow({ item, status, actions, dimmed = false 
 						<WishlistItemImage src={item.imageUrl} alt="" size={44} />
 						{/* The claim status sits under the name so it never gets squeezed on phones. */}
 						<Stack gap={4} className={classes.name}>
-							<MantineText fw={600}>{item.name}</MantineText>
+							<MantineText fw={600}>
+								{item.name}
+								{item.quantity > 1 && (
+									<MantineText span c="dimmed" fw={500}>
+										{" "}
+										×{item.quantity}
+									</MantineText>
+								)}
+							</MantineText>
 							{status && <div>{status}</div>}
 						</Stack>
 					</Group>

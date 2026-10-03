@@ -41,6 +41,6 @@ class WishlistItemPolicy
 
     public function unclaim(User $user, WishlistItem $item): bool
     {
-        return $user->id === $item->claimed_by_id;
+        return $item->claims()->where('user_id', $user->id)->exists();
     }
 }

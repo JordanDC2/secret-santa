@@ -15,7 +15,11 @@ class ClaimHandler extends Controller
     {
         $this->authorize('claim', $item);
 
-        $item = $action($request->user(), $item);
+        $validated = $request->validate([
+            'quantity' => ['sometimes', 'integer', 'between:1,99'],
+        ]);
+
+        $item = $action($request->user(), $item, $validated['quantity'] ?? 1);
 
         WishlistChanged::dispatch($item->user_id);
 

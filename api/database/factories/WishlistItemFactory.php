@@ -28,11 +28,11 @@ class WishlistItemFactory extends Factory
         ];
     }
 
-    public function claimedBy(User $user): static
+    public function claimedBy(User $user, int $quantity = 1): static
     {
-        return $this->state(fn () => [
-            'claimed_by_id' => $user->id,
-            'claimed_at' => now(),
-        ]);
+        return $this->afterCreating(fn (WishlistItem $item) => $item->claims()->create([
+            'user_id' => $user->id,
+            'quantity' => $quantity,
+        ]));
     }
 }

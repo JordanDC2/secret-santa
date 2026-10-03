@@ -142,7 +142,7 @@ class AccountTest extends TestCase
         $this->assertDatabaseMissing('group_user', ['user_id' => $user->id]);
         $this->assertDatabaseMissing('secret_santa_assignments', ['receiver_id' => $user->id]);
         $this->assertDatabaseMissing('wishlist_items', ['user_id' => $user->id]);
-        $this->assertNull($claimed->fresh()->claimed_by_id);
+        $this->assertSame(0, $claimed->claims()->count());
 
         Event::assertDispatched(GroupChanged::class, fn (GroupChanged $event) => $event->groupId === $owned->id);
         Event::assertDispatched(GroupChanged::class, fn (GroupChanged $event) => $event->groupId === $joined->id);

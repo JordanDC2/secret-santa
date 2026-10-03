@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\WishlistItemResource;
 use App\Models\SecretSantaAssignment;
 use App\Models\User;
+use App\Models\WishlistClaim;
 use App\Models\WishlistItem;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,16 +17,16 @@ class MemberWishlistHandler extends Controller
     {
         $this->authorize('viewWishlist', $user);
 
-        $items = $user->wishlistItems()->with('claimedBy')->mostWantedFirst()->get();
+        $items = $user->wishlistItems()->with('claims.user')->mostWantedFirst()->get();
 
         // Only name claimers you share a group with; anyone else shows as "someone",
         // so a list doesn't leak who's in groups you aren't part of.
         $groupMateIds = $request->user()->groupMateIds();
-        $items->each(function (WishlistItem $item) use ($groupMateIds) {
-            if ($item->claimed_by_id && ! in_array($item->claimed_by_id, $groupMateIds, true)) {
-                $item->setRelation('claimedBy', null);
+        $items->each(fn (WishlistItem $item) => $item->claims->each(function (WishlistClaim $claim) use ($groupMateIds) {
+            if (! in_array($claim->user_id, $groupMateIds, true)) {
+                $claim->setRelation('user', null);
             }
-        });
+        }));
 
         return response()->json([
             'user' => ['id' => $user->id, 'name' => $user->name],
