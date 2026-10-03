@@ -25,6 +25,7 @@ class LinkPreviewTest extends TestCase
         'sneaky.example' => ['93.184.216.36', '10.0.0.7'],
         'metadata.example' => ['169.254.169.254'],
         'www.amazon.com' => ['93.184.216.37'],
+        'www.walmart.com' => ['93.184.216.38'],
     ];
 
     protected function setUp(): void
@@ -120,6 +121,27 @@ class LinkPreviewTest extends TestCase
         ]);
 
         Http::assertSent(fn (Request $request) => $request->hasHeader('Accept-Encoding', 'gzip, deflate'));
+    }
+
+    public function test_reads_walmart_product_data(): void
+    {
+        // Walmart's og:title has a " - Walmart.com" suffix and there's no price tag; the
+        // product data lives in the page's Next.js JSON.
+        $data = json_encode(['props' => ['pageProps' => ['initialData' => ['data' => ['product' => [
+            'name' => 'Great Value Purified Drinking Water, 40 Count',
+            'priceInfo' => ['currentPrice' => ['price' => 5.97, 'currencyUnit' => 'USD']],
+            'imageInfo' => ['thumbnailUrl' => 'https://i5.walmartimages.com/seo/water.jpeg'],
+        ]]]]]]);
+        Http::fake(['www.walmart.com/*' => Http::response($this->page(
+            '<meta property="og:title" content="Great Value Purified Drinking Water - Walmart.com">'
+            .'<script id="__NEXT_DATA__" type="application/json">'.$data.'</script>'
+        ), 200, ['Content-Type' => 'text/html'])]);
+
+        $this->previewAs('https://www.walmart.com/ip/Great-Value-Water/992524020?classType=VARIANT')->assertExactJson([
+            'name' => 'Great Value Purified Drinking Water, 40 Count',
+            'price' => 5.97,
+            'image_url' => 'https://i5.walmartimages.com/seo/water.jpeg',
+        ]);
     }
 
     public function test_a_plain_page_title_is_not_used_as_the_item_name(): void

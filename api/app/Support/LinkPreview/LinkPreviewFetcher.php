@@ -105,16 +105,21 @@ class LinkPreviewFetcher
         $xpath = new DOMXPath($document);
 
         $product = $this->jsonLdProduct($xpath);
-        $amazon = AmazonProductPage::matches($pageUrl) ? AmazonProductPage::read($xpath, $pageUrl) : [];
+        // Shops whose pages need reading their own way (see each class for why).
+        $site = match (true) {
+            AmazonProductPage::matches($pageUrl) => AmazonProductPage::read($xpath, $pageUrl),
+            WalmartProductPage::matches($pageUrl) => WalmartProductPage::read($xpath),
+            default => [],
+        };
         $meta = fn (string ...$names) => $this->meta($xpath, ...$names);
 
         // Only deliberate product metadata: a plain <title> is often a bot-check or
         // "please wait" page ("Hang Tight! Routing to checkout..") rather than the product.
-        $name = $product['name'] ?? $amazon['name'] ?? $meta('og:title', 'twitter:title');
+        $name = $product['name'] ?? $site['name'] ?? $meta('og:title', 'twitter:title');
         $price = $product['price']
-            ?? $this->toPrice($amazon['price'] ?? null)
+            ?? $this->toPrice($site['price'] ?? null)
             ?? $this->toPrice($meta('product:price:amount', 'og:price:amount'));
-        $image = $product['image'] ?? $amazon['image'] ?? $meta('og:image:secure_url', 'og:image', 'twitter:image', 'twitter:image:src');
+        $image = $product['image'] ?? $site['image'] ?? $meta('og:image:secure_url', 'og:image', 'twitter:image', 'twitter:image:src');
 
         $imageUrl = $image ? $this->absoluteUrl($image, $pageUrl) : null;
 
