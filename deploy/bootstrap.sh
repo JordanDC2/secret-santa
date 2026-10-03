@@ -86,8 +86,10 @@ step "Firewall: open 80 and 443 (Oracle's Ubuntu images block them in iptables)"
 if $HAS_SYSTEMD && command -v iptables >/dev/null && iptables -S INPUT 2>/dev/null | grep -q -- '-j REJECT'; then
 	for port in 80 443; do
 		if ! iptables -C INPUT -p tcp --dport "$port" -m state --state NEW -j ACCEPT 2>/dev/null; then
-			# Insert above Oracle's final REJECT rule.
-			iptables -I INPUT 6 -p tcp --dport "$port" -m state --state NEW -j ACCEPT
+			# Insert directly above Oracle's catch-all REJECT rule; its position varies between
+			# image versions (5 on current Ubuntu 24.04 images), and anything after it is unreachable.
+			reject_line="$(iptables -L INPUT --line-numbers -n | awk '$2 == "REJECT" {print $1; exit}')"
+			iptables -I INPUT "$reject_line" -p tcp --dport "$port" -m state --state NEW -j ACCEPT
 		fi
 	done
 	command -v netfilter-persistent >/dev/null || apt-get install -yq iptables-persistent
