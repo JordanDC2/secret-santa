@@ -3,6 +3,7 @@
 namespace App\Support\LinkPreview;
 
 use DOMDocument;
+use DOMElement;
 use DOMXPath;
 use GuzzleHttp\Exception\TransferException;
 use GuzzleHttp\Handler\CurlHandler;
@@ -102,7 +103,7 @@ class LinkPreviewFetcher
 
         $product = $this->jsonLdProduct($xpath);
         $amazon = AmazonProductPage::matches($pageUrl) ? AmazonProductPage::read($xpath, $pageUrl) : [];
-        $meta = fn (string ...$names) => $this->meta($xpath, $names);
+        $meta = fn (string ...$names) => $this->meta($xpath, ...$names);
 
         // Only deliberate product metadata: a plain <title> is often a bot-check or
         // "please wait" page ("Hang Tight! Routing to checkout..") rather than the product.
@@ -122,9 +123,9 @@ class LinkPreviewFetcher
     }
 
     /**
-     * @param  array<int, string>  $names
+     * The first of these meta tags that has a value.
      */
-    private function meta(DOMXPath $xpath, array $names): ?string
+    private function meta(DOMXPath $xpath, string ...$names): ?string
     {
         foreach ($names as $name) {
             $nodes = $xpath->query("//meta[@property='{$name}' or @name='{$name}']/@content");
@@ -145,6 +146,10 @@ class LinkPreviewFetcher
     private function jsonLdProduct(DOMXPath $xpath): array
     {
         foreach ($xpath->query("//script[@type='application/ld+json']") ?: [] as $script) {
+            if (! $script instanceof DOMElement) {
+                continue;
+            }
+
             try {
                 $data = json_decode($script->textContent, true, 32, JSON_THROW_ON_ERROR);
             } catch (Throwable) {
@@ -213,6 +218,11 @@ class LinkPreviewFetcher
         }
 
         $parts = parse_url($base);
+
+        if (! isset($parts['scheme'], $parts['host'])) {
+            return $url;
+        }
+
         $origin = "{$parts['scheme']}://{$parts['host']}".(isset($parts['port']) ? ":{$parts['port']}" : '');
 
         if (str_starts_with($url, '//')) {

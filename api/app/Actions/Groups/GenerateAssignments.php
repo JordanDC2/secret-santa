@@ -60,6 +60,8 @@ class GenerateAssignments
 
     /**
      * Find this giver a receiver, bumping an earlier giver to another option if needed.
+     *
+     * @phpstan-impure Records the match in $giverOf.
      */
     private function match(int $giverId): bool
     {

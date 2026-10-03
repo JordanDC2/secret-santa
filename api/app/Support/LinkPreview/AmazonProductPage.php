@@ -14,7 +14,12 @@ class AmazonProductPage
 {
     public static function matches(string $url): bool
     {
-        return (bool) preg_match('/(^|\.)amazon\.[a-z.]+$/', strtolower(parse_url($url, PHP_URL_HOST) ?? ''));
+        return (bool) preg_match('/(^|\.)amazon\.[a-z.]+$/', self::host($url));
+    }
+
+    private static function host(string $url): string
+    {
+        return strtolower((string) parse_url($url, PHP_URL_HOST));
     }
 
     /**
@@ -22,21 +27,26 @@ class AmazonProductPage
      */
     public static function read(DOMXPath $xpath, string $url): array
     {
-        $image = $xpath->query("//img[@id='landingImage']")?->item(0);
+        $image = $xpath->query("//img[@id='landingImage']") ?: null;
+        $image = $image?->item(0);
 
         return array_filter([
             'name' => self::text($xpath, "//*[@id='productTitle']"),
             // Other Amazon stores price in other currencies; we only keep dollars.
-            'price' => str_ends_with(strtolower(parse_url($url, PHP_URL_HOST) ?? ''), 'amazon.com')
+            'price' => str_ends_with(self::host($url), 'amazon.com')
                 ? self::text($xpath, "//*[contains(concat(' ', normalize-space(@class), ' '), ' priceToPay ')]//span[@aria-hidden='true']")
                 : null,
-            'image' => $image ? self::largestImage($image) : null,
+            'image' => $image instanceof DOMElement ? self::largestImage($image) : null,
         ], fn ($value) => $value !== null);
     }
 
     private static function text(DOMXPath $xpath, string $query): ?string
     {
         foreach ($xpath->query($query) ?: [] as $node) {
+            if (! $node instanceof DOMElement) {
+                continue;
+            }
+
             $text = trim(preg_replace('/\s+/u', ' ', $node->textContent));
 
             if ($text !== '') {

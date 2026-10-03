@@ -36,11 +36,17 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * @return HasMany<Group, $this>
+     */
     public function ownedGroups(): HasMany
     {
         return $this->hasMany(Group::class, 'owner_id');
     }
 
+    /**
+     * @return BelongsToMany<Group, $this>
+     */
     public function groups(): BelongsToMany
     {
         return $this->belongsToMany(Group::class)->withTimestamps();
@@ -51,11 +57,17 @@ class User extends Authenticatable
         $this->notify(new ResetPasswordLink($token));
     }
 
+    /**
+     * @return HasMany<WishlistItem, $this>
+     */
     public function wishlistItems(): HasMany
     {
         return $this->hasMany(WishlistItem::class);
     }
 
+    /**
+     * @return HasMany<WishlistClaim, $this>
+     */
     public function wishlistClaims(): HasMany
     {
         return $this->hasMany(WishlistClaim::class);

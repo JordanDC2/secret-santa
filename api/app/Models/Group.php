@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\GroupFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,6 +15,7 @@ use Illuminate\Support\Str;
 #[Fillable(['name', 'description', 'owner_id', 'join_code', 'drawn_at', 'draw_number'])]
 class Group extends Model
 {
+    /** @use HasFactory<GroupFactory> */
     use HasFactory;
 
     /**
@@ -49,11 +51,17 @@ class Group extends Model
         return $code;
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
     }
 
+    /**
+     * @return BelongsToMany<User, $this>
+     */
     public function members(): BelongsToMany
     {
         return $this->belongsToMany(User::class)->withTimestamps();
@@ -61,6 +69,8 @@ class Group extends Model
 
     /**
      * Every draw's assignments, including past draws kept as history.
+     *
+     * @return HasMany<SecretSantaAssignment, $this>
      */
     public function assignments(): HasMany
     {
@@ -69,6 +79,8 @@ class Group extends Model
 
     /**
      * Assignments from the group's current draw only.
+     *
+     * @return HasMany<SecretSantaAssignment, $this>
      */
     public function currentAssignments(): HasMany
     {
@@ -93,6 +105,9 @@ class Group extends Model
             ->all();
     }
 
+    /**
+     * @return HasMany<GroupExclusion, $this>
+     */
     public function exclusions(): HasMany
     {
         return $this->hasMany(GroupExclusion::class);
@@ -123,6 +138,9 @@ class Group extends Model
         return $this->currentAssignments()->where('giver_id', $user->id)->with('receiver')->first();
     }
 
+    /**
+     * @return Attribute<bool, never>
+     */
     protected function isDrawn(): Attribute
     {
         return Attribute::make(

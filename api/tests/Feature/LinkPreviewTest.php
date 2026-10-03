@@ -7,6 +7,7 @@ use App\Support\LinkPreview\HostResolver;
 use App\Support\LinkPreview\SafeUrl;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Testing\TestResponse;
 use Laravel\Sanctum\Sanctum;
@@ -169,6 +170,9 @@ class LinkPreviewTest extends TestCase
         ])->assertUnprocessable()->assertJsonValidationErrors('image_url');
     }
 
+    /**
+     * @return TestResponse<JsonResponse>
+     */
     private function previewAs(string $url): TestResponse
     {
         Sanctum::actingAs(User::factory()->create());

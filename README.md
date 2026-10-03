@@ -51,6 +51,6 @@ Failed sends retry automatically; ones that exhaust their retries land in `faile
 ## Checks
 
 ```bash
-cd api && ./vendor/bin/pint --test && php artisan test
+cd api && ./vendor/bin/pint --test && composer analyse && php artisan test
 cd web && npm run format && npm run lint && npm run typecheck && npm run build
 ```

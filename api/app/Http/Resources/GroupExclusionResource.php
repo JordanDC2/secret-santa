@@ -2,9 +2,13 @@
 
 namespace App\Http\Resources;
 
+use App\Models\GroupExclusion;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/**
+ * @mixin GroupExclusion
+ */
 class GroupExclusionResource extends JsonResource
 {
     /**

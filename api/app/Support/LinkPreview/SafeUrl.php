@@ -53,6 +53,10 @@ final class SafeUrl
         // Ranges PHP's flags don't cover: carrier-grade NAT, and IPv4-mapped IPv6 addresses.
         $packed = inet_pton($ip);
 
+        if ($packed === false) {
+            return false;
+        }
+
         if (strlen($packed) === 4) {
             $long = ip2long($ip);
 

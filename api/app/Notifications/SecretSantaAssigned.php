@@ -30,7 +30,7 @@ class SecretSantaAssigned extends Notification implements ShouldQueue
         return ['mail'];
     }
 
-    public function toMail(object $notifiable): ElfMailMessage
+    public function toMail(User $notifiable): ElfMailMessage
     {
         $wishlistUrl = config('app.frontend_url')."/wishlists/{$this->recipient->id}";
 

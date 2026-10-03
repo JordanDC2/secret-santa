@@ -103,6 +103,6 @@ class WishlistQuantityTest extends TestCase
 
         $response = $this->getJson(route('wishlist.items.index'))->assertOk()->assertJsonPath('0.quantity', 2);
         $this->assertArrayNotHasKey('claim', $response->json('0'));
-        $this->assertStringNotContainsString($this->ivy->name, $response->getContent());
+        $this->assertStringNotContainsString($this->ivy->name, (string) $response->getContent());
     }
 }

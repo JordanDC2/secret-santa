@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Database\Factories\WishlistItemFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -34,11 +35,17 @@ class WishlistItem extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    /**
+     * @return HasMany<WishlistClaim, $this>
+     */
     public function claims(): HasMany
     {
         return $this->hasMany(WishlistClaim::class);
@@ -49,13 +56,16 @@ class WishlistItem extends Model
      */
     public function remainingQuantity(): int
     {
-        return max(0, $this->quantity - $this->claims->sum('quantity'));
+        return max(0, $this->quantity - (int) $this->claims->sum('quantity'));
     }
 
     /**
      * Most-wanted first (highest stars), then in the order they were added.
+     *
+     * @param  Builder<self>  $query
      */
-    public function scopeMostWantedFirst(Builder $query): void
+    #[Scope]
+    protected function mostWantedFirst(Builder $query): void
     {
         $query->orderByDesc('rating')->orderBy('id');
     }

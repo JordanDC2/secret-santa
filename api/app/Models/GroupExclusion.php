@@ -19,16 +19,25 @@ class GroupExclusion extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<Group, $this>
+     */
     public function group(): BelongsTo
     {
         return $this->belongsTo(Group::class);
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function giver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'giver_id');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function receiver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'receiver_id');

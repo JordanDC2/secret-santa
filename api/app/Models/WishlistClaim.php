@@ -19,11 +19,17 @@ class WishlistClaim extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<WishlistItem, $this>
+     */
     public function item(): BelongsTo
     {
         return $this->belongsTo(WishlistItem::class, 'wishlist_item_id');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
