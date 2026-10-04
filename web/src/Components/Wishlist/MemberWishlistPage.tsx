@@ -13,7 +13,15 @@ import {
 import { useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBell, faCheck, faGift, faLightbulb, faPenToSquare, faTrashCan } from "@fortawesome/free-solid-svg-icons";
+import {
+	faBell,
+	faCheck,
+	faCircleQuestion,
+	faGift,
+	faLightbulb,
+	faPenToSquare,
+	faTrashCan,
+} from "@fortawesome/free-solid-svg-icons";
 import WishListIcon from "Components/Common/FestiveIcons/WishListIcon";
 import { useAuth } from "Components/Auth/AuthContext";
 import AssignmentNotice from "Components/Wishlist/AssignmentNotice";
@@ -30,6 +38,8 @@ import { liveUpdatesEnabled } from "Data/Api/LiveUpdates";
 import type { IWishlistItem } from "Components/Wishlist/types";
 import WishlistItemRow from "Components/Wishlist/WishlistItemRow";
 import PageTitle from "Components/Layout/PageTitle";
+import SantaChatModal from "Components/SantaChat/SantaChatModal";
+import type { ISantaChatTarget } from "Components/SantaChat/types";
 import { apiErrorMessage } from "Data/Api/Client";
 import classes from "Components/Wishlist/WishlistPage.module.less";
 
@@ -63,6 +73,12 @@ function MemberWishlist({ userId }: { userId: number }) {
 	const deleteSuggestion = useDeleteSuggestionMutation(userId);
 	const nudge = useNudgeMutation(userId);
 	const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(null);
+	// "Ask about this" opens your Santa chat with this person, starting the message for you.
+	const [askModal, setAskModal] = useState<{ opened: boolean; target: ISantaChatTarget | null; key: number }>({
+		opened: false,
+		target: null,
+		key: 0,
+	});
 
 	function openIdeaModal(item: IWishlistItem | null) {
 		setIdeaModal((current) => ({ opened: true, item, key: current.key + 1 }));
@@ -120,6 +136,18 @@ function MemberWishlist({ userId }: { userId: number }) {
 	const myRecipients = wishlistQuery.data?.myRecipients ?? [];
 	// Once names are drawn, claiming for anyone but your own person takes a second click.
 	const claimNeedsConfirm = myRecipients.length > 0 && !myRecipients.some((recipient) => recipient.id === userId);
+	// If you drew this person in more than one group, ask in the first; the chat names the group.
+	const askGroup = myRecipients.find((recipient) => recipient.id === userId)?.group ?? null;
+
+	function askAbout(item: IWishlistItem) {
+		if (askGroup) {
+			setAskModal((current) => ({
+				opened: true,
+				target: { groupId: askGroup.id, groupName: askGroup.name, side: "my-person", draft: `About "${item.name}": ` },
+				key: current.key + 1,
+			}));
+		}
+	}
 
 	function claimItem(itemId: number, quantity: number) {
 		claim.mutate({ itemId, action: "claim", quantity }, { onSettled: () => setConfirmingClaim(null) });
@@ -280,7 +308,22 @@ function MemberWishlist({ userId }: { userId: number }) {
 										key={item.id}
 										item={item}
 										status={<ClaimStatus item={item} />}
-										actions={claimActions(item)}
+										actions={
+											<>
+												{claimActions(item)}
+												{/* Not on gift ideas: the person can't see those, so asking would spoil them. */}
+												{askGroup && (
+													<Button
+														size="xs"
+														variant="secondary"
+														leftSection={<FontAwesomeIcon icon={faCircleQuestion} />}
+														onClick={() => askAbout(item)}
+													>
+														Ask about this
+													</Button>
+												)}
+											</>
+										}
 										dimmed={remainingQuantity(item) === 0 && !item.claim?.mine}
 									/>
 								))}
@@ -327,6 +370,15 @@ function MemberWishlist({ userId }: { userId: number }) {
 								</Accordion>
 							)}
 						</Stack>
+
+						{askModal.target && (
+							<SantaChatModal
+								key={askModal.key}
+								target={askModal.target}
+								opened={askModal.opened}
+								onClose={() => setAskModal((current) => ({ ...current, opened: false }))}
+							/>
+						)}
 
 						<WishlistItemFormModal
 							key={ideaModal.key}

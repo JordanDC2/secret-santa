@@ -15,6 +15,7 @@ use App\Http\Controllers\Group\JoinHandler;
 use App\Http\Controllers\Group\LeaveHandler;
 use App\Http\Controllers\Group\StartNewDrawHandler;
 use App\Http\Controllers\GroupController;
+use App\Http\Controllers\SantaChat\SantaChatController;
 use App\Http\Controllers\Wishlist\ClaimHandler;
 use App\Http\Controllers\Wishlist\LinkPreviewHandler;
 use App\Http\Controllers\Wishlist\MemberWishlistHandler;
@@ -69,6 +70,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('groups/{group}/draw/check', [DrawDetailsController::class, 'check'])->name('groups.draw.check');
 
     Route::get('groups/{group}/draw/assignments', [DrawDetailsController::class, 'assignments'])->name('groups.draw.assignments');
+
+    Route::prefix('groups/{group}/santa-chat/{side}')
+        ->name('groups.santa-chat.')
+        ->whereIn('side', ['my-person', 'my-santa'])
+        ->controller(SantaChatController::class)
+        ->group(function () {
+            Route::get('/', 'show')->name('show');
+
+            Route::post('/', 'store')->middleware('throttle:santa-chat')->name('store');
+
+            Route::post('read', 'read')->name('read');
+        });
 
     // scoped(): an exclusion id only resolves inside the group in the URL.
     Route::apiResource('groups.exclusions', ExclusionController::class)

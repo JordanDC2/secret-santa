@@ -19,6 +19,8 @@ class GroupResource extends JsonResource
     public function toArray(Request $request): array
     {
         $myAssignment = $this->assignmentFor($request->user());
+        // Never send this assignment's giver: it's the viewer's own Secret Santa.
+        $mySantasAssignment = $this->assignmentOfSantaFor($request->user());
 
         return [
             'id' => $this->id,
@@ -39,6 +41,10 @@ class GroupResource extends JsonResource
             'my_assignment' => $myAssignment ? [
                 'recipient_id' => $myAssignment->receiver->id,
                 'recipient_name' => $myAssignment->receiver->name,
+                'unread_messages' => $myAssignment->unreadCountFor(viewerIsSanta: true),
+            ] : null,
+            'my_santa' => $mySantasAssignment ? [
+                'unread_messages' => $mySantasAssignment->unreadCountFor(viewerIsSanta: false),
             ] : null,
         ];
     }

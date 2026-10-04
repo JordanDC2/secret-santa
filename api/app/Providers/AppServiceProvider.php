@@ -46,6 +46,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('join', fn (Request $request) => Limit::perMinute(10)->by($request->user()?->id ?: $request->ip()));
 
         // Each preview makes the server fetch an outside page, so keep it modest.
+        // Each first unread message sends an email, so keep a chatty thread from turning into spam.
+        RateLimiter::for('santa-chat', fn (Request $request) => Limit::perMinute(10)->by($request->user()?->id ?: $request->ip()));
+
         RateLimiter::for('link-preview', fn (Request $request) => Limit::perMinute(20)->by($request->user()?->id ?: $request->ip()));
     }
 }

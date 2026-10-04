@@ -6,6 +6,7 @@ export const GROUPS_QUERY_KEY = ["groups"];
 
 function mapGroup(raw: Record<string, unknown>): IGroup {
 	const myAssignment = raw.my_assignment as Record<string, unknown> | null;
+	const mySanta = raw.my_santa as Record<string, unknown> | null;
 
 	return {
 		id: raw.id as number,
@@ -19,8 +20,13 @@ function mapGroup(raw: Record<string, unknown>): IGroup {
 		...(raw.exclusions_count !== undefined && { exclusionsCount: raw.exclusions_count as number }),
 		members: raw.members as IGroup["members"],
 		myAssignment: myAssignment
-			? { recipientId: myAssignment.recipient_id as number, recipientName: myAssignment.recipient_name as string }
+			? {
+					recipientId: myAssignment.recipient_id as number,
+					recipientName: myAssignment.recipient_name as string,
+					unreadMessages: myAssignment.unread_messages as number,
+				}
 			: null,
+		mySanta: mySanta ? { unreadMessages: mySanta.unread_messages as number } : null,
 	};
 }
 

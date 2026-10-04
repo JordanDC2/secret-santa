@@ -11,7 +11,10 @@ export type IGroup = {
 	/** Only present for the owner. */
 	exclusionsCount?: number;
 	members: { id: number; name: string }[];
-	myAssignment: { recipientId: number; recipientName: string } | null;
+	/** Who you're the Secret Santa for, and unread messages from them. */
+	myAssignment: { recipientId: number; recipientName: string; unreadMessages: number } | null;
+	/** Set once someone has drawn you; never says who. */
+	mySanta: { unreadMessages: number } | null;
 };
 
 export type IGroupExclusion = {

@@ -139,6 +139,19 @@ class Group extends Model
     }
 
     /**
+     * The current draw's assignment where this user is the one receiving. Never send its
+     * giver to that user: it's their Secret Santa.
+     */
+    public function assignmentOfSantaFor(User $user): ?SecretSantaAssignment
+    {
+        if (! $this->drawn_at) {
+            return null;
+        }
+
+        return $this->currentAssignments()->where('receiver_id', $user->id)->first();
+    }
+
+    /**
      * @return Attribute<bool, never>
      */
     protected function isDrawn(): Attribute

@@ -14,6 +14,10 @@ import GroupNameEditor from "Components/Groups/GroupNameEditor";
 import InviteCode from "Components/Groups/InviteCode";
 import LeaveGroupControl from "Components/Groups/LeaveGroupControl";
 import StartNewDrawControl from "Components/Groups/StartNewDrawControl";
+import { useLinkedSantaChat } from "Components/SantaChat/hooks";
+import SantaChatButton from "Components/SantaChat/SantaChatButton";
+import SantaChatModal from "Components/SantaChat/SantaChatModal";
+import type { ISantaChatSide } from "Components/SantaChat/types";
 import classes from "Components/Groups/GroupCard.module.less";
 
 type IGroupCardProps = {
@@ -36,6 +40,13 @@ export default function GroupCard({ group }: IGroupCardProps) {
 	const [openAction, setOpenAction] = useState<IGroupAction | null>(null);
 	const [exclusionsOpen, setExclusionsOpen] = useState(false);
 	const [drawDetailsOpen, setDrawDetailsOpen] = useState(false);
+	// A fresh key each time the chat opens, so it reloads its draft and scroll position.
+	const [chat, setChat] = useState<{ side: ISantaChatSide; opened: boolean; key: number }>({
+		side: "my-santa",
+		opened: false,
+		key: 0,
+	});
+	const { linkedSide, clearLink } = useLinkedSantaChat(group.id);
 	const canViewDraw = group.isOwner && group.isDrawn;
 	const canDraw = group.isOwner && !group.isDrawn;
 	const canLeave = !group.isOwner && !group.isDrawn;
@@ -64,6 +75,22 @@ export default function GroupCard({ group }: IGroupCardProps) {
 		) : null,
 		leave: canLeave ? <LeaveGroupControl groupId={group.id} groupName={group.name} {...confirmState("leave")} /> : null,
 	};
+	function openChat(side: ISantaChatSide) {
+		setChat((current) => ({ side, opened: true, key: current.key + 1 }));
+	}
+
+	// An email's "Open the Conversation" link lands here with ?group=…&chat=…, and opens
+	// that chat until it's closed (which drops the link from the address).
+	const linkedChat =
+		(linkedSide === "my-person" && group.myAssignment) || (linkedSide === "my-santa" && group.mySanta)
+			? linkedSide
+			: null;
+
+	function closeChat() {
+		clearLink();
+		setChat((current) => ({ ...current, opened: false }));
+	}
+
 	const hasControls = Object.values(controls).some(Boolean);
 	const message = statusMessage(group);
 
@@ -114,7 +141,15 @@ export default function GroupCard({ group }: IGroupCardProps) {
 						<AssignmentReveal
 							recipientId={group.myAssignment.recipientId}
 							recipientName={group.myAssignment.recipientName}
+							unreadMessages={group.myAssignment.unreadMessages}
+							onAsk={() => openChat("my-person")}
 						/>
+					)}
+
+					{group.mySanta && (
+						<SantaChatButton fullWidth unread={group.mySanta.unreadMessages} onClick={() => openChat("my-santa")}>
+							Message your Secret Santa
+						</SantaChatButton>
 					)}
 
 					{openAction
@@ -154,6 +189,14 @@ export default function GroupCard({ group }: IGroupCardProps) {
 			</Card.Section>
 			{canViewDraw && (
 				<DrawDetailsModal group={group} opened={drawDetailsOpen} onClose={() => setDrawDetailsOpen(false)} />
+			)}
+			{(group.myAssignment || group.mySanta) && (
+				<SantaChatModal
+					key={chat.key}
+					target={{ groupId: group.id, groupName: group.name, side: linkedChat ?? chat.side }}
+					opened={chat.opened || linkedChat !== null}
+					onClose={closeChat}
+				/>
 			)}
 			{canDraw && <ExclusionsModal group={group} opened={exclusionsOpen} onClose={() => setExclusionsOpen(false)} />}
 		</Card>

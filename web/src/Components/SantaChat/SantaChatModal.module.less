@@ -1,0 +1,51 @@
+.thread {
+	background-color: var(--festive-white);
+	border: 1px solid var(--festive-paper-line);
+	border-radius: var(--mantine-radius-md);
+}
+
+/*
+ * Position says who wrote it (yours on the right), colour says which role they play:
+ * the Santa's messages are always festive red, their person's always mint.
+ */
+.bubble {
+	max-width: 85%;
+	align-self: flex-start;
+	background-color: var(--festive-mint);
+	border: 1px solid var(--mantine-color-green-2);
+	border-radius: var(--mantine-radius-md);
+	padding: 6px 10px;
+}
+
+.mine {
+	align-self: flex-end;
+}
+
+.author {
+	color: var(--festive-green);
+}
+
+.sentAt {
+	color: var(--mantine-color-dimmed);
+}
+
+.fromSanta {
+	background-color: var(--festive-red);
+	border-color: var(--festive-red);
+	color: var(--festive-white);
+
+	.author {
+		color: var(--festive-gold);
+	}
+
+	/* Mantine's dimmed gray is unreadable on red, so timestamps use a soft white. */
+	.sentAt {
+		color: rgb(255 255 255 / 85%);
+	}
+}
+
+/* Keep the line breaks people typed, and wrap long links instead of overflowing. */
+.body {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}

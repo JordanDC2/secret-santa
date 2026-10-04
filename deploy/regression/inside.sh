@@ -93,10 +93,18 @@ check "ivy marks boots received" 200 "$(as ivy POST /wishlist/items/$boots/recei
 check "received hidden from others" 0 "$(as nick GET /users/$ivy_id/wishlist | body | jq "[.items[] | select(.id == $boots)] | length")"
 check "received kept for owner" true "$(as ivy GET /wishlist/items | body | jq -r ".[] | select(.id == $boots) | .received_at != null")"
 check "owner never gets claim data" 0 "$(as ivy GET /wishlist/items | body | jq '[.[] | select(has("claim"))] | length')"
+check "holly draws names" 200 "$(as holly POST /groups/$gid/draw '{}' | code)"
+ivys_santa=$(db "select lower(u.name) from secret_santa_assignments a join users u on u.id = a.giver_id where a.group_id = $gid and a.receiver_id = $ivy_id")
+check "ivy's santa asks her a question" 204 "$(as "$ivys_santa" POST /groups/$gid/santa-chat/my-person '{"body":"Do you like blue?"}' | code)"
+check "ivy's card counts it unread" 1 "$(as ivy GET /groups/$gid | body | jq -r '.my_santa.unread_messages')"
+check "ivy reads the question" "Do you like blue?" "$(as ivy GET /groups/$gid/santa-chat/my-santa | body | jq -r '.messages[0].body')"
+check "ivy never learns who asked" null "$(as ivy GET /groups/$gid/santa-chat/my-santa | body | jq -c '.with')"
+check "ivy marks it read" 204 "$(as ivy POST /groups/$gid/santa-chat/my-santa/read | code)"
 echo "--- queued mail jobs: $(db 'select count(*) from jobs')"
 php artisan queue:work --once --queue=default --stop-when-empty -q >/dev/null 2>&1 || true
 php artisan queue:work --queue=default --stop-when-empty -q >/dev/null 2>&1 || true
 check "nudge email rendered" 1 "$(grep -c 'Still getting Reading lamp for Ivy' storage/logs/laravel.log)"
+check "santa message email rendered" 1 "$(grep -c 'has a question for you' storage/logs/laravel.log)"
 check "no failed jobs" 0 "$(db 'select count(*) from failed_jobs')"
 stop_serve
 
