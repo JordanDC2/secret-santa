@@ -37,12 +37,29 @@ class WishlistItemPolicy
     }
 
     /**
+     * Only the owner says they got something, and only for their own items: suggestions
+     * are invisible to them.
+     */
+    public function markReceived(User $user, WishlistItem $item): bool
+    {
+        return $user->id === $item->user_id && ! $item->is_suggestion;
+    }
+
+    /**
      * Anyone sharing a group with the owner can claim, except the owner, who must
      * never learn what's been claimed.
      */
     public function claim(User $user, WishlistItem $item): bool
     {
         return $user->id !== $item->user_id && $user->sharesGroupWith($item->owner);
+    }
+
+    /**
+     * Only the person who claimed it can say they bought it.
+     */
+    public function markPurchased(User $user, WishlistItem $item): bool
+    {
+        return $item->claims()->where('user_id', $user->id)->exists();
     }
 
     public function unclaim(User $user, WishlistItem $item): bool

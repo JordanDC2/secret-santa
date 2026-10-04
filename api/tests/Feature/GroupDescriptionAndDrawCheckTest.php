@@ -51,7 +51,10 @@ class GroupDescriptionAndDrawCheckTest extends TestCase
     public function test_assignment_email_shows_the_description_as_plain_text(): void
     {
         Notification::fake();
-        $group = Group::factory()->create(['description' => "Budget: \$50\n[Free gift](https://evil.example)"]);
+        // A fixed owner name with an apostrophe: random names only sometimes had one, and the
+        // email (rightly) shows it as a plain "'" rather than e()'s "&#039;".
+        $owner = User::factory()->create(['name' => "Mary O'Hara"]);
+        $group = Group::factory()->for($owner, 'owner')->create(['description' => "Budget: \$50\n[Free gift](https://evil.example)"]);
         $group->members()->attach(User::factory()->create());
         Sanctum::actingAs($group->owner);
 
@@ -60,7 +63,7 @@ class GroupDescriptionAndDrawCheckTest extends TestCase
         Notification::assertSentTo($group->owner, SecretSantaAssigned::class, function (SecretSantaAssigned $notification) use ($group) {
             $html = (string) $notification->toMail($group->owner)->render();
 
-            return str_contains($html, 'A note from '.e($group->owner->name))
+            return str_contains($html, "A note from Mary O'Hara")
                 && str_contains($html, 'Budget: $50')
                 && ! str_contains($html, 'href="https://evil.example"');
         });

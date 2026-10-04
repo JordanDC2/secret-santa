@@ -10,8 +10,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
-#[Fillable(['name', 'url', 'image_url', 'price', 'quantity', 'notes', 'rating', 'is_suggestion', 'suggested_by_id'])]
+/**
+ * @property Carbon|null $received_at When the owner marked it "Got it".
+ */
+#[Fillable(['name', 'url', 'image_url', 'price', 'quantity', 'notes', 'rating', 'is_suggestion', 'suggested_by_id', 'received_at'])]
 class WishlistItem extends Model
 {
     /** @use HasFactory<WishlistItemFactory> */
@@ -33,6 +37,7 @@ class WishlistItem extends Model
             'rating' => 'integer',
             'quantity' => 'integer',
             'is_suggestion' => 'boolean',
+            'received_at' => 'datetime',
         ];
     }
 

@@ -21,26 +21,28 @@ class ClaimWishlistItem
             WishlistItem::whereKey($item->id)->lockForUpdate()->update(['quantity' => DB::raw('quantity')]);
 
             $fresh = WishlistItem::with('claims')->findOrFail($item->id);
+
+            if ($fresh->received_at !== null) {
+                throw ValidationException::withMessages(['item' => ['They already got this one.']]);
+            }
+
             $remaining = $fresh->remainingQuantity();
 
             if ($remaining === 0) {
-                throw ValidationException::withMessages([
-                    'item' => ['Someone has already claimed this gift.'],
-                ]);
+                throw ValidationException::withMessages(['item' => ['Someone has already claimed this gift.']]);
             }
 
             if ($quantity > $remaining) {
-                throw ValidationException::withMessages([
-                    'quantity' => ["Only {$remaining} left to claim."],
-                ]);
+                throw ValidationException::withMessages(['quantity' => ["Only {$remaining} left to claim."]]);
             }
 
             $mine = $fresh->claims->firstWhere('user_id', $user->id);
 
             if ($mine) {
-                $mine->increment('quantity', $quantity);
+                // Claiming more means some of it isn't bought yet: mark it bought again once it is.
+                $mine->update(['quantity' => $mine->quantity + $quantity, 'purchased_at' => null]);
             } else {
-                $fresh->claims()->create(['user_id' => $user->id, 'quantity' => $quantity]);
+                $fresh->claims()->create(['user_id' => $user->id, 'quantity' => $quantity, 'claimed_at' => now()]);
             }
         });
 

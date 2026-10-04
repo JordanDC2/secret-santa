@@ -22,11 +22,20 @@ function mapItem(raw: Record<string, unknown>): IWishlistItem {
 				? {
 						claimed: claim.claimed as number,
 						mine: claim.mine as number,
-						others: claim.others as { name: string | null; quantity: number }[],
+						minePurchasedAt: (claim.mine_purchased_at as string | null | undefined) ?? null,
+						others: (claim.others as Record<string, unknown>[]).map((other) => ({
+							id: other.id as number,
+							name: other.name as string | null,
+							quantity: other.quantity as number,
+							purchased: Boolean(other.purchased),
+							claimedAt: (other.claimed_at as string | null) ?? null,
+							nudgedAt: (other.nudged_at as string | null) ?? null,
+						})),
 					}
 				: null,
 		}),
 		...(raw.suggestion !== undefined && { suggestion: raw.suggestion as IWishlistItem["suggestion"] }),
+		...(raw.received_at !== undefined && { receivedAt: raw.received_at as string | null }),
 	};
 }
 
@@ -67,6 +76,19 @@ export function useDeleteWishlistItemMutation() {
 	});
 }
 
+/** "Got it" (or undo): received items leave your list for everyone and move to your history. */
+export function useSetReceivedMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: ({ id, received }: { id: number; received: boolean }) =>
+			received
+				? apiClient.post<Record<string, unknown>>(`/wishlist/items/${id}/received`)
+				: apiClient.delete<Record<string, unknown>>(`/wishlist/items/${id}/received`),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: MY_WISHLIST_QUERY_KEY }),
+	});
+}
+
 export function useMemberWishlistQuery(userId: number) {
 	return useQuery({
 		queryKey: memberWishlistQueryKey(userId),
@@ -88,15 +110,41 @@ export function useMemberWishlistQuery(userId: number) {
 	});
 }
 
+/**
+ * What you can do with your claim on someone's item: claim it (or more of it), undo it, or
+ * mark it bought / not bought yet.
+ */
+export type IClaimAction = "claim" | "unclaim" | "purchase" | "unpurchase";
+
 export function useClaimMutation(ownerId: number) {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: ({ itemId, claim, quantity = 1 }: { itemId: number; claim: boolean; quantity?: number }) =>
-			claim
-				? apiClient.post<Record<string, unknown>>(`/wishlist/items/${itemId}/claim`, { quantity })
-				: apiClient.delete<Record<string, unknown>>(`/wishlist/items/${itemId}/claim`),
+		mutationFn: ({ itemId, action, quantity = 1 }: { itemId: number; action: IClaimAction; quantity?: number }) => {
+			const url = `/wishlist/items/${itemId}/claim`;
+
+			switch (action) {
+				case "claim":
+					return apiClient.post<Record<string, unknown>>(url, { quantity });
+				case "unclaim":
+					return apiClient.delete<Record<string, unknown>>(url);
+				case "purchase":
+					return apiClient.post<Record<string, unknown>>(`${url}/purchased`);
+				case "unpurchase":
+					return apiClient.delete<Record<string, unknown>>(`${url}/purchased`);
+			}
+		},
 		// Refetch on failure too: a "someone already claimed this" error means our copy is stale.
+		onSettled: () => queryClient.invalidateQueries({ queryKey: memberWishlistQueryKey(ownerId) }),
+	});
+}
+
+/** Emails someone who claimed a gift but hasn't marked it bought: still getting it? */
+export function useNudgeMutation(ownerId: number) {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (claimId: number) => apiClient.post<void>(`/wishlist/claims/${claimId}/nudge`),
 		onSettled: () => queryClient.invalidateQueries({ queryKey: memberWishlistQueryKey(ownerId) }),
 	});
 }

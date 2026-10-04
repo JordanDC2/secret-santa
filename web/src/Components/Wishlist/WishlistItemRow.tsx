@@ -20,8 +20,9 @@ type IWishlistItemRowProps = {
 /** One row of a wishlist <Accordion>: a compact summary that expands to show details. */
 export default function WishlistItemRow({ item, status, actions, dimmed = false }: IWishlistItemRowProps) {
 	return (
-		<Accordion.Item value={String(item.id)} className={dimmed ? classes.dimmed : undefined}>
-			<Accordion.Control>
+		<Accordion.Item value={String(item.id)}>
+			{/* Only the summary fades for taken items, so buttons inside (like Nudge) still look usable. */}
+			<Accordion.Control className={dimmed ? classes.dimmed : undefined}>
 				<Group justify="space-between" gap="xs">
 					<Group gap="sm" wrap="nowrap" className={classes.summary}>
 						<WishlistItemImage src={item.imageUrl} alt="" size={44} />

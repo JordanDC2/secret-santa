@@ -24,7 +24,14 @@ class WishlistItemController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
-        return WishlistItemResource::collection($request->user()->wishlistItems()->mostWantedFirst()->get());
+        // Active items most-wanted first, then received ("Got it") ones, newest first.
+        $items = $request->user()->wishlistItems()
+            ->orderByRaw('received_at is not null')
+            ->orderByDesc('received_at')
+            ->mostWantedFirst()
+            ->get();
+
+        return WishlistItemResource::collection($items);
     }
 
     public function store(WishlistItemRequest $request): WishlistItemResource

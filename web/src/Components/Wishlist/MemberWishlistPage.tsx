@@ -13,12 +13,17 @@ import {
 import { useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faGift, faLightbulb, faPenToSquare, faTrashCan } from "@fortawesome/free-solid-svg-icons";
+import { faBell, faCheck, faGift, faLightbulb, faPenToSquare, faTrashCan } from "@fortawesome/free-solid-svg-icons";
 import WishListIcon from "Components/Common/FestiveIcons/WishListIcon";
 import { useAuth } from "Components/Auth/AuthContext";
 import AssignmentNotice from "Components/Wishlist/AssignmentNotice";
 import ClaimStatus, { remainingQuantity } from "Components/Wishlist/ClaimStatus";
-import { useClaimMutation, useDeleteSuggestionMutation, useMemberWishlistQuery } from "Components/Wishlist/hooks";
+import {
+	useClaimMutation,
+	useDeleteSuggestionMutation,
+	useMemberWishlistQuery,
+	useNudgeMutation,
+} from "Components/Wishlist/hooks";
 import WishlistItemFormModal from "Components/Wishlist/WishlistItemFormModal";
 import WishlistLiveUpdates from "Components/Wishlist/WishlistLiveUpdates";
 import { liveUpdatesEnabled } from "Data/Api/LiveUpdates";
@@ -27,6 +32,9 @@ import WishlistItemRow from "Components/Wishlist/WishlistItemRow";
 import PageTitle from "Components/Layout/PageTitle";
 import { apiErrorMessage } from "Data/Api/Client";
 import classes from "Components/Wishlist/WishlistPage.module.less";
+
+/** Matches the server's limit (NudgeClaimHandler::COOLDOWN_DAYS). */
+const NUDGE_COOLDOWN_DAYS = 3;
 
 export default function MemberWishlistPage() {
 	const { user } = useAuth();
@@ -53,6 +61,7 @@ function MemberWishlist({ userId }: { userId: number }) {
 		key: 0,
 	});
 	const deleteSuggestion = useDeleteSuggestionMutation(userId);
+	const nudge = useNudgeMutation(userId);
 	const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(null);
 
 	function openIdeaModal(item: IWishlistItem | null) {
@@ -113,7 +122,7 @@ function MemberWishlist({ userId }: { userId: number }) {
 	const claimNeedsConfirm = myRecipients.length > 0 && !myRecipients.some((recipient) => recipient.id === userId);
 
 	function claimItem(itemId: number, quantity: number) {
-		claim.mutate({ itemId, claim: true, quantity }, { onSettled: () => setConfirmingClaim(null) });
+		claim.mutate({ itemId, action: "claim", quantity }, { onSettled: () => setConfirmingClaim(null) });
 	}
 
 	function claimActions(item: IWishlistItem) {
@@ -168,19 +177,70 @@ function MemberWishlist({ userId }: { userId: number }) {
 						{claimLabel}
 					</Button>
 				)}
+				{mine > 0 &&
+					(item.claim?.minePurchasedAt ? (
+						<Button
+							size="xs"
+							variant="subtle"
+							color="gray"
+							loading={isThisItem}
+							onClick={() => claim.mutate({ itemId: item.id, action: "unpurchase" })}
+						>
+							Not bought yet
+						</Button>
+					) : (
+						<Button
+							size="xs"
+							variant="secondary"
+							leftSection={<FontAwesomeIcon icon={faCheck} />}
+							loading={isThisItem}
+							onClick={() => claim.mutate({ itemId: item.id, action: "purchase" })}
+						>
+							Bought it
+						</Button>
+					))}
 				{mine > 0 && (
 					<Button
 						size="xs"
 						variant="subtle"
 						color="gray"
 						loading={isThisItem}
-						onClick={() => claim.mutate({ itemId: item.id, claim: false })}
+						onClick={() => claim.mutate({ itemId: item.id, action: "unclaim" })}
 					>
 						Undo my claim
 					</Button>
 				)}
+				{nudgeButtons(item)}
 			</>
 		);
+	}
+
+	/** One "Nudge" per other person's unbought claim; a claim can be nudged once every 3 days. */
+	function nudgeButtons(item: IWishlistItem) {
+		return (item.claim?.others ?? [])
+			.filter((other) => !other.purchased)
+			.map((other) => {
+				const daysSinceNudge = other.nudgedAt
+					? Math.floor((Date.now() - new Date(other.nudgedAt).getTime()) / 86_400_000)
+					: null;
+				const recentlyNudged = daysSinceNudge !== null && daysSinceNudge < NUDGE_COOLDOWN_DAYS;
+
+				return (
+					<Button
+						key={other.id}
+						size="xs"
+						variant="secondary"
+						leftSection={<FontAwesomeIcon icon={faBell} />}
+						disabled={recentlyNudged}
+						loading={nudge.isPending && nudge.variables === other.id}
+						onClick={() => nudge.mutate(other.id)}
+					>
+						{recentlyNudged
+							? `Nudged ${daysSinceNudge === 0 ? "today" : daysSinceNudge === 1 ? "yesterday" : `${daysSinceNudge} days ago`}`
+							: `Nudge ${other.name ?? "them"}`}
+					</Button>
+				);
+			});
 	}
 
 	return (
@@ -205,6 +265,7 @@ function MemberWishlist({ userId }: { userId: number }) {
 						</MantineText>
 
 						{claim.isError && <Alert color="red">{apiErrorMessage(claim.error)}</Alert>}
+						{nudge.isError && <Alert color="red">{apiErrorMessage(nudge.error)}</Alert>}
 
 						{wishlistQuery.data.items.length === 0 && (
 							<MantineText c="dimmed">

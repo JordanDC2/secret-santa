@@ -8,33 +8,42 @@ export function remainingQuantity(item: IWishlistItem) {
 	return Math.max(0, item.quantity - (item.claim?.claimed ?? 0));
 }
 
+/** "Nov 2026" */
+export function monthYear(isoDate: string) {
+	return new Date(isoDate).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}
+
 /**
  * The claim line(s) under an item's name on someone else's list, e.g. "You're getting
- * 1 of 2" and "1 of 2 claimed by Ivy". Plain text, not a Badge, so it wraps on phones.
+ * 1 of 2", "Bought by Ivy" or "Claimed by Nick · Nov 2026". Plain text, not a Badge, so it
+ * wraps on phones.
  */
 export default function ClaimStatus({ item }: { item: IWishlistItem }) {
 	if (!item.claim) {
 		return null;
 	}
 
-	const { mine, others } = item.claim;
+	const { mine, minePurchasedAt, others } = item.claim;
 	const isSingle = item.quantity === 1;
 	const ofTotal = (count: number) => (isSingle ? "" : ` ${count} of ${item.quantity}`);
-	const names = others.map((claim) => claim.name ?? "someone");
-	const othersCount = others.reduce((total, claim) => total + claim.quantity, 0);
 
 	return (
 		<Stack gap={2}>
 			{mine > 0 && (
 				<MantineText size="xs" fw={700} c="green.8">
-					<FontAwesomeIcon icon={faCheck} /> You&apos;re getting{isSingle ? " this" : ofTotal(mine)}
+					<FontAwesomeIcon icon={faCheck} />{" "}
+					{minePurchasedAt
+						? `You bought ${isSingle ? "this" : mine}`
+						: `You're getting${isSingle ? " this" : ofTotal(mine)}`}
 				</MantineText>
 			)}
-			{othersCount > 0 && (
-				<MantineText size="xs" fw={600} c="dimmed">
-					{isSingle ? "Claimed" : `${othersCount} of ${item.quantity} claimed`} by {names.join(", ")}
+			{others.map((claim) => (
+				<MantineText key={claim.id} size="xs" fw={600} c="dimmed">
+					{claim.purchased ? "Bought" : "Claimed"}
+					{isSingle ? "" : ` ${claim.quantity}`} by {claim.name ?? "someone"}
+					{!claim.purchased && claim.claimedAt && ` · ${monthYear(claim.claimedAt)}`}
 				</MantineText>
-			)}
+			))}
 		</Stack>
 	);
 }

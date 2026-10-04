@@ -1,11 +1,27 @@
-/** How much of an item is claimed. Only sent to people viewing someone else's list. */
+/** Someone else's claim on an item you're viewing. */
+export type IOtherClaim = {
+	id: number;
+	/** Null if they aren't in any of your groups. */
+	name: string | null;
+	quantity: number;
+	purchased: boolean;
+	claimedAt: string | null;
+	/** When someone last nudged them about it; nudges are limited to one every 3 days. */
+	nudgedAt: string | null;
+};
+
+/**
+ * How much of an item is claimed. Only sent to people viewing someone else's list. Claims
+ * never lapse; fellow shoppers can nudge an unbought claim's claimer instead.
+ */
 export type IWishlistClaim = {
 	/** Total claimed by everyone, including you. */
 	claimed: number;
 	/** How many of those are yours. */
 	mine: number;
-	/** Everyone else's claims; a null name means they aren't in any of your groups. */
-	others: { name: string | null; quantity: number }[];
+	/** When you marked your claim bought; null if you haven't (or have no claim). */
+	minePurchasedAt: string | null;
+	others: IOtherClaim[];
 };
 
 export type IWishlistItem = {
@@ -22,6 +38,8 @@ export type IWishlistItem = {
 	rating: number | null;
 	/** Absent on your own items: the server never tells owners what's been claimed. */
 	claim?: IWishlistClaim | null;
+	/** When you marked it "Got it". Only on your own items; received items are hidden from others. */
+	receivedAt?: string | null;
 	/** Set on gift ideas someone added to another person's list (never sent to that person). */
 	suggestion?: IWishlistSuggestion;
 };

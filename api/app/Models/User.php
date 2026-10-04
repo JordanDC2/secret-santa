@@ -75,7 +75,7 @@ class User extends Authenticatable
      */
     public function suggestedItems(): HasMany
     {
-        return $this->hasMany(WishlistItem::class)->where('is_suggestion', true);
+        return $this->hasMany(WishlistItem::class)->where('is_suggestion', true)->whereNull('received_at');
     }
 
     /**

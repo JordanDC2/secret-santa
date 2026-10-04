@@ -18,7 +18,8 @@ class MemberWishlistHandler extends Controller
     {
         $this->authorize('viewWishlist', $user);
 
-        $items = $user->wishlistItems()->with('claims.user')->mostWantedFirst()->get();
+        // Items the owner marked "Got it" are history, not part of the list.
+        $items = $user->wishlistItems()->whereNull('received_at')->with('claims.user')->mostWantedFirst()->get();
         // Gift ideas others added, oldest first. Never for the owner: this route also serves
         // their own list, and suggestions are a surprise.
         $suggestions = $request->user()->is($user)

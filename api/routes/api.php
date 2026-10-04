@@ -18,6 +18,9 @@ use App\Http\Controllers\GroupController;
 use App\Http\Controllers\Wishlist\ClaimHandler;
 use App\Http\Controllers\Wishlist\LinkPreviewHandler;
 use App\Http\Controllers\Wishlist\MemberWishlistHandler;
+use App\Http\Controllers\Wishlist\NudgeClaimHandler;
+use App\Http\Controllers\Wishlist\PurchasedHandler;
+use App\Http\Controllers\Wishlist\ReceivedHandler;
 use App\Http\Controllers\Wishlist\SuggestionHandler;
 use App\Http\Controllers\Wishlist\UnclaimHandler;
 use App\Http\Controllers\WishlistItemController;
@@ -80,6 +83,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('link-preview', LinkPreviewHandler::class)->middleware('throttle:link-preview')->name('link-preview');
 
         Route::delete('items/{item}/claim', UnclaimHandler::class)->name('items.unclaim');
+
+        Route::post('items/{item}/claim/purchased', [PurchasedHandler::class, 'store'])->name('items.claim.purchased');
+
+        Route::delete('items/{item}/claim/purchased', [PurchasedHandler::class, 'destroy'])->name('items.claim.unpurchased');
+
+        Route::post('claims/{claim}/nudge', NudgeClaimHandler::class)->name('claims.nudge');
+
+        Route::post('items/{item}/received', [ReceivedHandler::class, 'store'])->name('items.received');
+
+        Route::delete('items/{item}/received', [ReceivedHandler::class, 'destroy'])->name('items.unreceived');
     });
 
     Route::get('users/{user}/wishlist', MemberWishlistHandler::class)->name('users.wishlist');
