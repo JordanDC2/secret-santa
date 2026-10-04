@@ -57,6 +57,15 @@ return [
     'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
 
     /*
+    | Where "a new account was created" emails go, so the person running the app notices strangers
+    | or bots finding it. Leave unset to send none.
+    */
+    'admin_email' => env('ADMIN_EMAIL'),
+
+    // The timezone those emails show sign-up times in (e.g. America/Chicago).
+    'admin_timezone' => env('ADMIN_TIMEZONE', 'UTC'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------

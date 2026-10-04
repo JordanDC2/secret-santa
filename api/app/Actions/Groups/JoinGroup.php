@@ -5,6 +5,7 @@ namespace App\Actions\Groups;
 use App\Events\GroupChanged;
 use App\Models\Group;
 use App\Models\User;
+use App\Notifications\MemberJoinedGroup;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -37,6 +38,8 @@ class JoinGroup
         $group->members()->attach($user);
 
         GroupChanged::dispatch($group->id);
+
+        $group->owner->notify(new MemberJoinedGroup($group, $user, $group->members()->count()));
 
         return $group;
     }
