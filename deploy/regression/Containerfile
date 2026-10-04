@@ -1,0 +1,11 @@
+# Mirrors deploy/bootstrap.sh's packages: Ubuntu 24.04, PHP 8.5 from ondrej's PPA, Node 22.
+FROM docker.io/library/ubuntu:24.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update -q && apt-get install -yq --no-install-recommends \
+      ca-certificates curl git gnupg unzip sqlite3 sudo software-properties-common jq \
+ && add-apt-repository -y ppa:ondrej/php && apt-get update -q \
+ && apt-get install -yq --no-install-recommends php8.5-cli php8.5-sqlite3 php8.5-mbstring \
+      php8.5-xml php8.5-curl php8.5-zip php8.5-bcmath php8.5-intl \
+ && curl -fsSL https://getcomposer.org/installer | php -- --quiet --install-dir=/usr/local/bin --filename=composer \
+ && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && apt-get install -yq nodejs \
+ && rm -rf /var/lib/apt/lists/*
