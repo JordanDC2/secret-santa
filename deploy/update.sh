@@ -16,9 +16,35 @@ sudo -u www-data php artisan event:cache
 
 cd ../web
 npm ci
-npm run build
+# The same version goes into the build and the announcement below, so open pages can compare.
+version="$(git rev-parse --short HEAD)"
+APP_VERSION="$version" npm run build
+
+# Keep Caddy's config in step with deploy/Caddyfile: fill in this server's hostname (from
+# APP_URL), and only if the result differs from the live config, validate it first (a typo
+# stops the deploy instead of taking the site down), install it and reload without
+# dropping connections.
+site_host="$(sed -n 's#^APP_URL="\{0,1\}https\{0,1\}://\([^/"]*\).*#\1#p' /var/www/secret-santa/api/.env)"
+[ -n "$site_host" ] || { echo "Couldn't read the hostname from APP_URL in api/.env"; exit 1; }
+new_caddyfile="$(mktemp)"
+sed "s/YOUR_HOSTNAME/${site_host}/g" /var/www/secret-santa/deploy/Caddyfile > "$new_caddyfile"
+if ! sudo cmp -s "$new_caddyfile" /etc/caddy/Caddyfile; then
+	sudo caddy validate --config "$new_caddyfile" --adapter caddyfile
+	sudo install -m 644 "$new_caddyfile" /etc/caddy/Caddyfile
+	# validate runs as root and can leave the log file root-only; the caddy service needs it.
+	sudo chown -R caddy:caddy /var/log/caddy
+	sudo systemctl reload caddy
+	echo "Caddy config updated for ${site_host}"
+fi
+rm -f "$new_caddyfile"
 
 # Workers keep old code in memory until restarted.
 sudo systemctl restart secret-santa-queue secret-santa-reverb
 sudo systemctl reload php8.5-fpm
-echo "Deployed $(git -C /var/www/secret-santa rev-parse --short HEAD)"
+
+# Tell open pages to offer a refresh. Give the restarted Reverb a moment to come up; pages
+# that reconnect after this check /version.json themselves, so a miss here is harmless.
+sleep 3
+(cd ../api && sudo -u www-data php artisan app:announce-deploy "$version") || echo "Couldn't announce the new version (pages will still notice when they reconnect)."
+
+echo "Deployed $version"

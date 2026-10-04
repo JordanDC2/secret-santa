@@ -4,6 +4,8 @@ import { MantineProvider } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import AccountPage from "Components/Account/AccountPage";
+import UpdateNotice from "Components/AppUpdates/UpdateNotice";
+import { liveUpdatesEnabled } from "Data/Api/LiveUpdates";
 import { AuthProvider, useAuth } from "Components/Auth/AuthContext";
 import ForgotPasswordPage from "Components/Auth/ForgotPasswordPage";
 import LoginPage from "Components/Auth/LoginPage";
@@ -57,6 +59,7 @@ export default function App() {
 				<AuthProvider>
 					<BrowserRouter>
 						<AppRoutes />
+						{liveUpdatesEnabled() && <UpdateNotice />}
 					</BrowserRouter>
 				</AuthProvider>
 			</MantineProvider>

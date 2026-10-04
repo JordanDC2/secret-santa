@@ -4,8 +4,28 @@
 		{
 			"name": "secret-santa-web",
 			"runtimeExecutable": "npm",
-			"runtimeArgs": [ "--prefix", "web", "run", "start" ],
+			"runtimeArgs": [
+				"--prefix",
+				"web",
+				"run",
+				"start"
+			],
 			"port": 3000
+		},
+		{
+			"name": "secret-santa-web-preview",
+			"runtimeExecutable": "npm",
+			"runtimeArgs": [
+				"--prefix",
+				"web",
+				"run",
+				"preview",
+				"--",
+				"--port",
+				"3002",
+				"--strictPort"
+			],
+			"port": 3002
 		}
 	]
 }

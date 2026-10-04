@@ -100,6 +100,7 @@ check "ivy's card counts it unread" 1 "$(as ivy GET /groups/$gid | body | jq -r 
 check "ivy reads the question" "Do you like blue?" "$(as ivy GET /groups/$gid/santa-chat/my-santa | body | jq -r '.messages[0].body')"
 check "ivy never learns who asked" null "$(as ivy GET /groups/$gid/santa-chat/my-santa | body | jq -c '.with')"
 check "ivy marks it read" 204 "$(as ivy POST /groups/$gid/santa-chat/my-santa/read | code)"
+check "deploy announcement runs" 0 "$(php artisan app:announce-deploy test-version >/dev/null 2>&1; echo $?)"
 echo "--- queued mail jobs: $(db 'select count(*) from jobs')"
 php artisan queue:work --once --queue=default --stop-when-empty -q >/dev/null 2>&1 || true
 php artisan queue:work --queue=default --stop-when-empty -q >/dev/null 2>&1 || true
@@ -123,6 +124,6 @@ vendor/bin/pint --test >/tmp/pint.txt 2>&1 && echo "PASS pint" || { echo "FAIL p
 cd ../web && npm ci --no-audit --no-fund --silent
 npm run lint --silent >/tmp/lint.txt 2>&1 && grep -q "Found 0 warnings and 0 errors" /tmp/lint.txt && echo "PASS web lint" || { echo "FAIL web lint"; tail -10 /tmp/lint.txt; fails=$((fails+1)); }
 npm run typecheck --silent >/tmp/tsc.txt 2>&1 && echo "PASS web typecheck" || { echo "FAIL web typecheck"; tail -10 /tmp/tsc.txt; fails=$((fails+1)); }
-npm run build --silent >/tmp/build.txt 2>&1 && echo "PASS web build" || { echo "FAIL web build"; tail -10 /tmp/build.txt; fails=$((fails+1)); }
+APP_VERSION=rehearsal npm run build --silent >/tmp/build.txt 2>&1 && echo "PASS web build" || { echo "FAIL web build"; tail -10 /tmp/build.txt; fails=$((fails+1)); }
 
 echo; [ $fails -eq 0 ] && echo "REGRESSION PASSED" || { echo "REGRESSION FAILED ($fails)"; exit 1; }

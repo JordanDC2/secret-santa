@@ -34,6 +34,10 @@ YOUR_HOSTNAME {
 		root * /var/www/secret-santa/web/dist
 		@hashedAssets path /assets/*
 		header @hashedAssets Cache-Control "public, max-age=31536000, immutable"
+		# Everything else (index.html for every route, version.json) must be checked with the
+		# server on each load, so a refresh always picks up a new deploy.
+		@appShell not path /assets/*
+		header @appShell Cache-Control "no-cache"
 		try_files {path} /index.html
 		file_server
 	}

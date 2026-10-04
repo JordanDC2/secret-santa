@@ -1,0 +1,22 @@
+/*
+ * Floats at the bottom centre, above page content, clear of the phone's home bar. Pinned to
+ * both sides and centred with auto margins (not left: 50%, which would only leave it half
+ * the screen to lay out in), so it grows up to the full width before wrapping.
+ */
+.banner {
+	position: fixed;
+	left: var(--mantine-spacing-md);
+	right: var(--mantine-spacing-md);
+	bottom: calc(var(--mantine-spacing-md) + env(safe-area-inset-bottom));
+	width: fit-content;
+	margin-inline: auto;
+	z-index: 300;
+	padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
+	border-color: var(--festive-gold-deep);
+	background-color: var(--festive-cream);
+}
+
+/* The text wraps if it must; the button always keeps its full label. */
+.refresh {
+	flex-shrink: 0;
+}
