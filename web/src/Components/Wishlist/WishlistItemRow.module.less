@@ -36,3 +36,24 @@
 .dimmed {
 	opacity: 0.6;
 }
+
+/* Taken by someone else: a soft gray background so it reads as unavailable even collapsed. */
+.taken,
+.taken[data-active] {
+	background-color: var(--mantine-color-gray-1);
+}
+
+/*
+ * The keyboard focus ring goes around the whole item (header and its details), not just the
+ * clickable header, which looked cut in half when an item was open. Still keyboard-only.
+ */
+.control:focus-visible {
+	outline: none;
+}
+
+.item:has(.control:focus-visible) {
+	outline: 2px solid var(--mantine-color-green-7);
+	outline-offset: -2px;
+	position: relative;
+	z-index: 1;
+}
