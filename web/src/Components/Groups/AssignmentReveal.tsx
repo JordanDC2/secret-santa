@@ -26,7 +26,6 @@ export default function AssignmentReveal({
 	if (!revealed) {
 		return (
 			<Button
-				fullWidth
 				leftSection={<FontAwesomeIcon icon={faEye} />}
 				rightSection={
 					unreadMessages > 0 ? (

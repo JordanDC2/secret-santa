@@ -1,13 +1,12 @@
 import { useState } from "react";
-import { ActionIcon, Badge, Button, Card, Group, Menu, Stack, Text as MantineText } from "@mantine/core";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEllipsis, faTrashCan } from "@fortawesome/free-solid-svg-icons";
+import { Badge, Card, Group, Stack, Text as MantineText } from "@mantine/core";
 import type { IGroup } from "Components/Groups/types";
 import AssignmentReveal from "Components/Groups/AssignmentReveal";
 import DeleteGroupControl from "Components/Groups/DeleteGroupControl";
 import DrawDetailsModal from "Components/Groups/DrawDetailsModal";
 import DrawNamesControl from "Components/Groups/DrawNamesControl";
 import ExclusionsModal from "Components/Groups/ExclusionsModal";
+import GroupActionsMenu, { type IGroupMenuAction } from "Components/Groups/GroupActionsMenu";
 import GroupDescription from "Components/Groups/GroupDescription";
 import GroupMembers from "Components/Groups/GroupMembers";
 import GroupNameEditor from "Components/Groups/GroupNameEditor";
@@ -33,11 +32,12 @@ function statusMessage(group: IGroup): string | null {
 	return group.myAssignment ? null : "Names have already been drawn for this group.";
 }
 
-type IGroupAction = "draw" | "newDraw" | "delete" | "leave";
+/** The "are you sure?" panels; all but Draw Names are opened from the ⋯ menu. */
+type IConfirmedAction = "draw" | "newDraw" | "delete" | "leave";
 
 export default function GroupCard({ group }: IGroupCardProps) {
 	// Only one "are you sure?" panel at a time, and it takes the whole footer.
-	const [openAction, setOpenAction] = useState<IGroupAction | null>(null);
+	const [openAction, setOpenAction] = useState<IConfirmedAction | null>(null);
 	const [exclusionsOpen, setExclusionsOpen] = useState(false);
 	const [drawDetailsOpen, setDrawDetailsOpen] = useState(false);
 	// A fresh key each time the chat opens, so it reloads its draft and scroll position.
@@ -51,14 +51,14 @@ export default function GroupCard({ group }: IGroupCardProps) {
 	const canDraw = group.isOwner && !group.isDrawn;
 	const canLeave = !group.isOwner && !group.isDrawn;
 
-	function confirmState(action: IGroupAction) {
+	function confirmState(action: IConfirmedAction) {
 		return {
 			confirming: openAction === action,
 			onConfirmingChange: (confirming: boolean) => setOpenAction(confirming ? action : null),
 		};
 	}
 
-	const controls: Record<IGroupAction, JSX.Element | null> = {
+	const controls: Record<IConfirmedAction, JSX.Element | null> = {
 		draw: canDraw ? (
 			<DrawNamesControl
 				groupId={group.id}
@@ -75,6 +75,17 @@ export default function GroupCard({ group }: IGroupCardProps) {
 		) : null,
 		leave: canLeave ? <LeaveGroupControl groupId={group.id} groupName={group.name} {...confirmState("leave")} /> : null,
 	};
+
+	function onMenuAction(action: IGroupMenuAction) {
+		if (action === "exclusions") {
+			setExclusionsOpen(true);
+		} else if (action === "drawDetails") {
+			setDrawDetailsOpen(true);
+		} else {
+			setOpenAction(action);
+		}
+	}
+
 	function openChat(side: ISantaChatSide) {
 		setChat((current) => ({ side, opened: true, key: current.key + 1 }));
 	}
@@ -91,8 +102,17 @@ export default function GroupCard({ group }: IGroupCardProps) {
 		setChat((current) => ({ ...current, opened: false }));
 	}
 
-	const hasControls = Object.values(controls).some(Boolean);
 	const message = statusMessage(group);
+	const footer = openAction ? (
+		controls[openAction]
+	) : canDraw ? (
+		<div>{controls.draw}</div>
+	) : message ? (
+		<MantineText size="sm" c="dimmed">
+			{message}
+		</MantineText>
+	) : null;
+	const hasFooter = Boolean(footer || group.myAssignment || group.mySanta);
 
 	return (
 		<Card withBorder padding="lg" radius="md">
@@ -100,31 +120,14 @@ export default function GroupCard({ group }: IGroupCardProps) {
 				<div className={classes.nameColumn}>
 					<GroupNameEditor groupId={group.id} name={group.name} canRename={group.isOwner} />
 				</div>
-				{group.isOwner && (
-					<Group gap={4} wrap="nowrap" className={classes.ownerBadge}>
+				<Group gap={4} wrap="nowrap" className={classes.headerEnd}>
+					{group.isOwner && (
 						<Badge color="green" variant="light">
 							Owner
 						</Badge>
-						{/* Owner-only and destructive, so it lives in a menu instead of crowding the footer's
-						    buttons; picking it opens the usual "are you sure?" panel there. */}
-						<Menu position="bottom-end" withinPortal>
-							<Menu.Target>
-								<ActionIcon variant="subtle" color="gray" aria-label={`More actions for ${group.name}`}>
-									<FontAwesomeIcon icon={faEllipsis} />
-								</ActionIcon>
-							</Menu.Target>
-							<Menu.Dropdown>
-								<Menu.Item
-									color="red"
-									leftSection={<FontAwesomeIcon icon={faTrashCan} />}
-									onClick={() => setOpenAction("delete")}
-								>
-									Delete group
-								</Menu.Item>
-							</Menu.Dropdown>
-						</Menu>
-					</Group>
-				)}
+					)}
+					<GroupActionsMenu group={group} onAction={onMenuAction} />
+				</Group>
 			</Group>
 			<Group gap="md" mt={4}>
 				<MantineText size="sm" c="dimmed">
@@ -135,58 +138,32 @@ export default function GroupCard({ group }: IGroupCardProps) {
 			<GroupDescription groupId={group.id} description={group.description} canEdit={group.isOwner} />
 			<GroupMembers members={group.members} />
 
-			<Card.Section inheritPadding py="md" mt="md" withBorder>
-				<Stack gap="md">
-					{group.myAssignment && (
-						<AssignmentReveal
-							recipientId={group.myAssignment.recipientId}
-							recipientName={group.myAssignment.recipientName}
-							unreadMessages={group.myAssignment.unreadMessages}
-							onAsk={() => openChat("my-person")}
-						/>
-					)}
+			{hasFooter && (
+				<Card.Section inheritPadding py="md" mt="md" withBorder>
+					<Stack gap="md">
+						{/* Compact buttons side by side; a revealed assignment takes its own full-width row. */}
+						{(group.myAssignment || group.mySanta) && (
+							<Group gap="sm">
+								{group.myAssignment && (
+									<AssignmentReveal
+										recipientId={group.myAssignment.recipientId}
+										recipientName={group.myAssignment.recipientName}
+										unreadMessages={group.myAssignment.unreadMessages}
+										onAsk={() => openChat("my-person")}
+									/>
+								)}
+								{group.mySanta && (
+									<SantaChatButton unread={group.mySanta.unreadMessages} onClick={() => openChat("my-santa")}>
+										Message your Santa
+									</SantaChatButton>
+								)}
+							</Group>
+						)}
 
-					{group.mySanta && (
-						<SantaChatButton fullWidth unread={group.mySanta.unreadMessages} onClick={() => openChat("my-santa")}>
-							Message your Secret Santa
-						</SantaChatButton>
-					)}
-
-					{openAction
-						? controls[openAction]
-						: (hasControls || message) && (
-								<Group justify="space-between" align="center">
-									{canDraw ? (
-										<Group gap="sm">
-											{controls.draw}
-											<Button variant="secondary" onClick={() => setExclusionsOpen(true)}>
-												Exclusions
-												{Boolean(group.exclusionsCount) && (
-													<Badge size="sm" circle color="red" ml={6}>
-														{group.exclusionsCount}
-													</Badge>
-												)}
-											</Button>
-										</Group>
-									) : canViewDraw ? (
-										<Group gap="sm">
-											<Button variant="secondary" onClick={() => setDrawDetailsOpen(true)}>
-												Draw details
-											</Button>
-											{controls.newDraw}
-										</Group>
-									) : message ? (
-										<MantineText size="sm" c="dimmed" className={classes.footerMessage}>
-											{message}
-										</MantineText>
-									) : (
-										<span />
-									)}
-									{controls.leave && <div className={classes.endControl}>{controls.leave}</div>}
-								</Group>
-							)}
-				</Stack>
-			</Card.Section>
+						{footer}
+					</Stack>
+				</Card.Section>
+			)}
 			{canViewDraw && (
 				<DrawDetailsModal group={group} opened={drawDetailsOpen} onClose={() => setDrawDetailsOpen(false)} />
 			)}

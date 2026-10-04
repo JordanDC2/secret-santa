@@ -1,5 +1,5 @@
 /*
- * Name on the left, Owner badge + menu on the right. The name wraps first (zero flex-basis);
+ * Name on the left, Owner badge and ⋯ menu on the right. The name wraps first (zero flex-basis);
  * only when it can't get any narrower (its longest word plus the rename pencil) does the
  * badge + menu drop to their own line, still on the right, instead of overflowing the card.
  */
@@ -11,20 +11,8 @@
 	flex: 1 1 0;
 }
 
-/* Never squeezed down to "OWN…". */
-.ownerBadge {
+/* The Owner badge and ⋯ menu: never squeezed down to "OWN…". */
+.headerEnd {
 	flex-shrink: 0;
-	margin-left: auto;
-}
-
-/* A zero flex-basis lets a member's status text shrink and wrap instead of pushing
-   "Leave group" onto its own line on phones; the row itself can still wrap for owners. */
-.footerMessage {
-	flex: 1 1 0;
-	min-width: 0;
-}
-
-/* Keeps Delete/Leave on the right even when the footer wraps onto two lines on phones. */
-.endControl {
 	margin-left: auto;
 }
