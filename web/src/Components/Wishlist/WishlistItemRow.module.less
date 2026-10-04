@@ -33,8 +33,17 @@
 	white-space: pre-line;
 }
 
+/* Taken items: text in the (still readable) dimmed gray; the picture and stars fade instead. */
 .dimmed {
-	opacity: 0.6;
+	color: var(--mantine-color-dimmed);
+}
+
+.dimmed .fadeable {
+	opacity: 0.5;
+}
+
+.fadeable {
+	display: flex;
 }
 
 /* Taken by someone else: a soft gray background so it reads as unavailable even collapsed. */

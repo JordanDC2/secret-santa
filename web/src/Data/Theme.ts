@@ -3,11 +3,13 @@ import {
 	Button,
 	Checkbox,
 	createTheme,
+	defaultVariantColorsResolver,
 	Modal,
 	Title,
 	type ButtonVariant,
 	type CSSVariablesResolver,
 	type MantineColorsTuple,
+	type VariantColorsResolver,
 } from "@mantine/core";
 import classes from "Data/Theme.module.less";
 
@@ -80,8 +82,21 @@ declare module "@mantine/core" {
 	}
 }
 
+/**
+ * Quiet buttons (variant="subtle" color="gray": Cancel, Hide, Undo my claim...) use the same
+ * readable slate gray as dimmed text; Mantine's default gray there is only about 3.3:1.
+ */
+const variantColorResolver: VariantColorsResolver = (input) => {
+	const colors = defaultVariantColorsResolver(input);
+
+	return input.variant === "subtle" && input.color === "gray"
+		? { ...colors, color: "var(--mantine-color-dimmed)" }
+		: colors;
+};
+
 export const theme = createTheme({
 	primaryColor: "green",
+	variantColorResolver,
 	colors: {
 		red: festiveRed,
 		green: festiveGreen,
@@ -111,12 +126,17 @@ export const theme = createTheme({
 });
 
 /**
- * Links default to the primary color, which is green now; keep them festive red. Set as
- * Mantine's anchor variable (not an Anchor color prop) so classes like the header's gold
- * nav links can still override it.
+ * - Links default to the primary color, which is green now; keep them festive red. Set as
+ *   Mantine's anchor variable (not an Anchor color prop) so classes like the header's gold
+ *   nav links can still override it.
+ * - Mantine's "dimmed" gray (c="dimmed") is only 3.3:1 on white, under the 4.5:1 that small
+ *   text needs. This slate gray is about 5.6:1 on white and 5:1 on light gray backgrounds.
  */
 export const cssVariablesResolver: CSSVariablesResolver = () => ({
 	variables: {},
-	light: { "--mantine-color-anchor": "var(--mantine-color-red-filled)" },
+	light: {
+		"--mantine-color-anchor": "var(--mantine-color-red-filled)",
+		"--mantine-color-dimmed": "#5f6870",
+	},
 	dark: { "--mantine-color-anchor": "var(--mantine-color-red-4)" },
 });

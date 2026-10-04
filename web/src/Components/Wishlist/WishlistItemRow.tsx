@@ -21,11 +21,16 @@ type IWishlistItemRowProps = {
 export default function WishlistItemRow({ item, status, actions, dimmed = false }: IWishlistItemRowProps) {
 	return (
 		<Accordion.Item value={String(item.id)} className={dimmed ? `${classes.item} ${classes.taken}` : classes.item}>
-			{/* Only the summary fades for taken items, so buttons inside (like Nudge) still look usable. */}
+			{/*
+			  Taken items: gray background, muted text and faded picture/stars, but text keeps
+			  readable contrast (no fading text with opacity) and buttons inside stay usable.
+			*/}
 			<Accordion.Control className={dimmed ? `${classes.control} ${classes.dimmed}` : classes.control}>
 				<Group justify="space-between" gap="xs">
 					<Group gap="sm" wrap="nowrap" className={classes.summary}>
-						<WishlistItemImage src={item.imageUrl} alt="" size={44} />
+						<span className={classes.fadeable}>
+							<WishlistItemImage src={item.imageUrl} alt="" size={44} />
+						</span>
 						{/* The claim status sits under the name so it never gets squeezed on phones. */}
 						<Stack gap={4} className={classes.name}>
 							<MantineText fw={600}>{item.name}</MantineText>
@@ -35,7 +40,14 @@ export default function WishlistItemRow({ item, status, actions, dimmed = false 
 					{/* Quantity sits with the price so long names can't push it out of sight. */}
 					<Group gap="sm" wrap="nowrap" className={classes.meta}>
 						{item.quantity > 1 && (
-							<Badge variant="light" color="gray" radius="sm" tt="none" aria-label={`Wants ${item.quantity}`}>
+							<Badge
+								variant="light"
+								color="gray"
+								c="dimmed"
+								radius="sm"
+								tt="none"
+								aria-label={`Wants ${item.quantity}`}
+							>
 								Qty {item.quantity}
 							</Badge>
 						)}
@@ -45,7 +57,13 @@ export default function WishlistItemRow({ item, status, actions, dimmed = false 
 							</MantineText>
 						)}
 						{item.rating !== null && (
-							<Rating value={item.rating} readOnly size="sm" aria-label={`${item.rating} out of 5 stars`} />
+							<Rating
+								value={item.rating}
+								readOnly
+								size="sm"
+								aria-label={`${item.rating} out of 5 stars`}
+								className={classes.fadeable}
+							/>
 						)}
 					</Group>
 				</Group>
