@@ -3,7 +3,12 @@
 set -euo pipefail
 cd /var/www/secret-santa
 
-git pull --ff-only
+# Bash keeps reading the copy of this script it started with, so after pulling, start over
+# with the new copy: changes to this script then apply on the same deploy.
+if [ "${1:-}" != "--pulled" ]; then
+	git pull --ff-only
+	exec bash deploy/update.sh --pulled
+fi
 
 cd api
 composer install --no-dev --optimize-autoloader --no-interaction
