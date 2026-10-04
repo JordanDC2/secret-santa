@@ -16,29 +16,3 @@
 	white-space: pre-line;
 	line-height: 1.5;
 }
-
-/* The owner's invitation to add a note: a quiet dashed box until hovered. */
-.addNote {
-	display: block;
-	width: 100%;
-	text-align: left;
-	font: inherit;
-	font-size: var(--mantine-font-size-sm);
-	cursor: pointer;
-	background: none;
-	margin-top: var(--mantine-spacing-sm);
-	padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
-	border: 1px dashed var(--mantine-color-gray-4);
-	border-radius: var(--mantine-radius-md);
-	color: var(--mantine-color-dimmed);
-	transition:
-		color 120ms ease,
-		border-color 120ms ease,
-		background-color 120ms ease;
-
-	&:hover {
-		color: var(--festive-red);
-		border-color: var(--festive-red);
-		background-color: var(--mantine-color-red-0);
-	}
-}

@@ -40,6 +40,7 @@ export default function GroupCard({ group }: IGroupCardProps) {
 	const [openAction, setOpenAction] = useState<IConfirmedAction | null>(null);
 	const [exclusionsOpen, setExclusionsOpen] = useState(false);
 	const [drawDetailsOpen, setDrawDetailsOpen] = useState(false);
+	const [editingNote, setEditingNote] = useState(false);
 	// A fresh key each time the chat opens, so it reloads its draft and scroll position.
 	const [chat, setChat] = useState<{ side: ISantaChatSide; opened: boolean; key: number }>({
 		side: "my-santa",
@@ -103,15 +104,8 @@ export default function GroupCard({ group }: IGroupCardProps) {
 	}
 
 	const message = statusMessage(group);
-	const footer = openAction ? (
-		controls[openAction]
-	) : canDraw ? (
-		<div>{controls.draw}</div>
-	) : message ? (
-		<MantineText size="sm" c="dimmed">
-			{message}
-		</MantineText>
-	) : null;
+	const footer = openAction ? controls[openAction] : canDraw ? <div>{controls.draw}</div> : null;
+	// A plain status line doesn't need the footer's divider; buttons and panels do.
 	const hasFooter = Boolean(footer || group.myAssignment || group.mySanta);
 
 	return (
@@ -120,7 +114,8 @@ export default function GroupCard({ group }: IGroupCardProps) {
 				<div className={classes.nameColumn}>
 					<GroupNameEditor groupId={group.id} name={group.name} canRename={group.isOwner} />
 				</div>
-				<Group gap={4} wrap="nowrap" className={classes.headerEnd}>
+				<Group gap="sm" wrap="nowrap" className={classes.headerEnd}>
+					<InviteCode code={group.joinCode} />
 					{group.isOwner && (
 						<Badge color="green" variant="light">
 							Owner
@@ -133,10 +128,33 @@ export default function GroupCard({ group }: IGroupCardProps) {
 				<MantineText size="sm" c="dimmed">
 					{group.membersCount} member{group.membersCount === 1 ? "" : "s"}
 				</MantineText>
-				<InviteCode code={group.joinCode} />
+				{group.isOwner && !group.description && !editingNote && (
+					<Badge
+						component="button"
+						type="button"
+						variant="light"
+						color="gray"
+						tt="none"
+						className={classes.addNote}
+						onClick={() => setEditingNote(true)}
+					>
+						+ Add note
+					</Badge>
+				)}
 			</Group>
-			<GroupDescription groupId={group.id} description={group.description} canEdit={group.isOwner} />
+			<GroupDescription
+				groupId={group.id}
+				description={group.description}
+				canEdit={group.isOwner}
+				editing={editingNote}
+				onEditingChange={setEditingNote}
+			/>
 			<GroupMembers members={group.members} />
+			{!hasFooter && message && (
+				<MantineText size="sm" c="dimmed" mt="sm">
+					{message}
+				</MantineText>
+			)}
 
 			{hasFooter && (
 				<Card.Section inheritPadding py="md" mt="md" withBorder>
