@@ -18,6 +18,7 @@ use App\Http\Controllers\GroupController;
 use App\Http\Controllers\Wishlist\ClaimHandler;
 use App\Http\Controllers\Wishlist\LinkPreviewHandler;
 use App\Http\Controllers\Wishlist\MemberWishlistHandler;
+use App\Http\Controllers\Wishlist\SuggestionHandler;
 use App\Http\Controllers\Wishlist\UnclaimHandler;
 use App\Http\Controllers\WishlistItemController;
 use Illuminate\Http\Request;
@@ -82,6 +83,8 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::get('users/{user}/wishlist', MemberWishlistHandler::class)->name('users.wishlist');
+
+    Route::post('users/{user}/wishlist/suggestions', SuggestionHandler::class)->name('wishlist.suggestions.store');
 
     Route::apiResource('groups', GroupController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
 });

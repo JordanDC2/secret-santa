@@ -17,7 +17,11 @@ class DeleteAccount
     public function __invoke(User $user): void
     {
         $affectedGroupIds = $user->groups()->pluck('groups.id');
-        $claimedFromOwnerIds = WishlistItem::whereHas('claims', fn ($claims) => $claims->where('user_id', $user->id))
+        // Lists that change: ones they claimed from, and ones they suggested gifts for (those
+        // suggestions stay, now "suggested by someone").
+        $changedListOwnerIds = WishlistItem::where(fn ($items) => $items
+            ->whereHas('claims', fn ($claims) => $claims->where('user_id', $user->id))
+            ->orWhere('suggested_by_id', $user->id))
             ->distinct()
             ->pluck('user_id');
 
@@ -29,8 +33,8 @@ class DeleteAccount
         });
 
         // Groups they owned are gone and groups they were in lost a member; lists they
-        // claimed from now show those gifts as available again.
+        // claimed from show those gifts as available again.
         $affectedGroupIds->each(fn (int $groupId) => GroupChanged::dispatch($groupId));
-        $claimedFromOwnerIds->each(fn (int $ownerId) => WishlistChanged::dispatch($ownerId));
+        $changedListOwnerIds->each(fn (int $ownerId) => WishlistChanged::dispatch($ownerId));
     }
 }

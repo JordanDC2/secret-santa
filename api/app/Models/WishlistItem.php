@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'url', 'image_url', 'price', 'quantity', 'notes', 'rating'])]
+#[Fillable(['name', 'url', 'image_url', 'price', 'quantity', 'notes', 'rating', 'is_suggestion', 'suggested_by_id'])]
 class WishlistItem extends Model
 {
     /** @use HasFactory<WishlistItemFactory> */
@@ -32,6 +32,7 @@ class WishlistItem extends Model
             'price' => 'decimal:2',
             'rating' => 'integer',
             'quantity' => 'integer',
+            'is_suggestion' => 'boolean',
         ];
     }
 
@@ -41,6 +42,17 @@ class WishlistItem extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * Who added this gift idea, for suggestions. Null for the owner's own items, and for a
+     * suggestion whose suggester has since deleted their account.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function suggestedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'suggested_by_id');
     }
 
     /**

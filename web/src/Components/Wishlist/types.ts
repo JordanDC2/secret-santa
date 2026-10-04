@@ -18,9 +18,19 @@ export type IWishlistItem = {
 	/** How many the owner wants, e.g. 2 four-packs of socks. */
 	quantity: number;
 	notes: string | null;
-	rating: number;
+	/** How much the owner wants it, 1-5. Null on suggestions: only the owner could say. */
+	rating: number | null;
 	/** Absent on your own items: the server never tells owners what's been claimed. */
 	claim?: IWishlistClaim | null;
+	/** Set on gift ideas someone added to another person's list (never sent to that person). */
+	suggestion?: IWishlistSuggestion;
+};
+
+export type IWishlistSuggestion = {
+	/** Who suggested it; null if they aren't in any of your groups or have deleted their account. */
+	by: string | null;
+	/** Whether you suggested it. */
+	mine: boolean;
 };
 
 export type IWishlistItemDetails = Pick<
@@ -39,6 +49,8 @@ export type IMyRecipient = IWishlistPerson & { group: { id: number; name: string
 export type IMemberWishlist = {
 	user: IWishlistPerson;
 	items: IWishlistItem[];
+	/** Gift ideas others added to this person's list; they never see these. */
+	suggestions: IWishlistItem[];
 	/** Who the viewer is buying for as a Secret Santa; empty before any draw. */
 	myRecipients: IMyRecipient[];
 };

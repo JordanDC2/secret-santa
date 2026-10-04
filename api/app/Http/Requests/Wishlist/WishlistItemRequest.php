@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Wishlist;
 
+use App\Models\WishlistItem;
 use Illuminate\Foundation\Http\FormRequest;
 
 class WishlistItemRequest extends FormRequest
@@ -9,6 +10,13 @@ class WishlistItemRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    private function isSuggestion(): bool
+    {
+        $item = $this->route('item');
+
+        return $this->routeIs('wishlist.suggestions.store') || ($item instanceof WishlistItem && $item->is_suggestion);
     }
 
     /**
@@ -24,7 +32,8 @@ class WishlistItemRequest extends FormRequest
             'price' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
             'quantity' => ['sometimes', 'integer', 'between:1,99'],
             'notes' => ['nullable', 'string', 'max:2000'],
-            'rating' => ['required', 'integer', 'between:1,5'],
+            // Only the owner can say how much they want something, so suggestions have no rating.
+            'rating' => $this->isSuggestion() ? ['exclude'] : ['required', 'integer', 'between:1,5'],
         ];
     }
 }

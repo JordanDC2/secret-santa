@@ -20,14 +20,20 @@ class WishlistItemPolicy
         return true;
     }
 
+    /**
+     * Owners manage their own items. Suggestions are the reverse: anyone who can see the
+     * list may edit or remove them, except the owner, who must never know they exist.
+     */
     public function update(User $user, WishlistItem $item): bool
     {
-        return $user->id === $item->user_id;
+        return $item->is_suggestion
+            ? $user->id !== $item->user_id && $user->sharesGroupWith($item->owner)
+            : $user->id === $item->user_id;
     }
 
     public function delete(User $user, WishlistItem $item): bool
     {
-        return $user->id === $item->user_id;
+        return $this->update($user, $item);
     }
 
     /**

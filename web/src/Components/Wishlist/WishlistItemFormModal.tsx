@@ -14,9 +14,13 @@ import {
 import { useForm } from "@mantine/form";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
-import { useLinkPreviewMutation, useSaveWishlistItemMutation } from "Components/Wishlist/hooks";
+import {
+	useLinkPreviewMutation,
+	useSaveSuggestionMutation,
+	useSaveWishlistItemMutation,
+} from "Components/Wishlist/hooks";
 import WishlistItemImage from "Components/Wishlist/WishlistItemImage";
-import type { IWishlistItem } from "Components/Wishlist/types";
+import type { IWishlistItem, IWishlistPerson } from "Components/Wishlist/types";
 import { apiErrorMessage } from "Data/Api/Client";
 import classes from "Components/Wishlist/WishlistItemFormModal.module.less";
 
@@ -25,6 +29,8 @@ type IWishlistItemFormModalProps = {
 	opened: boolean;
 	/** The item being edited, or null to add a new one. */
 	item: IWishlistItem | null;
+	/** Set when this is a gift idea for someone else's list: no star rating, and saved as a suggestion. */
+	suggestionFor?: IWishlistPerson;
 	onClose: () => void;
 };
 
@@ -50,8 +56,18 @@ function initialValues(item: IWishlistItem | null): IFormValues {
 	};
 }
 
-export default function WishlistItemFormModal({ opened, item, onClose }: IWishlistItemFormModalProps) {
-	const saveItem = useSaveWishlistItemMutation();
+function modalTitle(item: IWishlistItem | null, suggestionFor: IWishlistPerson | undefined) {
+	if (suggestionFor) {
+		return item ? "Edit gift idea" : `Suggest a gift for ${suggestionFor.name}`;
+	}
+
+	return item ? "Edit item" : "Add to your wishlist";
+}
+
+export default function WishlistItemFormModal({ opened, item, suggestionFor, onClose }: IWishlistItemFormModalProps) {
+	const saveOwnItem = useSaveWishlistItemMutation();
+	const saveSuggestion = useSaveSuggestionMutation(suggestionFor?.id ?? 0);
+	const saveItem = suggestionFor ? saveSuggestion : saveOwnItem;
 	const form = useForm<IFormValues>({ initialValues: initialValues(item) });
 	const linkPreview = useLinkPreviewMutation();
 	const linkLooksValid = /^https?:\/\/\S+\.\S+/i.test(form.values.url.trim());
@@ -88,9 +104,14 @@ export default function WishlistItemFormModal({ opened, item, onClose }: IWishli
 	}
 
 	return (
-		<Modal opened={opened} onClose={onClose} title={item ? "Edit item" : "Add to your wishlist"} centered>
+		<Modal opened={opened} onClose={onClose} title={modalTitle(item, suggestionFor)} centered>
 			<form onSubmit={form.onSubmit(handleSubmit)}>
 				<Stack>
+					{suggestionFor && (
+						<MantineText size="sm" c="dimmed">
+							{suggestionFor.name} won&apos;t see this. Anyone shopping for them can see, claim or edit it.
+						</MantineText>
+					)}
 					{saveItem.isError && <Alert color="red">{apiErrorMessage(saveItem.error)}</Alert>}
 					<Group gap="xs" align="flex-end" wrap="nowrap">
 						<TextInput
@@ -157,18 +178,23 @@ export default function WishlistItemFormModal({ opened, item, onClose }: IWishli
 					</Group>
 					<Textarea
 						label="Notes"
-						placeholder="Size, color, model, anything that helps"
+						placeholder={
+							suggestionFor ? "Why it's a good idea, size, where to find it" : "Size, color, model, anything that helps"
+						}
 						autosize
 						minRows={2}
 						{...form.getInputProps("notes")}
 					/>
-					<Input.Wrapper label="How much do you want it?">
-						<Rating
-							size="lg"
-							getSymbolLabel={(stars) => `${stars} star${stars === 1 ? "" : "s"}`}
-							{...form.getInputProps("rating")}
-						/>
-					</Input.Wrapper>
+					{/* Only the person themselves can say how much they want something. */}
+					{!suggestionFor && (
+						<Input.Wrapper label="How much do you want it?">
+							<Rating
+								size="lg"
+								getSymbolLabel={(stars) => `${stars} star${stars === 1 ? "" : "s"}`}
+								{...form.getInputProps("rating")}
+							/>
+						</Input.Wrapper>
+					)}
 					<Group justify="flex-end">
 						<Button variant="subtle" onClick={onClose}>
 							Cancel
@@ -179,7 +205,7 @@ export default function WishlistItemFormModal({ opened, item, onClose }: IWishli
 							loading={saveItem.isPending}
 							leftSection={item ? undefined : <FontAwesomeIcon icon={faPlus} />}
 						>
-							{item ? "Save" : "Add item"}
+							{item ? "Save" : suggestionFor ? "Add idea" : "Add item"}
 						</Button>
 					</Group>
 				</Stack>

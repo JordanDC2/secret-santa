@@ -43,7 +43,9 @@ export default function WishlistItemRow({ item, status, actions, dimmed = false 
 								{priceFormatter.format(item.price)}
 							</MantineText>
 						)}
-						<Rating value={item.rating} readOnly size="sm" aria-label={`${item.rating} out of 5 stars`} />
+						{item.rating !== null && (
+							<Rating value={item.rating} readOnly size="sm" aria-label={`${item.rating} out of 5 stars`} />
+						)}
 					</Group>
 				</Group>
 			</Accordion.Control>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\User;
 use App\Models\WishlistItem;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -27,11 +28,32 @@ class WishlistItemResource extends JsonResource
             'image_url' => $this->image_url,
             'price' => $this->price,
             'notes' => $this->notes,
-            'rating' => $this->rating,
+            // Suggestions have no rating: only the owner knows how much they want something.
+            'rating' => $this->is_suggestion ? null : $this->rating,
             'quantity' => $this->quantity,
             // The owner never receives claim info, not even a "claimed" flag, so the
             // surprise can't leak through the browser's network tab.
             'claim' => $this->when($viewer->id !== $this->user_id, fn () => $this->claimSummary($viewer->id)),
+            // Owners never receive suggestions at all (see User::wishlistItems()), so this is
+            // only ever seen by the people shopping for them.
+            'suggestion' => $this->when($this->is_suggestion, fn () => $this->suggestionSummary($viewer)),
+        ];
+    }
+
+    /**
+     * Who suggested it, named only if the viewer shares a group with them (like claimers),
+     * and whether it was the viewer. A null name: not in your groups, or since deleted.
+     *
+     * @return array{by: ?string, mine: bool}
+     */
+    private function suggestionSummary(User $viewer): array
+    {
+        $suggester = $this->suggestedBy;
+        $mine = $suggester !== null && $suggester->is($viewer);
+
+        return [
+            'by' => $suggester && ($mine || $viewer->sharesGroupWith($suggester)) ? $suggester->name : null,
+            'mine' => $mine,
         ];
     }
 

@@ -8,6 +8,7 @@ use App\Models\SecretSantaAssignment;
 use App\Models\User;
 use App\Models\WishlistClaim;
 use App\Models\WishlistItem;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -18,11 +19,16 @@ class MemberWishlistHandler extends Controller
         $this->authorize('viewWishlist', $user);
 
         $items = $user->wishlistItems()->with('claims.user')->mostWantedFirst()->get();
+        // Gift ideas others added, oldest first. Never for the owner: this route also serves
+        // their own list, and suggestions are a surprise.
+        $suggestions = $request->user()->is($user)
+            ? new Collection
+            : $user->suggestedItems()->with('claims.user', 'suggestedBy')->oldest('id')->get();
 
         // Only name claimers you share a group with; anyone else shows as "someone",
         // so a list doesn't leak who's in groups you aren't part of.
         $groupMateIds = $request->user()->groupMateIds();
-        $items->each(fn (WishlistItem $item) => $item->claims->each(function (WishlistClaim $claim) use ($groupMateIds) {
+        $items->concat($suggestions)->each(fn (WishlistItem $item) => $item->claims->each(function (WishlistClaim $claim) use ($groupMateIds) {
             if (! in_array($claim->user_id, $groupMateIds, true)) {
                 $claim->setRelation('user', null);
             }
@@ -31,6 +37,7 @@ class MemberWishlistHandler extends Controller
         return response()->json([
             'user' => ['id' => $user->id, 'name' => $user->name],
             'items' => WishlistItemResource::collection($items),
+            'suggestions' => WishlistItemResource::collection($suggestions),
             // Who you're buying for in each group's current draw, so the page can say "you drew
             // this person in <group>" or warn that they aren't your person.
             'my_recipients' => $request->user()->secretSantaRecipients()

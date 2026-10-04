@@ -1,13 +1,25 @@
-import { Accordion, Alert, Anchor, Button, Container, NumberInput, Stack, Text as MantineText } from "@mantine/core";
+import {
+	Accordion,
+	Alert,
+	Anchor,
+	Button,
+	Container,
+	Group,
+	NumberInput,
+	Stack,
+	Text as MantineText,
+	Title,
+} from "@mantine/core";
 import { useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faGift } from "@fortawesome/free-solid-svg-icons";
+import { faGift, faLightbulb, faPenToSquare, faTrashCan } from "@fortawesome/free-solid-svg-icons";
 import WishListIcon from "Components/Common/FestiveIcons/WishListIcon";
 import { useAuth } from "Components/Auth/AuthContext";
 import AssignmentNotice from "Components/Wishlist/AssignmentNotice";
 import ClaimStatus, { remainingQuantity } from "Components/Wishlist/ClaimStatus";
-import { useClaimMutation, useMemberWishlistQuery } from "Components/Wishlist/hooks";
+import { useClaimMutation, useDeleteSuggestionMutation, useMemberWishlistQuery } from "Components/Wishlist/hooks";
+import WishlistItemFormModal from "Components/Wishlist/WishlistItemFormModal";
 import WishlistLiveUpdates from "Components/Wishlist/WishlistLiveUpdates";
 import { liveUpdatesEnabled } from "Data/Api/LiveUpdates";
 import type { IWishlistItem } from "Components/Wishlist/types";
@@ -34,6 +46,67 @@ function MemberWishlist({ userId }: { userId: number }) {
 	const [confirmingClaim, setConfirmingClaim] = useState<{ itemId: number; quantity: number } | null>(null);
 	// The "how many" picker per item, for items with a quantity above 1.
 	const [chosenQuantity, setChosenQuantity] = useState<Record<number, number>>({});
+	// The gift-idea form; a fresh key each time it opens so it starts from the chosen item.
+	const [ideaModal, setIdeaModal] = useState<{ opened: boolean; item: IWishlistItem | null; key: number }>({
+		opened: false,
+		item: null,
+		key: 0,
+	});
+	const deleteSuggestion = useDeleteSuggestionMutation(userId);
+	const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(null);
+
+	function openIdeaModal(item: IWishlistItem | null) {
+		setIdeaModal((current) => ({ opened: true, item, key: current.key + 1 }));
+	}
+
+	function suggestionActions(item: IWishlistItem) {
+		if (confirmingDeleteId === item.id) {
+			const othersClaimed = (item.claim?.claimed ?? 0) - (item.claim?.mine ?? 0) > 0;
+
+			return (
+				<>
+					<MantineText size="sm">
+						Remove this gift idea?{othersClaimed && " Someone's already getting it."}
+						{!item.suggestion?.mine && item.suggestion?.by && ` ${item.suggestion.by} will get an email.`}
+					</MantineText>
+					<Button
+						size="xs"
+						color="red"
+						loading={deleteSuggestion.isPending}
+						onClick={() => deleteSuggestion.mutate(item.id, { onSuccess: () => setConfirmingDeleteId(null) })}
+					>
+						Remove
+					</Button>
+					<Button size="xs" variant="subtle" onClick={() => setConfirmingDeleteId(null)}>
+						Cancel
+					</Button>
+				</>
+			);
+		}
+
+		return (
+			<>
+				{claimActions(item)}
+				<Button
+					size="xs"
+					variant="default"
+					leftSection={<FontAwesomeIcon icon={faPenToSquare} />}
+					onClick={() => openIdeaModal(item)}
+				>
+					Edit
+				</Button>
+				<Button
+					size="xs"
+					variant="subtle"
+					color="red"
+					leftSection={<FontAwesomeIcon icon={faTrashCan} />}
+					onClick={() => setConfirmingDeleteId(item.id)}
+				>
+					Remove
+				</Button>
+			</>
+		);
+	}
 
 	const myRecipients = wishlistQuery.data?.myRecipients ?? [];
 	// Once names are drawn, claiming for anyone but your own person takes a second click.
@@ -157,6 +230,56 @@ function MemberWishlist({ userId }: { userId: number }) {
 								))}
 							</Accordion>
 						)}
+
+						<Stack gap="sm" mt="md">
+							<Group justify="space-between" align="flex-end" gap="sm">
+								<div>
+									<Title order={3}>Gift ideas from the group</Title>
+									<MantineText size="sm" c="dimmed">
+										{wishlistQuery.data.user.name} can&apos;t see these. Know something they&apos;d love?
+									</MantineText>
+								</div>
+								<Button
+									variant="light"
+									color="green"
+									leftSection={<FontAwesomeIcon icon={faLightbulb} />}
+									onClick={() => openIdeaModal(null)}
+								>
+									Suggest a gift
+								</Button>
+							</Group>
+
+							{deleteSuggestion.isError && <Alert color="red">{apiErrorMessage(deleteSuggestion.error)}</Alert>}
+
+							{wishlistQuery.data.suggestions.length > 0 && (
+								<Accordion variant="contained" radius="md" multiple className={classes.list}>
+									{wishlistQuery.data.suggestions.map((item) => (
+										<WishlistItemRow
+											key={item.id}
+											item={item}
+											status={
+												<Stack gap={2}>
+													<MantineText size="xs" c="dimmed">
+														Suggested by {item.suggestion?.mine ? "you" : (item.suggestion?.by ?? "someone")}
+													</MantineText>
+													<ClaimStatus item={item} />
+												</Stack>
+											}
+											actions={suggestionActions(item)}
+											dimmed={remainingQuantity(item) === 0 && !item.claim?.mine}
+										/>
+									))}
+								</Accordion>
+							)}
+						</Stack>
+
+						<WishlistItemFormModal
+							key={ideaModal.key}
+							opened={ideaModal.opened}
+							item={ideaModal.item}
+							suggestionFor={wishlistQuery.data.user}
+							onClose={() => setIdeaModal((current) => ({ ...current, opened: false }))}
+						/>
 					</>
 				)}
 			</Stack>

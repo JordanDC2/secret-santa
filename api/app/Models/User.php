@@ -58,11 +58,24 @@ class User extends Authenticatable
     }
 
     /**
+     * The user's own wishlist. Never includes suggestions others made for them: those are
+     * a surprise, so anything built for the owner starts from here and can't leak them.
+     *
      * @return HasMany<WishlistItem, $this>
      */
     public function wishlistItems(): HasMany
     {
-        return $this->hasMany(WishlistItem::class);
+        return $this->hasMany(WishlistItem::class)->where('is_suggestion', false);
+    }
+
+    /**
+     * Gift ideas other people added to this user's list. Never show these to the user.
+     *
+     * @return HasMany<WishlistItem, $this>
+     */
+    public function suggestedItems(): HasMany
+    {
+        return $this->hasMany(WishlistItem::class)->where('is_suggestion', true);
     }
 
     /**

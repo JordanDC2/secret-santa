@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Wishlist\NotifySuggesterOfChange;
 use App\Events\WishlistChanged;
 use App\Http\Requests\Wishlist\WishlistItemRequest;
 use App\Http\Resources\WishlistItemResource;
@@ -11,7 +12,8 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 
 /**
- * The signed-in user's own wishlist.
+ * The signed-in user's own wishlist. Update and destroy also serve suggestions on other
+ * people's lists; the policy decides who may change which.
  */
 class WishlistItemController extends Controller
 {
@@ -34,17 +36,25 @@ class WishlistItemController extends Controller
         return new WishlistItemResource($item);
     }
 
-    public function update(WishlistItemRequest $request, WishlistItem $item): WishlistItemResource
+    public function update(WishlistItemRequest $request, WishlistItem $item, NotifySuggesterOfChange $notifySuggester): WishlistItemResource
     {
-        $item->update($request->validated());
+        $item->fill($request->validated());
+        $changes = collect($item->getDirty())
+            ->mapWithKeys(fn (mixed $after, string $field) => [$field => [$item->getOriginal($field), $after]])
+            ->all();
+        $item->save();
+
+        $notifySuggester($item, $request->user(), $changes);
 
         WishlistChanged::dispatch($item->user_id);
 
         return new WishlistItemResource($item);
     }
 
-    public function destroy(WishlistItem $item): Response
+    public function destroy(Request $request, WishlistItem $item, NotifySuggesterOfChange $notifySuggester): Response
     {
+        $notifySuggester($item, $request->user(), [], removed: true);
+
         $item->delete();
 
         WishlistChanged::dispatch($item->user_id);
