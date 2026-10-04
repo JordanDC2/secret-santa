@@ -104,7 +104,8 @@ echo "--- queued mail jobs: $(db 'select count(*) from jobs')"
 php artisan queue:work --once --queue=default --stop-when-empty -q >/dev/null 2>&1 || true
 php artisan queue:work --queue=default --stop-when-empty -q >/dev/null 2>&1 || true
 check "nudge email rendered" 1 "$(grep -c 'Still getting Reading lamp for Ivy' storage/logs/laravel.log)"
-check "santa message email rendered" 1 "$(grep -c 'has a question for you' storage/logs/laravel.log)"
+# Once in the plain-text part and once in the HTML part, so just check it's there.
+check "santa message email rendered" yes "$(grep -q 'has a question for you' storage/logs/laravel.log && echo yes)"
 check "no failed jobs" 0 "$(db 'select count(*) from failed_jobs')"
 stop_serve
 
