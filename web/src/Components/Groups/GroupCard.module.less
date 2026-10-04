@@ -1,8 +1,7 @@
 /*
- * Name on the left, invite code, Owner badge and ⋯ menu on the right. The name wraps first
- * (zero flex-basis); only when it can't get any narrower (its longest word plus the rename
- * pencil) do the rest drop to their own line instead of overflowing the card. On phones
- * they always get their own line, above the name.
+ * Name on the left, Owner badge and ⋯ menu on the right. The name wraps first (zero flex-basis);
+ * only when it can't get any narrower (its longest word plus the rename pencil) does the
+ * badge + menu drop to their own line, still on the right, instead of overflowing the card.
  */
 .header {
 	row-gap: var(--mantine-spacing-xs);
@@ -12,21 +11,10 @@
 	flex: 1 1 0;
 }
 
-/* Invite code, Owner badge and ⋯ menu: never squeezed down to "OWN…". */
+/* The Owner badge and ⋯ menu: never squeezed down to "OWN…". */
 .headerEnd {
 	flex-shrink: 0;
 	margin-left: auto;
-
-	/* Phones: a full-width row above the name, code on the left, badge and menu on the right. */
-	@media (max-width: 36em) {
-		order: -1;
-		flex-basis: 100%;
-		margin-left: 0;
-
-		> :first-child {
-			margin-right: auto;
-		}
-	}
 }
 
 /* The owner's small "+ Add note" chip beside the member count. */

@@ -114,8 +114,7 @@ export default function GroupCard({ group }: IGroupCardProps) {
 				<div className={classes.nameColumn}>
 					<GroupNameEditor groupId={group.id} name={group.name} canRename={group.isOwner} />
 				</div>
-				<Group gap="sm" wrap="nowrap" className={classes.headerEnd}>
-					<InviteCode code={group.joinCode} />
+				<Group gap={4} wrap="nowrap" className={classes.headerEnd}>
 					{group.isOwner && (
 						<Badge color="green" variant="light">
 							Owner
@@ -128,6 +127,7 @@ export default function GroupCard({ group }: IGroupCardProps) {
 				<MantineText size="sm" c="dimmed">
 					{group.membersCount} member{group.membersCount === 1 ? "" : "s"}
 				</MantineText>
+				<InviteCode code={group.joinCode} />
 				{group.isOwner && !group.description && !editingNote && (
 					<Badge
 						component="button"
