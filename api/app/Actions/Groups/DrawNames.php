@@ -76,7 +76,7 @@ class DrawNames
         foreach ($members as $giver) {
             $receiver = $members->firstWhere('id', $assignments[$giver->id]);
 
-            $giver->notify(new SecretSantaAssigned($group, $receiver));
+            $giver->notify(new SecretSantaAssigned($group, $receiver, $group->draw_number));
         }
 
         return $group->refresh();

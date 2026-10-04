@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Group;
 use App\Models\User;
 use App\Models\WishlistItem;
+use App\Notifications\SecretSantaAssigned;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Sanctum\Sanctum;
@@ -39,6 +40,45 @@ class RepeatDrawsTest extends TestCase
 
         $this->postJson(route('groups.draw', $group))->assertOk()->assertJsonPath('is_drawn', true);
         $this->assertSame(3, $group->assignments()->where('draw_number', 2)->count());
+    }
+
+    public function test_a_new_draws_email_has_its_own_subject_and_says_it_replaces_the_old_one(): void
+    {
+        $group = $this->groupOf(3);
+        Sanctum::actingAs($group->owner);
+        $this->postJson(route('groups.draw', $group))->assertOk();
+
+        Notification::assertSentTo($group->owner, SecretSantaAssigned::class, function (SecretSantaAssigned $notification) use ($group) {
+            $mail = $notification->toMail($group->owner);
+
+            return $mail->subject === "🎁 Your Secret Santa assignment for {$group->name}"
+                && ! str_contains(implode(' ', $mail->introLines), 'drawn again');
+        });
+
+        $this->postJson(route('groups.new-draw', $group))->assertOk();
+        $this->postJson(route('groups.draw', $group))->assertOk();
+
+        // Gmail threads same-subject emails and hides repeated text, so later draws get their own subjects.
+        Notification::assertSentTo($group->owner, SecretSantaAssigned::class, function (SecretSantaAssigned $notification) use ($group) {
+            $mail = $notification->toMail($group->owner);
+
+            return $notification->drawNumber === 2
+                && $mail->subject === "❄️ A fresh draw from the North Pole for {$group->name}"
+                && str_contains(implode(' ', $mail->introLines), 'replaces any earlier assignment');
+        });
+    }
+
+    public function test_later_draws_rotate_through_different_subjects(): void
+    {
+        $group = $this->groupOf(2);
+        $subjects = collect(range(1, 6))->map(
+            fn (int $draw) => (new SecretSantaAssigned($group, $group->owner, $draw))->toMail($group->owner)->subject
+        );
+
+        // Consecutive draws never share a subject, and none of them counts draws.
+        $this->assertCount(5, $subjects->take(5)->unique());
+        $this->assertSame($subjects[1], $subjects[5]);
+        $subjects->each(fn (string $subject) => $this->assertStringNotContainsString('draw 2', $subject));
     }
 
     public function test_only_the_owner_can_start_a_new_draw_and_only_after_drawing(): void

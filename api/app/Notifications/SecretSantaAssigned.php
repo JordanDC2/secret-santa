@@ -10,6 +10,8 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Queue\Attributes\Backoff;
 use Illuminate\Queue\Attributes\Tries;
 use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
+use Symfony\Component\Mime\Email;
 
 #[Tries(4)]
 #[Backoff(10, 60, 300)]
@@ -17,9 +19,26 @@ class SecretSantaAssigned extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    /**
+     * Subjects for later draws (a re-draw, or next year's exchange), in turn. Gmail threads emails
+     * with the same subject and hides repeated text as "quoted", which would bury a new assignment
+     * under the old one, so each draw gets a different subject.
+     */
+    private const LATER_DRAW_SUBJECTS = [
+        '❄️ A fresh draw from the North Pole for %s',
+        '🎄 The names are in! Your Secret Santa for %s',
+        "⭐ Santa's list is ready: your Secret Santa for %s",
+        '🦌 Word from the North Pole: your Secret Santa for %s',
+    ];
+
+    /**
+     * @param  int  $drawNumber  Captured when the draw happens, because the queued email reloads the
+     *                           group when it sends, by which time the owner could have drawn again.
+     */
     public function __construct(
         public readonly Group $group,
-        public readonly User $recipient
+        public readonly User $recipient,
+        public readonly int $drawNumber = 1,
     ) {}
 
     /**
@@ -33,12 +52,18 @@ class SecretSantaAssigned extends Notification implements ShouldQueue
     public function toMail(User $notifiable): ElfMailMessage
     {
         $wishlistUrl = config('app.frontend_url')."/wishlists/{$this->recipient->id}";
+        $groupName = ElfMailMessage::plain($this->group->name);
+        $isRedraw = $this->drawNumber > 1;
 
         return (new ElfMailMessage)
-            ->subject("🎁 Your Secret Santa assignment for {$this->group->name}")
+            ->subject($this->subjectLine())
+            // Unique per email. Undocumented, but some say it stops Gmail hiding repeated text.
+            ->withSymfonyMessage(fn (Email $message) => $message->getHeaders()->addTextHeader('X-Entity-Ref-ID', (string) Str::uuid()))
             ->greeting('Hi '.ElfMailMessage::plain($notifiable->name).'!')
             ->line('I have news straight from the North Pole!')
-            ->line('The names have been drawn for **'.ElfMailMessage::plain($this->group->name).'**.')
+            ->line($isRedraw
+                ? "The names have been drawn again for **{$groupName}**. This replaces any earlier assignment in this group."
+                : "The names have been drawn for **{$groupName}**.")
             ->when($this->group->description, fn (ElfMailMessage $message, string $description) => $message
                 ->line($this->ownerNote($description)))
             ->line('You are the Secret Santa for:')
@@ -47,6 +72,17 @@ class SecretSantaAssigned extends Notification implements ShouldQueue
             // No names in the button label: Laravel repeats it in the footer as Markdown, where a
             // crafted name would become a link. The name is shown escaped just above instead.
             ->action('View Their Wishlist', $wishlistUrl);
+    }
+
+    private function subjectLine(): string
+    {
+        if ($this->drawNumber <= 1) {
+            return "🎁 Your Secret Santa assignment for {$this->group->name}";
+        }
+
+        $template = self::LATER_DRAW_SUBJECTS[($this->drawNumber - 2) % count(self::LATER_DRAW_SUBJECTS)];
+
+        return sprintf($template, $this->group->name);
     }
 
     /**
