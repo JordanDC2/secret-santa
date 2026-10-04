@@ -37,7 +37,7 @@ export default function RegisterPage() {
 						onChange={(event) => setPasswordConfirmation(event.currentTarget.value)}
 						required
 					/>
-					<Button type="submit" color="red" loading={register.isPending}>
+					<Button type="submit" loading={register.isPending}>
 						Create account
 					</Button>
 				</Stack>

@@ -42,7 +42,7 @@ export default function ResetPasswordPage() {
 					<Alert color="green" title="Password updated">
 						{resetPassword.data.message}
 					</Alert>
-					<Button component={Link} to="/login" color="red">
+					<Button component={Link} to="/login">
 						Log in
 					</Button>
 				</Stack>
@@ -67,7 +67,7 @@ export default function ResetPasswordPage() {
 						onChange={(event) => setPasswordConfirmation(event.currentTarget.value)}
 						required
 					/>
-					<Button type="submit" color="red" loading={resetPassword.isPending}>
+					<Button type="submit" loading={resetPassword.isPending}>
 						Reset password
 					</Button>
 				</Stack>

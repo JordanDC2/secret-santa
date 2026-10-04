@@ -3,6 +3,18 @@
  * text instead. box-shadow extends the highlight past the text without padding,
  * so links inside sentences don't shift the surrounding layout.
  */
+/*
+ * The "secondary" button variant (gold ribbon): borderless, so it reads as a modern tinted
+ * button rather than an outlined one. Set through Mantine's own button variables so loading,
+ * disabled and focus states keep working.
+ */
+.button[data-variant="secondary"] {
+	--button-bg: var(--festive-gold-button);
+	--button-hover: var(--festive-gold-button-hover);
+	--button-color: var(--festive-gold-text);
+	--button-bd: none;
+}
+
 /* Headings in the festive near-black rather than pure black; a color prop still wins. */
 .title {
 	color: var(--festive-darkest);

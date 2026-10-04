@@ -124,10 +124,10 @@ export default function GroupCard({ group }: IGroupCardProps) {
 									{canDraw ? (
 										<Group gap="sm">
 											{controls.draw}
-											<Button variant="default" onClick={() => setExclusionsOpen(true)}>
+											<Button variant="secondary" onClick={() => setExclusionsOpen(true)}>
 												Exclusions
 												{Boolean(group.exclusionsCount) && (
-													<Badge size="sm" circle ml={6}>
+													<Badge size="sm" circle color="red" ml={6}>
 														{group.exclusionsCount}
 													</Badge>
 												)}
@@ -135,7 +135,7 @@ export default function GroupCard({ group }: IGroupCardProps) {
 										</Group>
 									) : canViewDraw ? (
 										<Group gap="sm">
-											<Button variant="default" onClick={() => setDrawDetailsOpen(true)}>
+											<Button variant="secondary" onClick={() => setDrawDetailsOpen(true)}>
 												Draw details
 											</Button>
 											{controls.newDraw}

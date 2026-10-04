@@ -77,7 +77,7 @@ function MemberWishlist({ userId }: { userId: number }) {
 					>
 						Remove
 					</Button>
-					<Button size="xs" variant="subtle" onClick={() => setConfirmingDeleteId(null)}>
+					<Button size="xs" variant="subtle" color="gray" onClick={() => setConfirmingDeleteId(null)}>
 						Cancel
 					</Button>
 				</>
@@ -89,7 +89,7 @@ function MemberWishlist({ userId }: { userId: number }) {
 				{claimActions(item)}
 				<Button
 					size="xs"
-					variant="default"
+					variant="secondary"
 					leftSection={<FontAwesomeIcon icon={faPenToSquare} />}
 					onClick={() => openIdeaModal(item)}
 				>
@@ -126,15 +126,10 @@ function MemberWishlist({ userId }: { userId: number }) {
 			return (
 				<>
 					<MantineText size="sm">This isn&apos;t your Secret Santa person. Claim anyway?</MantineText>
-					<Button
-						size="xs"
-						color="green"
-						loading={isThisItem}
-						onClick={() => claimItem(item.id, confirmingClaim.quantity)}
-					>
+					<Button size="xs" loading={isThisItem} onClick={() => claimItem(item.id, confirmingClaim.quantity)}>
 						Yes, I&apos;m getting {item.quantity === 1 ? "this" : confirmingClaim.quantity}
 					</Button>
-					<Button size="xs" variant="subtle" onClick={() => setConfirmingClaim(null)}>
+					<Button size="xs" variant="subtle" color="gray" onClick={() => setConfirmingClaim(null)}>
 						Cancel
 					</Button>
 				</>
@@ -163,7 +158,6 @@ function MemberWishlist({ userId }: { userId: number }) {
 					<Button
 						leftSection={<FontAwesomeIcon icon={faGift} />}
 						size="xs"
-						color="green"
 						loading={isThisItem}
 						onClick={() =>
 							claimNeedsConfirm && mine === 0
@@ -178,6 +172,7 @@ function MemberWishlist({ userId }: { userId: number }) {
 					<Button
 						size="xs"
 						variant="subtle"
+						color="gray"
 						loading={isThisItem}
 						onClick={() => claim.mutate({ itemId: item.id, claim: false })}
 					>
@@ -240,8 +235,7 @@ function MemberWishlist({ userId }: { userId: number }) {
 									</MantineText>
 								</div>
 								<Button
-									variant="light"
-									color="green"
+									variant="secondary"
 									leftSection={<FontAwesomeIcon icon={faLightbulb} />}
 									onClick={() => openIdeaModal(null)}
 								>

@@ -33,7 +33,7 @@ export default function LoginPage() {
 							Forgot password?
 						</Anchor>
 					</Group>
-					<Button type="submit" color="red" loading={login.isPending}>
+					<Button type="submit" loading={login.isPending}>
 						Log in
 					</Button>
 				</Stack>

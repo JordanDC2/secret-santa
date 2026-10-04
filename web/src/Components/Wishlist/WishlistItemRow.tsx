@@ -64,7 +64,7 @@ export default function WishlistItemRow({ item, status, actions, dimmed = false 
 								href={item.url}
 								target="_blank"
 								rel="noopener noreferrer"
-								variant="light"
+								variant="secondary"
 								size="xs"
 								rightSection={<FontAwesomeIcon icon={faArrowUpRightFromSquare} />}
 							>

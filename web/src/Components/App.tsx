@@ -13,7 +13,7 @@ import DashboardPage from "Components/Dashboard/DashboardPage";
 import AuthenticatedLayout from "Components/Layout/AuthenticatedLayout";
 import MemberWishlistPage from "Components/Wishlist/MemberWishlistPage";
 import MyWishlistPage from "Components/Wishlist/MyWishlistPage";
-import { theme } from "Data/Theme";
+import { cssVariablesResolver, theme } from "Data/Theme";
 
 const queryClient = new QueryClient();
 
@@ -53,7 +53,7 @@ function AppRoutes() {
 export default function App() {
 	return (
 		<QueryClientProvider client={queryClient}>
-			<MantineProvider theme={theme}>
+			<MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver}>
 				<AuthProvider>
 					<BrowserRouter>
 						<AppRoutes />

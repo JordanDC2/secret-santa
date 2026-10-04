@@ -83,7 +83,7 @@ export default function DeleteAccountSection() {
 					</form>
 				) : (
 					<Group>
-						<Button color="red" variant="outline" onClick={() => setConfirming(true)}>
+						<Button color="red" variant="subtle" onClick={() => setConfirming(true)}>
 							Delete my account
 						</Button>
 					</Group>

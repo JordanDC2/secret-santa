@@ -16,13 +16,7 @@ export default function AssignmentReveal({ recipientId, recipientName }: IAssign
 
 	if (!revealed) {
 		return (
-			<Button
-				variant="light"
-				color="green"
-				fullWidth
-				leftSection={<FontAwesomeIcon icon={faEye} />}
-				onClick={() => setRevealed(true)}
-			>
+			<Button fullWidth leftSection={<FontAwesomeIcon icon={faEye} />} onClick={() => setRevealed(true)}>
 				Reveal my assignment
 			</Button>
 		);
@@ -41,7 +35,7 @@ export default function AssignmentReveal({ recipientId, recipientName }: IAssign
 						component={Link}
 						to={`/wishlists/${recipientId}`}
 						size="xs"
-						color="green"
+						variant="secondary"
 						leftSection={<FontAwesomeIcon icon={faListUl} />}
 					>
 						Wishlist

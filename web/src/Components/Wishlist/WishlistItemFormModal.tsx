@@ -123,7 +123,7 @@ export default function WishlistItemFormModal({ opened, item, suggestionFor, onC
 							data-autofocus={item ? undefined : true}
 							{...form.getInputProps("url")}
 						/>
-						<Button variant="light" onClick={lookUpLink} disabled={!linkLooksValid} loading={linkPreview.isPending}>
+						<Button variant="secondary" onClick={lookUpLink} disabled={!linkLooksValid} loading={linkPreview.isPending}>
 							Fetch
 						</Button>
 					</Group>
@@ -196,12 +196,11 @@ export default function WishlistItemFormModal({ opened, item, suggestionFor, onC
 						</Input.Wrapper>
 					)}
 					<Group justify="flex-end">
-						<Button variant="subtle" onClick={onClose}>
+						<Button variant="subtle" color="gray" onClick={onClose}>
 							Cancel
 						</Button>
 						<Button
 							type="submit"
-							color="red"
 							loading={saveItem.isPending}
 							leftSection={item ? undefined : <FontAwesomeIcon icon={faPlus} />}
 						>

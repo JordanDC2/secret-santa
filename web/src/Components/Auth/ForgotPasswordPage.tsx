@@ -36,7 +36,6 @@ export default function ForgotPasswordPage() {
 						/>
 						<Button
 							type="submit"
-							color="red"
 							loading={forgotPassword.isPending}
 							leftSection={<FontAwesomeIcon icon={faPaperPlane} />}
 						>

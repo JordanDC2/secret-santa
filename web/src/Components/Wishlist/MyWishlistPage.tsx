@@ -29,7 +29,7 @@ export default function MyWishlistPage() {
 			<Stack gap="lg">
 				<Group justify="space-between">
 					<PageTitle icon={<WishListIcon />}>My wishlist</PageTitle>
-					<Button color="red" leftSection={<FontAwesomeIcon icon={faPlus} />} onClick={() => openModal(null)}>
+					<Button leftSection={<FontAwesomeIcon icon={faPlus} />} onClick={() => openModal(null)}>
 						Add item
 					</Button>
 				</Group>
@@ -65,7 +65,7 @@ export default function MyWishlistPage() {
 											>
 												Remove
 											</Button>
-											<Button size="xs" variant="subtle" onClick={() => setConfirmingDeleteId(null)}>
+											<Button size="xs" variant="subtle" color="gray" onClick={() => setConfirmingDeleteId(null)}>
 												Cancel
 											</Button>
 										</>
@@ -73,7 +73,7 @@ export default function MyWishlistPage() {
 										<>
 											<Button
 												size="xs"
-												variant="default"
+												variant="secondary"
 												leftSection={<FontAwesomeIcon icon={faPenToSquare} />}
 												onClick={() => openModal(item)}
 											>

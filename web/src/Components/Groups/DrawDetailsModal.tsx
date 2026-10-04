@@ -67,7 +67,7 @@ export default function DrawDetailsModal({ group, opened, onClose }: IDrawDetail
 							The full list shows who drew everyone, including who drew you. Once you look, your own surprise is
 							spoiled.
 						</MantineText>
-						<Button color="orange" variant="light" size="xs" onClick={() => setRevealed(true)}>
+						<Button variant="secondary" size="xs" onClick={() => setRevealed(true)}>
 							Show full list anyway
 						</Button>
 					</Alert>

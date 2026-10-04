@@ -1,4 +1,14 @@
-import { Anchor, Checkbox, createTheme, Modal, Title, type MantineColorsTuple } from "@mantine/core";
+import {
+	Anchor,
+	Button,
+	Checkbox,
+	createTheme,
+	Modal,
+	Title,
+	type ButtonVariant,
+	type CSSVariablesResolver,
+	type MantineColorsTuple,
+} from "@mantine/core";
 import classes from "Data/Theme.module.less";
 
 /**
@@ -56,8 +66,22 @@ const festiveAmber: MantineColorsTuple = [
 
 const fontFamily = "Nunito, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 
+/*
+ * Buttons have four roles:
+ * - primary: the main action, green filled (the default: no color or variant needed);
+ * - secondary: other actions, variant="secondary" (pale gold, see Theme.module.less);
+ * - quiet: back out or undo, variant="subtle" color="gray";
+ * - destructive: color="red", subtle to start and filled to confirm.
+ * Red is kept for links, the header and destructive actions, so a red button always deletes.
+ */
+declare module "@mantine/core" {
+	export interface ButtonProps {
+		variant?: ButtonVariant | "secondary";
+	}
+}
+
 export const theme = createTheme({
-	primaryColor: "red",
+	primaryColor: "green",
 	colors: {
 		red: festiveRed,
 		green: festiveGreen,
@@ -71,6 +95,9 @@ export const theme = createTheme({
 			classNames: { root: classes.anchor },
 		}),
 		// Checkboxes confirm or choose things (e.g. "Avoid last draw's matches"), not warn.
+		Button: Button.extend({
+			classNames: { root: classes.button },
+		}),
 		Checkbox: Checkbox.extend({
 			defaultProps: { color: "green" },
 		}),
@@ -81,4 +108,15 @@ export const theme = createTheme({
 			classNames: { root: classes.title },
 		}),
 	},
+});
+
+/**
+ * Links default to the primary color, which is green now; keep them festive red. Set as
+ * Mantine's anchor variable (not an Anchor color prop) so classes like the header's gold
+ * nav links can still override it.
+ */
+export const cssVariablesResolver: CSSVariablesResolver = () => ({
+	variables: {},
+	light: { "--mantine-color-anchor": "var(--mantine-color-red-filled)" },
+	dark: { "--mantine-color-anchor": "var(--mantine-color-red-4)" },
 });
