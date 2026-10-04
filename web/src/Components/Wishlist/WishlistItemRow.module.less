@@ -46,7 +46,14 @@
 	display: flex;
 }
 
-/* Taken by someone else: a soft gray background so it reads as unavailable even collapsed. */
+/*
+ * Gray only ever means "taken by someone else", so it reads as unavailable even collapsed.
+ * Open items stay white instead of Mantine's light gray, which looked almost the same.
+ */
+.item[data-active] {
+	background-color: var(--mantine-color-white);
+}
+
 .taken,
 .taken[data-active] {
 	background-color: var(--mantine-color-gray-1);
