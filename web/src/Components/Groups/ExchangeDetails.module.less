@@ -1,0 +1,21 @@
+/*
+ * An owner's chip is a button that opens the date & budget form: a pointer, a ring in the
+ * chip's own colour and a slightly deeper fill on hover, and a clear focus ring for keyboards.
+ */
+.editable {
+	cursor: pointer;
+	border: none;
+	transition:
+		box-shadow 120ms ease,
+		filter 120ms ease;
+
+	&:hover {
+		box-shadow: 0 0 0 1px currentColor;
+		filter: brightness(0.96);
+	}
+
+	&:focus-visible {
+		outline: 2px solid var(--mantine-primary-color-filled);
+		outline-offset: 2px;
+	}
+}

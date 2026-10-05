@@ -9,6 +9,26 @@ export function parseExchangeDate(date: string): Date {
 	return new Date(year, month - 1, day);
 }
 
+const pad = (value: number) => String(value).padStart(2, "0");
+
+/** A local calendar date as "YYYY-MM-DD", the format date inputs and the API use. */
+export function toDateString(date: Date): string {
+	return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/**
+ * The dates an owner can pick, matching the server: today to two years out. A date the group
+ * already has stays allowed even once it's passed, so its budget can still be changed.
+ */
+export function exchangeDateRange(current: string | null, today = new Date()): { min: string; max: string } {
+	const earliest = toDateString(today);
+
+	return {
+		min: current !== null && current < earliest ? current : earliest,
+		max: toDateString(new Date(today.getFullYear() + 2, today.getMonth(), today.getDate())),
+	};
+}
+
 /** "Sun, Dec 20", plus the year when it isn't this year. */
 export function formatExchangeDate(date: string, today = new Date()): string {
 	const parsed = parseExchangeDate(date);

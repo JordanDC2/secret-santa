@@ -10,6 +10,7 @@ import {
 	Text as MantineText,
 	TextInput,
 } from "@mantine/core";
+import { exchangeDateRange } from "Components/Groups/exchange";
 import { useUpdateGroupMutation } from "Components/Groups/hooks";
 import type { IGroup } from "Components/Groups/types";
 import { apiErrorMessage, apiFieldErrors } from "Data/Api/Client";
@@ -40,6 +41,8 @@ export default function ExchangeDetailsModal({ group, opened, onClose }: IExchan
 	const [budgetMax, setBudgetMax] = useState<string | number>(group.budget?.max ?? "");
 	const fieldErrors = apiFieldErrors(updateGroup.error);
 	const isRange = budgetKind === "range";
+	// Worked out once per opening (the modal mounts fresh each time).
+	const [dateRange] = useState(() => exchangeDateRange(group.exchangeDate));
 
 	function save(changes: { exchange_date: string | null; budget_min: number | null; budget_max: number | null }) {
 		updateGroup.mutate({ groupId: group.id, changes }, { onSuccess: onClose });
@@ -62,6 +65,8 @@ export default function ExchangeDetailsModal({ group, opened, onClose }: IExchan
 						type="date"
 						label="Exchange date"
 						description="Put the place and time in the group note."
+						min={dateRange.min}
+						max={dateRange.max}
 						value={date}
 						onChange={(event) => setDate(event.currentTarget.value)}
 						error={fieldErrors.exchange_date}

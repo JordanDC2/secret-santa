@@ -7,6 +7,8 @@ import DrawDetailsModal from "Components/Groups/DrawDetailsModal";
 import DrawNamesControl from "Components/Groups/DrawNamesControl";
 import ExchangeDetails from "Components/Groups/ExchangeDetails";
 import ExchangeDetailsModal from "Components/Groups/ExchangeDetailsModal";
+import ExchangeOverNotice from "Components/Groups/ExchangeOverNotice";
+import { daysUntil } from "Components/Groups/exchange";
 import ExclusionsModal from "Components/Groups/ExclusionsModal";
 import GroupActionsMenu, { type IGroupMenuAction } from "Components/Groups/GroupActionsMenu";
 import GroupDescription from "Components/Groups/GroupDescription";
@@ -114,9 +116,18 @@ export default function GroupCard({ group }: IGroupCardProps) {
 	}
 
 	const message = statusMessage(group);
+	const exchangeOver = group.exchangeDate !== null && daysUntil(group.exchangeDate) < 0;
+	const exchangeOverNotice =
+		exchangeOver && group.exchangeDate !== null && (group.isDrawn || group.isOwner) ? (
+			<ExchangeOverNotice
+				group={{ ...group, exchangeDate: group.exchangeDate }}
+				onStartNewDraw={() => setOpenAction("newDraw")}
+				onSetDate={openExchangeModal}
+			/>
+		) : null;
 	const footer = openAction ? controls[openAction] : canDraw ? <div>{controls.draw}</div> : null;
 	// A plain status line doesn't need the footer's divider; buttons and panels do.
-	const hasFooter = Boolean(footer || group.myAssignment || group.mySanta);
+	const hasFooter = Boolean(footer || exchangeOverNotice || group.myAssignment || group.mySanta);
 
 	return (
 		<Card withBorder padding="lg" radius="md">
@@ -183,6 +194,8 @@ export default function GroupCard({ group }: IGroupCardProps) {
 			{hasFooter && (
 				<Card.Section inheritPadding py="md" mt="md" withBorder>
 					<Stack gap="md">
+						{exchangeOverNotice}
+
 						{/* Compact buttons side by side; a revealed assignment takes its own full-width row. */}
 						{(group.myAssignment || group.mySanta) && (
 							<Group gap="sm">

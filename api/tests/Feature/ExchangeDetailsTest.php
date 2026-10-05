@@ -26,9 +26,10 @@ class ExchangeDetailsTest extends TestCase
         $group = Group::factory()->create();
         Sanctum::actingAs($group->owner);
 
-        $this->patchJson(route('groups.update', $group), ['exchange_date' => '2026-12-20', 'budget_min' => null, 'budget_max' => 50])
+        $date = now()->addMonths(2)->toDateString();
+        $this->patchJson(route('groups.update', $group), ['exchange_date' => $date, 'budget_min' => null, 'budget_max' => 50])
             ->assertOk()
-            ->assertJsonPath('exchange_date', '2026-12-20')
+            ->assertJsonPath('exchange_date', $date)
             ->assertJsonPath('budget', ['min' => null, 'max' => 50]);
 
         $this->assertSame('$50', $group->fresh()?->budgetLabel());
@@ -64,6 +65,30 @@ class ExchangeDetailsTest extends TestCase
         $this->patchJson(route('groups.update', $group), ['exchange_date' => 'Dec 20'])->assertJsonValidationErrors('exchange_date');
     }
 
+    public function test_a_new_exchange_date_must_be_between_today_and_two_years_out(): void
+    {
+        $group = Group::factory()->create();
+        Sanctum::actingAs($group->owner);
+
+        $this->patchJson(route('groups.update', $group), ['exchange_date' => '1927-08-19'])
+            ->assertJsonValidationErrors(['exchange_date' => "hasn't passed"]);
+        $this->patchJson(route('groups.update', $group), ['exchange_date' => now()->addYears(3)->toDateString()])
+            ->assertJsonValidationErrors(['exchange_date' => 'two years']);
+        $this->patchJson(route('groups.update', $group), ['exchange_date' => now()->toDateString()])->assertOk();
+    }
+
+    public function test_a_passed_exchange_keeps_its_date_when_the_budget_changes(): void
+    {
+        $group = Group::factory()->create(['exchange_date' => now()->subMonth()->toDateString(), 'budget_max' => 20]);
+        Sanctum::actingAs($group->owner);
+
+        $this->patchJson(route('groups.update', $group), [
+            'exchange_date' => now()->subMonth()->toDateString(),
+            'budget_min' => null,
+            'budget_max' => 25,
+        ])->assertOk()->assertJsonPath('budget.max', 25);
+    }
+
     public function test_only_the_owner_sets_exchange_details(): void
     {
         $group = Group::factory()->create();
@@ -71,12 +96,13 @@ class ExchangeDetailsTest extends TestCase
         $group->members()->attach($member);
         Sanctum::actingAs($member);
 
-        $this->patchJson(route('groups.update', $group), ['exchange_date' => '2026-12-20'])->assertForbidden();
+        $this->patchJson(route('groups.update', $group), ['exchange_date' => now()->addMonth()->toDateString()])->assertForbidden();
     }
 
     public function test_the_assignment_email_and_your_persons_wishlist_mention_the_date_and_budget(): void
     {
-        $group = Group::factory()->create(['exchange_date' => '2026-12-19', 'budget_min' => 30, 'budget_max' => 50]);
+        $date = now()->addMonths(2);
+        $group = Group::factory()->create(['exchange_date' => $date->toDateString(), 'budget_min' => 30, 'budget_max' => 50]);
         $friend = User::factory()->create();
         $group->members()->attach($friend);
         Sanctum::actingAs($group->owner);
@@ -84,13 +110,13 @@ class ExchangeDetailsTest extends TestCase
         $this->postJson(route('groups.draw', $group))->assertOk();
 
         Notification::assertSentTo($group->owner, SecretSantaAssigned::class, fn (SecretSantaAssigned $notification) => in_array(
-            'The exchange is on Saturday, December 19, and the budget is $30–$50.',
+            "The exchange is on {$date->format('l, F j')}, and the budget is \$30–\$50.",
             $notification->toMail($group->owner)->introLines,
             true,
         ));
 
         $this->getJson(route('users.wishlist', $friend))
-            ->assertJsonPath('my_recipients.0.group.exchange_date', '2026-12-19')
+            ->assertJsonPath('my_recipients.0.group.exchange_date', $date->toDateString())
             ->assertJsonPath('my_recipients.0.group.budget', '$30–$50');
     }
 
