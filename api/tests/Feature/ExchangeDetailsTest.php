@@ -94,6 +94,27 @@ class ExchangeDetailsTest extends TestCase
             ->assertJsonPath('my_recipients.0.group.budget', '$30–$50');
     }
 
+    public function test_your_persons_wishlist_forgets_groups_whose_exchange_has_passed(): void
+    {
+        $person = User::factory()->create(['name' => 'Ivy']);
+        $santa = User::factory()->create();
+        $groups = [
+            'past' => Group::factory()->create(['name' => 'Last Year', 'exchange_date' => now()->subMonth()->toDateString()]),
+            'today' => Group::factory()->create(['name' => 'Today', 'exchange_date' => now()->toDateString()]),
+            'undated' => Group::factory()->create(['name' => 'Undated']),
+        ];
+        foreach ($groups as $group) {
+            $group->members()->attach([$person->id, $santa->id]);
+            $group->update(['drawn_at' => now()]);
+            $group->assignments()->create(['draw_number' => 1, 'giver_id' => $santa->id, 'receiver_id' => $person->id]);
+        }
+        Sanctum::actingAs($santa);
+
+        $names = $this->getJson(route('users.wishlist', $person))->assertOk()->collect('my_recipients')->pluck('group.name')->sort()->values()->all();
+
+        $this->assertSame(['Today', 'Undated'], $names);
+    }
+
     public function test_the_assignment_email_leaves_details_out_when_none_are_set(): void
     {
         $group = Group::factory()->create();

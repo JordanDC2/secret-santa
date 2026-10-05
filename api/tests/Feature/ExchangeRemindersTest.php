@@ -125,7 +125,12 @@ class ExchangeRemindersTest extends TestCase
     public function test_drawing_the_same_person_in_two_groups_needs_two_gifts(): void
     {
         $this->drawNames();
-        $bookClub = Group::factory()->create(['name' => 'Book Club', 'owner_id' => $this->holly->id, 'drawn_at' => now()]);
+        $bookClub = Group::factory()->create([
+            'name' => 'Book Club',
+            'owner_id' => $this->holly->id,
+            'drawn_at' => now(),
+            'exchange_date' => '2027-01-10',
+        ]);
         $bookClub->members()->attach($this->nick);
         $bookClub->assignments()->create(['draw_number' => 1, 'giver_id' => $this->nick->id, 'receiver_id' => $this->holly->id]);
         $this->claimFor($this->nick, $this->holly, bought: true);
@@ -141,10 +146,39 @@ class ExchangeRemindersTest extends TestCase
                 && str_contains($text, 'pick 1 more');
         });
 
-        // A second gift bought: nothing more to remind about, even for the other group's exchange.
+        // A second gift bought: nothing more to remind about when Book Club's own reminder comes up.
         $this->claimFor($this->nick, $this->holly, bought: true);
-        $bookClub->update(['exchange_date' => '2026-12-19']);
+        $this->remindOn('2026-12-27');
+
+        Notification::assertSentToTimes($this->nick, ShoppingReminder::class, 1);
+    }
+
+    public function test_a_stale_draw_in_another_group_isnt_another_gift(): void
+    {
+        // Book Club drew last year and never started a new draw; its exchange is long past.
+        $bookClub = Group::factory()->create([
+            'name' => 'Book Club',
+            'owner_id' => $this->holly->id,
+            'drawn_at' => now()->subYear(),
+            'exchange_date' => now()->subYear()->addMonth()->toDateString(),
+        ]);
+        $bookClub->members()->attach($this->nick);
+        $bookClub->assignments()->create(['draw_number' => 1, 'giver_id' => $this->nick->id, 'receiver_id' => $this->holly->id]);
+        $this->claimFor($this->nick, $this->holly, bought: true, at: now()->subYear()->addDay());
+        // One with no date counts no more than one that's passed.
+        $undated = Group::factory()->create(['owner_id' => $this->holly->id, 'drawn_at' => now()->subYear()]);
+        $undated->assignments()->create(['draw_number' => 1, 'giver_id' => $this->nick->id, 'receiver_id' => $this->holly->id]);
+        $this->drawNames();
+
         $this->remindOn('2026-12-06');
+
+        Notification::assertSentTo($this->nick, ShoppingReminder::class, fn (ShoppingReminder $notification) => $notification->giftsNeeded === 1
+            && $notification->drawnInGroups === ['Family Swap']
+            && $notification->claimed === 0);
+
+        $this->claimFor($this->nick, $this->holly, bought: true);
+        $this->group->update(['exchange_date' => '2026-12-21']);
+        $this->remindOn('2026-12-07');
 
         Notification::assertSentToTimes($this->nick, ShoppingReminder::class, 1);
     }

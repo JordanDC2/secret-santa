@@ -17,6 +17,7 @@ class MemberWishlistHandler extends Controller
     public function __invoke(Request $request, User $user): JsonResponse
     {
         $this->authorize('viewWishlist', $user);
+        $today = now(config('app.reminder_timezone'))->startOfDay();
 
         // Items the owner marked "Got it" are history, not part of the list.
         $items = $user->wishlistItems()->whereNull('received_at')->with('claims.user')->mostWantedFirst()->get();
@@ -40,8 +41,11 @@ class MemberWishlistHandler extends Controller
             'items' => WishlistItemResource::collection($items),
             'suggestions' => WishlistItemResource::collection($suggestions),
             // Who you're buying for in each group's current draw, so the page can say "you drew
-            // this person in <group>" or warn that they aren't your person.
+            // this person in <group>" or warn that they aren't your person. Groups whose exchange
+            // has passed are left out: they may still be on last year's draw. Undated groups
+            // stay, since there's no telling.
             'my_recipients' => $request->user()->secretSantaRecipients()
+                ->reject(fn (SecretSantaAssignment $assignment) => $assignment->group->exchange_date?->lessThan($today) === true)
                 ->map(fn (SecretSantaAssignment $assignment) => [
                     'id' => $assignment->receiver->id,
                     'name' => $assignment->receiver->name,

@@ -45,7 +45,7 @@ class SendExchangeReminders
             }
 
             if ($daysLeft <= self::SHOPPING_DAYS && $group->drawn_at !== null && $this->claim($group, 'shopping')) {
-                $sent += $this->remindSantas($group, $daysLeft);
+                $sent += $this->remindSantas($group, $daysLeft, $today);
             }
         }
 
@@ -86,16 +86,20 @@ class SendExchangeReminders
      * drew the same person in several groups needs that many gifts, so it counts gifts against
      * draws. Only shopping since those draws counts: claims never lapse, so last year's gifts
      * would otherwise look like this year's.
+     *
+     * Other groups only count while their exchange is still coming up: a group whose exchange
+     * has passed (or was never dated) may still be on last year's draw, which isn't a gift
+     * anyone needs to buy now.
      */
-    private function remindSantas(Group $group, int $daysLeft): int
+    private function remindSantas(Group $group, int $daysLeft, Carbon $today): int
     {
         $sent = 0;
 
         foreach ($group->currentAssignments()->with('giver', 'receiver')->get() as $assignment) {
             $giver = $assignment->giver;
             $receiver = $assignment->receiver;
-            $draws = $giver->secretSantaRecipients()
-                ->filter(fn (SecretSantaAssignment $drawn) => $drawn->receiver_id === $receiver->id);
+            $draws = $giver->secretSantaRecipients()->filter(fn (SecretSantaAssignment $drawn) => $drawn->receiver_id === $receiver->id
+                && ($drawn->group_id === $group->id || $drawn->group->exchange_date?->greaterThanOrEqualTo($today) === true));
             $since = $this->earliestDraw($draws->all(), $group);
             $claims = $this->claimsSince($giver, $receiver, $since);
             $bought = $claims->filter(
