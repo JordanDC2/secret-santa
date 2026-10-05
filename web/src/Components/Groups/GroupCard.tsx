@@ -23,6 +23,25 @@ import SantaChatModal from "Components/SantaChat/SantaChatModal";
 import type { ISantaChatSide } from "Components/SantaChat/types";
 import classes from "Components/Groups/GroupCard.module.less";
 
+/** The owner's small "+ Add …" chip for something the group doesn't have yet, on its own row. */
+function AddChip({ onClick, children }: { onClick: () => void; children: string }) {
+	return (
+		<div className={classes.addChipRow}>
+			<Badge
+				component="button"
+				type="button"
+				variant="light"
+				color="gray"
+				tt="none"
+				className={classes.addChip}
+				onClick={onClick}
+			>
+				{children}
+			</Badge>
+		</div>
+	);
+}
+
 type IGroupCardProps = {
 	group: IGroup;
 };
@@ -149,34 +168,16 @@ export default function GroupCard({ group }: IGroupCardProps) {
 					{group.membersCount} member{group.membersCount === 1 ? "" : "s"}
 				</MantineText>
 				<InviteCode code={group.joinCode} />
-				{group.isOwner && !group.description && !editingNote && (
-					<Badge
-						component="button"
-						type="button"
-						variant="light"
-						color="gray"
-						tt="none"
-						className={classes.addChip}
-						onClick={() => setEditingNote(true)}
-					>
-						+ Add note
-					</Badge>
-				)}
-				{group.isOwner && !group.exchangeDate && !group.budget && (
-					<Badge
-						component="button"
-						type="button"
-						variant="light"
-						color="gray"
-						tt="none"
-						className={classes.addChip}
-						onClick={openExchangeModal}
-					>
-						+ Add date & budget
-					</Badge>
-				)}
 			</Group>
-			<ExchangeDetails group={group} onEdit={group.isOwner ? openExchangeModal : undefined} />
+			{/* Date & budget first, then the note, each on its own row; owners get "+ Add" chips for either that's missing. */}
+			{group.isOwner && !group.exchangeDate && !group.budget ? (
+				<AddChip onClick={openExchangeModal}>+ Add date & budget</AddChip>
+			) : (
+				<ExchangeDetails group={group} onEdit={group.isOwner ? openExchangeModal : undefined} />
+			)}
+			{group.isOwner && !group.description && !editingNote && (
+				<AddChip onClick={() => setEditingNote(true)}>+ Add note</AddChip>
+			)}
 			<GroupDescription
 				groupId={group.id}
 				description={group.description}
