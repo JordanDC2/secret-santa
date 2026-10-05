@@ -34,6 +34,7 @@ class ExchangeRemindersTest extends TestCase
 
         $this->group = Group::factory()->create(['name' => 'Family Swap', 'exchange_date' => '2026-12-20', 'budget_max' => 50]);
         $this->holly = $this->group->owner;
+        $this->holly->update(['name' => 'Holly']);
         $this->nick = User::factory()->create(['name' => 'Nick']);
         $this->group->members()->attach($this->nick);
         WishlistItem::factory()->create(['user_id' => $this->holly->id, 'name' => 'Scarf']);
@@ -87,7 +88,7 @@ class ExchangeRemindersTest extends TestCase
     public function test_two_weeks_out_each_santa_hears_about_their_person(): void
     {
         $this->drawNames();
-        WishlistItem::factory()->claimedBy($this->nick)->create(['user_id' => $this->holly->id]);
+        $this->claimFor($this->nick, $this->holly);
 
         $this->remindOn('2026-12-06');
 
@@ -97,17 +98,76 @@ class ExchangeRemindersTest extends TestCase
 
             return $notification->daysLeft === 14
                 && $notification->recipientName === 'Nick'
-                && ! $notification->hasClaimed
+                && $notification->claimed === 0
                 && str_contains($text, 'The budget is $50.')
-                && str_contains($text, 'wishlist is empty');
+                && str_contains($text, 'wishlist is empty')
+                && ! str_contains($text, 'groups');
         });
-        // Nick has claimed one of Holly's two items.
+        // Nick has claimed one of Holly's items but hasn't bought it.
         Notification::assertSentTo($this->nick, ShoppingReminder::class, function (ShoppingReminder $notification) {
             return $notification->recipientId === $this->holly->id
-                && $notification->hasClaimed
-                && $notification->recipientItemCount === 2
+                && $notification->claimed === 1
                 && str_contains(implode(' ', $notification->toMail($this->nick)->introLines), 'already claimed');
         });
+    }
+
+    public function test_a_santa_who_already_bought_their_gift_isnt_reminded(): void
+    {
+        $this->drawNames();
+        $this->claimFor($this->nick, $this->holly, bought: true);
+
+        $this->remindOn('2026-12-06');
+
+        Notification::assertNotSentTo($this->nick, ShoppingReminder::class);
+        Notification::assertSentTo($this->holly, ShoppingReminder::class);
+    }
+
+    public function test_drawing_the_same_person_in_two_groups_needs_two_gifts(): void
+    {
+        $this->drawNames();
+        $bookClub = Group::factory()->create(['name' => 'Book Club', 'owner_id' => $this->holly->id, 'drawn_at' => now()]);
+        $bookClub->members()->attach($this->nick);
+        $bookClub->assignments()->create(['draw_number' => 1, 'giver_id' => $this->nick->id, 'receiver_id' => $this->holly->id]);
+        $this->claimFor($this->nick, $this->holly, bought: true);
+
+        $this->remindOn('2026-12-06');
+
+        Notification::assertSentTo($this->nick, ShoppingReminder::class, function (ShoppingReminder $notification) {
+            $text = implode(' ', $notification->toMail($this->nick)->introLines);
+
+            return $notification->giftsNeeded === 2
+                && $notification->claimed === 1
+                && str_contains($text, 'You drew Holly in 2 groups (Book Club and Family Swap)')
+                && str_contains($text, 'pick 1 more');
+        });
+
+        // A second gift bought: nothing more to remind about, even for the other group's exchange.
+        $this->claimFor($this->nick, $this->holly, bought: true);
+        $bookClub->update(['exchange_date' => '2026-12-19']);
+        $this->remindOn('2026-12-06');
+
+        Notification::assertSentToTimes($this->nick, ShoppingReminder::class, 1);
+    }
+
+    public function test_last_years_shopping_doesnt_count_toward_this_years_gift(): void
+    {
+        // Bought for an earlier exchange, before this year's names were drawn. Claims never lapse.
+        $this->claimFor($this->nick, $this->holly, bought: true, at: now()->subYear());
+        $this->drawNames();
+
+        $this->remindOn('2026-12-06');
+
+        Notification::assertSentTo($this->nick, ShoppingReminder::class, fn (ShoppingReminder $notification) => $notification->claimed === 0);
+    }
+
+    public function test_gifts_already_received_dont_count(): void
+    {
+        $this->drawNames();
+        $this->claimFor($this->nick, $this->holly, bought: true, received: true);
+
+        $this->remindOn('2026-12-06');
+
+        Notification::assertSentTo($this->nick, ShoppingReminder::class);
     }
 
     public function test_the_shopping_reminder_waits_for_names_to_be_drawn(): void
@@ -143,6 +203,19 @@ class ExchangeRemindersTest extends TestCase
     private function remindOn(string $date): void
     {
         app(SendExchangeReminders::class)(Carbon::parse($date));
+    }
+
+    /** A new item on the owner's list, claimed by the giver (and maybe bought) at the given time. */
+    private function claimFor(User $giver, User $owner, bool $bought = false, bool $received = false, ?Carbon $at = null): void
+    {
+        $at ??= now();
+        $item = WishlistItem::factory()->create(['user_id' => $owner->id, 'received_at' => $received ? $at : null]);
+        $item->claims()->create([
+            'user_id' => $giver->id,
+            'quantity' => 1,
+            'claimed_at' => $at,
+            'purchased_at' => $bought ? $at : null,
+        ]);
     }
 
     private function drawNames(): void

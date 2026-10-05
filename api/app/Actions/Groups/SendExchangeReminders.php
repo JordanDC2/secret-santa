@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\WishlistClaim;
 use App\Notifications\EmptyWishlistReminder;
 use App\Notifications\ShoppingReminder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -80,29 +81,80 @@ class SendExchangeReminders
         return $empty->count();
     }
 
+    /**
+     * Santas who've already marked a gift bought for their person are left alone. Someone who
+     * drew the same person in several groups needs that many gifts, so it counts gifts against
+     * draws. Only shopping since those draws counts: claims never lapse, so last year's gifts
+     * would otherwise look like this year's.
+     */
     private function remindSantas(Group $group, int $daysLeft): int
     {
-        $assignments = $group->currentAssignments()->with('giver', 'receiver')->get();
+        $sent = 0;
 
-        $assignments->each(function (SecretSantaAssignment $assignment) use ($group, $daysLeft) {
+        foreach ($group->currentAssignments()->with('giver', 'receiver')->get() as $assignment) {
+            $giver = $assignment->giver;
             $receiver = $assignment->receiver;
+            $draws = $giver->secretSantaRecipients()
+                ->filter(fn (SecretSantaAssignment $drawn) => $drawn->receiver_id === $receiver->id);
+            $since = $this->earliestDraw($draws->all(), $group);
+            $claims = $this->claimsSince($giver, $receiver, $since);
+            $bought = $claims->filter(
+                fn (WishlistClaim $claim) => $claim->purchased_at !== null && $claim->purchased_at->greaterThanOrEqualTo($since)
+            )->count();
 
-            $assignment->giver->notify(new ShoppingReminder(
+            if ($bought >= $draws->count()) {
+                continue;
+            }
+
+            $giver->notify(new ShoppingReminder(
                 groupName: $group->name,
                 exchangeDate: $this->dateLabel($group),
                 daysLeft: $daysLeft,
                 budget: $group->budgetLabel(),
                 recipientId: $receiver->id,
                 recipientName: $receiver->name,
-                hasClaimed: WishlistClaim::query()
-                    ->where('user_id', $assignment->giver_id)
-                    ->whereHas('item', fn ($items) => $items->where('user_id', $receiver->id))
-                    ->exists(),
+                giftsNeeded: $draws->count(),
+                drawnInGroups: $draws->map(fn (SecretSantaAssignment $drawn) => $drawn->group->name)->values()->all(),
+                claimed: $claims->count(),
                 recipientItemCount: $receiver->wishlistItems()->whereNull('received_at')->count(),
             ));
-        });
+            $sent++;
+        }
 
-        return $assignments->count();
+        return $sent;
+    }
+
+    /**
+     * When the earliest of these draws happened: shopping before then was for an earlier exchange.
+     *
+     * @param  array<int, SecretSantaAssignment>  $draws
+     */
+    private function earliestDraw(array $draws, Group $group): Carbon
+    {
+        $earliest = Carbon::parse($group->drawn_at);
+
+        foreach ($draws as $drawn) {
+            if ($drawn->group->drawn_at !== null && $earliest->greaterThan($drawn->group->drawn_at)) {
+                $earliest = Carbon::parse($drawn->group->drawn_at);
+            }
+        }
+
+        return $earliest;
+    }
+
+    /**
+     * The giver's claims on the receiver's open items (wishlist and gift ideas) that were made,
+     * or marked bought, since the given time.
+     *
+     * @return Collection<int, WishlistClaim>
+     */
+    private function claimsSince(User $giver, User $receiver, Carbon $since): Collection
+    {
+        return WishlistClaim::query()
+            ->where('user_id', $giver->id)
+            ->whereHas('item', fn ($items) => $items->where('user_id', $receiver->id)->whereNull('received_at'))
+            ->where(fn ($recent) => $recent->where('claimed_at', '>=', $since)->orWhere('purchased_at', '>=', $since))
+            ->get();
     }
 
     private function dateLabel(Group $group): string
