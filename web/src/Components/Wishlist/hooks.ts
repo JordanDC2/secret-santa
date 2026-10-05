@@ -1,5 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ILinkPreview, IMemberWishlist, IWishlistItem, IWishlistItemDetails } from "Components/Wishlist/types";
+import type {
+	ILinkPreview,
+	IMemberWishlist,
+	IWishlistItem,
+	IWishlistItemDetails,
+	IWishlistPerson,
+} from "Components/Wishlist/types";
 import { apiClient } from "Data/Api/Client";
 
 const MY_WISHLIST_QUERY_KEY = ["wishlist", "mine"];
@@ -97,14 +103,25 @@ export function useMemberWishlistQuery(userId: number) {
 				user: IMemberWishlist["user"];
 				items: Record<string, unknown>[];
 				suggestions: Record<string, unknown>[];
-				my_recipients: IMemberWishlist["myRecipients"];
+				my_recipients: (IWishlistPerson & {
+					group: { id: number; name: string; exchange_date: string | null; budget: string | null };
+				})[];
 			}>(`/users/${userId}/wishlist`);
 
 			return {
 				user: wishlist.user,
 				items: wishlist.items.map(mapItem),
 				suggestions: wishlist.suggestions.map(mapItem),
-				myRecipients: wishlist.my_recipients,
+				myRecipients: wishlist.my_recipients.map((recipient) => ({
+					id: recipient.id,
+					name: recipient.name,
+					group: {
+						id: recipient.group.id,
+						name: recipient.group.name,
+						exchangeDate: recipient.group.exchange_date,
+						budget: recipient.group.budget,
+					},
+				})),
 			};
 		},
 	});

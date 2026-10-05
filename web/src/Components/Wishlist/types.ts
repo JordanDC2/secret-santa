@@ -62,7 +62,16 @@ export type ILinkPreview = { name: string | null; price: number | null; imageUrl
 export type IWishlistPerson = { id: number; name: string };
 
 /** One of your current Secret Santa assignments: who you're buying for, and in which group. */
-export type IMyRecipient = IWishlistPerson & { group: { id: number; name: string } };
+export type IMyRecipient = IWishlistPerson & {
+	group: {
+		id: number;
+		name: string;
+		/** "YYYY-MM-DD", if the owner set one. */
+		exchangeDate: string | null;
+		/** Ready to show, e.g. "$50" or "$30–$50". */
+		budget: string | null;
+	};
+};
 
 export type IMemberWishlist = {
 	user: IWishlistPerson;

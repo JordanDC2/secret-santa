@@ -65,6 +65,10 @@ return [
     // The timezone those emails show sign-up times in (e.g. America/Chicago).
     'admin_timezone' => env('ADMIN_TIMEZONE', 'UTC'),
 
+    // Whose "today" exchange reminders count days in, and when the daily run happens (9am
+    // there). Defaults to the organizer's timezone, since the groups are their people.
+    'reminder_timezone' => env('REMINDER_TIMEZONE', env('ADMIN_TIMEZONE', 'UTC')),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

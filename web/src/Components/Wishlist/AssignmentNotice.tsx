@@ -2,6 +2,7 @@ import { Fragment, type ReactNode } from "react";
 import { Alert, Anchor } from "@mantine/core";
 import { Link } from "react-router-dom";
 import GiftTagIcon from "Components/Common/FestiveIcons/GiftTagIcon";
+import { formatExchangeDate } from "Components/Groups/exchange";
 import type { IMyRecipient, IWishlistPerson } from "Components/Wishlist/types";
 import classes from "Components/Wishlist/AssignmentNotice.module.less";
 
@@ -10,7 +11,6 @@ type IAssignmentNoticeProps = {
 	myRecipients: IMyRecipient[];
 };
 
-/** Says whether this list belongs to the viewer's Secret Santa person, so nobody buys for the wrong one. */
 /** "A", "A and B", "A, B and C" */
 function joinNames(names: { key: string; node: ReactNode }[]) {
 	return names.map(({ key, node }, index) => (
@@ -19,6 +19,16 @@ function joinNames(names: { key: string; node: ReactNode }[]) {
 			{node}
 		</Fragment>
 	));
+}
+
+/** "Exchange Sun, Dec 20 · Budget $30–$50", or whichever half the group's owner set. */
+function exchangeDetails(group: IMyRecipient["group"]): string | null {
+	const parts = [
+		group.exchangeDate && `Exchange ${formatExchangeDate(group.exchangeDate)}`,
+		group.budget && `Budget ${group.budget}`,
+	].filter(Boolean);
+
+	return parts.length > 0 ? parts.join(" · ") : null;
 }
 
 /**
@@ -49,6 +59,16 @@ export default function AssignmentNotice({ owner, myRecipients }: IAssignmentNot
 					})),
 				)}
 				. Pick something from here and claim it so nobody else buys it too.
+				{groupsWhereIDrewOwner.map(({ group }) => {
+					const details = exchangeDetails(group);
+
+					return details ? (
+						<div key={group.id} className={classes.details}>
+							{groupsWhereIDrewOwner.length > 1 && <strong>{group.name}: </strong>}
+							{details}
+						</div>
+					) : null;
+				})}
 			</Alert>
 		);
 	}

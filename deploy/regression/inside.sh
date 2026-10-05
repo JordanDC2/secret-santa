@@ -100,6 +100,10 @@ check "ivy's card counts it unread" 1 "$(as ivy GET /groups/$gid | body | jq -r 
 check "ivy reads the question" "Do you like blue?" "$(as ivy GET /groups/$gid/santa-chat/my-santa | body | jq -r '.messages[0].body')"
 check "ivy never learns who asked" null "$(as ivy GET /groups/$gid/santa-chat/my-santa | body | jq -c '.with')"
 check "ivy marks it read" 204 "$(as ivy POST /groups/$gid/santa-chat/my-santa/read | code)"
+check "owner sets exchange date and budget" 200 "$(as holly PATCH /groups/$gid '{"exchange_date":"2030-12-20","budget_min":30,"budget_max":50}' | code)"
+check "card shows the budget" '{"min":30,"max":50}' "$(as nick GET /groups/$gid | body | jq -c '.budget')"
+check "reminders run" 0 "$(php artisan app:send-exchange-reminders >/dev/null 2>&1; echo $?)"
+check "reminders are scheduled" yes "$(php artisan schedule:list 2>/dev/null | grep -q 'app:send-exchange-reminders' && echo yes)"
 check "deploy announcement runs" 0 "$(php artisan app:announce-deploy test-version >/dev/null 2>&1; echo $?)"
 echo "--- queued mail jobs: $(db 'select count(*) from jobs')"
 php artisan queue:work --once --queue=default --stop-when-empty -q >/dev/null 2>&1 || true

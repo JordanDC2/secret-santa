@@ -40,7 +40,7 @@ class GroupController extends Controller
 
     public function update(UpdateRequest $request, Group $group): GroupResource
     {
-        $group->update($request->safe()->only('name', 'description'));
+        $group->update($request->safe()->only('name', 'description', 'exchange_date', 'budget_min', 'budget_max'));
 
         GroupChanged::dispatch($group->id);
 

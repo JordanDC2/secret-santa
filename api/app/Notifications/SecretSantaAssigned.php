@@ -68,10 +68,28 @@ class SecretSantaAssigned extends Notification implements ShouldQueue
                 ->line($this->ownerNote($description)))
             ->line('You are the Secret Santa for:')
             ->line('## '.ElfMailMessage::plain($this->recipient->name))
+            ->when($this->exchangeDetails(), fn (ElfMailMessage $message, string $details) => $message->line($details))
             ->line('Keep it a secret, and happy gifting! 🎄')
             // No names in the button label: Laravel repeats it in the footer as Markdown, where a
             // crafted name would become a link. The name is shown escaped just above instead.
             ->action('View Their Wishlist', $wishlistUrl);
+    }
+
+    /**
+     * "The exchange is on Saturday, December 20, and the budget is $30–$50.", or whichever
+     * half is set; null when neither is.
+     */
+    private function exchangeDetails(): ?string
+    {
+        $date = $this->group->exchange_date?->format('l, F j');
+        $budget = $this->group->budgetLabel();
+
+        return match (true) {
+            $date !== null && $budget !== null => "The exchange is on {$date}, and the budget is {$budget}.",
+            $date !== null => "The exchange is on {$date}.",
+            $budget !== null => "The budget is {$budget}.",
+            default => null,
+        };
     }
 
     private function subjectLine(): string

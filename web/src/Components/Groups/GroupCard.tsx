@@ -5,6 +5,8 @@ import AssignmentReveal from "Components/Groups/AssignmentReveal";
 import DeleteGroupControl from "Components/Groups/DeleteGroupControl";
 import DrawDetailsModal from "Components/Groups/DrawDetailsModal";
 import DrawNamesControl from "Components/Groups/DrawNamesControl";
+import ExchangeDetails from "Components/Groups/ExchangeDetails";
+import ExchangeDetailsModal from "Components/Groups/ExchangeDetailsModal";
 import ExclusionsModal from "Components/Groups/ExclusionsModal";
 import GroupActionsMenu, { type IGroupMenuAction } from "Components/Groups/GroupActionsMenu";
 import GroupDescription from "Components/Groups/GroupDescription";
@@ -41,6 +43,8 @@ export default function GroupCard({ group }: IGroupCardProps) {
 	const [exclusionsOpen, setExclusionsOpen] = useState(false);
 	const [drawDetailsOpen, setDrawDetailsOpen] = useState(false);
 	const [editingNote, setEditingNote] = useState(false);
+	// A fresh key each time it opens, so the form starts from the group's current details.
+	const [exchangeModal, setExchangeModal] = useState({ opened: false, key: 0 });
 	// A fresh key each time the chat opens, so it reloads its draft and scroll position.
 	const [chat, setChat] = useState<{ side: ISantaChatSide; opened: boolean; key: number }>({
 		side: "my-santa",
@@ -77,8 +81,14 @@ export default function GroupCard({ group }: IGroupCardProps) {
 		leave: canLeave ? <LeaveGroupControl groupId={group.id} groupName={group.name} {...confirmState("leave")} /> : null,
 	};
 
+	function openExchangeModal() {
+		setExchangeModal((current) => ({ opened: true, key: current.key + 1 }));
+	}
+
 	function onMenuAction(action: IGroupMenuAction) {
-		if (action === "exclusions") {
+		if (action === "exchange") {
+			openExchangeModal();
+		} else if (action === "exclusions") {
 			setExclusionsOpen(true);
 		} else if (action === "drawDetails") {
 			setDrawDetailsOpen(true);
@@ -135,13 +145,27 @@ export default function GroupCard({ group }: IGroupCardProps) {
 						variant="light"
 						color="gray"
 						tt="none"
-						className={classes.addNote}
+						className={classes.addChip}
 						onClick={() => setEditingNote(true)}
 					>
 						+ Add note
 					</Badge>
 				)}
+				{group.isOwner && !group.exchangeDate && !group.budget && (
+					<Badge
+						component="button"
+						type="button"
+						variant="light"
+						color="gray"
+						tt="none"
+						className={classes.addChip}
+						onClick={openExchangeModal}
+					>
+						+ Add date & budget
+					</Badge>
+				)}
 			</Group>
+			<ExchangeDetails group={group} onEdit={group.isOwner ? openExchangeModal : undefined} />
 			<GroupDescription
 				groupId={group.id}
 				description={group.description}
@@ -191,6 +215,14 @@ export default function GroupCard({ group }: IGroupCardProps) {
 					target={{ groupId: group.id, groupName: group.name, side: linkedChat ?? chat.side }}
 					opened={chat.opened || linkedChat !== null}
 					onClose={closeChat}
+				/>
+			)}
+			{group.isOwner && (
+				<ExchangeDetailsModal
+					key={exchangeModal.key}
+					group={group}
+					opened={exchangeModal.opened}
+					onClose={() => setExchangeModal((current) => ({ ...current, opened: false }))}
 				/>
 			)}
 			{canDraw && <ExclusionsModal group={group} opened={exclusionsOpen} onClose={() => setExclusionsOpen(false)} />}

@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
 	faArrowRightFromBracket,
 	faArrowsRotate,
+	faCalendarDays,
 	faEllipsis,
 	faListCheck,
 	faTrashCan,
@@ -11,7 +12,7 @@ import {
 import type { IGroup } from "Components/Groups/types";
 
 /** Things the menu can ask the card to open: a modal, or an "are you sure?" panel in the footer. */
-export type IGroupMenuAction = "exclusions" | "drawDetails" | "newDraw" | "delete" | "leave";
+export type IGroupMenuAction = "exchange" | "exclusions" | "drawDetails" | "newDraw" | "delete" | "leave";
 
 type IGroupActionsMenuProps = {
 	group: IGroup;
@@ -37,6 +38,14 @@ export default function GroupActionsMenu({ group, onAction }: IGroupActionsMenuP
 				</ActionIcon>
 			</Menu.Target>
 			<Menu.Dropdown>
+				{group.isOwner && (
+					<Menu.Item
+						leftSection={<FontAwesomeIcon icon={faCalendarDays} fixedWidth />}
+						onClick={() => onAction("exchange")}
+					>
+						Exchange date & budget
+					</Menu.Item>
+				)}
 				{group.isOwner && !group.isDrawn && (
 					<Menu.Item
 						leftSection={<FontAwesomeIcon icon={faUserSlash} fixedWidth />}

@@ -45,7 +45,12 @@ class MemberWishlistHandler extends Controller
                 ->map(fn (SecretSantaAssignment $assignment) => [
                     'id' => $assignment->receiver->id,
                     'name' => $assignment->receiver->name,
-                    'group' => ['id' => $assignment->group->id, 'name' => $assignment->group->name],
+                    'group' => [
+                        'id' => $assignment->group->id,
+                        'name' => $assignment->group->name,
+                        'exchange_date' => $assignment->group->exchange_date?->toDateString(),
+                        'budget' => $assignment->group->budgetLabel(),
+                    ],
                 ])
                 ->values(),
         ]);

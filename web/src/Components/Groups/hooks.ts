@@ -12,6 +12,8 @@ function mapGroup(raw: Record<string, unknown>): IGroup {
 		id: raw.id as number,
 		name: raw.name as string,
 		description: raw.description as string | null,
+		exchangeDate: raw.exchange_date as string | null,
+		budget: raw.budget as IGroup["budget"],
 		joinCode: raw.join_code as string,
 		isOwner: raw.is_owner as boolean,
 		membersCount: raw.members_count as number,
@@ -112,7 +114,13 @@ export function useUpdateGroupMutation() {
 			changes,
 		}: {
 			groupId: number;
-			changes: { name?: string; description?: string | null };
+			changes: {
+				name?: string;
+				description?: string | null;
+				exchange_date?: string | null;
+				budget_min?: number | null;
+				budget_max?: number | null;
+			};
 		}) => {
 			const group = await apiClient.patch<Record<string, unknown>>(`/groups/${groupId}`, changes);
 

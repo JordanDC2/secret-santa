@@ -26,6 +26,8 @@ class GroupResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'description' => $this->description,
+            'exchange_date' => $this->exchange_date?->toDateString(),
+            'budget' => $this->budget_max === null ? null : ['min' => $this->budget_min, 'max' => $this->budget_max],
             'join_code' => $this->join_code,
             'is_owner' => $this->owner_id === $request->user()->id,
             'members_count' => $this->members_count,

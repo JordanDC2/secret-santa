@@ -10,9 +10,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
-#[Fillable(['name', 'description', 'owner_id', 'join_code', 'drawn_at', 'draw_number'])]
+/**
+ * @property Carbon|null $exchange_date The gift exchange's day.
+ */
+#[Fillable(['name', 'description', 'exchange_date', 'budget_min', 'budget_max', 'owner_id', 'join_code', 'drawn_at', 'draw_number'])]
 class Group extends Model
 {
     /** @use HasFactory<GroupFactory> */
@@ -32,6 +36,9 @@ class Group extends Model
         return [
             'drawn_at' => 'datetime',
             'draw_number' => 'integer',
+            'exchange_date' => 'date',
+            'budget_min' => 'integer',
+            'budget_max' => 'integer',
         ];
     }
 
@@ -127,6 +134,18 @@ class Group extends Model
             ->get()
             ->flatMap(fn (GroupExclusion $exclusion) => $exclusion->blockedPairs())
             ->all();
+    }
+
+    /**
+     * "$50", or "$30–$50" for a range; null without a budget.
+     */
+    public function budgetLabel(): ?string
+    {
+        if ($this->budget_max === null) {
+            return null;
+        }
+
+        return $this->budget_min === null ? "\${$this->budget_max}" : "\${$this->budget_min}–\${$this->budget_max}";
     }
 
     public function assignmentFor(User $user): ?SecretSantaAssignment

@@ -43,6 +43,12 @@ if ! sudo cmp -s "$new_caddyfile" /etc/caddy/Caddyfile; then
 fi
 rm -f "$new_caddyfile"
 
+# The scheduler's cron line (exchange reminders). cron reads /etc/cron.d by itself.
+if ! sudo cmp -s /var/www/secret-santa/deploy/secret-santa-scheduler /etc/cron.d/secret-santa-scheduler; then
+	sudo install -m 644 /var/www/secret-santa/deploy/secret-santa-scheduler /etc/cron.d/secret-santa-scheduler
+	echo "Scheduler cron installed"
+fi
+
 # Workers keep old code in memory until restarted.
 sudo systemctl restart secret-santa-queue secret-santa-reverb
 sudo systemctl reload php8.5-fpm

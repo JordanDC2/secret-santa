@@ -177,6 +177,8 @@ CRON_FILE=/etc/cron.d/secret-santa
 	[ -f /etc/duckdns.env ] && echo "*/5 * * * * root $APP_DIR/deploy/duckdns-update.sh"
 } > "$CRON_FILE"
 chmod 644 "$CRON_FILE"
+# Laravel's scheduler (exchange reminders); deploy/update.sh keeps it up to date.
+install -m 644 "$APP_DIR/deploy/secret-santa-scheduler" /etc/cron.d/secret-santa-scheduler
 
 if $HAS_SYSTEMD; then
 	systemctl daemon-reload

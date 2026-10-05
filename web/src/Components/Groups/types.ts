@@ -2,6 +2,10 @@ export type IGroup = {
 	id: number;
 	name: string;
 	description: string | null;
+	/** The gift exchange's day, "YYYY-MM-DD". */
+	exchangeDate: string | null;
+	/** Whole dollars: a single amount has only max; a range has both. */
+	budget: IBudget | null;
 	joinCode: string;
 	isOwner: boolean;
 	membersCount: number;
@@ -16,6 +20,8 @@ export type IGroup = {
 	/** Set once someone has drawn you; never says who. */
 	mySanta: { unreadMessages: number } | null;
 };
+
+export type IBudget = { min: number | null; max: number };
 
 export type IGroupExclusion = {
 	id: number;
