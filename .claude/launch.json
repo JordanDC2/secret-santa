@@ -8,9 +8,11 @@
 				"--prefix",
 				"web",
 				"run",
-				"start"
+				"start",
+				"--",
+				"--no-open"
 			],
-			"port": 3000
+			"port": 3001
 		},
 		{
 			"name": "secret-santa-web-preview",

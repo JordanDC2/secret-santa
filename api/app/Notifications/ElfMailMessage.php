@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Enums\EmailKind;
 use Illuminate\Notifications\Messages\MailMessage;
 
 /**
@@ -14,6 +15,16 @@ class ElfMailMessage extends MailMessage
     {
         // Two trailing spaces are a Markdown line break.
         $this->salutation("Merry gifting,  \n".self::signature());
+    }
+
+    /**
+     * The last line of an email people can turn off: why they got it, and where to stop it.
+     */
+    public function settingsFooter(EmailKind $kind): static
+    {
+        $settings = config('app.frontend_url').'/account';
+
+        return $this->line("You're getting this because {$kind->label()} emails are on. [Change your email settings]({$settings}).");
     }
 
     public static function signature(): string

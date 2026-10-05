@@ -32,7 +32,7 @@ Run each in its own terminal:
 cd api && php artisan serve --no-reload                       # API on :8000
 cd api && php artisan queue:work --queue=broadcasts,default   # live updates, then emails
 cd api && php artisan reverb:start                            # WebSockets on :8080
-cd web && npm start                                           # app on :3000
+cd web && npm start                                           # app on :3001
 ```
 
 Restart `serve` and `queue:work` after changing `api/.env`; both keep the values they started with.

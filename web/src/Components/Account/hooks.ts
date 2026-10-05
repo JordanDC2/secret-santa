@@ -1,5 +1,6 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CURRENT_USER_QUERY_KEY } from "Components/Auth/AuthContext";
+import type { IEmailKind, IEmailPreferences } from "Components/Account/types";
 import type { IUser } from "Components/Auth/types";
 import { apiClient } from "Data/Api/Client";
 
@@ -46,3 +47,38 @@ export const ACCOUNT_FIELD_NAMES = {
 	current_password: "currentPassword",
 	password_confirmation: "passwordConfirmation",
 };
+
+const EMAIL_PREFERENCES_QUERY_KEY = ["account", "email-preferences"];
+
+export function useEmailPreferencesQuery() {
+	return useQuery({
+		queryKey: EMAIL_PREFERENCES_QUERY_KEY,
+		queryFn: () => apiClient.get<IEmailPreferences>("/account/email-preferences"),
+	});
+}
+
+/** Flips one switch straight away, and flips it back if the save fails. */
+export function useUpdateEmailPreferenceMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: ({ kind, on }: { kind: IEmailKind; on: boolean }) =>
+			apiClient.patch<IEmailPreferences>("/account/email-preferences", { [kind]: on }),
+		onMutate: async ({ kind, on }) => {
+			await queryClient.cancelQueries({ queryKey: EMAIL_PREFERENCES_QUERY_KEY });
+			const previous = queryClient.getQueryData<IEmailPreferences>(EMAIL_PREFERENCES_QUERY_KEY);
+
+			if (previous) {
+				queryClient.setQueryData<IEmailPreferences>(EMAIL_PREFERENCES_QUERY_KEY, { ...previous, [kind]: on });
+			}
+
+			return { previous };
+		},
+		onError: (_error, _change, context) => {
+			if (context?.previous) {
+				queryClient.setQueryData(EMAIL_PREFERENCES_QUERY_KEY, context.previous);
+			}
+		},
+		onSuccess: (preferences) => queryClient.setQueryData(EMAIL_PREFERENCES_QUERY_KEY, preferences),
+	});
+}

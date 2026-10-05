@@ -2,8 +2,10 @@
 
 namespace App\Notifications;
 
+use App\Enums\EmailKind;
 use App\Models\Group;
 use App\Models\User;
+use App\Notifications\Concerns\RespectsEmailPreferences;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -17,7 +19,7 @@ use Symfony\Component\Mime\Email;
 #[Backoff(10, 60, 300)]
 class SecretSantaAssigned extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, RespectsEmailPreferences;
 
     /**
      * Subjects for later draws (a re-draw, or next year's exchange), in turn. Gmail threads emails
@@ -41,12 +43,9 @@ class SecretSantaAssigned extends Notification implements ShouldQueue
         public readonly int $drawNumber = 1,
     ) {}
 
-    /**
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
+    protected function emailKind(): EmailKind
     {
-        return ['mail'];
+        return EmailKind::Assignments;
     }
 
     public function toMail(User $notifiable): ElfMailMessage
@@ -72,7 +71,8 @@ class SecretSantaAssigned extends Notification implements ShouldQueue
             ->line('Keep it a secret, and happy gifting! 🎄')
             // No names in the button label: Laravel repeats it in the footer as Markdown, where a
             // crafted name would become a link. The name is shown escaped just above instead.
-            ->action('View Their Wishlist', $wishlistUrl);
+            ->action('View Their Wishlist', $wishlistUrl)
+            ->settingsFooter(EmailKind::Assignments);
     }
 
     /**

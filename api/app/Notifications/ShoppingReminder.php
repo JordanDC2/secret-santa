@@ -2,7 +2,9 @@
 
 namespace App\Notifications;
 
+use App\Enums\EmailKind;
 use App\Models\User;
+use App\Notifications\Concerns\RespectsEmailPreferences;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -17,7 +19,7 @@ use Illuminate\Queue\Attributes\Tries;
 #[Backoff(10, 60, 300)]
 class ShoppingReminder extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, RespectsEmailPreferences;
 
     public function __construct(
         public readonly string $groupName,
@@ -35,12 +37,9 @@ class ShoppingReminder extends Notification implements ShouldQueue
         public readonly int $recipientItemCount,
     ) {}
 
-    /**
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
+    protected function emailKind(): EmailKind
     {
-        return ['mail'];
+        return EmailKind::Reminders;
     }
 
     public function toMail(User $notifiable): ElfMailMessage
@@ -71,6 +70,7 @@ class ShoppingReminder extends Notification implements ShouldQueue
             $message->line("{$person}'s wishlist is empty, so you could ask them a question in your Santa chat (they won't know it's you) or add a gift idea for the group.");
         }
 
-        return $message->action('View Their Wishlist', config('app.frontend_url')."/wishlists/{$this->recipientId}");
+        return $message->action('View Their Wishlist', config('app.frontend_url')."/wishlists/{$this->recipientId}")
+            ->settingsFooter(EmailKind::Reminders);
     }
 }

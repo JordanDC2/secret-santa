@@ -2,7 +2,9 @@
 
 namespace App\Notifications;
 
+use App\Enums\EmailKind;
 use App\Models\User;
+use App\Notifications\Concerns\RespectsEmailPreferences;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -18,7 +20,7 @@ use Illuminate\Queue\Attributes\Tries;
 #[Backoff(10, 60, 300)]
 class SantaMessageReceived extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, RespectsEmailPreferences;
 
     /**
      * @param  bool  $fromSanta  Whether the Santa wrote it, i.e. this email goes to their person.
@@ -31,12 +33,9 @@ class SantaMessageReceived extends Notification implements ShouldQueue
         public readonly string $personName,
     ) {}
 
-    /**
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
+    protected function emailKind(): EmailKind
     {
-        return ['mail'];
+        return EmailKind::SantaChat;
     }
 
     public function toMail(User $notifiable): ElfMailMessage
@@ -58,6 +57,7 @@ class SantaMessageReceived extends Notification implements ShouldQueue
 
         return $message
             ->line("I'll only email about the first new message, so open the app to keep up with any more.")
-            ->action('Open the Conversation', config('app.frontend_url')."/?group={$this->groupId}&chat={$side}");
+            ->action('Open the Conversation', config('app.frontend_url')."/?group={$this->groupId}&chat={$side}")
+            ->settingsFooter(EmailKind::SantaChat);
     }
 }

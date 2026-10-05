@@ -2,8 +2,10 @@
 
 namespace App\Notifications;
 
+use App\Enums\EmailKind;
 use App\Models\Group;
 use App\Models\User;
+use App\Notifications\Concerns\RespectsEmailPreferences;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -15,7 +17,7 @@ use Illuminate\Queue\Attributes\Tries;
 #[Backoff(10, 60, 300)]
 class MemberJoinedGroup extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, RespectsEmailPreferences;
 
     /**
      * @param  int  $membersCount  Captured at join time, since the queued email reloads the group when it sends.
@@ -26,12 +28,9 @@ class MemberJoinedGroup extends Notification implements ShouldQueue
         public readonly int $membersCount,
     ) {}
 
-    /**
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
+    protected function emailKind(): EmailKind
     {
-        return ['mail'];
+        return EmailKind::NewMembers;
     }
 
     public function toMail(User $notifiable): ElfMailMessage
@@ -44,6 +43,7 @@ class MemberJoinedGroup extends Notification implements ShouldQueue
             ->greeting('Hi '.ElfMailMessage::plain($notifiable->name).'!')
             ->line("**{$memberName}** just joined **{$groupName}** with your invite code.")
             ->line("That makes {$this->membersCount} members on the list so far.")
-            ->action('View Your Groups', config('app.frontend_url').'/');
+            ->action('View Your Groups', config('app.frontend_url').'/')
+            ->settingsFooter(EmailKind::NewMembers);
     }
 }

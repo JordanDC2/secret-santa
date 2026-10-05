@@ -47,7 +47,10 @@ export default defineConfig({
 	// VITE_* values (e.g. the Reverb app key) come from the API's .env, so there's one source of truth.
 	envDir: "../api",
 	server: {
-		port: 3000,
+		// Not 3000: other local projects (an Electron app) use it. Fail rather than drift to another
+		// port, since the API only trusts logins from this one (see api/config/sanctum.php).
+		port: 3001,
+		strictPort: true,
 		open: true,
 		proxy: {
 			"/api": {

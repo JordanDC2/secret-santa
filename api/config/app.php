@@ -54,7 +54,7 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
-    'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:3001'),
 
     /*
     | Where "a new account was created" emails go, so the person running the app notices strangers

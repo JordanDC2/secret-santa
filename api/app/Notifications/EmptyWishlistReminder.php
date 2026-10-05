@@ -2,7 +2,9 @@
 
 namespace App\Notifications;
 
+use App\Enums\EmailKind;
 use App\Models\User;
+use App\Notifications\Concerns\RespectsEmailPreferences;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -14,7 +16,7 @@ use Illuminate\Queue\Attributes\Tries;
 #[Backoff(10, 60, 300)]
 class EmptyWishlistReminder extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, RespectsEmailPreferences;
 
     public function __construct(
         public readonly string $groupName,
@@ -22,12 +24,9 @@ class EmptyWishlistReminder extends Notification implements ShouldQueue
         public readonly int $daysLeft,
     ) {}
 
-    /**
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
+    protected function emailKind(): EmailKind
     {
-        return ['mail'];
+        return EmailKind::Reminders;
     }
 
     public function toMail(User $notifiable): ElfMailMessage
@@ -39,6 +38,7 @@ class EmptyWishlistReminder extends Notification implements ShouldQueue
             ->greeting('Hi '.ElfMailMessage::plain($notifiable->name).'!')
             ->line("The **{$group}** gift exchange is {$this->daysLeft} days away, on {$this->exchangeDate}, and your wishlist is still empty.")
             ->line('Add a few things you\'d love, so your Secret Santa has something to go on. Sizes, favourite colours and links all help!')
-            ->action('Add to Your Wishlist', config('app.frontend_url').'/wishlist');
+            ->action('Add to Your Wishlist', config('app.frontend_url').'/wishlist')
+            ->settingsFooter(EmailKind::Reminders);
     }
 }

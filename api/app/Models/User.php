@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\EmailKind;
 use App\Notifications\ResetPasswordLink;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -16,8 +17,11 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password'])]
-#[Hidden(['password', 'remember_token'])]
+/**
+ * @property array<string, bool>|null $email_preferences Kinds of optional email turned off (missing means on).
+ */
+#[Fillable(['name', 'email', 'password', 'email_preferences'])]
+#[Hidden(['password', 'remember_token', 'email_preferences'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -33,7 +37,28 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'email_preferences' => 'array',
         ];
+    }
+
+    /**
+     * Whether this kind of optional email is on for them. Everything is on until turned off.
+     */
+    public function wantsEmail(EmailKind $kind): bool
+    {
+        return ($this->email_preferences[$kind->value] ?? true) === true;
+    }
+
+    /**
+     * Every kind of optional email and whether it's on, e.g. ['santa_chat' => false, ...].
+     *
+     * @return array<string, bool>
+     */
+    public function emailPreferences(): array
+    {
+        return collect(EmailKind::cases())
+            ->mapWithKeys(fn (EmailKind $kind) => [$kind->value => $this->wantsEmail($kind)])
+            ->all();
     }
 
     /**

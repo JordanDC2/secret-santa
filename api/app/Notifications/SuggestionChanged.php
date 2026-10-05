@@ -2,7 +2,9 @@
 
 namespace App\Notifications;
 
+use App\Enums\EmailKind;
 use App\Models\User;
+use App\Notifications\Concerns\RespectsEmailPreferences;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -17,7 +19,7 @@ use Illuminate\Queue\Attributes\Tries;
 #[Backoff(10, 60, 300)]
 class SuggestionChanged extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, RespectsEmailPreferences;
 
     private const FIELD_LABELS = [
         'name' => 'Name',
@@ -40,12 +42,9 @@ class SuggestionChanged extends Notification implements ShouldQueue
         public readonly bool $removed,
     ) {}
 
-    /**
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
+    protected function emailKind(): EmailKind
     {
-        return ['mail'];
+        return EmailKind::GiftIdeas;
     }
 
     public function toMail(User $notifiable): ElfMailMessage
@@ -66,7 +65,8 @@ class SuggestionChanged extends Notification implements ShouldQueue
         return $message
             ->line("Don't worry, {$owner} still can't see any of the gift ideas on their list.")
             // No names in the button label: Laravel repeats it in the footer as Markdown.
-            ->action('View Their Wishlist', config('app.frontend_url')."/wishlists/{$this->ownerId}");
+            ->action('View Their Wishlist', config('app.frontend_url')."/wishlists/{$this->ownerId}")
+            ->settingsFooter(EmailKind::GiftIdeas);
     }
 
     private function describe(string $field, mixed $value): string

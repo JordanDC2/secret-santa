@@ -2,7 +2,9 @@
 
 namespace App\Notifications;
 
+use App\Enums\EmailKind;
 use App\Models\User;
+use App\Notifications\Concerns\RespectsEmailPreferences;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -14,7 +16,7 @@ use Illuminate\Queue\Attributes\Tries;
 #[Backoff(10, 60, 300)]
 class ClaimNudged extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, RespectsEmailPreferences;
 
     public function __construct(
         public readonly int $ownerId,
@@ -24,12 +26,9 @@ class ClaimNudged extends Notification implements ShouldQueue
         public readonly ?string $nudgerName,
     ) {}
 
-    /**
-     * @return array<int, string>
-     */
-    public function via(object $notifiable): array
+    protected function emailKind(): EmailKind
     {
-        return ['mail'];
+        return EmailKind::Nudges;
     }
 
     public function toMail(User $notifiable): ElfMailMessage
@@ -45,6 +44,7 @@ class ClaimNudged extends Notification implements ShouldQueue
             ->line("If you've bought it, mark it **bought** so everyone knows. If you've changed your mind, undo your claim so someone else can get it.")
             ->line("{$owner} can't see any of this, so the surprise is safe.")
             // No names in the button label: Laravel repeats it in the footer as Markdown.
-            ->action('View Their Wishlist', config('app.frontend_url')."/wishlists/{$this->ownerId}");
+            ->action('View Their Wishlist', config('app.frontend_url')."/wishlists/{$this->ownerId}")
+            ->settingsFooter(EmailKind::Nudges);
     }
 }
