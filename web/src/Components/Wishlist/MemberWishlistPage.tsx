@@ -1,7 +1,6 @@
 import {
 	Accordion,
 	Alert,
-	Anchor,
 	Button,
 	Container,
 	Group,
@@ -11,7 +10,7 @@ import {
 	Title,
 } from "@mantine/core";
 import { useState } from "react";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
 	faBell,
@@ -37,6 +36,7 @@ import WishlistLiveUpdates from "Components/Wishlist/WishlistLiveUpdates";
 import { liveUpdatesEnabled } from "Data/Api/LiveUpdates";
 import type { IWishlistItem } from "Components/Wishlist/types";
 import WishlistItemRow from "Components/Wishlist/WishlistItemRow";
+import BackToGroups from "Components/Layout/BackToGroups";
 import PageTitle from "Components/Layout/PageTitle";
 import SantaChatModal from "Components/SantaChat/SantaChatModal";
 import type { ISantaChatTarget } from "Components/SantaChat/types";
@@ -275,9 +275,7 @@ function MemberWishlist({ userId }: { userId: number }) {
 		<Container my={40}>
 			{liveUpdatesEnabled() && <WishlistLiveUpdates ownerId={userId} />}
 			<Stack gap="lg">
-				<Anchor component={Link} to="/" size="sm">
-					← Back to your groups
-				</Anchor>
+				<BackToGroups />
 
 				{wishlistQuery.isPending && <MantineText c="dimmed">Loading wishlist...</MantineText>}
 

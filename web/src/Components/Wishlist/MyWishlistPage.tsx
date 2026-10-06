@@ -14,6 +14,7 @@ import { useDeleteWishlistItemMutation, useMyWishlistQuery, useSetReceivedMutati
 import type { IWishlistItem } from "Components/Wishlist/types";
 import WishlistItemRow from "Components/Wishlist/WishlistItemRow";
 import WishlistItemFormModal from "Components/Wishlist/WishlistItemFormModal";
+import BackToGroups from "Components/Layout/BackToGroups";
 import PageTitle from "Components/Layout/PageTitle";
 import { apiErrorMessage } from "Data/Api/Client";
 import classes from "Components/Wishlist/WishlistPage.module.less";
@@ -51,6 +52,7 @@ export default function MyWishlistPage() {
 		<Container my={40}>
 			{profile && liveUpdatesEnabled() && <WishlistLiveUpdates ownerId={profile.id} />}
 			<Stack gap="lg">
+				<BackToGroups />
 				{profiles.length > 0 && (
 					<WishlistOwnerSelect
 						profiles={profiles}

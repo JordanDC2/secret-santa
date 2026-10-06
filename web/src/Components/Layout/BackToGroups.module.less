@@ -1,0 +1,13 @@
+/* Only as wide as its text; on hover just the text turns dark maroon (10.6:1 on cream, 1.9:1
+   against the normal red so the change shows), without the theme's tinted link background.
+   The doubled class outranks the theme's .anchor hover. */
+.link.link {
+	align-self: flex-start;
+
+	&:hover,
+	&:focus-visible {
+		color: var(--mantine-color-red-9);
+		background-color: transparent;
+		box-shadow: none;
+	}
+}
