@@ -1,5 +1,7 @@
 .header {
 	background: linear-gradient(90deg, var(--festive-darkest) 0%, var(--festive-dark-green) 100%);
+	/* Installed on an iPhone, the page runs under the status bar (clock, battery); zero elsewhere. */
+	padding-top: env(safe-area-inset-top);
 }
 
 .title {

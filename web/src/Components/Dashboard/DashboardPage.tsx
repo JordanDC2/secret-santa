@@ -1,4 +1,5 @@
 import { Card, Container, SimpleGrid, Stack, Title } from "@mantine/core";
+import InstallAppTip from "Components/AppInstall/InstallAppTip";
 import ChristmasTreeIcon from "Components/Common/FestiveIcons/ChristmasTreeIcon";
 import HollyIcon from "Components/Common/FestiveIcons/HollyIcon";
 import WreathIcon from "Components/Common/FestiveIcons/WreathIcon";
@@ -17,6 +18,7 @@ export default function DashboardPage() {
 		<Container my={40}>
 			<Stack gap="xl">
 				<PageTitle icon={<ChristmasTreeIcon />}>Welcome{user ? `, ${user.name}` : ""}!</PageTitle>
+				<InstallAppTip />
 
 				<Stack>
 					<Title order={3}>Your groups</Title>

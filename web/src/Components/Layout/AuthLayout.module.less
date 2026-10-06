@@ -12,6 +12,8 @@
 	position: relative;
 	overflow: hidden;
 	padding: 20px;
+	/* Installed on an iPhone, the page runs under the status bar (clock, battery); zero elsewhere. */
+	padding-top: calc(20px + env(safe-area-inset-top));
 }
 
 .content {
