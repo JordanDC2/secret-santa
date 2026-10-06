@@ -20,6 +20,11 @@ const SWITCHES: { kind: IEmailKind; label: string; description: string }[] = [
 		description: "If your wishlist is empty 3 weeks before an exchange, and a shopping reminder 2 weeks before.",
 	},
 	{
+		kind: "exchange_updates",
+		label: "Exchange date and budget changes",
+		description: "When a group's owner sets, moves or removes its exchange date or budget.",
+	},
+	{
 		kind: "nudges",
 		label: "Nudges",
 		description: "When another shopper asks if you're still getting something you claimed.",

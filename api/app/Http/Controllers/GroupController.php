@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Groups\CreateGroup;
+use App\Actions\Groups\NotifyMembersOfExchangeChange;
 use App\Events\GroupChanged;
 use App\Http\Requests\Group\CreateRequest;
 use App\Http\Requests\Group\UpdateRequest;
@@ -38,11 +39,15 @@ class GroupController extends Controller
         return new GroupResource($group->loadCount('members'));
     }
 
-    public function update(UpdateRequest $request, Group $group): GroupResource
+    public function update(UpdateRequest $request, Group $group, NotifyMembersOfExchangeChange $notify): GroupResource
     {
+        $dateBefore = $group->exchange_date?->toDateString();
+        $budgetBefore = $group->budgetLabel();
+
         $group->update($request->safe()->only('name', 'description', 'exchange_date', 'budget_min', 'budget_max'));
 
         GroupChanged::dispatch($group->id);
+        $notify($group, $request->user(), $dateBefore, $budgetBefore);
 
         return new GroupResource($group->loadCount('members'));
     }

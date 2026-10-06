@@ -36,6 +36,7 @@ class EmailPreferencesTest extends TestCase
             'nudges' => true,
             'gift_ideas' => true,
             'new_members' => true,
+            'exchange_updates' => true,
         ]);
     }
 

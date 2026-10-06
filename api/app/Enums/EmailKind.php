@@ -14,6 +14,7 @@ enum EmailKind: string
     case Nudges = 'nudges';
     case GiftIdeas = 'gift_ideas';
     case NewMembers = 'new_members';
+    case ExchangeUpdates = 'exchange_updates';
 
     /**
      * How the switch and the emails' footers name it.
@@ -27,6 +28,7 @@ enum EmailKind: string
             self::Nudges => 'nudge',
             self::GiftIdeas => 'gift idea',
             self::NewMembers => 'new group member',
+            self::ExchangeUpdates => 'exchange date and budget',
         };
     }
 }
