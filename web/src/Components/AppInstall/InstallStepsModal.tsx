@@ -33,7 +33,7 @@ export default function InstallStepsModal({ platform, opened, onClose }: IInstal
 				</List>
 				<MantineText size="sm" c="dimmed">
 					It opens full screen like an app, with the Santa hat on your home screen.
-					{platform === "ios" && " You'll sign in once more inside the app."} If you got here from an email, open the
+					{platform === "ios" && " You'll log in once more inside the app."} If you got here from an email, open the
 					link in your phone&apos;s browser first: apps like Gmail can&apos;t add it.
 				</MantineText>
 			</Stack>

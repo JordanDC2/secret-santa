@@ -75,7 +75,7 @@ class SecretSantaAssigned extends Notification implements OptionalEmail, ShouldQ
             ->line('Keep it a secret, and happy gifting! 🎄')
             // No names in the button label: Laravel repeats it in the footer as Markdown, where a
             // crafted name would become a link. The name is shown escaped just above instead.
-            ->action('View Their Wishlist', $wishlistUrl)
+            ->action('View their wishlist', $wishlistUrl)
             ->settingsFooter(EmailKind::Assignments, $who);
     }
 

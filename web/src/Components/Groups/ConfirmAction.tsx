@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { Alert, Box, Button, Group, Stack, Text as MantineText, type ButtonProps } from "@mantine/core";
+import { Alert, Box, Button, Stack, Text as MantineText, type ButtonProps } from "@mantine/core";
+import ConfirmButtons from "Components/Common/ConfirmButtons";
 import { apiErrorMessage } from "Data/Api/Client";
 import classes from "Components/Groups/ConfirmAction.module.less";
 
@@ -15,7 +16,8 @@ type IConfirmActionProps = IConfirmState & {
 	triggerVariant?: ButtonProps["variant"];
 	prompt: ReactNode;
 	confirmLabel: string;
-	color: string;
+	/** "red" for anything that deletes, "green" otherwise. */
+	color: "red" | "green";
 	isPending: boolean;
 	error: Error | null;
 	onConfirm: (onDone: () => void) => void;
@@ -53,14 +55,13 @@ export default function ConfirmAction({
 			<Stack gap="md">
 				<MantineText size="sm">{prompt}</MantineText>
 				{error && <Alert color="red">{apiErrorMessage(error)}</Alert>}
-				<Group gap="sm">
-					<Button color={color} loading={isPending} onClick={() => onConfirm(() => onConfirmingChange(false))}>
-						{confirmLabel}
-					</Button>
-					<Button variant="subtle" color="gray" onClick={() => onConfirmingChange(false)}>
-						Cancel
-					</Button>
-				</Group>
+				<ConfirmButtons
+					confirmLabel={confirmLabel}
+					color={color === "red" ? "red" : undefined}
+					isPending={isPending}
+					onConfirm={() => onConfirm(() => onConfirmingChange(false))}
+					onCancel={() => onConfirmingChange(false)}
+				/>
 			</Stack>
 		</Box>
 	);

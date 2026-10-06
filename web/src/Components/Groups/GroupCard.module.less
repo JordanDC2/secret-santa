@@ -1,3 +1,5 @@
+@import (reference) "../../Styles/breakpoints.less";
+
 /*
  * Name on the left, Owner badge and ⋯ menu on the right. The name wraps first (zero flex-basis);
  * only when it can't get any narrower (its longest word plus the rename pencil) does the
@@ -17,28 +19,13 @@
 	margin-left: auto;
 }
 
-/* Spaced like the date & budget chips and the note, which take the same spots once added. */
-.addChipRow {
-	margin-top: var(--mantine-spacing-xs);
-}
-
-/* The owner's small "+ Add note" / "+ Add date & budget" chips. */
-.addChip {
-	cursor: pointer;
-
-	&:hover {
-		color: var(--festive-red);
-		background-color: var(--mantine-color-red-0);
-	}
-}
-
 /*
  * The assignment and chat buttons: a compact row on wider screens. On phones there's no room
  * for two across ("Reveal my assignment" alone is wider than half a card), so they stack, all
  * the same width, which reads as a deliberate menu rather than a lopsided pile.
  */
 .footerButtons {
-	@media (max-width: 36em) {
+	@media @phone {
 		flex-direction: column;
 		align-items: stretch;
 

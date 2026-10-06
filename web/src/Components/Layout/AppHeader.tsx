@@ -1,4 +1,4 @@
-import { Anchor, Button, Container, Group, Text as MantineText } from "@mantine/core";
+import { Anchor, Button, Container, Group } from "@mantine/core";
 import { Link } from "react-router-dom";
 import SantaHatIcon from "Components/Common/FestiveIcons/SantaHatIcon";
 import StockingIcon from "Components/Common/FestiveIcons/StockingIcon";
@@ -7,7 +7,7 @@ import { useAuth } from "Components/Auth/AuthContext";
 import classes from "Components/Layout/AppHeader.module.less";
 
 export default function AppHeader() {
-	const { user, logout } = useAuth();
+	const { logout } = useAuth();
 
 	return (
 		<div className={classes.header}>
@@ -29,11 +29,6 @@ export default function AppHeader() {
 							<StockingIcon size="1.3em" />
 							Account
 						</Anchor>
-						{user && (
-							<MantineText size="sm" c="gray.4" visibleFrom="sm">
-								{user.email}
-							</MantineText>
-						)}
 						<Button variant="white" color="red" size="xs" onClick={() => logout()}>
 							Log out
 						</Button>

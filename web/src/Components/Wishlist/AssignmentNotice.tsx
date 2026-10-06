@@ -65,7 +65,7 @@ export default function AssignmentNotice({ owner, myRecipients }: IAssignmentNot
 						),
 					})),
 				)}
-				. Pick something from here and claim it so nobody else buys it too.
+				.
 				{groupsWhereIDrewOwner.map(({ group }) => {
 					const details = exchangeDetails(group);
 

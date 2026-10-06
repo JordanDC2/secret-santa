@@ -1,32 +1,32 @@
-import { useState } from "react";
 import { Anchor, Alert, Button, Group, PasswordInput, Stack, Text as MantineText, TextInput } from "@mantine/core";
+import { useForm } from "@mantine/form";
 import { Link } from "react-router-dom";
 import { useAuth } from "Components/Auth/AuthContext";
-import { apiErrorMessage } from "Data/Api/Client";
+import { AUTH_FIELD_NAMES } from "Components/Auth/hooks";
+import { apiErrorMessage, apiFieldErrors } from "Data/Api/Client";
 import AuthLayout from "Components/Layout/AuthLayout";
 
 export default function LoginPage() {
 	const { login } = useAuth();
-	const [email, setEmail] = useState("");
-	const [password, setPassword] = useState("");
+	const form = useForm({ initialValues: { email: "", password: "" } });
 
-	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-		event.preventDefault();
-
-		login.mutate({ email, password });
+	function handleSubmit(values: typeof form.values) {
+		login.mutate(values, { onError: (error) => form.setErrors(apiFieldErrors(error, AUTH_FIELD_NAMES)) });
 	}
 
 	return (
-		<AuthLayout subtitle="Ho ho ho! Sign in to find out who needs a gift.">
-			<form onSubmit={handleSubmit}>
+		<AuthLayout subtitle="Ho ho ho! Log in to find out who needs a gift.">
+			<form onSubmit={form.onSubmit(handleSubmit)}>
 				<Stack>
-					{login.isError && <Alert color="red">{apiErrorMessage(login.error)}</Alert>}
-					<TextInput label="Email" value={email} onChange={(event) => setEmail(event.currentTarget.value)} required />
+					{login.isError && Object.keys(form.errors).length === 0 && (
+						<Alert color="red">{apiErrorMessage(login.error)}</Alert>
+					)}
+					<TextInput label="Email" type="email" autoComplete="email" required {...form.getInputProps("email")} />
 					<PasswordInput
 						label="Password"
-						value={password}
-						onChange={(event) => setPassword(event.currentTarget.value)}
+						autoComplete="current-password"
 						required
+						{...form.getInputProps("password")}
 					/>
 					<Group justify="flex-end">
 						<Anchor component={Link} to="/forgot-password" size="sm">

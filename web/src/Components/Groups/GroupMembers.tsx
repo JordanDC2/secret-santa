@@ -1,10 +1,10 @@
-import { Anchor, Badge, Group, Text as MantineText } from "@mantine/core";
+import { Anchor, Group, Text as MantineText } from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChild, faPaw } from "@fortawesome/free-solid-svg-icons";
 import { Link } from "react-router-dom";
 import { useAuth } from "Components/Auth/AuthContext";
+import AddChip from "Components/Common/AddChip";
 import type { IGroup, IGroupMember } from "Components/Groups/types";
-import classes from "Components/Groups/GroupCard.module.less";
 
 type IGroupMembersProps = {
 	members: IGroup["members"];
@@ -34,19 +34,7 @@ export default function GroupMembers({ members, onManageKids }: IGroupMembersPro
 					{member.id === user?.id ? "You" : member.name}
 				</Anchor>
 			))}
-			{onManageKids && (
-				<Badge
-					component="button"
-					type="button"
-					variant="light"
-					color="gray"
-					tt="none"
-					className={classes.addChip}
-					onClick={onManageKids}
-				>
-					+ Kids &amp; pets
-				</Badge>
-			)}
+			{onManageKids && <AddChip onClick={onManageKids}>Kids &amp; pets</AddChip>}
 		</Group>
 	);
 }

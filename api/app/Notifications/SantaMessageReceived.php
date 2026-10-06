@@ -69,7 +69,7 @@ class SantaMessageReceived extends Notification implements OptionalEmail, Should
 
         return $message
             ->line("I'll only email about the first new message, so open the app to keep up with any more.")
-            ->action('Open the Conversation', config('app.frontend_url')."/?group={$this->groupId}&chat={$side}".($this->asProfileId ? "&as={$this->asProfileId}" : ''))
+            ->action('Open the conversation', config('app.frontend_url')."/?group={$this->groupId}&chat={$side}".($this->asProfileId ? "&as={$this->asProfileId}" : ''))
             ->settingsFooter(EmailKind::SantaChat, $who);
     }
 }

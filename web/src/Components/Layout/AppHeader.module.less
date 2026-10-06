@@ -1,3 +1,5 @@
+@import (reference) "../../Styles/breakpoints.less";
+
 .header {
 	background: linear-gradient(90deg, var(--festive-darkest) 0%, var(--festive-dark-green) 100%);
 	/* Installed on an iPhone, the page runs under the status bar (clock, battery); zero elsewhere. */
@@ -6,7 +8,7 @@
 
 .title {
 	font-family: var(--festive-font);
-	font-size: 1.75rem;
+	font-size: var(--festive-title-header);
 	color: var(--festive-white);
 	display: inline-flex;
 	align-items: center;
@@ -17,8 +19,6 @@
 .header .homeLink {
 	&:hover,
 	&:focus-visible {
-		background-color: transparent;
-		box-shadow: none;
 		opacity: 0.85;
 	}
 }
@@ -35,7 +35,7 @@
 
 	/* Narrow phones (e.g. a Galaxy Z Fold's 344px cover screen): tighter pills keep the
 	   nav and "Log out" on one row. 36em is Mantine's xs breakpoint. */
-	@media (max-width: 36em) {
+	@media @phone {
 		padding: 4px 6px;
 		gap: 4px;
 	}
@@ -44,6 +44,5 @@
 	&:focus-visible {
 		color: var(--festive-white);
 		background-color: rgba(255, 255, 255, 0.14);
-		box-shadow: none;
 	}
 }

@@ -1,16 +1,9 @@
-import {
-	Accordion,
-	Alert,
-	Button,
-	Container,
-	Group,
-	NumberInput,
-	Stack,
-	Text as MantineText,
-	Title,
-} from "@mantine/core";
+import { Accordion, Alert, Button, Group, NumberInput, Stack, Text as MantineText, Title } from "@mantine/core";
+import Page from "Components/Layout/Page";
+import LoadingText from "Components/Common/LoadingText";
 import { useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
+import ConfirmButtons from "Components/Common/ConfirmButtons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
 	faBell,
@@ -94,17 +87,14 @@ function MemberWishlist({ userId }: { userId: number }) {
 						Remove this gift idea?{othersClaimed && " Someone's already getting it."}
 						{!item.suggestion?.mine && item.suggestion?.by && ` ${item.suggestion.by} will get an email.`}
 					</MantineText>
-					<Button
+					<ConfirmButtons
 						size="xs"
+						confirmLabel="Remove"
 						color="red"
-						loading={deleteSuggestion.isPending}
-						onClick={() => deleteSuggestion.mutate(item.id, { onSuccess: () => setConfirmingDeleteId(null) })}
-					>
-						Remove
-					</Button>
-					<Button size="xs" variant="subtle" color="gray" onClick={() => setConfirmingDeleteId(null)}>
-						Cancel
-					</Button>
+						isPending={deleteSuggestion.isPending}
+						onConfirm={() => deleteSuggestion.mutate(item.id, { onSuccess: () => setConfirmingDeleteId(null) })}
+						onCancel={() => setConfirmingDeleteId(null)}
+					/>
 				</>
 			);
 		}
@@ -163,12 +153,13 @@ function MemberWishlist({ userId }: { userId: number }) {
 			return (
 				<>
 					<MantineText size="sm">This isn&apos;t your Secret Santa person. Claim anyway?</MantineText>
-					<Button size="xs" loading={isThisItem} onClick={() => claimItem(item.id, confirmingClaim.quantity)}>
-						Yes, I&apos;m getting {item.quantity === 1 ? "this" : confirmingClaim.quantity}
-					</Button>
-					<Button size="xs" variant="subtle" color="gray" onClick={() => setConfirmingClaim(null)}>
-						Cancel
-					</Button>
+					<ConfirmButtons
+						size="xs"
+						confirmLabel={<>Yes, I&apos;m getting {item.quantity === 1 ? "this" : confirmingClaim.quantity}</>}
+						isPending={isThisItem}
+						onConfirm={() => claimItem(item.id, confirmingClaim.quantity)}
+						onCancel={() => setConfirmingClaim(null)}
+					/>
 				</>
 			);
 		}
@@ -272,12 +263,12 @@ function MemberWishlist({ userId }: { userId: number }) {
 	}
 
 	return (
-		<Container my={40}>
+		<Page>
 			{liveUpdatesEnabled() && <WishlistLiveUpdates ownerId={userId} />}
 			<Stack gap="lg">
 				<BackToGroups />
 
-				{wishlistQuery.isPending && <MantineText c="dimmed">Loading wishlist...</MantineText>}
+				{wishlistQuery.isPending && <LoadingText>Loading wishlist...</LoadingText>}
 
 				{wishlistQuery.isError && <Alert color="red">{apiErrorMessage(wishlistQuery.error)}</Alert>}
 
@@ -331,7 +322,9 @@ function MemberWishlist({ userId }: { userId: number }) {
 						<Stack gap="sm" mt="md">
 							<Group justify="space-between" align="flex-end" gap="sm">
 								<div>
-									<Title order={3}>Gift ideas from the group</Title>
+									<Title order={2} size="h3">
+										Gift ideas from the group
+									</Title>
 									<MantineText size="sm" c="dimmed">
 										{wishlistQuery.data.user.firstName} can&apos;t see these. Know something they&apos;d love?
 									</MantineText>
@@ -388,6 +381,6 @@ function MemberWishlist({ userId }: { userId: number }) {
 					</>
 				)}
 			</Stack>
-		</Container>
+		</Page>
 	);
 }

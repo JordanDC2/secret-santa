@@ -10,6 +10,7 @@ import {
 	Text as MantineText,
 	TextInput,
 } from "@mantine/core";
+import ConfirmButtons from "Components/Common/ConfirmButtons";
 import { exchangeDateRange } from "Components/Groups/exchange";
 import { useUpdateGroupMutation } from "Components/Groups/hooks";
 import type { IGroup } from "Components/Groups/types";
@@ -43,13 +44,15 @@ export default function ExchangeDetailsModal({ group, opened, onClose }: IExchan
 	const isRange = budgetKind === "range";
 	// Worked out once per opening (the modal mounts fresh each time).
 	const [dateRange] = useState(() => exchangeDateRange(group.exchangeDate));
+	// "Clear both" asks first: it throws away what the owner typed.
+	const [confirmingClear, setConfirmingClear] = useState(false);
 
 	function save(changes: { exchange_date: string | null; budget_min: number | null; budget_max: number | null }) {
 		updateGroup.mutate({ groupId: group.id, changes }, { onSuccess: onClose });
 	}
 
 	return (
-		<Modal opened={opened} onClose={onClose} title="Exchange date & budget" centered>
+		<Modal opened={opened} onClose={onClose} title={`Exchange date & budget for ${group.name}`} centered>
 			<form
 				onSubmit={(event) => {
 					event.preventDefault();
@@ -61,6 +64,9 @@ export default function ExchangeDetailsModal({ group, opened, onClose }: IExchan
 				}}
 			>
 				<Stack>
+					{updateGroup.isError && Object.keys(fieldErrors).length === 0 && (
+						<Alert color="red">{apiErrorMessage(updateGroup.error)}</Alert>
+					)}
 					<TextInput
 						type="date"
 						label="Exchange date"
@@ -115,28 +121,30 @@ export default function ExchangeDetailsModal({ group, opened, onClose }: IExchan
 						</Group>
 					</Stack>
 
-					{updateGroup.isError && Object.keys(fieldErrors).length === 0 && (
-						<Alert color="red">{apiErrorMessage(updateGroup.error)}</Alert>
-					)}
-
-					<Group justify="space-between">
-						<Button
-							variant="subtle"
-							color="red"
-							disabled={!group.exchangeDate && !group.budget}
-							onClick={() => save({ exchange_date: null, budget_min: null, budget_max: null })}
-						>
-							Clear both
-						</Button>
-						<Group gap="sm">
-							<Button variant="subtle" color="gray" onClick={onClose}>
-								Cancel
-							</Button>
-							<Button type="submit" loading={updateGroup.isPending}>
-								Save
-							</Button>
+					{confirmingClear ? (
+						<Group justify="space-between" gap="xs">
+							<MantineText size="sm">Clear the exchange date and budget?</MantineText>
+							<ConfirmButtons
+								confirmLabel="Clear both"
+								color="red"
+								isPending={updateGroup.isPending}
+								onConfirm={() => save({ exchange_date: null, budget_min: null, budget_max: null })}
+								onCancel={() => setConfirmingClear(false)}
+							/>
 						</Group>
-					</Group>
+					) : (
+						<Group justify="space-between">
+							<Button
+								variant="subtle"
+								color="red"
+								disabled={!group.exchangeDate && !group.budget}
+								onClick={() => setConfirmingClear(true)}
+							>
+								Clear both
+							</Button>
+							<ConfirmButtons confirmLabel="Save" isPending={updateGroup.isPending} onCancel={onClose} />
+						</Group>
+					)}
 				</Stack>
 			</form>
 		</Modal>

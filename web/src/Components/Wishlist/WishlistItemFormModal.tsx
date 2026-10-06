@@ -12,6 +12,7 @@ import {
 	Textarea,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import ConfirmButtons from "Components/Common/ConfirmButtons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -207,18 +208,12 @@ export default function WishlistItemFormModal({
 							/>
 						</Input.Wrapper>
 					)}
-					<Group justify="flex-end">
-						<Button variant="subtle" color="gray" onClick={onClose}>
-							Cancel
-						</Button>
-						<Button
-							type="submit"
-							loading={saveItem.isPending}
-							leftSection={item ? undefined : <FontAwesomeIcon icon={faPlus} />}
-						>
-							{item ? "Save" : suggestionFor ? "Add idea" : "Add item"}
-						</Button>
-					</Group>
+					<ConfirmButtons
+						confirmLabel={item ? "Save" : suggestionFor ? "Add idea" : "Add item"}
+						confirmIcon={item ? undefined : <FontAwesomeIcon icon={faPlus} />}
+						isPending={saveItem.isPending}
+						onCancel={onClose}
+					/>
 				</Stack>
 			</form>
 		</Modal>

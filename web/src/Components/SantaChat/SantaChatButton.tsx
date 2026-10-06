@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
-import { Badge, Button, type ButtonProps } from "@mantine/core";
+import { Button, type ButtonProps } from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faComments, type IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import UnreadBadge from "Components/SantaChat/UnreadBadge";
 
 type ISantaChatButtonProps = ButtonProps & {
 	unread: number;
@@ -25,13 +26,7 @@ export default function SantaChatButton({
 			leftSection={<FontAwesomeIcon icon={icon} />}
 			onClick={onClick}
 			{...buttonProps}
-			rightSection={
-				unread > 0 ? (
-					<Badge size="sm" circle color="red" aria-label={`${unread} unread`}>
-						{unread}
-					</Badge>
-				) : undefined
-			}
+			rightSection={unread > 0 ? <UnreadBadge count={unread} /> : undefined}
 		>
 			{children}
 		</Button>

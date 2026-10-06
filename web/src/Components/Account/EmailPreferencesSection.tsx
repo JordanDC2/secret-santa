@@ -1,4 +1,6 @@
-import { Alert, Card, Stack, Switch, Title } from "@mantine/core";
+import { Alert, Stack, Switch } from "@mantine/core";
+import LoadingText from "Components/Common/LoadingText";
+import SectionCard from "Components/Common/SectionCard";
 import { useEmailPreferencesQuery, useUpdateEmailPreferenceMutation } from "Components/Account/hooks";
 import type { IEmailKind } from "Components/Account/types";
 import { apiErrorMessage } from "Data/Api/Client";
@@ -47,17 +49,10 @@ export default function EmailPreferencesSection() {
 	const updatePreference = useUpdateEmailPreferenceMutation();
 
 	return (
-		<Card withBorder padding="lg" radius="md">
-			<Title order={4} mb="md">
-				Email notifications
-			</Title>
-
+		<SectionCard title="Email notifications">
+			{preferencesQuery.isPending && <LoadingText>Loading your email settings...</LoadingText>}
 			{preferencesQuery.isError && <Alert color="red">{apiErrorMessage(preferencesQuery.error)}</Alert>}
-			{updatePreference.isError && (
-				<Alert color="red" mb="md">
-					{apiErrorMessage(updatePreference.error)}
-				</Alert>
-			)}
+			{updatePreference.isError && <Alert color="red">{apiErrorMessage(updatePreference.error)}</Alert>}
 
 			{preferencesQuery.data && (
 				<Stack gap="md">
@@ -72,6 +67,6 @@ export default function EmailPreferencesSection() {
 					))}
 				</Stack>
 			)}
-		</Card>
+		</SectionCard>
 	);
 }

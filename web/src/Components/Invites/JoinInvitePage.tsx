@@ -117,11 +117,11 @@ export default function JoinInvitePage() {
 					{preview.ownerName} invited you to join <strong>{preview.groupName}</strong>
 				</MantineText>
 				<MantineText ta="center" size="sm" c="dimmed">
-					{preview.membersCount} {preview.membersCount === 1 ? "person is" : "people are"} in it so far. Sign up or log
-					in, and you&apos;ll join it straight away.
+					{preview.membersCount} {preview.membersCount === 1 ? "person is" : "people are"} in it so far. Create an
+					account or log in, and you&apos;ll join it straight away.
 				</MantineText>
 				<Button component={Link} to="/register" onClick={() => rememberPendingInvite(code)}>
-					Create an account
+					Create account
 				</Button>
 				<Button component={Link} to="/login" variant="secondary" onClick={() => rememberPendingInvite(code)}>
 					I already have an account

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Alert, Card, Container, SimpleGrid, Stack, Title } from "@mantine/core";
+import { Alert, SimpleGrid, Stack, Title } from "@mantine/core";
+import Page from "Components/Layout/Page";
 import { useLocation } from "react-router-dom";
 import InstallAppTip from "Components/AppInstall/InstallAppTip";
 import type { IInviteNotice } from "Components/Invites/types";
@@ -12,7 +13,7 @@ import JoinGroupForm from "Components/Groups/JoinGroupForm";
 import GroupList from "Components/Groups/GroupList";
 import CandyCaneDivider from "Components/Layout/CandyCaneDivider";
 import PageTitle from "Components/Layout/PageTitle";
-import classes from "Components/Dashboard/DashboardPage.module.less";
+import SectionCard from "Components/Common/SectionCard";
 
 export default function DashboardPage() {
 	const { user } = useAuth();
@@ -23,7 +24,7 @@ export default function DashboardPage() {
 	);
 
 	return (
-		<Container my={40}>
+		<Page>
 			<Stack gap="xl">
 				<PageTitle icon={<ChristmasTreeIcon />}>Welcome{user ? `, ${user.firstName}` : ""}!</PageTitle>
 				{inviteNotice && (
@@ -34,29 +35,23 @@ export default function DashboardPage() {
 				<InstallAppTip />
 
 				<Stack>
-					<Title order={3}>Your groups</Title>
+					<Title order={2} size="h3">
+						Your groups
+					</Title>
 					<GroupList />
 				</Stack>
 
 				<CandyCaneDivider />
 
 				<SimpleGrid cols={{ base: 1, sm: 2 }}>
-					<Card withBorder padding="lg" radius="md">
-						<Title order={4} mb="sm" className={classes.cardTitle}>
-							<HollyIcon size="1.5em" />
-							Create a group
-						</Title>
+					<SectionCard title="Create a group" icon={<HollyIcon size="1.5em" />}>
 						<CreateGroupForm />
-					</Card>
-					<Card withBorder padding="lg" radius="md">
-						<Title order={4} mb="sm" className={classes.cardTitle}>
-							<WreathIcon size="1.5em" />
-							Join a group
-						</Title>
+					</SectionCard>
+					<SectionCard title="Join a group" icon={<WreathIcon size="1.5em" />}>
 						<JoinGroupForm />
-					</Card>
+					</SectionCard>
 				</SimpleGrid>
 			</Stack>
-		</Container>
+		</Page>
 	);
 }

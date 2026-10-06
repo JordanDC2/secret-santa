@@ -42,6 +42,6 @@ class ProfileShared extends Notification implements ShouldQueue
             ->line("{$sharer} added you as someone who looks after **{$profile}**".($this->isPet ? ' 🐾' : '').'.')
             ->line("You can now keep {$profile}'s wishlist (and see what's been claimed on it), and handle {$profile}'s draws and Santa chats. You'll find {$profile} under Kids & pets on your Account page.")
             // No names in the button label: Laravel repeats it in the footer as Markdown.
-            ->action('Open Their Wishlist', config('app.frontend_url')."/wishlist?for={$this->profileId}");
+            ->action('Open their wishlist', config('app.frontend_url')."/wishlist?for={$this->profileId}");
     }
 }

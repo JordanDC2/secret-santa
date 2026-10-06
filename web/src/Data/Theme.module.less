@@ -1,9 +1,4 @@
 /*
- * App-wide link style: no underline. Hovering paints a soft highlight behind the
- * text instead. box-shadow extends the highlight past the text without padding,
- * so links inside sentences don't shift the surrounding layout.
- */
-/*
  * The "secondary" button variant (gold ribbon): borderless, so it reads as a modern tinted
  * button rather than an outlined one. Set through Mantine's own button variables so loading,
  * disabled and focus states keep working.
@@ -27,17 +22,15 @@
 	color: var(--festive-darkest);
 }
 
+/*
+ * App-wide link style: no underline; hovering just darkens the text (red-9, 1.9:1 against
+ * the normal red so the change shows, and 10:1 on cream).
+ */
 .anchor {
-	border-radius: var(--mantine-radius-xs);
-	transition:
-		background-color 120ms ease,
-		box-shadow 120ms ease,
-		color 120ms ease;
+	transition: color 120ms ease;
 
 	&:hover,
 	&:focus-visible {
 		color: var(--mantine-color-red-9);
-		background-color: var(--mantine-color-red-0);
-		box-shadow: 0 0 0 3px var(--mantine-color-red-0);
 	}
 }

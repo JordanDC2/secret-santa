@@ -50,7 +50,7 @@ export default function InstallAppTip() {
 			>
 				<MantineText size="sm">
 					Open it with one tap, full screen like an app.
-					{platform === "ios" && " You'll sign in once more inside the app."}
+					{platform === "ios" && " You'll log in once more inside the app."}
 				</MantineText>
 				<Group mt="sm">
 					<Button size="xs" onClick={() => (promptAvailable ? void showInstallPrompt() : setStepsOpen(true))}>

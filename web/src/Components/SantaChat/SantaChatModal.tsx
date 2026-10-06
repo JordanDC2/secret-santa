@@ -1,5 +1,6 @@
 import { useEffect, useState, type KeyboardEvent } from "react";
 import { Alert, Button, Group, Modal, Stack, Text as MantineText, Textarea } from "@mantine/core";
+import LoadingText from "Components/Common/LoadingText";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPaperPlane } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -87,7 +88,7 @@ export default function SantaChatModal({ target, opened, onClose }: ISantaChatMo
 
 				{threadQuery.isError && <Alert color="red">{apiErrorMessage(threadQuery.error)}</Alert>}
 
-				{threadQuery.isPending && <MantineText c="dimmed">Loading messages...</MantineText>}
+				{threadQuery.isPending && <LoadingText>Loading messages...</LoadingText>}
 				{threadQuery.isSuccess && (
 					<SantaChatThread
 						messages={messages}

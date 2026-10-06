@@ -1,4 +1,5 @@
-import { Alert, Button, Card, Group, PasswordInput, Stack, Title } from "@mantine/core";
+import { Alert, Button, Group, PasswordInput, Stack } from "@mantine/core";
+import SectionCard from "Components/Common/SectionCard";
 import { useForm } from "@mantine/form";
 import { ACCOUNT_FIELD_NAMES, useUpdatePasswordMutation } from "Components/Account/hooks";
 import { apiErrorMessage, apiFieldErrors } from "Data/Api/Client";
@@ -17,10 +18,7 @@ export default function PasswordSection() {
 	}
 
 	return (
-		<Card withBorder padding="lg" radius="md">
-			<Title order={4} mb="md">
-				Password
-			</Title>
+		<SectionCard title="Password">
 			<form onSubmit={form.onSubmit(handleSubmit)}>
 				<Stack>
 					{updatePassword.isSuccess && !form.isDirty() && <Alert color="green">Password updated.</Alert>}
@@ -37,6 +35,6 @@ export default function PasswordSection() {
 					</Group>
 				</Stack>
 			</form>
-		</Card>
+		</SectionCard>
 	);
 }

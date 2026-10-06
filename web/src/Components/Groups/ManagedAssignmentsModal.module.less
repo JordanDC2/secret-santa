@@ -1,3 +1,5 @@
+@import (reference) "../../Styles/breakpoints.less";
+
 .row {
 	background-color: var(--festive-cream);
 }
@@ -10,7 +12,7 @@
 /* Like the card's buttons: a row on wider screens; on phones, stacked at one shared width
    rather than a lopsided wrap (two across doesn't fit "Message Biscuit's Santa"). */
 .buttons {
-	@media (max-width: 36em) {
+	@media @phone {
 		flex-direction: column;
 		align-items: stretch;
 

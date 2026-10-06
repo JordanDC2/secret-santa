@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Accordion, Button, Container, Group, Stack, Text as MantineText } from "@mantine/core";
+import { Accordion, Alert, Button, Group, Stack, Text as MantineText } from "@mantine/core";
+import Page from "Components/Layout/Page";
+import LoadingText from "Components/Common/LoadingText";
 import { useSearchParams } from "react-router-dom";
+import ConfirmButtons from "Components/Common/ConfirmButtons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPenToSquare, faTrashCan } from "@fortawesome/free-regular-svg-icons";
-import { faCheck, faPlus, faRotateLeft } from "@fortawesome/free-solid-svg-icons";
+import { faCheck, faPenToSquare, faPlus, faRotateLeft, faTrashCan } from "@fortawesome/free-solid-svg-icons";
 import WishListIcon from "Components/Common/FestiveIcons/WishListIcon";
 import { useManagedProfilesQuery } from "Components/ManagedProfiles/hooks";
 import WishlistOwnerSelect from "Components/ManagedProfiles/WishlistOwnerSelect";
@@ -49,10 +51,16 @@ export default function MyWishlistPage() {
 	}
 
 	return (
-		<Container my={40}>
+		<Page>
 			{profile && liveUpdatesEnabled() && <WishlistLiveUpdates ownerId={profile.id} />}
 			<Stack gap="lg">
 				<BackToGroups />
+				<Group justify="space-between">
+					<PageTitle icon={<WishListIcon />}>{profile ? `${profile.name}'s wishlist` : "My wishlist"}</PageTitle>
+					<Button leftSection={<FontAwesomeIcon icon={faPlus} />} onClick={() => openModal(null)}>
+						Add item
+					</Button>
+				</Group>
 				{profiles.length > 0 && (
 					<WishlistOwnerSelect
 						profiles={profiles}
@@ -60,31 +68,25 @@ export default function MyWishlistPage() {
 						onChange={(profileId) => setSearchParams(profileId === null ? {} : { for: String(profileId) })}
 					/>
 				)}
-				<Group justify="space-between">
-					<PageTitle icon={<WishListIcon />}>{profile ? `${profile.name}'s wishlist` : "My wishlist"}</PageTitle>
-					<Button leftSection={<FontAwesomeIcon icon={faPlus} />} onClick={() => openModal(null)}>
-						Add item
-					</Button>
-				</Group>
 				<MantineText c="dimmed">
 					{profile
-						? `Everyone in ${profile.name}'s groups can see this list. Since you look after it, you can see what's been claimed.`
-						: "Everyone in your groups can see this list. Don't worry, you'll never see what's been claimed."}
+						? `Everyone in ${profile.name}'s groups can see this wishlist. Since you look after it, you can see what's been claimed.`
+						: "Everyone in your groups can see this wishlist. Don't worry, you'll never see what's been claimed."}
 				</MantineText>
 
-				{wishlistQuery.isPending && <MantineText c="dimmed">Loading your wishlist...</MantineText>}
+				{wishlistQuery.isPending && <LoadingText>Loading your wishlist...</LoadingText>}
 
-				{wishlistQuery.isError && <MantineText c="red">{apiErrorMessage(wishlistQuery.error)}</MantineText>}
+				{wishlistQuery.isError && <Alert color="red">{apiErrorMessage(wishlistQuery.error)}</Alert>}
 
 				{wishlistQuery.isSuccess && items.length === 0 && (
 					<MantineText c="dimmed">
 						{profile
-							? `${profile.name}'s list is empty. Add a few things so their Secret Santa isn't guessing!`
-							: "Your list is empty. Add a few things so your Secret Santa isn't guessing!"}
+							? `${profile.name}'s wishlist is empty. Add a few things so their Secret Santa isn't guessing!`
+							: "Your wishlist is empty. Add a few things so your Secret Santa isn't guessing!"}
 					</MantineText>
 				)}
 
-				{setReceived.isError && <MantineText c="red">{apiErrorMessage(setReceived.error)}</MantineText>}
+				{setReceived.isError && <Alert color="red">{apiErrorMessage(setReceived.error)}</Alert>}
 
 				{wishlistQuery.isSuccess && items.length > 0 && (
 					<Accordion variant="contained" radius="md" multiple className={classes.list}>
@@ -97,19 +99,16 @@ export default function MyWishlistPage() {
 									confirmingDeleteId === item.id ? (
 										<>
 											<MantineText size="sm">
-												Remove this from {profile ? `${profile.name}'s` : "your"} list?
+												Remove this from {profile ? `${profile.name}'s` : "your"} wishlist?
 											</MantineText>
-											<Button
+											<ConfirmButtons
 												size="xs"
+												confirmLabel="Remove"
 												color="red"
-												loading={deleteItem.isPending}
-												onClick={() => deleteItem.mutate(item.id, { onSuccess: () => setConfirmingDeleteId(null) })}
-											>
-												Remove
-											</Button>
-											<Button size="xs" variant="subtle" color="gray" onClick={() => setConfirmingDeleteId(null)}>
-												Cancel
-											</Button>
+												isPending={deleteItem.isPending}
+												onConfirm={() => deleteItem.mutate(item.id, { onSuccess: () => setConfirmingDeleteId(null) })}
+												onCancel={() => setConfirmingDeleteId(null)}
+											/>
 										</>
 									) : (
 										<>
@@ -193,6 +192,6 @@ export default function MyWishlistPage() {
 				managedFor={profile ? { id: profile.id, name: profile.name } : undefined}
 				onClose={() => setModal((current) => ({ ...current, opened: false }))}
 			/>
-		</Container>
+		</Page>
 	);
 }

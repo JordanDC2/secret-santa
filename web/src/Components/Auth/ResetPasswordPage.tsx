@@ -1,8 +1,8 @@
-import { useState } from "react";
 import { Anchor, Alert, Button, PasswordInput, Stack, Text as MantineText } from "@mantine/core";
+import { useForm } from "@mantine/form";
 import { Link, useSearchParams } from "react-router-dom";
-import { useResetPasswordMutation } from "Components/Auth/hooks";
-import { apiErrorMessage } from "Data/Api/Client";
+import { AUTH_FIELD_NAMES, useResetPasswordMutation } from "Components/Auth/hooks";
+import { apiErrorMessage, apiFieldErrors } from "Data/Api/Client";
 import AuthLayout from "Components/Layout/AuthLayout";
 
 export default function ResetPasswordPage() {
@@ -10,14 +10,14 @@ export default function ResetPasswordPage() {
 	const token = searchParams.get("token");
 	const email = searchParams.get("email");
 	const resetPassword = useResetPasswordMutation();
-	const [password, setPassword] = useState("");
-	const [passwordConfirmation, setPasswordConfirmation] = useState("");
+	const form = useForm({ initialValues: { password: "", passwordConfirmation: "" } });
 
-	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-		event.preventDefault();
-
+	function handleSubmit(values: typeof form.values) {
 		if (token && email) {
-			resetPassword.mutate({ token, email, password, passwordConfirmation });
+			resetPassword.mutate(
+				{ token, email, ...values },
+				{ onError: (error) => form.setErrors(apiFieldErrors(error, AUTH_FIELD_NAMES)) },
+			);
 		}
 	}
 
@@ -52,20 +52,23 @@ export default function ResetPasswordPage() {
 
 	return (
 		<AuthLayout subtitle={`Choose a new password for ${email}`}>
-			<form onSubmit={handleSubmit}>
+			<form onSubmit={form.onSubmit(handleSubmit)}>
 				<Stack>
-					{resetPassword.isError && <Alert color="red">{apiErrorMessage(resetPassword.error)}</Alert>}
+					{/* An expired or wrong link is reported against email or token, which have no field here. */}
+					{resetPassword.isError && !form.errors.password && !form.errors.passwordConfirmation && (
+						<Alert color="red">{apiErrorMessage(resetPassword.error)}</Alert>
+					)}
 					<PasswordInput
 						label="New password"
-						value={password}
-						onChange={(event) => setPassword(event.currentTarget.value)}
+						autoComplete="new-password"
 						required
+						{...form.getInputProps("password")}
 					/>
 					<PasswordInput
 						label="Confirm new password"
-						value={passwordConfirmation}
-						onChange={(event) => setPasswordConfirmation(event.currentTarget.value)}
+						autoComplete="new-password"
 						required
+						{...form.getInputProps("passwordConfirmation")}
 					/>
 					<Button type="submit" loading={resetPassword.isPending}>
 						Reset password

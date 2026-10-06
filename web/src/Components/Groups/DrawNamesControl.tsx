@@ -24,7 +24,7 @@ export default function DrawNamesControl({
 		return (
 			<Group gap="sm">
 				<Button color="green" disabled leftSection={<FontAwesomeIcon icon={faShuffle} />}>
-					Draw Names
+					Draw names
 				</Button>
 				<MantineText size="sm" c="dimmed">
 					Invite at least one more person to draw names.
@@ -36,7 +36,7 @@ export default function DrawNamesControl({
 	return (
 		<ConfirmAction
 			{...confirmState}
-			triggerLabel="Draw Names"
+			triggerLabel="Draw names"
 			triggerLeftSection={<FontAwesomeIcon icon={faShuffle} />}
 			prompt={
 				<Stack gap="sm">

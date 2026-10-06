@@ -20,7 +20,7 @@ export default function GroupKidsModal({ group, opened, onClose }: IGroupKidsMod
 	const memberIds = new Set(group.members.map((member) => member.id));
 
 	return (
-		<Modal opened={opened} onClose={onClose} title={`Kids & pets in ${group.name}`} centered>
+		<Modal opened={opened} onClose={onClose} title={`Choose kids & pets for ${group.name}`} centered>
 			<Stack>
 				<MantineText size="sm" c="dimmed">
 					They&apos;ll be in the draw like everyone else: someone shops for them, and you shop for whoever they get.

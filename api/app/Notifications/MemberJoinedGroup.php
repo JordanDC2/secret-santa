@@ -47,7 +47,7 @@ class MemberJoinedGroup extends Notification implements OptionalEmail, ShouldQue
             ->greeting('Hi '.ElfMailMessage::plain($notifiable->first_name).'!')
             ->line("**{$memberName}** just joined **{$groupName}** with your invite code.")
             ->line("That makes {$this->membersCount} members on the list so far.")
-            ->action('View Your Groups', config('app.frontend_url').'/')
+            ->action('View your groups', config('app.frontend_url').'/')
             ->settingsFooter(EmailKind::NewMembers);
     }
 }

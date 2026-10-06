@@ -1,4 +1,5 @@
-import { Container, Stack } from "@mantine/core";
+import { Stack } from "@mantine/core";
+import Page from "Components/Layout/Page";
 import StockingIcon from "Components/Common/FestiveIcons/StockingIcon";
 import DeleteAccountSection from "Components/Account/DeleteAccountSection";
 import EmailPreferencesSection from "Components/Account/EmailPreferencesSection";
@@ -17,7 +18,7 @@ export default function AccountPage() {
 	}
 
 	return (
-		<Container size="sm" my={40}>
+		<Page size="sm">
 			<Stack gap="lg">
 				<BackToGroups />
 				<PageTitle icon={<StockingIcon />}>Your account</PageTitle>
@@ -27,6 +28,6 @@ export default function AccountPage() {
 				<EmailPreferencesSection />
 				<DeleteAccountSection />
 			</Stack>
-		</Container>
+		</Page>
 	);
 }

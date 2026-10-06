@@ -13,8 +13,10 @@ import {
 	Text as MantineText,
 	Tooltip,
 } from "@mantine/core";
+import LoadingText from "Components/Common/LoadingText";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTrashCan } from "@fortawesome/free-regular-svg-icons";
+import { faArrowRight, faArrowRightArrowLeft, faPlus, faTrashCan } from "@fortawesome/free-solid-svg-icons";
+import ConfirmButtons from "Components/Common/ConfirmButtons";
 import { useAddExclusionMutation, useExclusionsQuery, useRemoveExclusionMutation } from "Components/Groups/hooks";
 import type { IGroup, IGroupExclusion } from "Components/Groups/types";
 import { apiErrorMessage, apiFieldErrors } from "Data/Api/Client";
@@ -42,32 +44,46 @@ function ExclusionRow({
 	sittingOut: string[];
 }) {
 	const removeExclusion = useRemoveExclusionMutation(groupId);
+	const [confirming, setConfirming] = useState(false);
 	const { giver, receiver, mutual } = exclusion;
 
 	return (
 		<Paper withBorder radius="md" px="md" py="xs" opacity={sittingOut.length > 0 ? 0.6 : 1}>
 			<Group justify="space-between" wrap="nowrap">
 				<div>
-					<MantineText fw={600}>
-						{giver.name} {mutual ? "↔" : "→"} {receiver.name}
-					</MantineText>
+					<Group gap="xs" wrap="nowrap">
+						<MantineText fw={600}>{giver.name}</MantineText>
+						<FontAwesomeIcon icon={mutual ? faArrowRightArrowLeft : faArrowRight} />
+						<MantineText fw={600}>{receiver.name}</MantineText>
+					</Group>
 					<MantineText size="sm" c="dimmed">
 						{sittingOut.length > 0
 							? `Not used this draw: ${sittingOut.join(" and ")} ${sittingOut.length === 1 ? "is" : "are"} sitting it out.`
 							: describe(giver.name, receiver.name, mutual)}
 					</MantineText>
 				</div>
-				<Tooltip label="Remove" withArrow>
-					<ActionIcon
-						variant="subtle"
+				{confirming ? (
+					<ConfirmButtons
+						size="xs"
+						confirmLabel="Remove"
 						color="red"
-						aria-label={`Remove exclusion between ${giver.name} and ${receiver.name}`}
-						loading={removeExclusion.isPending}
-						onClick={() => removeExclusion.mutate(exclusion.id)}
-					>
-						<FontAwesomeIcon icon={faTrashCan} />
-					</ActionIcon>
-				</Tooltip>
+						isPending={removeExclusion.isPending}
+						onConfirm={() => removeExclusion.mutate(exclusion.id)}
+						onCancel={() => setConfirming(false)}
+					/>
+				) : (
+					<Tooltip label="Remove" withArrow>
+						<ActionIcon
+							size="input-xs"
+							variant="subtle"
+							color="red"
+							aria-label={`Remove exclusion between ${giver.name} and ${receiver.name}`}
+							onClick={() => setConfirming(true)}
+						>
+							<FontAwesomeIcon icon={faTrashCan} />
+						</ActionIcon>
+					</Tooltip>
+				)}
 			</Group>
 		</Paper>
 	);
@@ -88,7 +104,8 @@ export default function ExclusionsModal({ group, opened, onClose }: IExclusionsM
 	const sittingOutIds = new Set(group.members.filter((member) => !member.inDraw).map((member) => member.id));
 	const nameOf = (id: string | null) => group.members.find((member) => String(member.id) === id)?.name;
 	const fieldErrors = apiFieldErrors(addExclusion.error);
-	const formError = fieldErrors.giver_id ?? fieldErrors.receiver_id ?? fieldErrors.group;
+	// Person and Can't draw problems show by their fields; anything about the group as a whole above the button.
+	const groupError = fieldErrors.group;
 
 	function handleAdd(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -116,7 +133,7 @@ export default function ExclusionsModal({ group, opened, onClose }: IExclusionsM
 					Keep certain people from drawing each other, like couples or siblings. Only you can see these.
 				</MantineText>
 
-				{exclusionsQuery.isPending && <MantineText c="dimmed">Loading exclusions...</MantineText>}
+				{exclusionsQuery.isPending && <LoadingText>Loading exclusions...</LoadingText>}
 				{exclusionsQuery.isError && <Alert color="red">{apiErrorMessage(exclusionsQuery.error)}</Alert>}
 				{exclusionsQuery.data?.length === 0 && (
 					<MantineText size="sm" c="dimmed">
@@ -138,6 +155,10 @@ export default function ExclusionsModal({ group, opened, onClose }: IExclusionsM
 					<form onSubmit={handleAdd}>
 						<Stack gap="sm">
 							<MantineText fw={600}>Add an exclusion</MantineText>
+							{groupError && <Alert color="red">{groupError}</Alert>}
+							{addExclusion.isError && Object.keys(fieldErrors).length === 0 && (
+								<Alert color="red">{apiErrorMessage(addExclusion.error)}</Alert>
+							)}
 							{/* Side by side from xs up; stacked on narrow phones so names aren't cut off. */}
 							<SimpleGrid cols={{ base: 1, xs: 2 }} spacing="sm">
 								<Select
@@ -153,6 +174,7 @@ export default function ExclusionsModal({ group, opened, onClose }: IExclusionsM
 											setReceiverId(null);
 										}
 									}}
+									error={fieldErrors.giver_id}
 									required
 								/>
 								<Select
@@ -161,6 +183,7 @@ export default function ExclusionsModal({ group, opened, onClose }: IExclusionsM
 									data={memberOptions.filter((option) => option.value !== giverId)}
 									value={receiverId}
 									onChange={setReceiverId}
+									error={fieldErrors.receiver_id}
 									required
 								/>
 							</SimpleGrid>
@@ -173,10 +196,13 @@ export default function ExclusionsModal({ group, opened, onClose }: IExclusionsM
 							{giverId && receiverId && (
 								<MantineText size="sm">{describe(nameOf(giverId) ?? "", nameOf(receiverId) ?? "", mutual)}</MantineText>
 							)}
-							{formError && <Alert color="red">{formError}</Alert>}
-							{addExclusion.isError && !formError && <Alert color="red">{apiErrorMessage(addExclusion.error)}</Alert>}
 							<Group justify="flex-end">
-								<Button type="submit" loading={addExclusion.isPending} disabled={!giverId || !receiverId}>
+								<Button
+									type="submit"
+									loading={addExclusion.isPending}
+									disabled={!giverId || !receiverId}
+									leftSection={<FontAwesomeIcon icon={faPlus} />}
+								>
 									Add exclusion
 								</Button>
 							</Group>

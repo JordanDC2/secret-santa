@@ -1,15 +1,5 @@
-import {
-	Alert,
-	Button,
-	Card,
-	Group,
-	PasswordInput,
-	SimpleGrid,
-	Stack,
-	Text as MantineText,
-	TextInput,
-	Title,
-} from "@mantine/core";
+import { Alert, Button, Group, PasswordInput, SimpleGrid, Stack, Text as MantineText, TextInput } from "@mantine/core";
+import SectionCard from "Components/Common/SectionCard";
 import { useForm } from "@mantine/form";
 import { ACCOUNT_FIELD_NAMES, useUpdateProfileMutation } from "Components/Account/hooks";
 import type { IUser } from "Components/Auth/types";
@@ -48,10 +38,7 @@ export default function ProfileSection({ user }: { user: IUser }) {
 	}
 
 	return (
-		<Card withBorder padding="lg" radius="md">
-			<Title order={4} mb="md">
-				Profile
-			</Title>
+		<SectionCard title="Profile">
 			<form onSubmit={form.onSubmit(handleSubmit)}>
 				<Stack>
 					{updateProfile.isSuccess && !form.isDirty() && <Alert color="green">Profile saved.</Alert>}
@@ -87,6 +74,6 @@ export default function ProfileSection({ user }: { user: IUser }) {
 					</Group>
 				</Stack>
 			</form>
-		</Card>
+		</SectionCard>
 	);
 }

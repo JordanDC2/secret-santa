@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { ActionIcon, Box, Button, Group, Text as MantineText, Textarea, Tooltip } from "@mantine/core";
+import { ActionIcon, Box, Group, Text as MantineText, Textarea, Tooltip } from "@mantine/core";
+import Eyebrow from "Components/Common/Eyebrow";
+import ConfirmButtons from "Components/Common/ConfirmButtons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPenToSquare } from "@fortawesome/free-regular-svg-icons";
-import { faThumbtack } from "@fortawesome/free-solid-svg-icons";
+import { faPenToSquare, faThumbtack } from "@fortawesome/free-solid-svg-icons";
 import { useUpdateGroupMutation } from "Components/Groups/hooks";
 import { apiErrorMessage } from "Data/Api/Client";
 import classes from "Components/Groups/GroupDescription.module.less";
@@ -20,9 +21,9 @@ type IGroupDescriptionProps = {
 
 function NoteLabel() {
 	return (
-		<MantineText size="xs" fw={700} tt="uppercase" c="dimmed" className={classes.label}>
+		<Eyebrow>
 			<FontAwesomeIcon icon={faThumbtack} /> Group note
-		</MantineText>
+		</Eyebrow>
 	);
 }
 
@@ -54,7 +55,7 @@ export default function GroupDescription({
 						<ActionIcon
 							variant="subtle"
 							color="gray"
-							size="xs"
+							size="sm"
 							aria-label="Edit group note"
 							onClick={() => onEditingChange(true)}
 						>
@@ -113,14 +114,7 @@ function NoteEditor({ groupId, initial, onDone }: INoteEditorProps) {
 				<MantineText size="xs" c="dimmed">
 					{draft.length}/{MAX_LENGTH}
 				</MantineText>
-				<Group gap="xs">
-					<Button size="xs" variant="subtle" color="gray" onClick={stopEditing}>
-						Cancel
-					</Button>
-					<Button type="submit" size="xs" loading={updateGroup.isPending}>
-						Save note
-					</Button>
-				</Group>
+				<ConfirmButtons size="xs" confirmLabel="Save note" isPending={updateGroup.isPending} onCancel={stopEditing} />
 			</Group>
 		</Box>
 	);

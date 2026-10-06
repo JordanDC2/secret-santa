@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { Alert, Button, Divider, Group, Modal, SegmentedControl, SimpleGrid, Stack, TextInput } from "@mantine/core";
+import { Alert, Divider, Modal, SegmentedControl, SimpleGrid, Stack, TextInput } from "@mantine/core";
+import ConfirmButtons from "Components/Common/ConfirmButtons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import CoParentsSection from "Components/ManagedProfiles/CoParentsSection";
 import { useSaveManagedProfileMutation } from "Components/ManagedProfiles/hooks";
 import type { IManagedKind, IManagedProfile } from "Components/ManagedProfiles/types";
@@ -62,14 +65,13 @@ export default function ManagedProfileFormModal({ opened, profile, onClose }: IM
 							onChange={(event) => setLastName(event.currentTarget.value)}
 						/>
 					</SimpleGrid>
-					<Group justify="flex-end">
-						<Button variant="subtle" color="gray" onClick={onClose}>
-							Cancel
-						</Button>
-						<Button type="submit" loading={save.isPending} disabled={!firstName.trim()}>
-							{profile ? "Save" : "Add"}
-						</Button>
-					</Group>
+					<ConfirmButtons
+						confirmLabel={profile ? "Save" : kind === "pet" ? "Add pet" : "Add kid"}
+						confirmIcon={profile ? undefined : <FontAwesomeIcon icon={faPlus} />}
+						isPending={save.isPending}
+						disabled={!firstName.trim()}
+						onCancel={onClose}
+					/>
 				</Stack>
 			</form>
 			{profile && (

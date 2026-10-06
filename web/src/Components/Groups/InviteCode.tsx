@@ -1,7 +1,6 @@
 import { ActionIcon, Code, CopyButton, Group, Text as MantineText, Tooltip } from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCopy } from "@fortawesome/free-regular-svg-icons";
-import { faCheck } from "@fortawesome/free-solid-svg-icons";
+import { faCheck, faCopy } from "@fortawesome/free-solid-svg-icons";
 import ShareInviteButton from "Components/Invites/ShareInviteButton";
 
 type IInviteCodeProps = {
@@ -19,7 +18,7 @@ export default function InviteCode({ code, groupName }: IInviteCodeProps) {
 			<Code fw={700}>{code}</Code>
 			<CopyButton value={code}>
 				{({ copied, copy }) => (
-					<Tooltip label={copied ? "Copied!" : "Copy code"} withArrow>
+					<Tooltip label={copied ? "Code copied!" : "Copy invite code"} withArrow>
 						<ActionIcon
 							variant="subtle"
 							color={copied ? "green" : "gray"}

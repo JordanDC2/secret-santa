@@ -67,7 +67,8 @@ export default function GroupActionsMenu({ group, onAction }: IGroupActionsMenuP
 						leftSection={<FontAwesomeIcon icon={faUserSlash} fixedWidth />}
 						rightSection={
 							group.exclusionsCount ? (
-								<Badge size="sm" circle color="red">
+								// Gray: a red count always means unread messages.
+								<Badge size="sm" circle variant="light" color="gray">
 									{group.exclusionsCount}
 								</Badge>
 							) : undefined

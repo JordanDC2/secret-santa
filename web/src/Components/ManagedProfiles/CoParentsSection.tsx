@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ActionIcon, Alert, Button, Group, Select, Stack, Text as MantineText, Title, Tooltip } from "@mantine/core";
+import ConfirmButtons from "Components/Common/ConfirmButtons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUserPlus, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "Components/Auth/AuthContext";
@@ -18,6 +19,8 @@ export default function CoParentsSection({ profileId }: { profileId: number }) {
 	const groups = useGroupsQuery().data ?? [];
 	const setCoParent = useSetCoParentMutation(profileId);
 	const [choice, setChoice] = useState<string | null>(null);
+	// Removing someone asks first: they lose this kid's or pet's list, draws and chats.
+	const [confirmingRemoveId, setConfirmingRemoveId] = useState<number | null>(null);
 
 	if (!profile) {
 		// Gone, e.g. you just stopped looking after them.
@@ -38,33 +41,47 @@ export default function CoParentsSection({ profileId }: { profileId: number }) {
 
 	return (
 		<Stack gap="xs">
-			<Title order={5}>Who looks after {profile.name}</Title>
+			<Title order={3} size="h5">
+				Who looks after {profile.name}
+			</Title>
 			{setCoParent.isError && <Alert color="red">{apiErrorMessage(setCoParent.error)}</Alert>}
 			{profile.managers.map((manager) => (
 				<Group key={manager.id} justify="space-between">
 					<MantineText size="sm">{manager.id === user?.id ? "You" : manager.name}</MantineText>
-					<Tooltip
-						label={
-							lastOne
-								? `${profile.name} needs someone looking after them`
-								: manager.id === user?.id
-									? "Stop looking after them"
-									: "Remove"
-						}
-						withArrow
-					>
-						<ActionIcon
-							variant="subtle"
+					{confirmingRemoveId === manager.id ? (
+						<ConfirmButtons
+							size="xs"
+							confirmLabel={manager.id === user?.id ? "Stop looking after them" : "Remove"}
 							color="red"
-							size="sm"
-							aria-label={manager.id === user?.id ? `Stop looking after ${profile.name}` : `Remove ${manager.name}`}
-							disabled={lastOne}
-							loading={setCoParent.isPending && setCoParent.variables?.userId === manager.id}
-							onClick={() => setCoParent.mutate({ userId: manager.id, add: false })}
+							isPending={setCoParent.isPending}
+							onConfirm={() =>
+								setCoParent.mutate({ userId: manager.id, add: false }, { onSuccess: () => setConfirmingRemoveId(null) })
+							}
+							onCancel={() => setConfirmingRemoveId(null)}
+						/>
+					) : (
+						<Tooltip
+							label={
+								lastOne
+									? `${profile.name} needs someone looking after them`
+									: manager.id === user?.id
+										? "Stop looking after them"
+										: "Remove"
+							}
+							withArrow
 						>
-							<FontAwesomeIcon icon={faXmark} />
-						</ActionIcon>
-					</Tooltip>
+							<ActionIcon
+								variant="subtle"
+								color="red"
+								size="input-xs"
+								aria-label={manager.id === user?.id ? `Stop looking after ${profile.name}` : `Remove ${manager.name}`}
+								disabled={lastOne}
+								onClick={() => setConfirmingRemoveId(manager.id)}
+							>
+								<FontAwesomeIcon icon={faXmark} />
+							</ActionIcon>
+						</Tooltip>
+					)}
 				</Group>
 			))}
 			<Group gap="xs" align="flex-end" wrap="nowrap">

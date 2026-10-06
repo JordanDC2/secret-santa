@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { ActionIcon, Button, Group, TextInput, Title, Tooltip } from "@mantine/core";
+import { ActionIcon, Group, TextInput, Title, Tooltip } from "@mantine/core";
+import ConfirmButtons from "Components/Common/ConfirmButtons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPenToSquare } from "@fortawesome/free-regular-svg-icons";
+import { faPenToSquare } from "@fortawesome/free-solid-svg-icons";
 import { useUpdateGroupMutation } from "Components/Groups/hooks";
 import { apiErrorMessage } from "Data/Api/Client";
 import classes from "Components/Groups/GroupNameEditor.module.less";
@@ -39,7 +40,7 @@ export default function GroupNameEditor({ groupId, name, canRename }: IGroupName
 		const lastWord = name.slice(lastSpace + 1);
 
 		return (
-			<Title order={4}>
+			<Title order={3} size="h4">
 				{leadingWords}
 				{/* The last word and the pencil never break apart, so the pencil can't wrap onto a line alone. */}
 				<span className={classes.lastWord}>
@@ -81,12 +82,7 @@ export default function GroupNameEditor({ groupId, name, canRename }: IGroupName
 					autoFocus
 					onFocus={(event) => event.currentTarget.select()}
 				/>
-				<Button type="submit" size="sm" loading={renameGroup.isPending}>
-					Save
-				</Button>
-				<Button size="sm" variant="subtle" color="gray" onClick={stopEditing}>
-					Cancel
-				</Button>
+				<ConfirmButtons confirmLabel="Save" isPending={renameGroup.isPending} onCancel={stopEditing} />
 			</Group>
 		</form>
 	);

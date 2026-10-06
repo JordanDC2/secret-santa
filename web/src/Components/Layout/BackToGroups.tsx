@@ -1,4 +1,6 @@
 import { Anchor } from "@mantine/core";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import { Link } from "react-router-dom";
 import classes from "Components/Layout/BackToGroups.module.less";
 
@@ -6,7 +8,8 @@ import classes from "Components/Layout/BackToGroups.module.less";
 export default function BackToGroups() {
 	return (
 		<Anchor component={Link} to="/" size="sm" className={classes.link}>
-			← Back to your groups
+			<FontAwesomeIcon icon={faArrowLeft} />
+			Back to your groups
 		</Anchor>
 	);
 }

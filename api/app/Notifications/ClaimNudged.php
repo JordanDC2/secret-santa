@@ -45,7 +45,7 @@ class ClaimNudged extends Notification implements OptionalEmail, ShouldQueue
             ->line("If you've bought it, mark it **bought** so everyone knows. If you've changed your mind, undo your claim so someone else can get it.")
             ->line("{$owner} can't see any of this, so the surprise is safe.")
             // No names in the button label: Laravel repeats it in the footer as Markdown.
-            ->action('View Their Wishlist', config('app.frontend_url')."/wishlists/{$this->ownerId}")
+            ->action('View their wishlist', config('app.frontend_url')."/wishlists/{$this->ownerId}")
             ->settingsFooter(EmailKind::Nudges);
     }
 }

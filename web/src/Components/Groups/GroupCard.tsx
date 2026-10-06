@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Badge, Card, Group, Stack, Text as MantineText } from "@mantine/core";
 import { faChildren } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "Components/Auth/AuthContext";
+import AddChip from "Components/Common/AddChip";
 import type { IGroup } from "Components/Groups/types";
 import AssignmentReveal from "Components/Groups/AssignmentReveal";
 import DeleteGroupControl from "Components/Groups/DeleteGroupControl";
@@ -28,25 +29,6 @@ import SantaChatButton from "Components/SantaChat/SantaChatButton";
 import SantaChatModal from "Components/SantaChat/SantaChatModal";
 import type { ISantaChatSide } from "Components/SantaChat/types";
 import classes from "Components/Groups/GroupCard.module.less";
-
-/** The owner's small "+ Add …" chip for something the group doesn't have yet, on its own row. */
-function AddChip({ onClick, children }: { onClick: () => void; children: string }) {
-	return (
-		<div className={classes.addChipRow}>
-			<Badge
-				component="button"
-				type="button"
-				variant="light"
-				color="gray"
-				tt="none"
-				className={classes.addChip}
-				onClick={onClick}
-			>
-				{children}
-			</Badge>
-		</div>
-	);
-}
 
 type IGroupCardProps = {
 	group: IGroup;
@@ -84,6 +66,8 @@ export default function GroupCard({ group }: IGroupCardProps) {
 	const [drawMembersOpen, setDrawMembersOpen] = useState(false);
 	const { user } = useAuth();
 	const [editingNote, setEditingNote] = useState(false);
+	const canAddExchange = !group.exchangeDate && !group.budget;
+	const canAddNote = !group.description && !editingNote;
 	// A fresh key each time it opens, so the form starts from the group's current details.
 	const [exchangeModal, setExchangeModal] = useState({ opened: false, key: 0 });
 	// A fresh key each time the chat opens, so it reloads its draft and scroll position.
@@ -215,14 +199,13 @@ export default function GroupCard({ group }: IGroupCardProps) {
 				</MantineText>
 				<InviteCode code={group.joinCode} groupName={group.name} />
 			</Group>
-			{/* Date & budget first, then the note, each on its own row; owners get "+ Add" chips for either that's missing. */}
-			{group.isOwner && !group.exchangeDate && !group.budget ? (
-				<AddChip onClick={openExchangeModal}>+ Add date & budget</AddChip>
-			) : (
-				<ExchangeDetails group={group} onEdit={group.isOwner ? openExchangeModal : undefined} />
-			)}
-			{group.isOwner && !group.description && !editingNote && (
-				<AddChip onClick={() => setEditingNote(true)}>+ Add note</AddChip>
+			{/* Date & budget, then the note; owners get one row of "Add" chips for whichever is missing. */}
+			<ExchangeDetails group={group} onEdit={group.isOwner ? openExchangeModal : undefined} />
+			{group.isOwner && (canAddExchange || canAddNote) && (
+				<Group gap="xs" mt="xs">
+					{canAddExchange && <AddChip onClick={openExchangeModal}>Add date &amp; budget</AddChip>}
+					{canAddNote && <AddChip onClick={() => setEditingNote(true)}>Add note</AddChip>}
+				</Group>
 			)}
 			<GroupDescription
 				groupId={group.id}

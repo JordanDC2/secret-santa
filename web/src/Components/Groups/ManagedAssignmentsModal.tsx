@@ -1,8 +1,17 @@
 import { useState } from "react";
-import { ActionIcon, Button, Group, Modal, Paper, Stack, Text as MantineText, Tooltip } from "@mantine/core";
+import {
+	ActionIcon,
+	Button,
+	Group,
+	Modal,
+	Paper,
+	Stack,
+	Text as MantineText,
+	Tooltip,
+	VisuallyHidden,
+} from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEye, faEyeSlash } from "@fortawesome/free-regular-svg-icons";
-import { faChild, faListUl, faPaw } from "@fortawesome/free-solid-svg-icons";
+import { faChild, faEye, faEyeSlash, faListUl, faPaw } from "@fortawesome/free-solid-svg-icons";
 import { Link } from "react-router-dom";
 import type { IManagedAssignment } from "Components/Groups/types";
 import SantaChatButton from "Components/SantaChat/SantaChatButton";
@@ -73,7 +82,10 @@ export default function ManagedAssignmentsModal({
 												{isRevealed ? (
 													<strong className={classes.name}>{recipient.name}</strong>
 												) : (
-													<span aria-label="hidden">••••••</span>
+													<>
+														<span aria-hidden="true">••••••</span>
+														<VisuallyHidden>someone (hidden)</VisuallyHidden>
+													</>
 												)}
 											</MantineText>
 										)}
@@ -82,6 +94,7 @@ export default function ManagedAssignmentsModal({
 								{recipient && (
 									<Tooltip label={isRevealed ? "Hide" : "Reveal"} withArrow>
 										<ActionIcon
+											size="input-xs"
 											variant="subtle"
 											color="gray"
 											aria-label={isRevealed ? `Hide who ${profile.name} drew` : `Reveal who ${profile.name} drew`}

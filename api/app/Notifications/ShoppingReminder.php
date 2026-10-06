@@ -72,7 +72,7 @@ class ShoppingReminder extends Notification implements OptionalEmail, ShouldQueu
             $message->line("{$person}'s wishlist is empty, so you could ask them a question in {$who->your()} Santa chat (they won't know it's {$who->you()}) or add a gift idea for the group.");
         }
 
-        return $message->action('View Their Wishlist', config('app.frontend_url')."/wishlists/{$this->recipientId}")
+        return $message->action('View their wishlist', config('app.frontend_url')."/wishlists/{$this->recipientId}")
             ->settingsFooter(EmailKind::Reminders, $who);
     }
 }

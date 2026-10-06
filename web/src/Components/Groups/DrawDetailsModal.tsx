@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Alert, Button, Group, List, Modal, Stack, Table, Text as MantineText, ThemeIcon } from "@mantine/core";
+import LoadingText from "Components/Common/LoadingText";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCheck, faXmark } from "@fortawesome/free-solid-svg-icons";
 import { useDrawCheckQuery, useDrawPairsQuery } from "Components/Groups/hooks";
@@ -73,7 +74,7 @@ export default function DrawDetailsModal({ group, opened, onClose }: IDrawDetail
 					</Alert>
 				) : (
 					<>
-						{pairsQuery.isPending && <MantineText c="dimmed">Loading pairs...</MantineText>}
+						{pairsQuery.isPending && <LoadingText>Loading pairs...</LoadingText>}
 						{pairsQuery.isError && <Alert color="red">{apiErrorMessage(pairsQuery.error)}</Alert>}
 						{pairsQuery.data && (
 							<Table striped withTableBorder>

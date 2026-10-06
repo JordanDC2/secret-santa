@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Alert, Button, Card, Group, List, PasswordInput, Stack, Text as MantineText, Title } from "@mantine/core";
+import { Alert, Button, Group, List, PasswordInput, Stack, Text as MantineText } from "@mantine/core";
+import ConfirmButtons from "Components/Common/ConfirmButtons";
 import { useDeleteAccountMutation } from "Components/Account/hooks";
 import { useGroupsQuery } from "Components/Groups/hooks";
 import { apiFieldErrors } from "Data/Api/Client";
-import classes from "Components/Account/DeleteAccountSection.module.less";
+import SectionCard from "Components/Common/SectionCard";
 
 export default function DeleteAccountSection() {
 	const deleteAccount = useDeleteAccountMutation();
@@ -22,10 +23,7 @@ export default function DeleteAccountSection() {
 	}
 
 	return (
-		<Card withBorder padding="lg" radius="md" className={classes.danger}>
-			<Title order={4} mb="xs" c="red.8">
-				Delete account
-			</Title>
+		<SectionCard title="Delete account" danger>
 			<Stack gap="sm">
 				<MantineText size="sm">
 					This permanently deletes your account and your wishlist. Gifts you claimed on other lists become available
@@ -71,14 +69,12 @@ export default function DeleteAccountSection() {
 								required
 								autoFocus
 							/>
-							<Group gap="sm">
-								<Button type="submit" color="red" loading={deleteAccount.isPending}>
-									Delete my account forever
-								</Button>
-								<Button variant="subtle" color="gray" onClick={cancel}>
-									Cancel
-								</Button>
-							</Group>
+							<ConfirmButtons
+								confirmLabel="Delete my account forever"
+								color="red"
+								isPending={deleteAccount.isPending}
+								onCancel={cancel}
+							/>
 						</Stack>
 					</form>
 				) : (
@@ -89,6 +85,6 @@ export default function DeleteAccountSection() {
 					</Group>
 				)}
 			</Stack>
-		</Card>
+		</SectionCard>
 	);
 }

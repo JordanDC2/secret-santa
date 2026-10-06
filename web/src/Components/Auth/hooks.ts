@@ -3,6 +3,13 @@ import { apiClient } from "Data/Api/Client";
 
 type IMessageResponse = { message: string };
 
+/** Maps the API's snake_case field names to the sign-in forms' fields, for apiFieldErrors(). */
+export const AUTH_FIELD_NAMES = {
+	first_name: "firstName",
+	last_name: "lastName",
+	password_confirmation: "passwordConfirmation",
+};
+
 type IResetPasswordPayload = {
 	token: string;
 	email: string;

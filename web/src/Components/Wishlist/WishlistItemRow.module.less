@@ -1,3 +1,5 @@
+@import (reference) "../../Styles/breakpoints.less";
+
 /*
  * Image + name take the free space and quantity, price and stars sit to their right. On
  * phones (below Mantine's xs breakpoint, 36em) every row puts those on their own
@@ -12,7 +14,7 @@
 	margin-left: auto;
 }
 
-@media (max-width: 36em) {
+@media @phone {
 	.summary {
 		flex-basis: 100%;
 	}

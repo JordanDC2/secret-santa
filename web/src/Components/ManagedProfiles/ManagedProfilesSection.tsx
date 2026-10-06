@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { ActionIcon, Alert, Button, Card, Group, Stack, Text as MantineText, Title, Tooltip } from "@mantine/core";
+import { ActionIcon, Alert, Button, Group, Stack, Text as MantineText, Tooltip } from "@mantine/core";
+import ConfirmButtons from "Components/Common/ConfirmButtons";
+import LoadingText from "Components/Common/LoadingText";
+import SectionCard from "Components/Common/SectionCard";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPenToSquare, faTrashCan } from "@fortawesome/free-regular-svg-icons";
-import { faChild, faListUl, faPaw, faPlus } from "@fortawesome/free-solid-svg-icons";
+import { faChild, faListUl, faPaw, faPenToSquare, faPlus, faTrashCan } from "@fortawesome/free-solid-svg-icons";
 import { Link } from "react-router-dom";
 import { useDeleteManagedProfileMutation, useManagedProfilesQuery } from "Components/ManagedProfiles/hooks";
 import { useAuth } from "Components/Auth/AuthContext";
@@ -38,29 +40,27 @@ export default function ManagedProfilesSection() {
 	}
 
 	return (
-		<Card withBorder padding="lg" radius="md">
-			<Group justify="space-between" mb="xs">
-				<Title order={4}>Kids &amp; pets</Title>
+		<SectionCard
+			title="Kids & pets"
+			action={
 				<Button
 					size="xs"
 					variant="secondary"
 					leftSection={<FontAwesomeIcon icon={faPlus} />}
 					onClick={() => openModal(null)}
 				>
-					Add
+					Add kid or pet
 				</Button>
-			</Group>
-			<MantineText size="sm" c="dimmed" mb="md">
+			}
+		>
+			<MantineText size="sm" c="dimmed">
 				Keep wishlists for kids and pets who don&apos;t have their own account. You can see what&apos;s been claimed on
 				their lists.
 			</MantineText>
 
+			{profilesQuery.isPending && <LoadingText>Loading your kids and pets...</LoadingText>}
 			{profilesQuery.isError && <Alert color="red">{apiErrorMessage(profilesQuery.error)}</Alert>}
-			{deleteProfile.isError && (
-				<Alert color="red" mb="md">
-					{apiErrorMessage(deleteProfile.error)}
-				</Alert>
-			)}
+			{deleteProfile.isError && <Alert color="red">{apiErrorMessage(deleteProfile.error)}</Alert>}
 
 			{profilesQuery.data?.length === 0 && (
 				<MantineText size="sm" c="dimmed">
@@ -78,19 +78,14 @@ export default function ManagedProfilesSection() {
 									` This removes them for ${coParentNames(profile, user?.id)} too.`}{" "}
 								This can&apos;t be undone.
 							</MantineText>
-							<Group gap="xs">
-								<Button
-									size="xs"
-									color="red"
-									loading={deleteProfile.isPending}
-									onClick={() => deleteProfile.mutate(profile.id, { onSuccess: () => setConfirmingDeleteId(null) })}
-								>
-									Remove
-								</Button>
-								<Button size="xs" variant="subtle" color="gray" onClick={() => setConfirmingDeleteId(null)}>
-									Cancel
-								</Button>
-							</Group>
+							<ConfirmButtons
+								size="xs"
+								confirmLabel="Remove"
+								color="red"
+								isPending={deleteProfile.isPending}
+								onConfirm={() => deleteProfile.mutate(profile.id, { onSuccess: () => setConfirmingDeleteId(null) })}
+								onCancel={() => setConfirmingDeleteId(null)}
+							/>
 						</Group>
 					) : (
 						<Group key={profile.id} gap="xs" justify="space-between" wrap="nowrap">
@@ -121,7 +116,7 @@ export default function ManagedProfilesSection() {
 									Wishlist
 								</Button>
 								{/* Icons only, so the row fits on a phone; the tooltip and label name them. */}
-								<Tooltip label={`Edit ${profile.firstName}`}>
+								<Tooltip label={`Edit ${profile.firstName}`} withArrow>
 									<ActionIcon
 										size="input-xs"
 										variant="subtle"
@@ -132,7 +127,7 @@ export default function ManagedProfilesSection() {
 										<FontAwesomeIcon icon={faPenToSquare} />
 									</ActionIcon>
 								</Tooltip>
-								<Tooltip label={`Remove ${profile.firstName}`}>
+								<Tooltip label={`Remove ${profile.firstName}`} withArrow>
 									<ActionIcon
 										size="input-xs"
 										variant="subtle"
@@ -155,6 +150,6 @@ export default function ManagedProfilesSection() {
 				profile={modal.profile}
 				onClose={() => setModal((current) => ({ ...current, opened: false }))}
 			/>
-		</Card>
+		</SectionCard>
 	);
 }

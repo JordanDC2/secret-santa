@@ -11,9 +11,9 @@
 	);
 	position: relative;
 	overflow: hidden;
-	padding: 20px;
+	padding: var(--mantine-spacing-lg);
 	/* Installed on an iPhone, the page runs under the status bar (clock, battery); zero elsewhere. */
-	padding-top: calc(20px + env(safe-area-inset-top));
+	padding-top: calc(var(--mantine-spacing-lg) + env(safe-area-inset-top));
 }
 
 .content {
@@ -26,7 +26,7 @@
 .title {
 	font-family: var(--festive-font);
 	/* Scales down on narrow phones so "Secret Santa" stays on one line; full size from ~430px. */
-	font-size: clamp(2.5rem, 13vw, 3.5rem);
+	font-size: var(--festive-title-hero);
 	line-height: 1;
 	text-align: center;
 	color: var(--festive-white);
@@ -41,8 +41,8 @@
 .subtitle {
 	text-align: center;
 	color: var(--festive-gold);
-	margin-top: 8px;
-	margin-bottom: 28px;
+	margin-top: var(--mantine-spacing-xs);
+	margin-bottom: var(--mantine-spacing-xl);
 }
 
 .card {

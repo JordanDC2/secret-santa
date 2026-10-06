@@ -55,7 +55,7 @@ class ExchangeDetailsChanged extends Notification implements OptionalEmail, Shou
         }
 
         return $message
-            ->action('View Your Groups', config('app.frontend_url').'/')
+            ->action('View your groups', config('app.frontend_url').'/')
             ->settingsFooter(EmailKind::ExchangeUpdates);
     }
 

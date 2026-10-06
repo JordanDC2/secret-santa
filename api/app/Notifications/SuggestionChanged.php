@@ -66,7 +66,7 @@ class SuggestionChanged extends Notification implements OptionalEmail, ShouldQue
         return $message
             ->line("Don't worry, {$owner} still can't see any of the gift ideas on their list.")
             // No names in the button label: Laravel repeats it in the footer as Markdown.
-            ->action('View Their Wishlist', config('app.frontend_url')."/wishlists/{$this->ownerId}")
+            ->action('View their wishlist', config('app.frontend_url')."/wishlists/{$this->ownerId}")
             ->settingsFooter(EmailKind::GiftIdeas);
     }
 

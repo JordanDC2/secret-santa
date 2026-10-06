@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Badge, Box, Button, Group, Text as MantineText } from "@mantine/core";
+import { Box, Button, Group } from "@mantine/core";
+import Eyebrow from "Components/Common/Eyebrow";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEyeSlash } from "@fortawesome/free-regular-svg-icons";
 import { Link } from "react-router-dom";
-import { faEye, faListUl } from "@fortawesome/free-solid-svg-icons";
+import { faEye, faEyeSlash, faListUl } from "@fortawesome/free-solid-svg-icons";
 import SantaChatButton from "Components/SantaChat/SantaChatButton";
+import UnreadBadge from "Components/SantaChat/UnreadBadge";
 import classes from "Components/Groups/AssignmentReveal.module.less";
 
 type IAssignmentRevealProps = {
@@ -27,13 +28,7 @@ export default function AssignmentReveal({
 		return (
 			<Button
 				leftSection={<FontAwesomeIcon icon={faEye} />}
-				rightSection={
-					unreadMessages > 0 ? (
-						<Badge size="sm" color="red" aria-label={`${unreadMessages} unread from your person`}>
-							{unreadMessages} new
-						</Badge>
-					) : undefined
-				}
+				rightSection={unreadMessages > 0 ? <UnreadBadge count={unreadMessages} /> : undefined}
 				onClick={() => setRevealed(true)}
 			>
 				Reveal my assignment
@@ -44,9 +39,7 @@ export default function AssignmentReveal({
 	return (
 		<Box className={classes.reveal}>
 			{/* The label gets its own line so the buttons can sit beside the name, not under it. */}
-			<MantineText size="xs" fw={700} tt="uppercase" c="dimmed" className={classes.label}>
-				You&apos;re the Secret Santa for
-			</MantineText>
+			<Eyebrow className={classes.label}>You&apos;re the Secret Santa for</Eyebrow>
 			<Group justify="space-between" gap="sm">
 				<div className={classes.name}>{recipientName}</div>
 				<Group gap="xs" className={classes.actions}>

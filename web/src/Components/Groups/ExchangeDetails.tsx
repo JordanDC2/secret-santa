@@ -1,5 +1,4 @@
-import type { ReactNode } from "react";
-import { Badge, Group } from "@mantine/core";
+import { Badge, Group, Tooltip } from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCalendarDays, faWallet, type IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import { budgetLabel, countdownLabel, daysUntil } from "Components/Groups/exchange";
@@ -18,7 +17,7 @@ type IChipProps = {
 	/** Says what clicking edits, for owners. */
 	editLabel: string;
 	onEdit?: () => void;
-	children: ReactNode;
+	children: string;
 };
 
 /** One chip: plain for members, a button with its own hover for owners. */
@@ -33,9 +32,18 @@ function Chip({ color, icon, editLabel, onEdit, children }: IChipProps) {
 	} as const;
 
 	return onEdit ? (
-		<Badge {...shared} component="button" type="button" title={editLabel} className={classes.editable} onClick={onEdit}>
-			{children}
-		</Badge>
+		<Tooltip label={editLabel} withArrow>
+			<Badge
+				{...shared}
+				component="button"
+				type="button"
+				aria-label={`${editLabel}: ${children}`}
+				className={classes.editable}
+				onClick={onEdit}
+			>
+				{children}
+			</Badge>
+		</Tooltip>
 	) : (
 		<Badge {...shared}>{children}</Badge>
 	);
