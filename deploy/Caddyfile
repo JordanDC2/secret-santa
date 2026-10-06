@@ -21,8 +21,9 @@ YOUR_HOSTNAME {
 		reverse_proxy 127.0.0.1:8080
 	}
 
-	# Laravel API, Sanctum's CSRF cookie and channel auth.
-	@laravel path /api /api/* /sanctum/* /up
+	# Laravel API, Sanctum's CSRF cookie and channel auth, and invite links' page (Laravel
+	# sends the React app's page with link-preview tags naming the group).
+	@laravel path /api /api/* /sanctum/* /up /join/*
 	handle @laravel {
 		root * /var/www/secret-santa/api/public
 		php_fastcgi unix//run/php/php8.5-fpm.sock

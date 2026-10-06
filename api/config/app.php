@@ -56,6 +56,10 @@ return [
 
     'frontend_url' => env('FRONTEND_URL', 'http://localhost:3001'),
 
+    // The built React app's page, which invite links (/join/CODE) are served from with
+    // link-preview tags naming the group (see InvitePageHandler).
+    'spa_index' => env('SPA_INDEX_PATH', base_path('../web/dist/index.html')),
+
     /*
     | Where "a new account was created" emails go, so the person running the app notices strangers
     | or bots finding it. Leave unset to send none.
