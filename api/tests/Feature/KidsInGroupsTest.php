@@ -120,6 +120,22 @@ class KidsInGroupsTest extends TestCase
         $this->getJson(route('groups.show', $this->group))->assertJsonCount(0, 'managed_assignments');
     }
 
+    public function test_a_parents_kids_list_puts_unread_chats_first_then_a_to_z(): void
+    {
+        $zed = app(CreateManagedProfile::class)($this->parent, 'Zed', 'child');
+        $amy = app(CreateManagedProfile::class)($this->parent, 'amy', 'pet');
+        $this->group->members()->attach([$this->lily->id, $zed->id, $amy->id]);
+        $this->group->update(['drawn_at' => now()]);
+        $toZed = $this->group->assignments()->create(['draw_number' => 1, 'giver_id' => $this->nick->id, 'receiver_id' => $zed->id]);
+        $this->group->assignments()->create(['draw_number' => 1, 'giver_id' => $zed->id, 'receiver_id' => $this->nick->id]);
+        $toZed->messages()->create(['from_santa' => true, 'body' => 'Hi Zed!']);
+        Sanctum::actingAs($this->parent->fresh() ?? $this->parent);
+
+        $names = $this->getJson(route('groups.show', $this->group))->collect('managed_assignments')->pluck('profile.name')->all();
+
+        $this->assertSame(['Zed', 'amy', 'Lily'], $names);
+    }
+
     public function test_a_parent_chats_as_their_kid_and_nobody_else_can(): void
     {
         $this->group->members()->attach($this->lily);

@@ -68,25 +68,49 @@ class GroupResource extends JsonResource
      */
     private function managedAssignments(User $viewer): array
     {
-        return $this->members
+        $rows = $this->members
             ->filter(fn (User $member) => $viewer->manages($member))
-            ->map(function (User $profile) {
-                $theirAssignment = $this->assignmentFor($profile);
-                $theirSantasAssignment = $this->assignmentOfSantaFor($profile);
-
-                return [
-                    'profile' => ['id' => $profile->id, 'name' => $profile->name, 'kind' => $profile->managed_kind],
-                    'recipient' => $theirAssignment ? [
-                        'id' => $theirAssignment->receiver->id,
-                        'name' => $theirAssignment->receiver->name,
-                        'unread_messages' => $theirAssignment->unreadCountFor(viewerIsSanta: true),
-                    ] : null,
-                    'santa' => $theirSantasAssignment ? [
-                        'unread_messages' => $theirSantasAssignment->unreadCountFor(viewerIsSanta: false),
-                    ] : null,
-                ];
-            })
+            ->map(fn (User $profile) => $this->managedAssignment($profile))
             ->values()
             ->all();
+
+        // Anyone with unread messages first, so the badge's chat is easy to find; then A to Z.
+        usort($rows, fn ($a, $b) => ($this->unreadIn($b) > 0) <=> ($this->unreadIn($a) > 0)
+            ?: strcasecmp($a['profile']['name'], $b['profile']['name']));
+
+        return $rows;
+    }
+
+    /**
+     * @return array{
+     *     profile: array{id: int, name: string, kind: string|null},
+     *     recipient: array{id: int, name: string, unread_messages: int}|null,
+     *     santa: array{unread_messages: int}|null,
+     * }
+     */
+    private function managedAssignment(User $profile): array
+    {
+        $theirAssignment = $this->assignmentFor($profile);
+        $theirSantasAssignment = $this->assignmentOfSantaFor($profile);
+
+        return [
+            'profile' => ['id' => $profile->id, 'name' => $profile->name, 'kind' => $profile->managed_kind],
+            'recipient' => $theirAssignment ? [
+                'id' => $theirAssignment->receiver->id,
+                'name' => $theirAssignment->receiver->name,
+                'unread_messages' => $theirAssignment->unreadCountFor(viewerIsSanta: true),
+            ] : null,
+            'santa' => $theirSantasAssignment ? [
+                'unread_messages' => $theirSantasAssignment->unreadCountFor(viewerIsSanta: false),
+            ] : null,
+        ];
+    }
+
+    /**
+     * @param  array{recipient: array{unread_messages: int}|null, santa: array{unread_messages: int}|null}  $managed
+     */
+    private function unreadIn(array $managed): int
+    {
+        return ($managed['recipient']['unread_messages'] ?? 0) + ($managed['santa']['unread_messages'] ?? 0);
     }
 }
