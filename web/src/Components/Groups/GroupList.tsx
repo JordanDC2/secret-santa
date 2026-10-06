@@ -16,7 +16,11 @@ export default function GroupList() {
 	}
 
 	if (groupsQuery.data.length === 0) {
-		return <MantineText c="dimmed">You haven&apos;t joined or created any groups yet.</MantineText>;
+		return (
+			<MantineText c="dimmed">
+				You haven&apos;t joined or created any groups yet. Start one, or join with a code from a friend.
+			</MantineText>
+		);
 	}
 
 	return (

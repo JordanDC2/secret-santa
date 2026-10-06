@@ -3,14 +3,27 @@ import { Alert, Button, Group, Stack, TextInput } from "@mantine/core";
 import { useCreateGroupMutation } from "Components/Groups/hooks";
 import { apiErrorMessage } from "Data/Api/Client";
 
-export default function CreateGroupForm() {
+type ICreateGroupFormProps = {
+	/** Called once it worked, e.g. to close the modal it's in. */
+	onDone?: () => void;
+};
+
+export default function CreateGroupForm({ onDone }: ICreateGroupFormProps) {
 	const createGroup = useCreateGroupMutation();
 	const [name, setName] = useState("");
 
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 
-		createGroup.mutate({ name }, { onSuccess: () => setName("") });
+		createGroup.mutate(
+			{ name },
+			{
+				onSuccess: () => {
+					setName("");
+					onDone?.();
+				},
+			},
+		);
 	}
 
 	return (
@@ -20,6 +33,7 @@ export default function CreateGroupForm() {
 				<Group align="flex-end" wrap="nowrap">
 					<TextInput
 						flex={1}
+						data-autofocus
 						label="Group name"
 						placeholder="Office Secret Santa"
 						value={name}
