@@ -87,21 +87,6 @@ class GroupLifecycleTest extends TestCase
         $this->getJson(route('groups.index'))->assertJsonCount(0);
     }
 
-    public function test_member_cannot_leave_after_names_are_drawn(): void
-    {
-        $group = $this->groupWithMember();
-        $group->update(['drawn_at' => now()]);
-        $member = $this->memberOf($group);
-
-        Sanctum::actingAs($member);
-
-        $this->postJson(route('groups.leave', $group))
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors('group');
-
-        $this->assertDatabaseHas('group_user', ['group_id' => $group->id, 'user_id' => $member->id]);
-    }
-
     public function test_owner_cannot_leave_their_own_group(): void
     {
         $group = $this->groupWithMember();

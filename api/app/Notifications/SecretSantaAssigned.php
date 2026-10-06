@@ -68,7 +68,7 @@ class SecretSantaAssigned extends Notification implements OptionalEmail, ShouldQ
                 : "The names have been drawn for **{$groupName}**.")
             ->when($this->group->description, fn (ElfMailMessage $message, string $description) => $message
                 ->line($this->ownerNote($description)))
-            ->line($this->recipientBox($who))
+            ->line(ElfMailMessage::recipientBox($who, $this->recipient))
             ->when($this->exchangeDetails(), fn (ElfMailMessage $message, string $details) => $message->line($details))
             ->line('Keep it a secret, and happy gifting! 🎄')
             // No names in the button label: Laravel repeats it in the footer as Markdown, where a
@@ -106,25 +106,6 @@ class SecretSantaAssigned extends Notification implements OptionalEmail, ShouldQ
         return $notifiable->isManagedProfile()
             ? str_ireplace('your Secret Santa', "{$notifiable->first_name}'s Secret Santa", $subject)
             : $subject;
-    }
-
-    /**
-     * Who they drew, styled like the app's reveal: a soft mint box with a quiet label and the
-     * name in festive red after a present. The name is in full, so there's no doubt who to
-     * shop for. Spans rather than divs, since line() wraps this in a paragraph.
-     */
-    private function recipientBox(Addressee $who): HtmlString
-    {
-        // A kid's name can be in the label ("Lily is"); quotes are fine in text, so only <, > and & are escaped.
-        $label = htmlspecialchars(ElfMailMessage::plain(ucfirst($who->youAre()).' the Secret Santa for'), ENT_NOQUOTES);
-        $name = e(ElfMailMessage::plain($this->recipient->full_name));
-
-        return new HtmlString(
-            '<span style="display: block; background-color: #eef6f0; border-radius: 8px; padding: 14px 16px; margin: 4px 0 4px;">'
-            .'<span style="display: block; color: #5f6870; font-size: 14px;">'.$label.'</span>'
-            .'<span style="display: block; color: #c00026; font-family: \'Mountains of Christmas\', Georgia, \'Times New Roman\', serif; font-size: 30px; font-weight: bold; line-height: 1.2;">🎁 '.$name.'</span>'
-            .'</span>',
-        );
     }
 
     /**

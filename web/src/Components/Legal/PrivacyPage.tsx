@@ -1,6 +1,7 @@
 import { List, Text as MantineText } from "@mantine/core";
 import WreathIcon from "Components/Common/FestiveIcons/WreathIcon";
-import { ContactLink, LegalList, LegalPage, LegalSection } from "Components/Legal/LegalPage";
+import BulletList from "Components/Common/BulletList";
+import { ContactLink, LegalPage, LegalSection } from "Components/Legal/LegalPage";
 
 export default function PrivacyPage() {
 	return (
@@ -11,7 +12,7 @@ export default function PrivacyPage() {
 			</MantineText>
 
 			<LegalSection title="What it keeps">
-				<LegalList>
+				<BulletList>
 					<List.Item>
 						<strong>Your account:</strong> your first and last name, email address, password (stored scrambled, so
 						nobody can read it) and which emails you want.
@@ -38,11 +39,11 @@ export default function PrivacyPage() {
 						<strong>On your device:</strong> a cookie that keeps you logged in (for up to a week), a security cookie,
 						and a couple of preferences such as light or dark mode.
 					</List.Item>
-				</LegalList>
+				</BulletList>
 			</LegalSection>
 
 			<LegalSection title="Who sees what">
-				<LegalList>
+				<BulletList>
 					<List.Item>People in your groups see your name and your wishlist.</List.Item>
 					<List.Item>You never see what&apos;s been claimed on your own list, so your gifts stay a surprise.</List.Item>
 					<List.Item>
@@ -52,11 +53,11 @@ export default function PrivacyPage() {
 					<List.Item>
 						I can reach the stored data to keep things working and fix problems, and I don&apos;t look at it otherwise.
 					</List.Item>
-				</LegalList>
+				</BulletList>
 			</LegalSection>
 
 			<LegalSection title="Other services it uses">
-				<LegalList>
+				<BulletList>
 					<List.Item>The site runs on Oracle Cloud, on a server in Chicago, USA.</List.Item>
 					<List.Item>
 						Emails go out through Gmail, so Google handles your email address and the messages. You can turn most emails
@@ -70,7 +71,7 @@ export default function PrivacyPage() {
 						When you press Fetch on a link, the server visits that shop page to read the item&apos;s name, price and
 						picture.
 					</List.Item>
-				</LegalList>
+				</BulletList>
 			</LegalSection>
 
 			<LegalSection title="How long it's kept">

@@ -1,7 +1,8 @@
 import { Anchor, List, Text as MantineText } from "@mantine/core";
 import { Link } from "react-router-dom";
 import HollyIcon from "Components/Common/FestiveIcons/HollyIcon";
-import { ContactLink, LegalList, LegalPage, LegalSection } from "Components/Legal/LegalPage";
+import BulletList from "Components/Common/BulletList";
+import { ContactLink, LegalPage, LegalSection } from "Components/Legal/LegalPage";
 
 export default function TermsPage() {
 	return (
@@ -11,7 +12,7 @@ export default function TermsPage() {
 			</MantineText>
 
 			<LegalSection title="Using the app">
-				<LegalList>
+				<BulletList>
 					<List.Item>
 						You need to be 13 or older to have an account. Kids can be added by their parents instead.
 					</List.Item>
@@ -21,7 +22,7 @@ export default function TermsPage() {
 						drew whom or to break the site.
 					</List.Item>
 					<List.Item>I may remove accounts or content that break these rules.</List.Item>
-				</LegalList>
+				</BulletList>
 			</LegalSection>
 
 			<LegalSection title="Your stuff">

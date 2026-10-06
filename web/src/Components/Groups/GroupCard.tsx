@@ -90,7 +90,7 @@ export default function GroupCard({ group }: IGroupCardProps) {
 	);
 	const canViewDraw = group.isOwner && group.isDrawn;
 	const canDraw = group.isOwner && !group.isDrawn;
-	const canLeave = !group.isOwner && !group.isDrawn;
+	const canLeave = !group.isOwner;
 
 	function confirmState(action: IConfirmedAction) {
 		return {
@@ -114,7 +114,7 @@ export default function GroupCard({ group }: IGroupCardProps) {
 		delete: group.isOwner ? (
 			<DeleteGroupControl groupId={group.id} groupName={group.name} {...confirmState("delete")} />
 		) : null,
-		leave: canLeave ? <LeaveGroupControl groupId={group.id} groupName={group.name} {...confirmState("leave")} /> : null,
+		leave: canLeave ? <LeaveGroupControl group={group} {...confirmState("leave")} /> : null,
 	};
 
 	function openExchangeModal() {

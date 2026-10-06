@@ -32,7 +32,8 @@ type IGroupActionsMenuProps = {
  * people come for: drawing names, their assignment and their Santa chats.
  */
 export default function GroupActionsMenu({ group, onAction }: IGroupActionsMenuProps) {
-	const canLeave = !group.isOwner && !group.isDrawn;
+	// Even after the draw: nobody should be stuck in a group (see LeaveGroupControl).
+	const canLeave = !group.isOwner;
 
 	if (!group.isOwner && !canLeave) {
 		return null;
