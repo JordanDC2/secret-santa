@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Enums\EmailKind;
 use App\Models\User;
 use App\Notifications\Concerns\RespectsEmailPreferences;
+use App\Notifications\Contracts\OptionalEmail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -17,7 +18,7 @@ use Illuminate\Queue\Attributes\Tries;
  */
 #[Tries(4)]
 #[Backoff(10, 60, 300)]
-class ShoppingReminder extends Notification implements ShouldQueue
+class ShoppingReminder extends Notification implements OptionalEmail, ShouldQueue
 {
     use Queueable, RespectsEmailPreferences;
 
@@ -37,7 +38,7 @@ class ShoppingReminder extends Notification implements ShouldQueue
         public readonly int $recipientItemCount,
     ) {}
 
-    protected function emailKind(): EmailKind
+    public function emailKind(): EmailKind
     {
         return EmailKind::Reminders;
     }
@@ -46,31 +47,32 @@ class ShoppingReminder extends Notification implements ShouldQueue
     {
         $group = ElfMailMessage::plain($this->groupName);
         $person = ElfMailMessage::plain($this->recipientName);
+        $who = new Addressee($notifiable);
 
         $message = (new ElfMailMessage)
             ->subject("🎁 {$this->daysLeft} days until the {$this->groupName} gift exchange")
-            ->greeting('Hi '.ElfMailMessage::plain($notifiable->name).'!')
-            ->line("A friendly reminder from the North Pole: the **{$group}** exchange is on {$this->exchangeDate}, {$this->daysLeft} days from now, and you're the Secret Santa for **{$person}**.")
+            ->greeting($who->greeting())
+            ->line("A friendly reminder from the North Pole: the **{$group}** exchange is on {$this->exchangeDate}, {$this->daysLeft} days from now, and {$who->youAre()} the Secret Santa for **{$person}**.")
             ->when($this->budget, fn (ElfMailMessage $message, string $budget) => $message->line("The budget is {$budget}."));
 
         if ($this->giftsNeeded > 1) {
             $groups = collect($this->drawnInGroups)->map(fn (string $name) => ElfMailMessage::plain($name))->join(', ', ' and ');
-            $message->line("You drew {$person} in {$this->giftsNeeded} groups ({$groups}), so that's {$this->giftsNeeded} gifts to find.");
+            $message->line("{$who->you(startOfSentence: true)} drew {$person} in {$this->giftsNeeded} groups ({$groups}), so that's {$this->giftsNeeded} gifts to find.");
         }
 
         if ($this->claimed >= $this->giftsNeeded) {
-            $message->line("You've already claimed something on {$person}'s list. If it still needs ordering, now's a good time, so shipping doesn't spoil the surprise. Mark it bought once it is, and I'll stop reminding you.");
+            $message->line(($who->isManaged() ? "There's already something claimed on {$person}'s list for {$who->name()} to give." : "You've already claimed something on {$person}'s list.")." If it still needs ordering, now's a good time, so shipping doesn't spoil the surprise. Mark it bought once it is, and I'll stop reminding you.");
         } elseif ($this->claimed > 0) {
             $more = $this->giftsNeeded - $this->claimed;
-            $message->line("You've claimed {$this->claimed} so far, so pick {$more} more from {$person}'s wishlist and order soon in case shipping is slow.");
+            $message->line(($who->isManaged() ? "{$this->claimed} claimed so far" : "You've claimed {$this->claimed} so far").", so pick {$more} more from {$person}'s wishlist and order soon in case shipping is slow.");
         } elseif ($this->recipientItemCount > 0) {
             $things = $this->recipientItemCount === 1 ? '1 thing' : "{$this->recipientItemCount} things";
             $message->line("Still deciding? {$person} has {$things} on their wishlist. Claim one so nobody else buys it too, and order soon in case shipping is slow.");
         } else {
-            $message->line("{$person}'s wishlist is empty, so you could ask them a question in your Santa chat (they won't know it's you) or add a gift idea for the group.");
+            $message->line("{$person}'s wishlist is empty, so you could ask them a question in {$who->your()} Santa chat (they won't know it's {$who->you()}) or add a gift idea for the group.");
         }
 
         return $message->action('View Their Wishlist', config('app.frontend_url')."/wishlists/{$this->recipientId}")
-            ->settingsFooter(EmailKind::Reminders);
+            ->settingsFooter(EmailKind::Reminders, $who);
     }
 }

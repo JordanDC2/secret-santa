@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Enums\EmailKind;
+use App\Notifications\Contracts\OptionalEmail;
 use App\Notifications\ResetPasswordLink;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -91,13 +93,22 @@ class User extends Authenticatable
 
     /**
      * Where this user's emails go. A managed profile's placeholder address can't receive mail,
-     * so its emails go to the people who manage it.
+     * so its emails go to the people who manage it: for an optional email, only those who
+     * have that kind switched on. (With nobody left, Laravel sends nothing.)
      *
      * @return string|array<int, string>
      */
-    public function routeNotificationForMail(): string|array
+    public function routeNotificationForMail(?Notification $notification = null): string|array
     {
-        return $this->isManagedProfile() ? $this->managers()->pluck('email')->all() : $this->email;
+        if (! $this->isManagedProfile()) {
+            return $this->email;
+        }
+
+        return $this->managers()->get()
+            ->filter(fn (User $manager) => ! $notification instanceof OptionalEmail || $manager->wantsEmail($notification->emailKind()))
+            ->pluck('email')
+            ->values()
+            ->all();
     }
 
     /**

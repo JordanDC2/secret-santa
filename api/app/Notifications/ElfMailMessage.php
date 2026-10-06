@@ -20,11 +20,12 @@ class ElfMailMessage extends MailMessage
     /**
      * The last line of an email people can turn off: why they got it, and where to stop it.
      */
-    public function settingsFooter(EmailKind $kind): static
+    public function settingsFooter(EmailKind $kind, ?Addressee $about = null): static
     {
         $settings = config('app.frontend_url').'/account';
+        $because = $about?->isManaged() ? "you look after {$about->name()} and {$kind->label()} emails are on" : "{$kind->label()} emails are on";
 
-        return $this->line("You're getting this because {$kind->label()} emails are on. [Change your email settings]({$settings}).");
+        return $this->line("You're getting this because {$because}. [Change your email settings]({$settings}).");
     }
 
     public static function signature(): string

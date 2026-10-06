@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Alert, Button, Group, Modal, SegmentedControl, Stack, TextInput } from "@mantine/core";
+import { Alert, Button, Divider, Group, Modal, SegmentedControl, Stack, TextInput } from "@mantine/core";
+import CoParentsSection from "Components/ManagedProfiles/CoParentsSection";
 import { useSaveManagedProfileMutation } from "Components/ManagedProfiles/hooks";
 import type { IManagedKind, IManagedProfile } from "Components/ManagedProfiles/types";
 import { apiErrorMessage } from "Data/Api/Client";
@@ -53,6 +54,12 @@ export default function ManagedProfileFormModal({ opened, profile, onClose }: IM
 					</Group>
 				</Stack>
 			</form>
+			{profile && (
+				<>
+					<Divider my="lg" />
+					<CoParentsSection profileId={profile.id} />
+				</>
+			)}
 		</Modal>
 	);
 }

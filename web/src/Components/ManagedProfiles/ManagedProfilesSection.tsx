@@ -5,6 +5,7 @@ import { faPenToSquare, faTrashCan } from "@fortawesome/free-regular-svg-icons";
 import { faChild, faListUl, faPaw, faPlus } from "@fortawesome/free-solid-svg-icons";
 import { Link } from "react-router-dom";
 import { useDeleteManagedProfileMutation, useManagedProfilesQuery } from "Components/ManagedProfiles/hooks";
+import { useAuth } from "Components/Auth/AuthContext";
 import ManagedProfileFormModal from "Components/ManagedProfiles/ManagedProfileFormModal";
 import type { IManagedProfile } from "Components/ManagedProfiles/types";
 import { apiErrorMessage } from "Data/Api/Client";
@@ -13,7 +14,15 @@ import { apiErrorMessage } from "Data/Api/Client";
  * Kids and pets without a login of their own: you keep their wishlists and (soon) add them
  * to your groups. Unlike your own list, you can see what's been claimed on theirs.
  */
+/** "Nick" or "Nick and Ivy": everyone else looking after them; null if it's just you. */
+function coParentNames(profile: IManagedProfile, myId: number | undefined) {
+	const others = profile.managers.filter((manager) => manager.id !== myId).map((manager) => manager.name);
+
+	return others.length > 0 ? others.join(" and ") : null;
+}
+
 export default function ManagedProfilesSection() {
+	const { user } = useAuth();
 	const profilesQuery = useManagedProfilesQuery();
 	const deleteProfile = useDeleteManagedProfileMutation();
 	const [modal, setModal] = useState<{ opened: boolean; profile: IManagedProfile | null; key: number }>({
@@ -62,7 +71,12 @@ export default function ManagedProfilesSection() {
 				{profilesQuery.data?.map((profile) =>
 					confirmingDeleteId === profile.id ? (
 						<Group key={profile.id} gap="xs" justify="space-between">
-							<MantineText size="sm">Remove {profile.name} and their wishlist? This can&apos;t be undone.</MantineText>
+							<MantineText size="sm">
+								Remove {profile.name} and their wishlist?
+								{coParentNames(profile, user?.id) &&
+									` This removes them for ${coParentNames(profile, user?.id)} too.`}{" "}
+								This can&apos;t be undone.
+							</MantineText>
 							<Group gap="xs">
 								<Button
 									size="xs"
@@ -81,7 +95,14 @@ export default function ManagedProfilesSection() {
 						<Group key={profile.id} gap="xs" justify="space-between">
 							<Group gap="sm">
 								<FontAwesomeIcon icon={profile.kind === "pet" ? faPaw : faChild} fixedWidth />
-								<MantineText fw={600}>{profile.name}</MantineText>
+								<div>
+									<MantineText fw={600}>{profile.name}</MantineText>
+									{coParentNames(profile, user?.id) && (
+										<MantineText size="xs" c="dimmed">
+											with {coParentNames(profile, user?.id)}
+										</MantineText>
+									)}
+								</div>
 							</Group>
 							<Group gap="xs">
 								<Button

@@ -6,6 +6,7 @@ use App\Enums\EmailKind;
 use App\Models\Group;
 use App\Models\User;
 use App\Notifications\Concerns\RespectsEmailPreferences;
+use App\Notifications\Contracts\OptionalEmail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -15,7 +16,7 @@ use Illuminate\Queue\Attributes\Tries;
 /** Tells a group's owner that someone joined with the invite code. */
 #[Tries(4)]
 #[Backoff(10, 60, 300)]
-class MemberJoinedGroup extends Notification implements ShouldQueue
+class MemberJoinedGroup extends Notification implements OptionalEmail, ShouldQueue
 {
     use Queueable, RespectsEmailPreferences;
 
@@ -28,7 +29,7 @@ class MemberJoinedGroup extends Notification implements ShouldQueue
         public readonly int $membersCount,
     ) {}
 
-    protected function emailKind(): EmailKind
+    public function emailKind(): EmailKind
     {
         return EmailKind::NewMembers;
     }

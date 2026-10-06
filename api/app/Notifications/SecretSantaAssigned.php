@@ -6,6 +6,7 @@ use App\Enums\EmailKind;
 use App\Models\Group;
 use App\Models\User;
 use App\Notifications\Concerns\RespectsEmailPreferences;
+use App\Notifications\Contracts\OptionalEmail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -17,7 +18,7 @@ use Symfony\Component\Mime\Email;
 
 #[Tries(4)]
 #[Backoff(10, 60, 300)]
-class SecretSantaAssigned extends Notification implements ShouldQueue
+class SecretSantaAssigned extends Notification implements OptionalEmail, ShouldQueue
 {
     use Queueable, RespectsEmailPreferences;
 
@@ -43,36 +44,37 @@ class SecretSantaAssigned extends Notification implements ShouldQueue
         public readonly int $drawNumber = 1,
     ) {}
 
-    protected function emailKind(): EmailKind
+    public function emailKind(): EmailKind
     {
         return EmailKind::Assignments;
     }
 
     public function toMail(User $notifiable): ElfMailMessage
     {
+        $who = new Addressee($notifiable);
         $wishlistUrl = config('app.frontend_url')."/wishlists/{$this->recipient->id}";
         $groupName = ElfMailMessage::plain($this->group->name);
         $isRedraw = $this->drawNumber > 1;
 
         return (new ElfMailMessage)
-            ->subject($this->subjectLine())
+            ->subject($this->subjectLine($notifiable))
             // Unique per email. Undocumented, but some say it stops Gmail hiding repeated text.
             ->withSymfonyMessage(fn (Email $message) => $message->getHeaders()->addTextHeader('X-Entity-Ref-ID', (string) Str::uuid()))
-            ->greeting('Hi '.ElfMailMessage::plain($notifiable->name).'!')
+            ->greeting($who->greeting())
             ->line('I have news straight from the North Pole!')
             ->line($isRedraw
                 ? "The names have been drawn again for **{$groupName}**. This replaces any earlier assignment in this group."
                 : "The names have been drawn for **{$groupName}**.")
             ->when($this->group->description, fn (ElfMailMessage $message, string $description) => $message
                 ->line($this->ownerNote($description)))
-            ->line('You are the Secret Santa for:')
+            ->line($who->isManaged() ? "{$who->name()} is the Secret Santa for:" : 'You are the Secret Santa for:')
             ->line('## '.ElfMailMessage::plain($this->recipient->name))
             ->when($this->exchangeDetails(), fn (ElfMailMessage $message, string $details) => $message->line($details))
             ->line('Keep it a secret, and happy gifting! 🎄')
             // No names in the button label: Laravel repeats it in the footer as Markdown, where a
             // crafted name would become a link. The name is shown escaped just above instead.
             ->action('View Their Wishlist', $wishlistUrl)
-            ->settingsFooter(EmailKind::Assignments);
+            ->settingsFooter(EmailKind::Assignments, $who);
     }
 
     /**
@@ -92,15 +94,18 @@ class SecretSantaAssigned extends Notification implements ShouldQueue
         };
     }
 
-    private function subjectLine(): string
+    /**
+     * For a kid or pet, "your" becomes their name, so their parents can tell whose it is.
+     */
+    private function subjectLine(User $notifiable): string
     {
-        if ($this->drawNumber <= 1) {
-            return "🎁 Your Secret Santa assignment for {$this->group->name}";
-        }
+        $subject = $this->drawNumber <= 1
+            ? "🎁 Your Secret Santa assignment for {$this->group->name}"
+            : sprintf(self::LATER_DRAW_SUBJECTS[($this->drawNumber - 2) % count(self::LATER_DRAW_SUBJECTS)], $this->group->name);
 
-        $template = self::LATER_DRAW_SUBJECTS[($this->drawNumber - 2) % count(self::LATER_DRAW_SUBJECTS)];
-
-        return sprintf($template, $this->group->name);
+        return $notifiable->isManagedProfile()
+            ? str_ireplace('your Secret Santa', "{$notifiable->name}'s Secret Santa", $subject)
+            : $subject;
     }
 
     /**

@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Enums\EmailKind;
 use App\Models\User;
 use App\Notifications\Concerns\RespectsEmailPreferences;
+use App\Notifications\Contracts\OptionalEmail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -18,7 +19,7 @@ use Illuminate\Queue\Attributes\Tries;
  */
 #[Tries(4)]
 #[Backoff(10, 60, 300)]
-class SantaMessageReceived extends Notification implements ShouldQueue
+class SantaMessageReceived extends Notification implements OptionalEmail, ShouldQueue
 {
     use Queueable, RespectsEmailPreferences;
 
@@ -35,7 +36,7 @@ class SantaMessageReceived extends Notification implements ShouldQueue
         public readonly ?int $asProfileId = null,
     ) {}
 
-    protected function emailKind(): EmailKind
+    public function emailKind(): EmailKind
     {
         return EmailKind::SantaChat;
     }
@@ -44,22 +45,31 @@ class SantaMessageReceived extends Notification implements ShouldQueue
     {
         $group = ElfMailMessage::plain($this->groupName);
         $side = $this->fromSanta ? 'my-santa' : 'my-person';
-        $message = (new ElfMailMessage)->greeting('Hi '.ElfMailMessage::plain($notifiable->name).'!');
+        $who = new Addressee($notifiable);
+        $message = (new ElfMailMessage)->greeting($who->greeting());
 
         if ($this->fromSanta) {
-            $message->subject("🎅 Your Secret Santa sent you a message in {$this->groupName}")
-                ->line("Your Secret Santa in **{$group}** has a question for you!")
-                ->line("Reply in the app. They'll see your answer, but you won't find out who they are. That's half the fun.");
+            $message->subject($who->isManaged()
+                ? "🎅 {$notifiable->name}'s Secret Santa sent a message in {$this->groupName}"
+                : "🎅 Your Secret Santa sent you a message in {$this->groupName}")
+                ->line("{$who->your(startOfSentence: true)} Secret Santa in **{$group}** has a question for {$who->you()}!")
+                ->line($who->isManaged()
+                    ? "Reply in the app for {$who->name()}. Their Santa will see the answer, but nobody finds out who they are. That's half the fun."
+                    : "Reply in the app. They'll see your answer, but you won't find out who they are. That's half the fun.");
         } else {
             $person = ElfMailMessage::plain($this->personName);
-            $message->subject("💌 {$this->personName} wrote back to their Secret Santa")
-                ->line("{$person} sent a message to their Secret Santa in **{$group}**.")
-                ->line("Have a look in the app. {$person} still has no idea it's you.");
+            $message->subject($who->isManaged()
+                ? "💌 {$this->personName} wrote back to {$notifiable->name}"
+                : "💌 {$this->personName} wrote back to their Secret Santa")
+                ->line($who->isManaged()
+                    ? "{$person} sent a message to their Secret Santa, {$who->name()}, in **{$group}**."
+                    : "{$person} sent a message to their Secret Santa in **{$group}**.")
+                ->line("Have a look in the app. {$person} still has no idea it's {$who->you()}.");
         }
 
         return $message
             ->line("I'll only email about the first new message, so open the app to keep up with any more.")
             ->action('Open the Conversation', config('app.frontend_url')."/?group={$this->groupId}&chat={$side}".($this->asProfileId ? "&as={$this->asProfileId}" : ''))
-            ->settingsFooter(EmailKind::SantaChat);
+            ->settingsFooter(EmailKind::SantaChat, $who);
     }
 }

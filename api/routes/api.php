@@ -70,6 +70,11 @@ Route::middleware('auth:sanctum')->group(function () {
         // Kids and pets this user looks after.
         Route::apiResource('profiles', ManagedProfileController::class)->except('show')->parameters(['profiles' => 'profile']);
 
+        // Co-parents: everyone who looks after a kid or pet.
+        Route::post('profiles/{profile}/managers', [ManagedProfileController::class, 'addManager'])->name('profiles.managers.store');
+
+        Route::delete('profiles/{profile}/managers/{manager}', [ManagedProfileController::class, 'removeManager'])->name('profiles.managers.destroy');
+
         Route::delete('/', DeleteAccountHandler::class)->name('destroy');
     });
 

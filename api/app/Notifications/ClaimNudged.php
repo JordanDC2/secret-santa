@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Enums\EmailKind;
 use App\Models\User;
 use App\Notifications\Concerns\RespectsEmailPreferences;
+use App\Notifications\Contracts\OptionalEmail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -14,7 +15,7 @@ use Illuminate\Queue\Attributes\Tries;
 /** A fellow shopper asking whether you're still getting a gift you claimed. */
 #[Tries(4)]
 #[Backoff(10, 60, 300)]
-class ClaimNudged extends Notification implements ShouldQueue
+class ClaimNudged extends Notification implements OptionalEmail, ShouldQueue
 {
     use Queueable, RespectsEmailPreferences;
 
@@ -26,7 +27,7 @@ class ClaimNudged extends Notification implements ShouldQueue
         public readonly ?string $nudgerName,
     ) {}
 
-    protected function emailKind(): EmailKind
+    public function emailKind(): EmailKind
     {
         return EmailKind::Nudges;
     }

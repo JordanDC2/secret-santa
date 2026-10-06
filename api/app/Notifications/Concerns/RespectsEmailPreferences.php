@@ -7,11 +7,12 @@ use App\Models\User;
 
 /**
  * For notifications people can switch off: sends by email unless the recipient turned this
- * kind off on their Account page.
+ * kind off on their Account page. For a kid or pet, each of their parents' own settings
+ * decide (see User::routeNotificationForMail()).
  */
 trait RespectsEmailPreferences
 {
-    abstract protected function emailKind(): EmailKind;
+    abstract public function emailKind(): EmailKind;
 
     /**
      * @return array<int, string>

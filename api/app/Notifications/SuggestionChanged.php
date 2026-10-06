@@ -5,6 +5,7 @@ namespace App\Notifications;
 use App\Enums\EmailKind;
 use App\Models\User;
 use App\Notifications\Concerns\RespectsEmailPreferences;
+use App\Notifications\Contracts\OptionalEmail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -17,7 +18,7 @@ use Illuminate\Queue\Attributes\Tries;
  */
 #[Tries(4)]
 #[Backoff(10, 60, 300)]
-class SuggestionChanged extends Notification implements ShouldQueue
+class SuggestionChanged extends Notification implements OptionalEmail, ShouldQueue
 {
     use Queueable, RespectsEmailPreferences;
 
@@ -42,7 +43,7 @@ class SuggestionChanged extends Notification implements ShouldQueue
         public readonly bool $removed,
     ) {}
 
-    protected function emailKind(): EmailKind
+    public function emailKind(): EmailKind
     {
         return EmailKind::GiftIdeas;
     }
