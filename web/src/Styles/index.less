@@ -29,6 +29,59 @@
 	--festive-gold-button: #f7e2a8;
 	--festive-gold-button-hover: #f1d68f;
 	--festive-gold-text: #6b4a07;
+
+	/*
+	 * Colours that change with light/dark mode (redefined below). The brand and illustration
+	 * colours above stay the same in both; components use these for text and surfaces.
+	 * Every text pair here is at least 4.5:1 in both modes.
+	 */
+	--festive-heading: var(--festive-darkest);
+	--festive-page-title: var(--festive-maroon);
+	/* The festive red name in an assignment reveal. */
+	--festive-name: var(--festive-red);
+	--festive-link-hover: var(--mantine-color-red-9);
+	--festive-page-bg: linear-gradient(
+		180deg,
+		var(--festive-cream) 0%,
+		var(--festive-cream-light) 35%,
+		var(--festive-mint) 100%
+	);
+	/* Open wishlist items, the Santa chat thread. */
+	--festive-surface: #ffffff;
+	/* Items someone else has claimed. */
+	--festive-surface-taken: var(--mantine-color-gray-1);
+	/* The assignment reveal, and their person's chat bubbles. */
+	--festive-mint-surface: var(--festive-mint);
+	--festive-mint-border: var(--mantine-color-green-2);
+	--festive-green-text: var(--festive-green);
+	--festive-line: var(--festive-paper-line);
+	/* Behind a wishlist item with no picture. */
+	--festive-image-frame: var(--festive-cream);
+	/* Warm cream panels: kids' rows in the Kids & pets panel, the update notice. */
+	--festive-cream-surface: var(--festive-cream);
+}
+
+/*
+ * Dark mode: a deep evergreen night instead of cream, with lighter reds and greens so text
+ * stays readable (links 6.2:1, names 5.7:1, gold buttons 8:1 on these surfaces).
+ */
+:root[data-mantine-color-scheme="dark"] {
+	--festive-heading: #f1ede4;
+	--festive-page-title: #f68495;
+	--festive-name: #f68495;
+	--festive-link-hover: var(--mantine-color-red-1);
+	--festive-page-bg: linear-gradient(180deg, #101816 0%, #142019 35%, #18261f 100%);
+	--festive-surface: var(--mantine-color-dark-6);
+	--festive-surface-taken: #2a3531;
+	--festive-mint-surface: #1c3127;
+	--festive-mint-border: #2f5a42;
+	--festive-green-text: #82c39c;
+	--festive-line: var(--mantine-color-dark-4);
+	--festive-image-frame: #26312d;
+	--festive-cream-surface: #26312d;
+	--festive-gold-button: #4a3a14;
+	--festive-gold-button-hover: #5a4618;
+	--festive-gold-text: #f3d9a4;
 }
 
 /*

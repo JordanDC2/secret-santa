@@ -66,6 +66,23 @@ const festiveAmber: MantineColorsTuple = [
 	"#4d2d03",
 ];
 
+/**
+ * Dark mode's surfaces and text: an evergreen night instead of Mantine's neutral grays.
+ * 7 is the page, 6 cards and fields, 4 borders, 0 body text (12.7:1 on cards).
+ */
+const festiveNight: MantineColorsTuple = [
+	"#e8eeeb",
+	"#c4ccc8",
+	"#9aa5a0",
+	"#6f7b76",
+	"#3b4844",
+	"#2c3733",
+	"#1f2926",
+	"#141c1a",
+	"#101715",
+	"#0b100f",
+];
+
 const fontFamily = "Nunito, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 
 /*
@@ -101,6 +118,7 @@ export const theme = createTheme({
 		red: festiveRed,
 		green: festiveGreen,
 		orange: festiveAmber,
+		dark: festiveNight,
 	},
 	fontFamily,
 	headings: { fontFamily, fontWeight: "800" },
@@ -138,5 +156,9 @@ export const cssVariablesResolver: CSSVariablesResolver = () => ({
 		"--mantine-color-anchor": "var(--mantine-color-red-filled)",
 		"--mantine-color-dimmed": "#5f6870",
 	},
-	dark: { "--mantine-color-anchor": "var(--mantine-color-red-4)" },
+	// Dark mode: a lighter red for links (6.2:1 on cards) and a lighter dimmed gray (6.7:1).
+	dark: {
+		"--mantine-color-anchor": "var(--mantine-color-red-3)",
+		"--mantine-color-dimmed": "#a5b0ab",
+	},
 });

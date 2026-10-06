@@ -52,7 +52,7 @@ export default function DrawDetailsModal({ group, opened, onClose }: IDrawDetail
 								>
 									<MantineText size="sm">{check.label}</MantineText>
 									{check.problems.map((problem) => (
-										<MantineText key={problem} size="xs" c="red.8">
+										<MantineText key={problem} size="xs" c="red">
 											{problem}
 										</MantineText>
 									))}

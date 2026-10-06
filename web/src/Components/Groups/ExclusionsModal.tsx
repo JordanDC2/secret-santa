@@ -151,7 +151,7 @@ export default function ExclusionsModal({ group, opened, onClose }: IExclusionsM
 					/>
 				))}
 
-				<Paper withBorder radius="md" p="md" bg="gray.0">
+				<Paper withBorder radius="md" p="md" bg="var(--mantine-color-default-hover)">
 					<form onSubmit={handleAdd}>
 						<Stack gap="sm">
 							<MantineText fw={600}>Add an exclusion</MantineText>

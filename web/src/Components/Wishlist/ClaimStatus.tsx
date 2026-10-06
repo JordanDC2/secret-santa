@@ -30,7 +30,7 @@ export default function ClaimStatus({ item }: { item: IWishlistItem }) {
 	return (
 		<Stack gap={2}>
 			{mine > 0 && (
-				<MantineText size="xs" fw={700} c="green.8">
+				<MantineText size="xs" fw={700} c="var(--festive-green-text)">
 					<FontAwesomeIcon icon={faCheck} />{" "}
 					{minePurchasedAt
 						? `You bought ${isSingle ? "this" : mine}`

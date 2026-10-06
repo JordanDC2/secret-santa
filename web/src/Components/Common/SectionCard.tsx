@@ -22,7 +22,7 @@ export default function SectionCard({ title, icon, action, danger = false, child
 		<Card component="section" withBorder padding="lg" radius="md" className={danger ? classes.danger : undefined}>
 			<Stack gap="md">
 				<Group justify="space-between" wrap="nowrap" gap="sm">
-					<Title order={2} size="h4" className={classes.title} c={danger ? "red.8" : undefined}>
+					<Title order={2} size="h4" className={classes.title} c={danger ? "red" : undefined}>
 						{icon}
 						{title}
 					</Title>

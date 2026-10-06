@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { MantineProvider } from "@mantine/core";
+import { localStorageColorSchemeManager, MantineProvider } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import AccountPage from "Components/Account/AccountPage";
@@ -55,10 +55,18 @@ function AppRoutes() {
 	);
 }
 
+/** Each device remembers its own choice; "auto" follows the phone or computer's setting. */
+const colorSchemeManager = localStorageColorSchemeManager({ key: "secret-santa-color-scheme" });
+
 export default function App() {
 	return (
 		<QueryClientProvider client={queryClient}>
-			<MantineProvider theme={theme} cssVariablesResolver={cssVariablesResolver}>
+			<MantineProvider
+				theme={theme}
+				cssVariablesResolver={cssVariablesResolver}
+				defaultColorScheme="auto"
+				colorSchemeManager={colorSchemeManager}
+			>
 				<AuthProvider>
 					<BrowserRouter>
 						<AppRoutes />

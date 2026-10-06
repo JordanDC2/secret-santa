@@ -2,6 +2,7 @@ import { Stack } from "@mantine/core";
 import Page from "Components/Layout/Page";
 import StockingIcon from "Components/Common/FestiveIcons/StockingIcon";
 import DeleteAccountSection from "Components/Account/DeleteAccountSection";
+import AppearanceSection from "Components/Account/AppearanceSection";
 import EmailPreferencesSection from "Components/Account/EmailPreferencesSection";
 import ManagedProfilesSection from "Components/ManagedProfiles/ManagedProfilesSection";
 import PasswordSection from "Components/Account/PasswordSection";
@@ -26,6 +27,7 @@ export default function AccountPage() {
 				<ManagedProfilesSection />
 				<PasswordSection />
 				<EmailPreferencesSection />
+				<AppearanceSection />
 				<DeleteAccountSection />
 			</Stack>
 		</Page>
