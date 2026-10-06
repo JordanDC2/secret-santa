@@ -1,26 +1,21 @@
-/* Matches the recipient box in the assignment email. */
+/* The revealed name: a soft mint card, with the festive red name as the moment's highlight. */
 .reveal {
 	background-color: var(--festive-mint);
-	border: 2px dashed var(--festive-red);
 	border-radius: var(--mantine-radius-md);
-	padding: var(--mantine-spacing-md) var(--mantine-spacing-lg);
+	padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
 	/* Sits in a row with the Santa chat button, but takes the whole row once revealed. */
 	flex-basis: 100%;
 }
 
-.label {
-	margin-bottom: 6px;
-}
-
+/* The name with the present before it, sized and spaced like a page title's icon. */
 .name {
 	font-family: var(--festive-font);
 	font-size: var(--festive-title-reveal);
 	font-weight: 700;
-	line-height: 1.2;
+	line-height: 1.1;
 	color: var(--festive-red);
-}
-
-/* Stays on the right even when a long name pushes the buttons onto their own line. */
-.actions {
-	margin-left: auto;
+	overflow-wrap: anywhere;
+	display: flex;
+	align-items: center;
+	gap: 0.25em;
 }

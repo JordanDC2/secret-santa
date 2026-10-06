@@ -239,6 +239,10 @@ export default function GroupCard({ group }: IGroupCardProps) {
 									<AssignmentReveal
 										recipientId={group.myAssignment.recipientId}
 										recipientName={group.myAssignment.recipientName}
+										recipientShortName={
+											group.members.find((member) => member.id === group.myAssignment?.recipientId)?.name ??
+											group.myAssignment.recipientName
+										}
 										unreadMessages={group.myAssignment.unreadMessages}
 										onAsk={() => openChat("my-person")}
 									/>

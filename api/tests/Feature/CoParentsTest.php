@@ -108,7 +108,7 @@ class CoParentsTest extends TestCase
         $this->assertStringContainsString("🎁 Lily's Secret Santa assignment for Swap", $assigned);
         $this->assertStringContainsString("Lily's Secret Santa for Swap", (new SecretSantaAssigned(Group::factory()->make(['name' => 'Swap']), $this->nick, 3))->toMail($this->lily)->subject);
         $this->assertStringContainsString("Hi! Here's an update about Lily.", $assigned);
-        $this->assertStringContainsString('Lily is the Secret Santa for:', $assigned);
+        $this->assertStringContainsString('Lily is the Secret Santa for', $assigned);
         $this->assertStringContainsString('you look after Lily and Secret Santa assignment emails are on', $assigned);
 
         $empty = (new EmptyWishlistReminder('Swap', 'Sunday, December 20', 21))->toMail($this->lily);
@@ -129,6 +129,6 @@ class CoParentsTest extends TestCase
         $this->assertStringContainsString('1 claimed so far', $shopping);
 
         // Adults are still "you".
-        $this->assertStringContainsString('You are the Secret Santa for:', $text((new SecretSantaAssigned(Group::factory()->make(), $this->nick, 1))->toMail($this->holly)));
+        $this->assertStringContainsString("You're the Secret Santa for", $text((new SecretSantaAssigned(Group::factory()->make(), $this->nick, 1))->toMail($this->holly)));
     }
 }

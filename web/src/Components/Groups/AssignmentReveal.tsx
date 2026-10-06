@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Box, Button, Group } from "@mantine/core";
-import Eyebrow from "Components/Common/Eyebrow";
+import { ActionIcon, Box, Button, Group, Text as MantineText, Tooltip } from "@mantine/core";
+import GiftBoxIcon from "Components/Common/FestiveIcons/GiftBoxIcon";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Link } from "react-router-dom";
 import { faEye, faEyeSlash, faListUl } from "@fortawesome/free-solid-svg-icons";
@@ -10,7 +10,10 @@ import classes from "Components/Groups/AssignmentReveal.module.less";
 
 type IAssignmentRevealProps = {
 	recipientId: number;
+	/** In full: there's no doubt who to shop for. */
 	recipientName: string;
+	/** As the group card names them (e.g. "Ivy", or "Nick C."), for the Ask button. */
+	recipientShortName: string;
 	/** Unread messages from the recipient, counted even while the name is hidden. */
 	unreadMessages: number;
 	onAsk: () => void;
@@ -19,6 +22,7 @@ type IAssignmentRevealProps = {
 export default function AssignmentReveal({
 	recipientId,
 	recipientName,
+	recipientShortName,
 	unreadMessages,
 	onAsk,
 }: IAssignmentRevealProps) {
@@ -38,33 +42,40 @@ export default function AssignmentReveal({
 
 	return (
 		<Box className={classes.reveal}>
-			{/* The label gets its own line so the buttons can sit beside the name, not under it. */}
-			<Eyebrow className={classes.label}>You&apos;re the Secret Santa for</Eyebrow>
-			<Group justify="space-between" gap="sm">
-				<div className={classes.name}>{recipientName}</div>
-				<Group gap="xs" className={classes.actions}>
-					<Button
-						component={Link}
-						to={`/wishlists/${recipientId}`}
-						size="xs"
-						variant="secondary"
-						leftSection={<FontAwesomeIcon icon={faListUl} />}
-					>
-						Wishlist
-					</Button>
-					<SantaChatButton size="xs" unread={unreadMessages} onClick={onAsk}>
-						Ask {recipientName}
-					</SantaChatButton>
-					<Button
-						size="xs"
+			{/* Label and the eye on top; the name with the present before it, like a page title; then the buttons. */}
+			<Group justify="space-between" wrap="nowrap" align="flex-start" gap="xs">
+				<MantineText size="sm" c="dimmed">
+					You&apos;re the Secret Santa for
+				</MantineText>
+				<Tooltip label="Hide" withArrow>
+					<ActionIcon
+						size="sm"
 						variant="subtle"
 						color="gray"
-						leftSection={<FontAwesomeIcon icon={faEyeSlash} />}
+						aria-label="Hide who you drew"
 						onClick={() => setRevealed(false)}
 					>
-						Hide
-					</Button>
-				</Group>
+						<FontAwesomeIcon icon={faEyeSlash} />
+					</ActionIcon>
+				</Tooltip>
+			</Group>
+			<div className={classes.name}>
+				<GiftBoxIcon size="1em" />
+				<span>{recipientName}</span>
+			</div>
+			<Group gap="xs" mt="xs">
+				<Button
+					component={Link}
+					to={`/wishlists/${recipientId}`}
+					size="xs"
+					variant="secondary"
+					leftSection={<FontAwesomeIcon icon={faListUl} />}
+				>
+					Wishlist
+				</Button>
+				<SantaChatButton size="xs" unread={unreadMessages} onClick={onAsk}>
+					Ask {recipientShortName}
+				</SantaChatButton>
 			</Group>
 		</Box>
 	);
