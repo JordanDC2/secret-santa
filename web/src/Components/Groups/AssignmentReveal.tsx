@@ -13,6 +13,8 @@ type IAssignmentRevealProps = {
 	/** Unread messages from the recipient, counted even while the name is hidden. */
 	unreadMessages: number;
 	onAsk: () => void;
+	/** A kid or pet you look after, whose assignment this is; omitted for your own. */
+	santaName?: string;
 };
 
 export default function AssignmentReveal({
@@ -20,6 +22,7 @@ export default function AssignmentReveal({
 	recipientName,
 	unreadMessages,
 	onAsk,
+	santaName,
 }: IAssignmentRevealProps) {
 	const [revealed, setRevealed] = useState(false);
 
@@ -36,7 +39,7 @@ export default function AssignmentReveal({
 				}
 				onClick={() => setRevealed(true)}
 			>
-				Reveal my assignment
+				{santaName ? `Reveal ${santaName}'s assignment` : "Reveal my assignment"}
 			</Button>
 		);
 	}
@@ -45,7 +48,7 @@ export default function AssignmentReveal({
 		<Box className={classes.reveal}>
 			{/* The label gets its own line so the buttons can sit beside the name, not under it. */}
 			<MantineText size="xs" fw={700} tt="uppercase" c="dimmed" className={classes.label}>
-				You&apos;re the Secret Santa for
+				{santaName ? `${santaName} is the Secret Santa for` : "You're the Secret Santa for"}
 			</MantineText>
 			<Group justify="space-between" gap="sm">
 				<div className={classes.name}>{recipientName}</div>

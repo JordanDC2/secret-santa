@@ -19,9 +19,21 @@ class LeaveGroup
             ]);
         }
 
-        $group->members()->detach($user);
-        $group->exclusions()->where(fn ($query) => $query->where('giver_id', $user->id)->orWhere('receiver_id', $user->id))->delete();
+        $this->removeMember($group, $user);
+
+        // Their kids and pets go with them, unless someone else looking after them stays.
+        $user->managedProfiles()
+            ->whereHas('groups', fn ($groups) => $groups->whereKey($group->id))
+            ->get()
+            ->reject(fn (User $profile) => $profile->managers()->whereHas('groups', fn ($groups) => $groups->whereKey($group->id))->exists())
+            ->each(fn (User $profile) => $this->removeMember($group, $profile));
 
         GroupChanged::dispatch($group->id);
+    }
+
+    private function removeMember(Group $group, User $member): void
+    {
+        $group->members()->detach($member);
+        $group->exclusions()->where(fn ($query) => $query->where('giver_id', $member->id)->orWhere('receiver_id', $member->id))->delete();
     }
 }

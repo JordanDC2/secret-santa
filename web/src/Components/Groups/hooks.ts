@@ -1,5 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { IDrawCheck, IDrawPair, IGroup, IGroupExclusion } from "Components/Groups/types";
+import type {
+	IDrawCheck,
+	IDrawPair,
+	IGroup,
+	IGroupExclusion,
+	IGroupMember,
+	IManagedAssignment,
+} from "Components/Groups/types";
 import { apiClient } from "Data/Api/Client";
 
 export const GROUPS_QUERY_KEY = ["groups"];
@@ -20,7 +27,28 @@ function mapGroup(raw: Record<string, unknown>): IGroup {
 		isDrawn: raw.is_drawn as boolean,
 		hasPreviousDraw: raw.has_previous_draw as boolean,
 		...(raw.exclusions_count !== undefined && { exclusionsCount: raw.exclusions_count as number }),
-		members: raw.members as IGroup["members"],
+		members: (raw.members as Record<string, unknown>[]).map((member) => ({
+			id: member.id as number,
+			name: member.name as string,
+			kind: (member.kind as IGroupMember["kind"]) ?? null,
+			managedByMe: Boolean(member.managed_by_me),
+		})),
+		managedAssignments: ((raw.managed_assignments as Record<string, unknown>[] | undefined) ?? []).map((managed) => {
+			const recipient = managed.recipient as Record<string, unknown> | null;
+			const santa = managed.santa as Record<string, unknown> | null;
+
+			return {
+				profile: managed.profile as IManagedAssignment["profile"],
+				recipient: recipient
+					? {
+							id: recipient.id as number,
+							name: recipient.name as string,
+							unreadMessages: recipient.unread_messages as number,
+						}
+					: null,
+				santa: santa ? { unreadMessages: santa.unread_messages as number } : null,
+			};
+		}),
 		myAssignment: myAssignment
 			? {
 					recipientId: myAssignment.recipient_id as number,
@@ -189,6 +217,19 @@ export function useStartNewDrawMutation() {
 
 			return mapGroup(group);
 		},
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: GROUPS_QUERY_KEY }),
+	});
+}
+
+/** Puts a kid or pet you look after in this group, or takes them out (before the draw). */
+export function useSetProfileInGroupMutation(groupId: number) {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: ({ profileId, inGroup }: { profileId: number; inGroup: boolean }) =>
+			inGroup
+				? apiClient.post<void>(`/groups/${groupId}/profiles`, { profile_id: profileId })
+				: apiClient.delete<void>(`/groups/${groupId}/profiles/${profileId}`),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: GROUPS_QUERY_KEY }),
 	});
 }

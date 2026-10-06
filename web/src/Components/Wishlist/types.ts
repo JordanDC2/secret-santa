@@ -63,6 +63,8 @@ export type IWishlistPerson = { id: number; name: string };
 
 /** One of your current Secret Santa assignments: who you're buying for, and in which group. */
 export type IMyRecipient = IWishlistPerson & {
+	/** Set when it's a kid or pet you look after who drew them, rather than you. */
+	santaName: string | null;
 	group: {
 		id: number;
 		name: string;

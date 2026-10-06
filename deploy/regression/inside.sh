@@ -109,6 +109,7 @@ check "holly adds a kid profile" true "$( [ "$lily" != null ] && echo true )"
 check "holly adds to lily's list" 201 "$(as holly POST /wishlist/items "{\"name\":\"Kite\",\"rating\":4,\"owner_id\":$lily}" | code)"
 check "lily's list shows" Kite "$(as holly GET "/wishlist/items?owner=$lily" | body | jq -r '.[0].name')"
 check "others can't see lily's list as hers" 403 "$(as nick GET "/wishlist/items?owner=$lily" | code)"
+check "lily can't join a drawn group" 422 "$(as holly POST /groups/$gid/profiles "{\"profile_id\":$lily}" | code)"
 check "deploy announcement runs" 0 "$(php artisan app:announce-deploy test-version >/dev/null 2>&1; echo $?)"
 echo "--- queued mail jobs: $(db 'select count(*) from jobs')"
 php artisan queue:work --once --queue=default --stop-when-empty -q >/dev/null 2>&1 || true

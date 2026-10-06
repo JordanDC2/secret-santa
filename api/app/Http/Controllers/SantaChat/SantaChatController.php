@@ -24,7 +24,7 @@ class SantaChatController extends Controller
 {
     public function show(Request $request, Group $group, string $side): JsonResponse
     {
-        [$assignment, $isSanta] = $this->thread($request->user(), $group, $side);
+        [$assignment, $isSanta] = $this->thread($request, $group, $side);
 
         $messages = $assignment->messages()->oldest('id')->get()->map(fn (SantaMessage $message) => [
             'id' => $message->id,
@@ -42,7 +42,7 @@ class SantaChatController extends Controller
 
     public function store(SendSantaMessage $action, SendMessageRequest $request, Group $group, string $side): Response
     {
-        [$assignment, $isSanta] = $this->thread($request->user(), $group, $side);
+        [$assignment, $isSanta] = $this->thread($request, $group, $side);
 
         $action($assignment, $isSanta, $request->string('body')->value());
 
@@ -54,7 +54,7 @@ class SantaChatController extends Controller
      */
     public function read(Request $request, Group $group, string $side): Response
     {
-        [$assignment, $isSanta] = $this->thread($request->user(), $group, $side);
+        [$assignment, $isSanta] = $this->thread($request, $group, $side);
 
         $marked = $assignment->messages()->where('from_santa', ! $isSanta)->whereNull('read_at')->update(['read_at' => now()]);
 
@@ -66,11 +66,22 @@ class SantaChatController extends Controller
     }
 
     /**
+     * The thread for the signed-in user, or (with ?as=ID) for a kid or pet they look after who
+     * is in this group: parents read and answer their kids' and pets' Santa chats.
+     *
      * @return array{SecretSantaAssignment, bool} The assignment and whether the user is its Santa.
      */
-    private function thread(User $user, Group $group, string $side): array
+    private function thread(Request $request, Group $group, string $side): array
     {
-        $this->authorize('view', $group);
+        $user = $request->user();
+
+        if ($request->integer('as') !== 0) {
+            $user = User::findOrFail($request->integer('as'));
+            $this->authorize('manage', $user);
+            abort_unless($group->members()->whereKey($user->id)->exists(), 404);
+        } else {
+            $this->authorize('view', $group);
+        }
 
         $isSanta = $side === 'my-person';
         $assignment = $isSanta ? $group->assignmentFor($user) : $group->assignmentOfSantaFor($user);

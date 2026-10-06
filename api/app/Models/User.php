@@ -142,6 +142,18 @@ class User extends Authenticatable
     }
 
     /**
+     * The people who act for this user: themselves, or for a kid or pet (who never signs in),
+     * the people looking after them. They're who shops for whoever a kid drew, and whose
+     * browsers should hear about the kid's chats.
+     *
+     * @return array<int, int>
+     */
+    public function actingUserIds(): array
+    {
+        return $this->isManagedProfile() ? $this->managers()->pluck('users.id')->all() : [$this->id];
+    }
+
+    /**
      * Looked up once per request: policies and resources ask for every item on a list.
      *
      * @return array<int, int>

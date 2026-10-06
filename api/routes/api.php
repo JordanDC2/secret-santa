@@ -13,6 +13,7 @@ use App\Http\Controllers\Auth\ResetPasswordHandler;
 use App\Http\Controllers\Group\DrawDetailsController;
 use App\Http\Controllers\Group\DrawHandler;
 use App\Http\Controllers\Group\ExclusionController;
+use App\Http\Controllers\Group\GroupProfilesController;
 use App\Http\Controllers\Group\InvitePreviewHandler;
 use App\Http\Controllers\Group\JoinHandler;
 use App\Http\Controllers\Group\LeaveHandler;
@@ -79,6 +80,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('groups/{group}/new-draw', StartNewDrawHandler::class)->name('groups.new-draw');
 
     Route::post('groups/{group}/leave', LeaveHandler::class)->name('groups.leave');
+
+    // Kids and pets you look after, in a group you're in.
+    Route::post('groups/{group}/profiles', [GroupProfilesController::class, 'store'])->name('groups.profiles.store');
+
+    Route::delete('groups/{group}/profiles/{profile}', [GroupProfilesController::class, 'destroy'])->name('groups.profiles.destroy');
 
     Route::get('groups/{group}/draw/check', [DrawDetailsController::class, 'check'])->name('groups.draw.check');
 

@@ -49,13 +49,20 @@ export default function AssignmentNotice({ owner, myRecipients }: IAssignmentNot
 				color="green"
 				icon={<GiftTagIcon size={34} />}
 				classNames={{ icon: classes.tagIcon }}
-				title="This is your Secret Santa person!"
+				title={
+					groupsWhereIDrewOwner.every((recipient) => recipient.santaName)
+						? `This is ${groupsWhereIDrewOwner[0].santaName}'s Secret Santa person!`
+						: "This is your Secret Santa person!"
+				}
 			>
-				You drew {owner.name} in{" "}
 				{joinNames(
 					groupsWhereIDrewOwner.map((recipient) => ({
-						key: String(recipient.group.id),
-						node: <strong>{recipient.group.name}</strong>,
+						key: `${recipient.group.id}-${recipient.santaName ?? "you"}`,
+						node: (
+							<>
+								{recipient.santaName ?? "You"} drew {owner.name} in <strong>{recipient.group.name}</strong>
+							</>
+						),
 					})),
 				)}
 				. Pick something from here and claim it so nobody else buys it too.
@@ -84,7 +91,8 @@ export default function AssignmentNotice({ owner, myRecipients }: IAssignmentNot
 							<Anchor component={Link} to={`/wishlists/${recipient.id}`} fw={700}>
 								{recipient.name}
 							</Anchor>{" "}
-							({recipient.group.name})
+							({recipient.santaName ? `for ${recipient.santaName}, ` : ""}
+							{recipient.group.name})
 						</>
 					),
 				})),

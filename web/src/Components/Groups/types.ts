@@ -14,7 +14,9 @@ export type IGroup = {
 	hasPreviousDraw: boolean;
 	/** Only present for the owner. */
 	exclusionsCount?: number;
-	members: { id: number; name: string }[];
+	members: IGroupMember[];
+	/** Who each kid or pet you look after in this group drew, and their chats; empty before the draw. */
+	managedAssignments: IManagedAssignment[];
 	/** Who you're the Secret Santa for, and unread messages from them. */
 	myAssignment: { recipientId: number; recipientName: string; unreadMessages: number } | null;
 	/** Set once someone has drawn you; never says who. */
@@ -22,6 +24,22 @@ export type IGroup = {
 };
 
 export type IBudget = { min: number | null; max: number };
+
+export type IGroupMember = {
+	id: number;
+	name: string;
+	/** Set for a kid or pet without a login. */
+	kind: "child" | "pet" | null;
+	/** A kid or pet you look after. */
+	managedByMe: boolean;
+};
+
+/** For a parent: who their kid or pet drew, and unread messages in the kid's two Santa chats. */
+export type IManagedAssignment = {
+	profile: { id: number; name: string; kind: "child" | "pet" | null };
+	recipient: { id: number; name: string; unreadMessages: number } | null;
+	santa: { unreadMessages: number } | null;
+};
 
 export type IGroupExclusion = {
 	id: number;

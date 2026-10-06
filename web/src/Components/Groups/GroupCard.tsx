@@ -10,6 +10,8 @@ import ExchangeDetailsModal from "Components/Groups/ExchangeDetailsModal";
 import ExchangeOverNotice from "Components/Groups/ExchangeOverNotice";
 import { daysUntil } from "Components/Groups/exchange";
 import ExclusionsModal from "Components/Groups/ExclusionsModal";
+import GroupKidsModal from "Components/Groups/GroupKidsModal";
+import { useManagedProfilesQuery } from "Components/ManagedProfiles/hooks";
 import GroupActionsMenu, { type IGroupMenuAction } from "Components/Groups/GroupActionsMenu";
 import GroupDescription from "Components/Groups/GroupDescription";
 import GroupMembers from "Components/Groups/GroupMembers";
@@ -67,12 +69,19 @@ export default function GroupCard({ group }: IGroupCardProps) {
 	// A fresh key each time it opens, so the form starts from the group's current details.
 	const [exchangeModal, setExchangeModal] = useState({ opened: false, key: 0 });
 	// A fresh key each time the chat opens, so it reloads its draft and scroll position.
-	const [chat, setChat] = useState<{ side: ISantaChatSide; opened: boolean; key: number }>({
+	const [chat, setChat] = useState<{
+		side: ISantaChatSide;
+		asProfile?: { id: number; name: string };
+		opened: boolean;
+		key: number;
+	}>({
 		side: "my-santa",
 		opened: false,
 		key: 0,
 	});
-	const { linkedSide, clearLink } = useLinkedSantaChat(group.id);
+	const { linkedSide, linkedAsProfileId, clearLink } = useLinkedSantaChat(group.id);
+	const hasManagedProfiles = (useManagedProfilesQuery().data ?? []).length > 0;
+	const [kidsOpen, setKidsOpen] = useState(false);
 	const canViewDraw = group.isOwner && group.isDrawn;
 	const canDraw = group.isOwner && !group.isDrawn;
 	const canLeave = !group.isOwner && !group.isDrawn;
@@ -118,15 +127,23 @@ export default function GroupCard({ group }: IGroupCardProps) {
 		}
 	}
 
-	function openChat(side: ISantaChatSide) {
-		setChat((current) => ({ side, opened: true, key: current.key + 1 }));
+	/** Opens one of your Santa chats, or (given a kid or pet) one of theirs. */
+	function openChat(side: ISantaChatSide, asProfile?: { id: number; name: string }) {
+		setChat((current) => ({ side, asProfile, opened: true, key: current.key + 1 }));
 	}
 
-	// An email's "Open the Conversation" link lands here with ?group=…&chat=…, and opens
-	// that chat until it's closed (which drops the link from the address).
+	// An email's "Open the Conversation" link lands here with ?group=…&chat=… (and &as=… for a
+	// kid's or pet's), and opens that chat until it's closed (which drops the link from the address).
+	const linkedManaged = group.managedAssignments.find((managed) => managed.profile.id === linkedAsProfileId);
+	const linkedThreadExists = linkedAsProfileId
+		? (linkedSide === "my-person" && linkedManaged?.recipient) || (linkedSide === "my-santa" && linkedManaged?.santa)
+		: (linkedSide === "my-person" && group.myAssignment) || (linkedSide === "my-santa" && group.mySanta);
 	const linkedChat =
-		(linkedSide === "my-person" && group.myAssignment) || (linkedSide === "my-santa" && group.mySanta)
-			? linkedSide
+		linkedSide && linkedThreadExists
+			? {
+					side: linkedSide,
+					asProfile: linkedManaged && { id: linkedManaged.profile.id, name: linkedManaged.profile.name },
+				}
 			: null;
 
 	function closeChat() {
@@ -146,7 +163,9 @@ export default function GroupCard({ group }: IGroupCardProps) {
 		) : null;
 	const footer = openAction ? controls[openAction] : canDraw ? <div>{controls.draw}</div> : null;
 	// A plain status line doesn't need the footer's divider; buttons and panels do.
-	const hasFooter = Boolean(footer || exchangeOverNotice || group.myAssignment || group.mySanta);
+	const hasFooter = Boolean(
+		footer || exchangeOverNotice || group.myAssignment || group.mySanta || group.managedAssignments.length > 0,
+	);
 
 	return (
 		<Card withBorder padding="lg" radius="md">
@@ -185,7 +204,10 @@ export default function GroupCard({ group }: IGroupCardProps) {
 				editing={editingNote}
 				onEditingChange={setEditingNote}
 			/>
-			<GroupMembers members={group.members} />
+			<GroupMembers
+				members={group.members}
+				onManageKids={hasManagedProfiles && !group.isDrawn ? () => setKidsOpen(true) : undefined}
+			/>
 			{!hasFooter && message && (
 				<MantineText size="sm" c="dimmed" mt="sm">
 					{message}
@@ -216,6 +238,30 @@ export default function GroupCard({ group }: IGroupCardProps) {
 							</Group>
 						)}
 
+						{/* The same, for each kid or pet you look after: you shop and chat for them. */}
+						{group.managedAssignments.map(({ profile, recipient, santa }) => {
+							const asProfile = { id: profile.id, name: profile.name };
+
+							return (
+								<Group key={profile.id} gap="sm">
+									{recipient && (
+										<AssignmentReveal
+											recipientId={recipient.id}
+											recipientName={recipient.name}
+											unreadMessages={recipient.unreadMessages}
+											santaName={profile.name}
+											onAsk={() => openChat("my-person", asProfile)}
+										/>
+									)}
+									{santa && (
+										<SantaChatButton unread={santa.unreadMessages} onClick={() => openChat("my-santa", asProfile)}>
+											Message {profile.name}&apos;s Santa
+										</SantaChatButton>
+									)}
+								</Group>
+							);
+						})}
+
 						{footer}
 					</Stack>
 				</Card.Section>
@@ -223,10 +269,10 @@ export default function GroupCard({ group }: IGroupCardProps) {
 			{canViewDraw && (
 				<DrawDetailsModal group={group} opened={drawDetailsOpen} onClose={() => setDrawDetailsOpen(false)} />
 			)}
-			{(group.myAssignment || group.mySanta) && (
+			{(group.myAssignment || group.mySanta || group.managedAssignments.length > 0) && (
 				<SantaChatModal
 					key={chat.key}
-					target={{ groupId: group.id, groupName: group.name, side: linkedChat ?? chat.side }}
+					target={{ groupId: group.id, groupName: group.name, ...(linkedChat ?? chat) }}
 					opened={chat.opened || linkedChat !== null}
 					onClose={closeChat}
 				/>
@@ -238,6 +284,9 @@ export default function GroupCard({ group }: IGroupCardProps) {
 					opened={exchangeModal.opened}
 					onClose={() => setExchangeModal((current) => ({ ...current, opened: false }))}
 				/>
+			)}
+			{hasManagedProfiles && !group.isDrawn && (
+				<GroupKidsModal group={group} opened={kidsOpen} onClose={() => setKidsOpen(false)} />
 			)}
 			{canDraw && <ExclusionsModal group={group} opened={exclusionsOpen} onClose={() => setExclusionsOpen(false)} />}
 		</Card>

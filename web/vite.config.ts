@@ -60,6 +60,10 @@ function siteUrl(): Plugin {
 	};
 }
 
+// Where the local Reverb server listens: REVERB_SERVER_PORT in the API's .env (8081 locally, as
+// 8080 is often taken by other projects' dev servers), matching what `artisan reverb:start` uses.
+const reverbPort = loadEnv("development", "../api", "REVERB_SERVER_PORT").REVERB_SERVER_PORT || "8081";
+
 export default defineConfig({
 	plugins: [react(), tsconfigPaths(), versionStamp(), siteUrl()],
 	// VITE_* values (e.g. the Reverb app key) come from the API's .env, so there's one source of truth.
@@ -82,7 +86,7 @@ export default defineConfig({
 			// Reverb's WebSocket endpoint; production's web server proxies the same path.
 			// A plain "/app" key is a prefix match and would also catch /apple-touch-icon.png.
 			"^/app(/|$)": {
-				target: "ws://localhost:8080",
+				target: `ws://localhost:${reverbPort}`,
 				ws: true,
 			},
 		},

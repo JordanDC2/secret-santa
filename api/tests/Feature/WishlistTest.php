@@ -94,6 +94,7 @@ class WishlistTest extends TestCase
             ->assertJsonPath('my_recipients', [[
                 'id' => $cousin->id,
                 'name' => $cousin->name,
+                'santa_name' => null,
                 'group' => ['id' => $group->id, 'name' => $group->name, 'exchange_date' => null, 'budget' => null],
             ]]);
     }

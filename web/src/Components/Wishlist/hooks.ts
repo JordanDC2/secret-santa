@@ -111,6 +111,7 @@ export function useMemberWishlistQuery(userId: number) {
 				items: Record<string, unknown>[];
 				suggestions: Record<string, unknown>[];
 				my_recipients: (IWishlistPerson & {
+					santa_name: string | null;
 					group: { id: number; name: string; exchange_date: string | null; budget: string | null };
 				})[];
 			}>(`/users/${userId}/wishlist`);
@@ -122,6 +123,7 @@ export function useMemberWishlistQuery(userId: number) {
 				myRecipients: wishlist.my_recipients.map((recipient) => ({
 					id: recipient.id,
 					name: recipient.name,
+					santaName: recipient.santa_name,
 					group: {
 						id: recipient.group.id,
 						name: recipient.group.name,

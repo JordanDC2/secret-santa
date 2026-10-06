@@ -28,12 +28,18 @@ class SendSantaMessage
                 groupName: $group->name,
                 fromSanta: $fromSanta,
                 personName: $assignment->receiver->name,
+                // A kid's or pet's email goes to their managers, whose link opens it as them.
+                asProfileId: $reader->isManagedProfile() ? $reader->id : null,
             ));
         }
 
-        // Both sides: the reader for their unread badge, the writer for their other tabs.
-        SantaChatChanged::dispatch($assignment->giver_id, $group->id);
-        SantaChatChanged::dispatch($assignment->receiver_id, $group->id);
+        // Both sides: the reader for their unread badge, the writer for their other tabs. A kid
+        // or pet has no browser of their own, so their managers get it instead.
+        foreach ([$assignment->giver, $assignment->receiver] as $side) {
+            foreach ($side->actingUserIds() as $userId) {
+                SantaChatChanged::dispatch($userId, $group->id);
+            }
+        }
 
         return $message;
     }

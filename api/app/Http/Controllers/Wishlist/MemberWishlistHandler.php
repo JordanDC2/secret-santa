@@ -44,11 +44,16 @@ class MemberWishlistHandler extends Controller
             // this person in <group>" or warn that they aren't your person. Groups whose exchange
             // has passed are left out: they may still be on last year's draw. Undated groups
             // stay, since there's no telling.
-            'my_recipients' => $request->user()->secretSantaRecipients()
+            // Includes the kids and pets the viewer looks after ("Lily drew Nick"): their gifts
+            // are the viewer's to buy too.
+            'my_recipients' => $request->user()->managedProfiles()->get()->prepend($request->user())
+                ->flatMap(fn (User $santa) => $santa->secretSantaRecipients())
                 ->reject(fn (SecretSantaAssignment $assignment) => $assignment->group->exchange_date?->lessThan($today) === true)
                 ->map(fn (SecretSantaAssignment $assignment) => [
                     'id' => $assignment->receiver->id,
                     'name' => $assignment->receiver->name,
+                    // Null when it's the viewer's own draw.
+                    'santa_name' => $assignment->giver_id === $request->user()->id ? null : $assignment->giver->name,
                     'group' => [
                         'id' => $assignment->group->id,
                         'name' => $assignment->group->name,

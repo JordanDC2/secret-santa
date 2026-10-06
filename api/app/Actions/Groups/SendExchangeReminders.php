@@ -155,7 +155,8 @@ class SendExchangeReminders
     private function claimsSince(User $giver, User $receiver, Carbon $since): Collection
     {
         return WishlistClaim::query()
-            ->where('user_id', $giver->id)
+            // A kid's or pet's gift is bought by the people looking after them.
+            ->whereIn('user_id', $giver->actingUserIds())
             ->whereHas('item', fn ($items) => $items->where('user_id', $receiver->id)->whereNull('received_at'))
             ->where(fn ($recent) => $recent->where('claimed_at', '>=', $since)->orWhere('purchased_at', '>=', $since))
             ->get();

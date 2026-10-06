@@ -31,6 +31,8 @@ class SantaMessageReceived extends Notification implements ShouldQueue
         public readonly string $groupName,
         public readonly bool $fromSanta,
         public readonly string $personName,
+        /** Set when the reader is a kid or pet: the link opens the chat as them. */
+        public readonly ?int $asProfileId = null,
     ) {}
 
     protected function emailKind(): EmailKind
@@ -57,7 +59,7 @@ class SantaMessageReceived extends Notification implements ShouldQueue
 
         return $message
             ->line("I'll only email about the first new message, so open the app to keep up with any more.")
-            ->action('Open the Conversation', config('app.frontend_url')."/?group={$this->groupId}&chat={$side}")
+            ->action('Open the Conversation', config('app.frontend_url')."/?group={$this->groupId}&chat={$side}".($this->asProfileId ? "&as={$this->asProfileId}" : ''))
             ->settingsFooter(EmailKind::SantaChat);
     }
 }

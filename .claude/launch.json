@@ -2,6 +2,20 @@
 	"version": "0.0.1",
 	"configurations": [
 		{
+			"name": "secret-santa-api",
+			"runtimeExecutable": "/opt/homebrew/bin/php",
+			"runtimeArgs": [
+				"api/artisan",
+				"serve",
+				"--no-reload",
+				"--port=8000"
+			],
+			"env": {
+				"PHP_CLI_SERVER_WORKERS": "4"
+			},
+			"port": 8000
+		},
+		{
 			"name": "secret-santa-web",
 			"runtimeExecutable": "npm",
 			"runtimeArgs": [
@@ -28,6 +42,15 @@
 				"--strictPort"
 			],
 			"port": 3002
+		},
+		{
+			"name": "secret-santa-reverb",
+			"runtimeExecutable": "/opt/homebrew/bin/php",
+			"runtimeArgs": [
+				"api/artisan",
+				"reverb:start"
+			],
+			"port": 8081
 		}
 	]
 }
