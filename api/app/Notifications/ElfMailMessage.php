@@ -6,8 +6,8 @@ use App\Enums\EmailKind;
 use Illuminate\Notifications\Messages\MailMessage;
 
 /**
- * Every email is written by Santa's elf. His name comes from MAIL_FROM_NAME, so the
- * sign-off always matches the sender shown in the inbox.
+ * The app's emails (festive theme in resources/views/vendor/mail). They come from the app
+ * (MAIL_FROM_NAME, "Secret Santa"), and Santa's elf signs them off.
  */
 class ElfMailMessage extends MailMessage
 {
@@ -29,7 +29,7 @@ class ElfMailMessage extends MailMessage
 
     public static function signature(): string
     {
-        return config('mail.from.name');
+        return "Pip Snowberry, Santa's Elf";
     }
 
     /**
