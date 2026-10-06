@@ -21,7 +21,11 @@ class ExclusionController extends Controller
     {
         $this->authorize('manageExclusions', $group);
 
-        return GroupExclusionResource::collection($group->exclusions()->with('giver', 'receiver')->oldest()->get());
+        $exclusions = $group->exclusions()->with('giver', 'receiver')->oldest()->get();
+        // Share the one group, so its members (for names) load once, not per exclusion.
+        $exclusions->each(fn (GroupExclusion $exclusion) => $exclusion->setRelation('group', $group));
+
+        return GroupExclusionResource::collection($exclusions);
     }
 
     public function store(AddExclusion $action, StoreExclusionRequest $request, Group $group): GroupExclusionResource

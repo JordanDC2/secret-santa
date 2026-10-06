@@ -53,7 +53,7 @@ class GroupDescriptionAndDrawCheckTest extends TestCase
         Notification::fake();
         // A fixed owner name with an apostrophe: random names only sometimes had one, and the
         // email (rightly) shows it as a plain "'" rather than e()'s "&#039;".
-        $owner = User::factory()->create(['name' => "Mary O'Hara"]);
+        $owner = User::factory()->create(['first_name' => "Mary O'Hara"]);
         $group = Group::factory()->for($owner, 'owner')->create(['description' => "Budget: \$50\n[Free gift](https://evil.example)"]);
         $group->members()->attach(User::factory()->create());
         Sanctum::actingAs($group->owner);
@@ -107,7 +107,7 @@ class GroupDescriptionAndDrawCheckTest extends TestCase
 
         $response = $this->getJson(route('groups.draw.check', $group))->assertOk()->assertJsonPath('verified', false);
 
-        $this->assertContains("{$b->name} doesn't have exactly one Secret Santa.", $response->json('checks.1.problems'));
+        $this->assertContains("{$b->full_name} doesn't have exactly one Secret Santa.", $response->json('checks.1.problems'));
     }
 
     public function test_only_the_owner_can_check_or_list_the_draw(): void

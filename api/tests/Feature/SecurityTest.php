@@ -50,7 +50,8 @@ class SecurityTest extends TestCase
     {
         for ($i = 0; $i < 10; $i++) {
             $this->postJson(route('auth.register'), [
-                'name' => "Elf {$i}",
+                'first_name' => "Elf {$i}",
+                'last_name' => 'Workshop',
                 'email' => "elf{$i}@example.com",
                 'password' => 'jingle-bells-123',
                 'password_confirmation' => 'jingle-bells-123',
@@ -88,7 +89,7 @@ class SecurityTest extends TestCase
     {
         Notification::fake();
         $group = Group::factory()->create(['name' => '[Group](https://evil.example/group)']);
-        $group->members()->attach(User::factory()->create(['name' => '[Free gift](https://evil.example/gift)']));
+        $group->members()->attach(User::factory()->create(['first_name' => '[Free gift](https://evil.example/gift)']));
         Sanctum::actingAs($group->owner);
 
         $this->postJson(route('groups.draw', $group))->assertOk();
@@ -138,7 +139,8 @@ class SecurityTest extends TestCase
     public function test_emails_are_case_insensitive(): void
     {
         $this->postJson(route('auth.register'), [
-            'name' => 'Holly',
+            'first_name' => 'Holly',
+            'last_name' => 'Berry',
             'email' => '  Holly@Example.COM ',
             'password' => 'jingle-bells-123',
             'password_confirmation' => 'jingle-bells-123',
@@ -146,7 +148,8 @@ class SecurityTest extends TestCase
         $this->app['auth']->forgetGuards();
 
         $this->postJson(route('auth.register'), [
-            'name' => 'Holly again',
+            'first_name' => 'Holly',
+            'last_name' => 'Again',
             'email' => 'HOLLY@example.com',
             'password' => 'jingle-bells-123',
             'password_confirmation' => 'jingle-bells-123',

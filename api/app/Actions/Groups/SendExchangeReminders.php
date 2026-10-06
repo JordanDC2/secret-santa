@@ -117,7 +117,7 @@ class SendExchangeReminders
                 daysLeft: $daysLeft,
                 budget: $group->budgetLabel(),
                 recipientId: $receiver->id,
-                recipientName: $receiver->name,
+                recipientName: $receiver->full_name,
                 giftsNeeded: $draws->count(),
                 drawnInGroups: $draws->map(fn (SecretSantaAssignment $drawn) => $drawn->group->name)->values()->all(),
                 claimed: $claims->count(),

@@ -30,7 +30,7 @@ class DrawParticipantsTest extends TestCase
         Notification::fake();
         $this->group = Group::factory()->create(['name' => 'Pet Swap']);
         $this->holly = $this->group->owner;
-        $this->nick = User::factory()->create(['name' => 'Nick']);
+        $this->nick = User::factory()->create(['first_name' => 'Nick']);
         $this->group->members()->attach($this->nick);
     }
 
@@ -81,8 +81,8 @@ class DrawParticipantsTest extends TestCase
 
     public function test_a_pets_only_draw_matches_pets_with_pets(): void
     {
-        $biscuit = app(CreateManagedProfile::class)($this->holly, 'Biscuit', 'pet');
-        $rex = app(CreateManagedProfile::class)($this->nick, 'Rex', 'pet');
+        $biscuit = app(CreateManagedProfile::class)($this->holly, 'Biscuit', null, 'pet');
+        $rex = app(CreateManagedProfile::class)($this->nick, 'Rex', null, 'pet');
         $this->group->members()->attach([$biscuit->id, $rex->id]);
         $this->group->members()->updateExistingPivot($this->holly->id, ['in_draw' => false]);
         $this->group->members()->updateExistingPivot($this->nick->id, ['in_draw' => false]);

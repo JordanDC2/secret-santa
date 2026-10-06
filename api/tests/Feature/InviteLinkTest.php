@@ -21,7 +21,7 @@ class InviteLinkTest extends TestCase
             ->assertOk()
             ->assertExactJson([
                 'group_name' => 'Family Swap',
-                'owner_name' => $group->owner->name,
+                'owner_name' => $group->owner->full_name,
                 'members_count' => 1,
                 'is_drawn' => false,
                 'already_member' => false,

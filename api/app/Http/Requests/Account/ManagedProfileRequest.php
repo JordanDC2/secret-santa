@@ -17,7 +17,9 @@ class ManagedProfileRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            // Optional: a pet named Biscuit doesn't need one.
+            'last_name' => ['nullable', 'string', 'max:255'],
             'kind' => ['required', 'in:child,pet'],
         ];
     }

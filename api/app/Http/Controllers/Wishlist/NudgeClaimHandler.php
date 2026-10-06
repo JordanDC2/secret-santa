@@ -36,11 +36,11 @@ class NudgeClaimHandler extends Controller
 
         $claimer->notify(new ClaimNudged(
             ownerId: $item->user_id,
-            ownerName: $item->owner->name,
+            ownerName: $item->owner->full_name,
             itemName: $item->name,
             claimedAt: $claim->claimed_at?->format('F Y'),
             // Same rule as everywhere: only name people the claimer shares a group with.
-            nudgerName: $claimer->sharesGroupWith($nudger) ? $nudger->name : null,
+            nudgerName: $claimer->sharesGroupWith($nudger) ? $nudger->full_name : null,
         ));
 
         WishlistChanged::dispatch($item->user_id);

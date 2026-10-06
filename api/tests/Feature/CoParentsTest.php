@@ -30,10 +30,10 @@ class CoParentsTest extends TestCase
         parent::setUp();
 
         Notification::fake();
-        $this->holly = User::factory()->create(['name' => 'Holly', 'email' => 'holly@example.test']);
-        $this->nick = User::factory()->create(['name' => 'Nick', 'email' => 'nick@example.test']);
+        $this->holly = User::factory()->create(['first_name' => 'Holly', 'email' => 'holly@example.test']);
+        $this->nick = User::factory()->create(['first_name' => 'Nick', 'email' => 'nick@example.test']);
         Group::factory()->create(['owner_id' => $this->holly->id])->members()->attach($this->nick);
-        $this->lily = app(CreateManagedProfile::class)($this->holly, 'Lily', 'child');
+        $this->lily = app(CreateManagedProfile::class)($this->holly, 'Lily', null, 'child');
     }
 
     public function test_a_parent_shares_their_kid_with_someone_from_their_groups(): void
@@ -42,14 +42,14 @@ class CoParentsTest extends TestCase
 
         $this->postJson(route('account.profiles.managers.store', $this->lily), ['user_id' => $this->nick->id])
             ->assertOk()
-            ->assertJsonPath('managers.0.name', 'Holly')
-            ->assertJsonPath('managers.1.name', 'Nick');
+            ->assertJsonPath('managers.0.name', $this->holly->full_name)
+            ->assertJsonPath('managers.1.name', $this->nick->full_name);
 
         $this->assertTrue($this->nick->manages($this->lily));
         Notification::assertSentTo($this->nick, ProfileShared::class, function (ProfileShared $notification) {
             $mail = $notification->toMail($this->nick);
 
-            return $mail->subject === "Holly shared Lily's Secret Santa list with you"
+            return $mail->subject === "{$this->holly->full_name} shared Lily's Secret Santa list with you"
                 && str_ends_with($mail->actionUrl, "/wishlist?for={$this->lily->id}");
         });
 
@@ -60,7 +60,7 @@ class CoParentsTest extends TestCase
     public function test_only_people_from_your_groups_only_once_and_only_by_a_parent(): void
     {
         $stranger = User::factory()->create();
-        $biscuit = app(CreateManagedProfile::class)($this->holly, 'Biscuit', 'pet');
+        $biscuit = app(CreateManagedProfile::class)($this->holly, 'Biscuit', null, 'pet');
         Sanctum::actingAs($this->holly);
 
         $this->postJson(route('account.profiles.managers.store', $this->lily), ['user_id' => $stranger->id])

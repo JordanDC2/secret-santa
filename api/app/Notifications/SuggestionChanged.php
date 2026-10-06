@@ -56,7 +56,7 @@ class SuggestionChanged extends Notification implements OptionalEmail, ShouldQue
 
         $message = (new ElfMailMessage)
             ->subject("🎁 Your gift idea for {$this->ownerName} was {$what}")
-            ->greeting('Hi '.ElfMailMessage::plain($notifiable->name).'!')
+            ->greeting('Hi '.ElfMailMessage::plain($notifiable->first_name).'!')
             ->line("{$who} {$what} the gift idea you suggested for {$owner}: **".ElfMailMessage::plain($this->itemName).'**.');
 
         foreach ($this->changes as $field => [, $after]) {

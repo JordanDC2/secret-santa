@@ -37,7 +37,9 @@ class MemberWishlistHandler extends Controller
         }));
 
         return response()->json([
-            'user' => ['id' => $user->id, 'name' => $user->name],
+            // Wishlists use full names, so there's no doubt whose list it is; the first name
+            // keeps the page's sentences from repeating it.
+            'user' => ['id' => $user->id, 'name' => $user->full_name, 'first_name' => $user->first_name],
             'items' => WishlistItemResource::collection($items),
             'suggestions' => WishlistItemResource::collection($suggestions),
             // Who you're buying for in each group's current draw, so the page can say "you drew
@@ -51,9 +53,9 @@ class MemberWishlistHandler extends Controller
                 ->reject(fn (SecretSantaAssignment $assignment) => $assignment->group->exchange_date?->lessThan($today) === true)
                 ->map(fn (SecretSantaAssignment $assignment) => [
                     'id' => $assignment->receiver->id,
-                    'name' => $assignment->receiver->name,
+                    'name' => $assignment->receiver->full_name,
                     // Null when it's the viewer's own draw.
-                    'santa_name' => $assignment->giver_id === $request->user()->id ? null : $assignment->giver->name,
+                    'santa_name' => $assignment->giver_id === $request->user()->id ? null : $assignment->giver->full_name,
                     'group' => [
                         'id' => $assignment->group->id,
                         'name' => $assignment->group->name,

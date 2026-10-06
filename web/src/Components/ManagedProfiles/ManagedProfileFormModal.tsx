@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, Button, Divider, Group, Modal, SegmentedControl, Stack, TextInput } from "@mantine/core";
+import { Alert, Button, Divider, Group, Modal, SegmentedControl, SimpleGrid, Stack, TextInput } from "@mantine/core";
 import CoParentsSection from "Components/ManagedProfiles/CoParentsSection";
 import { useSaveManagedProfileMutation } from "Components/ManagedProfiles/hooks";
 import type { IManagedKind, IManagedProfile } from "Components/ManagedProfiles/types";
@@ -14,15 +14,24 @@ type IManagedProfileFormModalProps = {
 
 export default function ManagedProfileFormModal({ opened, profile, onClose }: IManagedProfileFormModalProps) {
 	const save = useSaveManagedProfileMutation();
-	const [name, setName] = useState(profile?.name ?? "");
+	const [firstName, setFirstName] = useState(profile?.firstName ?? "");
+	const [lastName, setLastName] = useState(profile?.lastName ?? "");
 	const [kind, setKind] = useState<IManagedKind>(profile?.kind ?? "child");
 
 	return (
-		<Modal opened={opened} onClose={onClose} title={profile ? `Edit ${profile.name}` : "Add a kid or pet"} centered>
+		<Modal
+			opened={opened}
+			onClose={onClose}
+			title={profile ? `Edit ${profile.firstName}` : "Add a kid or pet"}
+			centered
+		>
 			<form
 				onSubmit={(event) => {
 					event.preventDefault();
-					save.mutate({ id: profile?.id, name: name.trim(), kind }, { onSuccess: onClose });
+					save.mutate(
+						{ id: profile?.id, firstName: firstName.trim(), lastName: lastName.trim(), kind },
+						{ onSuccess: onClose },
+					);
 				}}
 			>
 				<Stack>
@@ -35,20 +44,29 @@ export default function ManagedProfileFormModal({ opened, profile, onClose }: IM
 							{ value: "pet", label: "Pet" },
 						]}
 					/>
-					<TextInput
-						label="Name"
-						placeholder={kind === "pet" ? "e.g. Biscuit" : "e.g. Lily"}
-						required
-						maxLength={255}
-						data-autofocus
-						value={name}
-						onChange={(event) => setName(event.currentTarget.value)}
-					/>
+					<SimpleGrid cols={2}>
+						<TextInput
+							label="First name"
+							placeholder={kind === "pet" ? "e.g. Biscuit" : "e.g. Lily"}
+							required
+							maxLength={255}
+							data-autofocus
+							value={firstName}
+							onChange={(event) => setFirstName(event.currentTarget.value)}
+						/>
+						<TextInput
+							label="Last name"
+							placeholder="Optional"
+							maxLength={255}
+							value={lastName}
+							onChange={(event) => setLastName(event.currentTarget.value)}
+						/>
+					</SimpleGrid>
 					<Group justify="flex-end">
 						<Button variant="subtle" color="gray" onClick={onClose}>
 							Cancel
 						</Button>
-						<Button type="submit" loading={save.isPending} disabled={!name.trim()}>
+						<Button type="submit" loading={save.isPending} disabled={!firstName.trim()}>
 							{profile ? "Save" : "Add"}
 						</Button>
 					</Group>

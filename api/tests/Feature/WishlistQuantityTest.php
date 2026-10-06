@@ -56,7 +56,7 @@ class WishlistQuantityTest extends TestCase
         $this->postJson(route('wishlist.items.claim', $socks))->assertOk()
             ->assertJsonPath('claim.claimed', 2)
             ->assertJsonPath('claim.mine', 1)
-            ->assertJsonPath('claim.others.0.name', $this->ivy->name);
+            ->assertJsonPath('claim.others.0.name', $this->ivy->full_name);
 
         // Now it's fully claimed, so it locks.
         $late = User::factory()->create();
@@ -103,6 +103,6 @@ class WishlistQuantityTest extends TestCase
 
         $response = $this->getJson(route('wishlist.items.index'))->assertOk()->assertJsonPath('0.quantity', 2);
         $this->assertArrayNotHasKey('claim', $response->json('0'));
-        $this->assertStringNotContainsString($this->ivy->name, (string) $response->getContent());
+        $this->assertStringNotContainsString($this->ivy->full_name, (string) $response->getContent());
     }
 }

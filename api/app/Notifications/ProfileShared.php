@@ -38,7 +38,7 @@ class ProfileShared extends Notification implements ShouldQueue
 
         return (new ElfMailMessage)
             ->subject("{$this->sharerName} shared {$this->profileName}'s Secret Santa list with you")
-            ->greeting('Hi '.ElfMailMessage::plain($notifiable->name).'!')
+            ->greeting('Hi '.ElfMailMessage::plain($notifiable->first_name).'!')
             ->line("{$sharer} added you as someone who looks after **{$profile}**".($this->isPet ? ' 🐾' : '').'.')
             ->line("You can now keep {$profile}'s wishlist (and see what's been claimed on it), and handle {$profile}'s draws and Santa chats. You'll find {$profile} under Kids & pets on your Account page.")
             // No names in the button label: Laravel repeats it in the footer as Markdown.

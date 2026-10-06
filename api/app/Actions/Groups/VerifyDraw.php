@@ -15,11 +15,12 @@ class VerifyDraw
      */
     public function __invoke(Group $group): array
     {
-        $members = $group->members()->get(['users.id', 'users.name'])->keyBy('id');
+        $members = $group->members()->get(['users.id', 'users.first_name', 'users.last_name'])->keyBy('id');
         // Only those in the draw need a person and a Santa; anyone sitting it out has neither.
         $drawn = $group->drawMembers()->pluck('users.id');
         $assignments = $group->currentAssignments()->get();
-        $name = fn (int $id): string => $members[$id]->name ?? 'A former member';
+        // In full, like the owner's draw details.
+        $name = fn (int $id): string => isset($members[$id]) ? $members[$id]->full_name : 'A former member';
 
         $checks = [
             $this->check(

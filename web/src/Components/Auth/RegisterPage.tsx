@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Anchor, Alert, Button, PasswordInput, Stack, Text as MantineText, TextInput } from "@mantine/core";
+import { Anchor, Alert, Button, PasswordInput, SimpleGrid, Stack, Text as MantineText, TextInput } from "@mantine/core";
 import { Link } from "react-router-dom";
 import { useAuth } from "Components/Auth/AuthContext";
 import { apiErrorMessage } from "Data/Api/Client";
@@ -7,7 +7,8 @@ import AuthLayout from "Components/Layout/AuthLayout";
 
 export default function RegisterPage() {
 	const { register } = useAuth();
-	const [name, setName] = useState("");
+	const [firstName, setFirstName] = useState("");
+	const [lastName, setLastName] = useState("");
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [passwordConfirmation, setPasswordConfirmation] = useState("");
@@ -15,7 +16,7 @@ export default function RegisterPage() {
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 
-		register.mutate({ name, email, password, passwordConfirmation });
+		register.mutate({ firstName, lastName, email, password, passwordConfirmation });
 	}
 
 	return (
@@ -23,7 +24,22 @@ export default function RegisterPage() {
 			<form onSubmit={handleSubmit}>
 				<Stack>
 					{register.isError && <Alert color="red">{apiErrorMessage(register.error)}</Alert>}
-					<TextInput label="Name" value={name} onChange={(event) => setName(event.currentTarget.value)} required />
+					<SimpleGrid cols={2}>
+						<TextInput
+							label="First name"
+							autoComplete="given-name"
+							value={firstName}
+							onChange={(event) => setFirstName(event.currentTarget.value)}
+							required
+						/>
+						<TextInput
+							label="Last name"
+							autoComplete="family-name"
+							value={lastName}
+							onChange={(event) => setLastName(event.currentTarget.value)}
+							required
+						/>
+					</SimpleGrid>
 					<TextInput label="Email" value={email} onChange={(event) => setEmail(event.currentTarget.value)} required />
 					<PasswordInput
 						label="Password"

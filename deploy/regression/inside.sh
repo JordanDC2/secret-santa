@@ -38,7 +38,8 @@ serve
 
 step "2. Fill it with data through the old version's API"
 for who in holly nick ivy; do
-	as $who POST /auth/register "{\"name\":\"${who^}\",\"email\":\"$who@example.test\",\"password\":\"Correct-Horse-9\",\"password_confirmation\":\"Correct-Horse-9\"}" >/dev/null
+	# Both name shapes: releases before first/last names take "name", later ones the pair.
+	as $who POST /auth/register "{\"name\":\"${who^} Elf\",\"first_name\":\"${who^}\",\"last_name\":\"Elf\",\"email\":\"$who@example.test\",\"password\":\"Correct-Horse-9\",\"password_confirmation\":\"Correct-Horse-9\"}" >/dev/null
 done
 gid=$(as holly POST /groups '{"name":"Upgrade Crew"}' | body | jq -r .id)
 code=$(as holly GET /groups/$gid | body | jq -r .join_code)
@@ -71,6 +72,7 @@ check "existing items not suggestions" 0 "$(db 'select count(*) from wishlist_it
 check "item foreign keys after rebuild" "users,users" "$(db "select group_concat(\"table\") from pragma_foreign_key_list('wishlist_items')")"
 check "claims still point at items" 0 "$(db 'select count(*) from wishlist_claims c left join wishlist_items i on i.id = c.wishlist_item_id where i.id is null')"
 check "foreign key check clean" "" "$(db 'pragma foreign_key_check')"
+check "names split into first and last" "Holly|Elf" "$(db "select first_name || '|' || last_name from users where email = 'holly@example.test'")"
 serve
 
 step "4. New features over HTTP on the upgraded data"
@@ -80,7 +82,7 @@ check "suggestion created" true "$( [ "$idea" != null ] && echo true )"
 check "owner's list hides suggestion" 0 "$(as ivy GET /wishlist/items | body | jq '[.[] | select(.name == "Bookshop gift card")] | length')"
 check "owner's member view hides suggestions" 0 "$(as ivy GET /users/$ivy_id/wishlist | body | jq '.suggestions | length')"
 check "owner can't edit a suggestion" 403 "$(as ivy PATCH /wishlist/items/$idea '{"name":"x"}' | code)"
-check "nick sees holly's suggestion" "Holly" "$(as nick GET /users/$ivy_id/wishlist | body | jq -r '.suggestions[0].suggestion.by')"
+check "nick sees holly's suggestion" "Holly Elf" "$(as nick GET /users/$ivy_id/wishlist | body | jq -r '.suggestions[0].suggestion.by')"
 check "nick claims the suggestion" 200 "$(as nick POST /wishlist/items/$idea/claim '{"quantity":1}' | code)"
 check "nick marks it bought" 200 "$(as nick POST /wishlist/items/$idea/claim/purchased | code)"
 check "holly sees it bought" true "$(as holly GET /users/$ivy_id/wishlist | body | jq -r '.suggestions[0].claim.others[0].purchased')"
@@ -105,7 +107,10 @@ check "owner sets exchange date and budget" 200 "$(as holly PATCH /groups/$gid "
 check "card shows the budget" '{"min":30,"max":50}' "$(as nick GET /groups/$gid | body | jq -c '.budget')"
 check "reminders run" 0 "$(php artisan app:send-exchange-reminders >/dev/null 2>&1; echo $?)"
 check "reminders are scheduled" yes "$(php artisan schedule:list 2>/dev/null | grep -q 'app:send-exchange-reminders' && echo yes)"
-lily=$(as holly POST /account/profiles '{"name":"Lily","kind":"child"}' | body | jq -r .id)
+check "cards use first names" "Holly,Ivy,Nick" "$(as nick GET /groups/$gid | body | jq -r '[.members[].name] | sort | join(",")')"
+check "wishlists use full names" "Ivy Elf" "$(as nick GET /users/$ivy_id/wishlist | body | jq -r '.user.name')"
+check "sign-up needs a last name" 422 "$(as tinsel POST /auth/register '{"first_name":"Tinsel","email":"tinsel@example.test","password":"Correct-Horse-9","password_confirmation":"Correct-Horse-9"}' | code)"
+lily=$(as holly POST /account/profiles '{"first_name":"Lily","kind":"child"}' | body | jq -r .id)
 check "holly adds a kid profile" true "$( [ "$lily" != null ] && echo true )"
 check "holly adds to lily's list" 201 "$(as holly POST /wishlist/items "{\"name\":\"Kite\",\"rating\":4,\"owner_id\":$lily}" | code)"
 check "lily's list shows" Kite "$(as holly GET "/wishlist/items?owner=$lily" | body | jq -r '.[0].name')"

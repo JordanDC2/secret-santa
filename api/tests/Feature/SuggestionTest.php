@@ -75,7 +75,7 @@ class SuggestionTest extends TestCase
         Sanctum::actingAs($this->holly);
         $this->getJson(route('users.wishlist', $this->ivy))
             ->assertJsonPath('suggestions.0.name', 'Reading lamp')
-            ->assertJsonPath('suggestions.0.suggestion.by', $this->nick->name)
+            ->assertJsonPath('suggestions.0.suggestion.by', $this->nick->full_name)
             ->assertJsonPath('suggestions.0.suggestion.mine', false);
 
         Sanctum::actingAs($tinsel);
@@ -102,10 +102,10 @@ class SuggestionTest extends TestCase
             $mail = $notification->toMail($this->nick);
 
             return ! $notification->removed
-                && $notification->editorName === $this->holly->name
+                && $notification->editorName === $this->holly->full_name
                 && $notification->itemName === 'Reading lamp'
                 && array_keys($notification->changes) === ['name', 'price']
-                && $mail->subject === "🎁 Your gift idea for {$this->ivy->name} was edited";
+                && $mail->subject === "🎁 Your gift idea for {$this->ivy->full_name} was edited";
         });
     }
 

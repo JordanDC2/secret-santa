@@ -34,8 +34,8 @@ class SantaChatController extends Controller
         ]);
 
         return response()->json([
-            // Only the Santa learns who's on the other end.
-            'with' => $isSanta ? ['id' => $assignment->receiver->id, 'name' => $assignment->receiver->name] : null,
+            // Only the Santa learns who's on the other end: who they drew, in full like the reveal.
+            'with' => $isSanta ? ['id' => $assignment->receiver->id, 'name' => $assignment->receiver->full_name] : null,
             'messages' => $messages,
         ]);
     }

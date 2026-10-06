@@ -3,11 +3,11 @@ import { Alert, Anchor } from "@mantine/core";
 import { Link } from "react-router-dom";
 import GiftTagIcon from "Components/Common/FestiveIcons/GiftTagIcon";
 import { formatExchangeDate } from "Components/Groups/exchange";
-import type { IMyRecipient, IWishlistPerson } from "Components/Wishlist/types";
+import type { IMemberWishlist, IMyRecipient } from "Components/Wishlist/types";
 import classes from "Components/Wishlist/AssignmentNotice.module.less";
 
 type IAssignmentNoticeProps = {
-	owner: IWishlistPerson;
+	owner: IMemberWishlist["user"];
 	myRecipients: IMyRecipient[];
 };
 
@@ -97,7 +97,7 @@ export default function AssignmentNotice({ owner, myRecipients }: IAssignmentNot
 					),
 				})),
 			)}
-			. You can still claim things here if you&apos;re getting {owner.name} a gift outside the exchange.
+			. You can still claim things here if you&apos;re getting {owner.firstName} a gift outside the exchange.
 		</Alert>
 	);
 }

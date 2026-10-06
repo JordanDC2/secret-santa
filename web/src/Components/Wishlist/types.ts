@@ -76,7 +76,8 @@ export type IMyRecipient = IWishlistPerson & {
 };
 
 export type IMemberWishlist = {
-	user: IWishlistPerson;
+	/** `name` is their full name, for the title; `firstName` reads better in sentences. */
+	user: IWishlistPerson & { firstName: string };
 	items: IWishlistItem[];
 	/** Gift ideas others added to this person's list; they never see these. */
 	suggestions: IWishlistItem[];

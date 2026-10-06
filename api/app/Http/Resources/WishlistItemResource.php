@@ -56,7 +56,7 @@ class WishlistItemResource extends JsonResource
         $mine = $suggester !== null && $suggester->is($viewer);
 
         return [
-            'by' => $suggester && ($mine || $viewer->sharesGroupWith($suggester)) ? $suggester->name : null,
+            'by' => $suggester && ($mine || $viewer->sharesGroupWith($suggester)) ? $suggester->full_name : null,
             'mine' => $mine,
         ];
     }
@@ -88,7 +88,8 @@ class WishlistItemResource extends JsonResource
             'others' => $claims->where('user_id', '!=', $viewerId)
                 ->map(fn (WishlistClaim $claim) => [
                     'id' => $claim->id,
-                    'name' => $claim->user?->name,
+                    // Full names on wishlists, like the list owner's.
+                    'name' => $claim->user?->full_name,
                     'quantity' => $claim->quantity,
                     'purchased' => $claim->purchased_at !== null,
                     'claimed_at' => $claim->claimed_at?->toIso8601String(),

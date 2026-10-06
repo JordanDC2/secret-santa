@@ -7,6 +7,7 @@ use App\Models\Group;
 use App\Models\User;
 use App\Notifications\Concerns\RespectsEmailPreferences;
 use App\Notifications\Contracts\OptionalEmail;
+use App\Support\PersonNames;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -68,7 +69,8 @@ class SecretSantaAssigned extends Notification implements OptionalEmail, ShouldQ
             ->when($this->group->description, fn (ElfMailMessage $message, string $description) => $message
                 ->line($this->ownerNote($description)))
             ->line($who->isManaged() ? "{$who->name()} is the Secret Santa for:" : 'You are the Secret Santa for:')
-            ->line('## '.ElfMailMessage::plain($this->recipient->name))
+            // In full, so there's no doubt who to shop for.
+            ->line('## '.ElfMailMessage::plain($this->recipient->full_name))
             ->when($this->exchangeDetails(), fn (ElfMailMessage $message, string $details) => $message->line($details))
             ->line('Keep it a secret, and happy gifting! 🎄')
             // No names in the button label: Laravel repeats it in the footer as Markdown, where a
@@ -104,7 +106,7 @@ class SecretSantaAssigned extends Notification implements OptionalEmail, ShouldQ
             : sprintf(self::LATER_DRAW_SUBJECTS[($this->drawNumber - 2) % count(self::LATER_DRAW_SUBJECTS)], $this->group->name);
 
         return $notifiable->isManagedProfile()
-            ? str_ireplace('your Secret Santa', "{$notifiable->name}'s Secret Santa", $subject)
+            ? str_ireplace('your Secret Santa', "{$notifiable->first_name}'s Secret Santa", $subject)
             : $subject;
     }
 
@@ -119,7 +121,7 @@ class SecretSantaAssigned extends Notification implements OptionalEmail, ShouldQ
         $escape = fn (string $text): string => e(ElfMailMessage::plain($text));
 
         return new HtmlString(
-            '<strong>A note from '.$escape($this->group->owner->name).':</strong><br>'.nl2br($escape($description), false),
+            '<strong>A note from '.$escape(PersonNames::inGroup($this->group->owner, $this->group)).':</strong><br>'.nl2br($escape($description), false),
         );
     }
 }

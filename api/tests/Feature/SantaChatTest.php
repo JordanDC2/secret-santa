@@ -37,8 +37,8 @@ class SantaChatTest extends TestCase
 
         $this->group = Group::factory()->create(['drawn_at' => now()]);
         $this->third = $this->group->owner;
-        $this->santa = User::factory()->create(['name' => 'Sneaky Santa']);
-        $this->person = User::factory()->create(['name' => 'Polly Person']);
+        $this->santa = User::factory()->create(['first_name' => 'Sneaky Santa']);
+        $this->person = User::factory()->create(['first_name' => 'Polly', 'last_name' => 'Person']);
         $this->group->members()->attach([$this->santa->id, $this->person->id]);
 
         foreach ([[$this->santa, $this->person], [$this->person, $this->third], [$this->third, $this->santa]] as [$giver, $receiver]) {

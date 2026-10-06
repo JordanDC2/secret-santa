@@ -22,7 +22,7 @@ class InvitePageTest extends TestCase
 
     public function test_an_invite_links_preview_names_the_group_and_who_sent_it(): void
     {
-        $owner = User::factory()->create(['name' => 'Holly']);
+        $owner = User::factory()->create(['first_name' => 'Holly', 'last_name' => 'Berry']);
         $group = Group::factory()->create(['name' => 'North Pole Crew', 'owner_id' => $owner->id]);
 
         $response = $this->get('/join/'.strtolower($group->join_code))->assertOk();
@@ -30,8 +30,8 @@ class InvitePageTest extends TestCase
 
         $this->assertStringContainsString('<title>Join North Pole Crew on Secret Santa</title>', $html);
         $this->assertMatchesRegularExpression('/property="og:title"\s+content="Join North Pole Crew on Secret Santa"/', $html);
-        $this->assertMatchesRegularExpression('/property="og:description"\s+content="Holly invited you to draw names and share wishlists for North Pole Crew\."/', $html);
-        $this->assertMatchesRegularExpression('/name="description"\s+content="Holly invited you/', $html);
+        $this->assertMatchesRegularExpression('/property="og:description"\s+content="Holly Berry invited you to draw names and share wishlists for North Pole Crew\."/', $html);
+        $this->assertMatchesRegularExpression('/name="description"\s+content="Holly Berry invited you/', $html);
         $this->assertMatchesRegularExpression("#property=\"og:url\"\\s+content=\"https://santa.test/join/{$group->join_code}\"#", $html);
         // The rest of the page (the app itself, the preview image) is untouched.
         $this->assertStringContainsString('<div id="app"></div>', $html);
@@ -42,14 +42,14 @@ class InvitePageTest extends TestCase
 
     public function test_group_names_cant_inject_html(): void
     {
-        $owner = User::factory()->create(['name' => 'Eve "the elf" $1']);
+        $owner = User::factory()->create(['first_name' => 'Eve "the elf" $1', 'last_name' => '<b>Bold</b>']);
         $group = Group::factory()->create(['name' => '<script>x</script> & co', 'owner_id' => $owner->id]);
 
         $html = $this->get("/join/{$group->join_code}")->content();
 
         $this->assertStringNotContainsString('<script>x</script>', $html);
         $this->assertStringContainsString('Join &lt;script&gt;x&lt;/script&gt; &amp; co on Secret Santa', $html);
-        $this->assertStringContainsString('Eve &quot;the elf&quot; $1 invited you', $html);
+        $this->assertStringContainsString('Eve &quot;the elf&quot; $1 &lt;b&gt;Bold&lt;/b&gt; invited you', $html);
     }
 
     public function test_unknown_codes_get_the_page_unchanged(): void

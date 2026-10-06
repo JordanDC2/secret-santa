@@ -25,7 +25,7 @@ class InvitePageHandler extends Controller
 
         if ($group !== null) {
             $title = "Join {$group->name} on Secret Santa";
-            $description = "{$group->owner->name} invited you to draw names and share wishlists for {$group->name}.";
+            $description = "{$group->owner->full_name} invited you to draw names and share wishlists for {$group->name}.";
             $html = $this->withTag($html, '<title>', '</title>', e($title));
             $html = $this->withMeta($html, 'property="og:title"', $title);
             $html = $this->withMeta($html, 'property="og:description"', $description);

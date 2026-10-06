@@ -19,15 +19,15 @@ class AddCoParent
         }
 
         if ($coParent->manages($profile)) {
-            throw ValidationException::withMessages(['user_id' => ["{$coParent->name} already looks after {$profile->name}."]]);
+            throw ValidationException::withMessages(['user_id' => ["{$coParent->full_name} already looks after {$profile->first_name}."]]);
         }
 
         $profile->managers()->attach($coParent);
 
         $coParent->notify(new ProfileShared(
-            sharerName: $sharer->name,
+            sharerName: $sharer->full_name,
             profileId: $profile->id,
-            profileName: $profile->name,
+            profileName: $profile->full_name,
             isPet: $profile->managed_kind === 'pet',
         ));
     }

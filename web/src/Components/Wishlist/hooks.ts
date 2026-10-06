@@ -107,7 +107,7 @@ export function useMemberWishlistQuery(userId: number) {
 		queryKey: memberWishlistQueryKey(userId),
 		queryFn: async (): Promise<IMemberWishlist> => {
 			const wishlist = await apiClient.get<{
-				user: IMemberWishlist["user"];
+				user: IWishlistPerson & { first_name: string };
 				items: Record<string, unknown>[];
 				suggestions: Record<string, unknown>[];
 				my_recipients: (IWishlistPerson & {
@@ -117,7 +117,7 @@ export function useMemberWishlistQuery(userId: number) {
 			}>(`/users/${userId}/wishlist`);
 
 			return {
-				user: wishlist.user,
+				user: { id: wishlist.user.id, name: wishlist.user.name, firstName: wishlist.user.first_name },
 				items: wishlist.items.map(mapItem),
 				suggestions: wishlist.suggestions.map(mapItem),
 				myRecipients: wishlist.my_recipients.map((recipient) => ({

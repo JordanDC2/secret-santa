@@ -27,7 +27,8 @@ class SendSantaMessage
                 groupId: $group->id,
                 groupName: $group->name,
                 fromSanta: $fromSanta,
-                personName: $assignment->receiver->name,
+                // Who the Santa drew, in full like the reveal.
+                personName: $assignment->receiver->full_name,
                 // A kid's or pet's email goes to their managers, whose link opens it as them.
                 asProfileId: $reader->isManagedProfile() ? $reader->id : null,
             ));

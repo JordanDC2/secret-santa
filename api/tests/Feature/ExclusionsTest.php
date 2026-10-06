@@ -23,7 +23,7 @@ class ExclusionsTest extends TestCase
             'receiver_id' => $b->id,
             'mutual' => true,
         ])->assertCreated()
-            ->assertJsonPath('giver.name', $a->name)
+            ->assertJsonPath('giver.name', $a->first_name)
             ->assertJsonPath('mutual', true)
             ->json('id');
 

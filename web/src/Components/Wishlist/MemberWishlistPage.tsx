@@ -286,7 +286,7 @@ function MemberWishlist({ userId }: { userId: number }) {
 						<PageTitle icon={<WishListIcon />}>{wishlistQuery.data.user.name}&apos;s wishlist</PageTitle>
 						<AssignmentNotice owner={wishlistQuery.data.user} myRecipients={wishlistQuery.data.myRecipients} />
 						<MantineText c="dimmed">
-							Claim something so nobody else buys it too. {wishlistQuery.data.user.name} can&apos;t see who claimed
+							Claim something so nobody else buys it too. {wishlistQuery.data.user.firstName} can&apos;t see who claimed
 							what.
 						</MantineText>
 
@@ -295,7 +295,7 @@ function MemberWishlist({ userId }: { userId: number }) {
 
 						{wishlistQuery.data.items.length === 0 && (
 							<MantineText c="dimmed">
-								{wishlistQuery.data.user.name} hasn&apos;t added anything yet. Maybe drop them a hint?
+								{wishlistQuery.data.user.firstName} hasn&apos;t added anything yet. Maybe drop them a hint?
 							</MantineText>
 						)}
 
@@ -333,7 +333,7 @@ function MemberWishlist({ userId }: { userId: number }) {
 								<div>
 									<Title order={3}>Gift ideas from the group</Title>
 									<MantineText size="sm" c="dimmed">
-										{wishlistQuery.data.user.name} can&apos;t see these. Know something they&apos;d love?
+										{wishlistQuery.data.user.firstName} can&apos;t see these. Know something they&apos;d love?
 									</MantineText>
 								</div>
 								<Button

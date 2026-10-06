@@ -34,8 +34,8 @@ class ExchangeRemindersTest extends TestCase
 
         $this->group = Group::factory()->create(['name' => 'Family Swap', 'exchange_date' => '2026-12-20', 'budget_max' => 50]);
         $this->holly = $this->group->owner;
-        $this->holly->update(['name' => 'Holly']);
-        $this->nick = User::factory()->create(['name' => 'Nick']);
+        $this->holly->update(['first_name' => 'Holly']);
+        $this->nick = User::factory()->create(['first_name' => 'Nick']);
         $this->group->members()->attach($this->nick);
         WishlistItem::factory()->create(['user_id' => $this->holly->id, 'name' => 'Scarf']);
     }
@@ -97,7 +97,7 @@ class ExchangeRemindersTest extends TestCase
             $text = implode(' ', $notification->toMail($this->holly)->introLines);
 
             return $notification->daysLeft === 14
-                && $notification->recipientName === 'Nick'
+                && $notification->recipientName === $this->nick->full_name
                 && $notification->claimed === 0
                 && str_contains($text, 'The budget is $50.')
                 && str_contains($text, 'wishlist is empty')
@@ -142,7 +142,7 @@ class ExchangeRemindersTest extends TestCase
 
             return $notification->giftsNeeded === 2
                 && $notification->claimed === 1
-                && str_contains($text, 'You drew Holly in 2 groups (Book Club and Family Swap)')
+                && str_contains($text, "You drew {$this->holly->full_name} in 2 groups (Book Club and Family Swap)")
                 && str_contains($text, 'pick 1 more');
         });
 

@@ -21,20 +21,20 @@ class ManagedProfilesTest extends TestCase
         parent::setUp();
 
         Notification::fake();
-        $this->parent = User::factory()->create(['name' => 'Holly', 'email' => 'holly@example.test']);
+        $this->parent = User::factory()->create(['first_name' => 'Holly', 'email' => 'holly@example.test']);
     }
 
     public function test_a_parent_adds_renames_and_lists_their_kids_and_pets(): void
     {
         Sanctum::actingAs($this->parent);
 
-        $lily = $this->postJson(route('account.profiles.store'), ['name' => 'Lily', 'kind' => 'child'])
+        $lily = $this->postJson(route('account.profiles.store'), ['first_name' => 'Lily', 'kind' => 'child'])
             ->assertCreated()
             ->assertJsonPath('kind', 'child')
-            ->assertJsonPath('managers.0.name', 'Holly')
+            ->assertJsonPath('managers.0.name', $this->parent->full_name)
             ->json('id');
-        $this->postJson(route('account.profiles.store'), ['name' => 'Biscuit', 'kind' => 'pet'])->assertCreated();
-        $this->patchJson(route('account.profiles.update', $lily), ['name' => 'Lily Rose', 'kind' => 'child'])
+        $this->postJson(route('account.profiles.store'), ['first_name' => 'Biscuit', 'kind' => 'pet'])->assertCreated();
+        $this->patchJson(route('account.profiles.update', $lily), ['first_name' => 'Lily Rose', 'kind' => 'child'])
             ->assertOk()
             ->assertJsonPath('name', 'Lily Rose');
 
@@ -44,8 +44,8 @@ class ManagedProfilesTest extends TestCase
             ->assertJsonPath('0.name', 'Biscuit')
             ->assertJsonPath('1.name', 'Lily Rose');
 
-        $this->postJson(route('account.profiles.store'), ['name' => '', 'kind' => 'dragon'])
-            ->assertJsonValidationErrors(['name', 'kind']);
+        $this->postJson(route('account.profiles.store'), ['first_name' => '', 'kind' => 'dragon'])
+            ->assertJsonValidationErrors(['first_name', 'kind']);
     }
 
     public function test_a_profile_can_never_sign_in_or_get_a_password_reset(): void
@@ -105,12 +105,12 @@ class ManagedProfilesTest extends TestCase
         $this->getJson(route('wishlist.items.index', ['owner' => $lily->id]))->assertForbidden();
         $this->postJson(route('wishlist.items.store'), ['name' => 'x', 'rating' => 1, 'owner_id' => $lily->id])->assertForbidden();
         $this->patchJson(route('wishlist.items.update', $item), ['name' => 'x', 'rating' => 1])->assertForbidden();
-        $this->patchJson(route('account.profiles.update', $lily), ['name' => 'x', 'kind' => 'pet'])->assertForbidden();
+        $this->patchJson(route('account.profiles.update', $lily), ['first_name' => 'x', 'kind' => 'pet'])->assertForbidden();
         $this->deleteJson(route('account.profiles.destroy', $lily))->assertForbidden();
         $this->getJson(route('account.profiles.index'))->assertOk()->assertJsonCount(0);
 
         // A real account isn't a profile, even to someone who... manages nothing at all.
-        $this->patchJson(route('account.profiles.update', $this->parent), ['name' => 'x', 'kind' => 'pet'])->assertForbidden();
+        $this->patchJson(route('account.profiles.update', $this->parent), ['first_name' => 'x', 'kind' => 'pet'])->assertForbidden();
     }
 
     public function test_removing_a_profile_removes_its_wishlist(): void
@@ -129,7 +129,7 @@ class ManagedProfilesTest extends TestCase
     private function createProfile(string $name): User
     {
         Sanctum::actingAs($this->parent);
-        $id = $this->postJson(route('account.profiles.store'), ['name' => $name, 'kind' => 'child'])->json('id');
+        $id = $this->postJson(route('account.profiles.store'), ['first_name' => $name, 'kind' => 'child'])->json('id');
         $this->assertIsInt($id);
         $this->app['auth']->forgetGuards();
 

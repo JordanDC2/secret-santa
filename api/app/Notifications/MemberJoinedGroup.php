@@ -7,6 +7,7 @@ use App\Models\Group;
 use App\Models\User;
 use App\Notifications\Concerns\RespectsEmailPreferences;
 use App\Notifications\Contracts\OptionalEmail;
+use App\Support\PersonNames;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -36,12 +37,14 @@ class MemberJoinedGroup extends Notification implements OptionalEmail, ShouldQue
 
     public function toMail(User $notifiable): ElfMailMessage
     {
-        $memberName = ElfMailMessage::plain($this->member->name);
+        // As the group card names them.
+        $name = PersonNames::inGroup($this->member, $this->group);
+        $memberName = ElfMailMessage::plain($name);
         $groupName = ElfMailMessage::plain($this->group->name);
 
         return (new ElfMailMessage)
-            ->subject("🎄 {$this->member->name} joined {$this->group->name}")
-            ->greeting('Hi '.ElfMailMessage::plain($notifiable->name).'!')
+            ->subject("🎄 {$name} joined {$this->group->name}")
+            ->greeting('Hi '.ElfMailMessage::plain($notifiable->first_name).'!')
             ->line("**{$memberName}** just joined **{$groupName}** with your invite code.")
             ->line("That makes {$this->membersCount} members on the list so far.")
             ->action('View Your Groups', config('app.frontend_url').'/')

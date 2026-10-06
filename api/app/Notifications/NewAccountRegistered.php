@@ -31,10 +31,10 @@ class NewAccountRegistered extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): ElfMailMessage
     {
-        $name = ElfMailMessage::plain($this->user->name);
+        $name = ElfMailMessage::plain($this->user->full_name);
 
         return (new ElfMailMessage)
-            ->subject("🎅 New elf on the list: {$this->user->name}")
+            ->subject("🎅 New elf on the list: {$this->user->full_name}")
             ->greeting('Ho ho ho!')
             ->line('Someone new just signed up for Secret Santa:')
             ->line("**{$name}** (".ElfMailMessage::plain($this->user->email).')')

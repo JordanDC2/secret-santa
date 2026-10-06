@@ -20,7 +20,7 @@ final class Addressee
 
     public function name(): string
     {
-        return ElfMailMessage::plain($this->user->name);
+        return ElfMailMessage::plain($this->user->first_name);
     }
 
     /** "Hi Holly!", or for a kid "Hi! Here's an update about Lily." */

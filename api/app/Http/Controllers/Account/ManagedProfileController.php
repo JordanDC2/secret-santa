@@ -20,14 +20,19 @@ class ManagedProfileController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $profiles = $request->user()->managedProfiles()->with('managers')->orderBy('name')->get();
+        $profiles = $request->user()->managedProfiles()->with('managers')->orderBy('first_name')->orderBy('last_name')->get();
 
         return response()->json($profiles->map(fn (User $profile) => $this->present($profile))->values());
     }
 
     public function store(ManagedProfileRequest $request, CreateManagedProfile $create): JsonResponse
     {
-        $profile = $create($request->user(), $request->string('name')->value(), $request->string('kind')->value());
+        $profile = $create(
+            $request->user(),
+            $request->string('first_name')->value(),
+            $request->filled('last_name') ? $request->string('last_name')->value() : null,
+            $request->string('kind')->value(),
+        );
 
         return response()->json($this->present($profile), 201);
     }
@@ -36,7 +41,11 @@ class ManagedProfileController extends Controller
     {
         $this->authorize('manage', $profile);
 
-        $profile->update(['name' => $request->string('name')->value(), 'managed_kind' => $request->string('kind')->value()]);
+        $profile->update([
+            'first_name' => $request->string('first_name')->value(),
+            'last_name' => $request->filled('last_name') ? $request->string('last_name')->value() : null,
+            'managed_kind' => $request->string('kind')->value(),
+        ]);
 
         return response()->json($this->present($profile));
     }
@@ -80,16 +89,20 @@ class ManagedProfileController extends Controller
     }
 
     /**
-     * @return array{id: int, name: string, kind: string|null, managers: array<int, array{id: int, name: string}>}
+     * Full names: this is the manager's own list of the kids and pets they look after.
+     *
+     * @return array{id: int, first_name: string, last_name: ?string, name: string, kind: string|null, managers: array<int, array{id: int, name: string}>}
      */
     private function present(User $profile): array
     {
         return [
             'id' => $profile->id,
-            'name' => $profile->name,
+            'first_name' => $profile->first_name,
+            'last_name' => $profile->last_name,
+            'name' => $profile->full_name,
             'kind' => $profile->managed_kind,
-            'managers' => $profile->managers()->orderBy('name')->get()
-                ->map(fn (User $manager) => ['id' => $manager->id, 'name' => $manager->name])->values()->all(),
+            'managers' => $profile->managers()->orderBy('first_name')->orderBy('last_name')->get()
+                ->map(fn (User $manager) => ['id' => $manager->id, 'name' => $manager->full_name])->values()->all(),
         ];
     }
 }

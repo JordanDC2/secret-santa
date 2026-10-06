@@ -36,11 +36,11 @@ class KidsInGroupsTest extends TestCase
         Notification::fake();
         Event::fake([SantaChatChanged::class]);
 
-        $this->parent = User::factory()->create(['name' => 'Holly', 'email' => 'holly@example.test']);
-        $this->nick = User::factory()->create(['name' => 'Nick']);
+        $this->parent = User::factory()->create(['first_name' => 'Holly', 'email' => 'holly@example.test']);
+        $this->nick = User::factory()->create(['first_name' => 'Nick']);
         $this->group = Group::factory()->create(['name' => 'Family Swap', 'owner_id' => $this->parent->id]);
         $this->group->members()->attach($this->nick);
-        $this->lily = app(CreateManagedProfile::class)($this->parent, 'Lily', 'child');
+        $this->lily = app(CreateManagedProfile::class)($this->parent, 'Lily', null, 'child');
     }
 
     public function test_a_parent_adds_their_kid_to_a_group_and_everyone_sees_her(): void
@@ -84,7 +84,7 @@ class KidsInGroupsTest extends TestCase
 
     public function test_kids_leave_with_their_parent_unless_a_co_parent_stays(): void
     {
-        $biscuit = app(CreateManagedProfile::class)($this->nick, 'Biscuit', 'pet');
+        $biscuit = app(CreateManagedProfile::class)($this->nick, 'Biscuit', null, 'pet');
         $biscuit->managers()->attach($this->parent);
         $this->group->members()->attach([$this->lily->id, $biscuit->id]);
 
@@ -122,8 +122,8 @@ class KidsInGroupsTest extends TestCase
 
     public function test_a_parents_kids_list_puts_unread_chats_first_then_a_to_z(): void
     {
-        $zed = app(CreateManagedProfile::class)($this->parent, 'Zed', 'child');
-        $amy = app(CreateManagedProfile::class)($this->parent, 'amy', 'pet');
+        $zed = app(CreateManagedProfile::class)($this->parent, 'Zed', null, 'child');
+        $amy = app(CreateManagedProfile::class)($this->parent, 'amy', null, 'pet');
         $this->group->members()->attach([$this->lily->id, $zed->id, $amy->id]);
         $this->group->update(['drawn_at' => now()]);
         $toZed = $this->group->assignments()->create(['draw_number' => 1, 'giver_id' => $this->nick->id, 'receiver_id' => $zed->id]);
@@ -164,13 +164,13 @@ class KidsInGroupsTest extends TestCase
 
         Sanctum::actingAs($this->parent);
         $this->getJson(route('groups.santa-chat.show', [$this->group, 'my-person', ...$asLily]))
-            ->assertJsonPath('with.name', 'Nick')
+            ->assertJsonPath('with.name', $this->nick->full_name)
             ->assertJsonPath('messages.1.body', 'Trains!');
 
         Sanctum::actingAs($this->nick);
         $this->getJson(route('groups.santa-chat.show', [$this->group, 'my-person', ...$asLily]))->assertForbidden();
 
-        $stranger = app(CreateManagedProfile::class)($this->parent, 'Not In Group', 'pet');
+        $stranger = app(CreateManagedProfile::class)($this->parent, 'Not In Group', null, 'pet');
         // A fresh copy, as a real request would load: the model caches who it manages.
         Sanctum::actingAs($this->parent->fresh() ?? $this->parent);
         $this->getJson(route('groups.santa-chat.show', [$this->group, 'my-person', 'as' => $stranger->id]))->assertNotFound();

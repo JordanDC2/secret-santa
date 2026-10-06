@@ -1,13 +1,19 @@
 import { createContext, useCallback, useContext, useMemo, type PropsWithChildren } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { UseMutationResult } from "@tanstack/react-query";
-import type { IUser } from "Components/Auth/types";
+import type { IUser, IUserResponse } from "Components/Auth/types";
 import { apiClient } from "Data/Api/Client";
 
 export const CURRENT_USER_QUERY_KEY = ["auth", "user"];
 
 type ILoginPayload = { email: string; password: string };
-type IRegisterPayload = { name: string; email: string; password: string; passwordConfirmation: string };
+type IRegisterPayload = {
+	firstName: string;
+	lastName: string;
+	email: string;
+	password: string;
+	passwordConfirmation: string;
+};
 
 type IAuthContext = {
 	user: IUser | null;
@@ -19,27 +25,41 @@ type IAuthContext = {
 
 const AuthContext = createContext<IAuthContext | null>(null);
 
+export function toUser(user: IUserResponse): IUser {
+	return {
+		id: user.id,
+		firstName: user.first_name,
+		lastName: user.last_name,
+		fullName: user.full_name,
+		email: user.email,
+	};
+}
+
 export function AuthProvider({ children }: PropsWithChildren) {
 	const queryClient = useQueryClient();
 	const currentUserQuery = useQuery({
 		queryKey: CURRENT_USER_QUERY_KEY,
-		queryFn: () => apiClient.get<IUser>("/user"),
+		queryFn: async () => toUser(await apiClient.get<IUserResponse>("/user")),
 		retry: false,
 	});
 
 	const loginMutation = useMutation({
-		mutationFn: (credentials: ILoginPayload) => apiClient.post<IUser>("/auth/login", credentials),
+		mutationFn: async (credentials: ILoginPayload) =>
+			toUser(await apiClient.post<IUserResponse>("/auth/login", credentials)),
 		onSuccess: (user) => queryClient.setQueryData(CURRENT_USER_QUERY_KEY, user),
 	});
 
 	const registerMutation = useMutation({
-		mutationFn: (details: IRegisterPayload) =>
-			apiClient.post<IUser>("/auth/register", {
-				name: details.name,
-				email: details.email,
-				password: details.password,
-				password_confirmation: details.passwordConfirmation,
-			}),
+		mutationFn: async (details: IRegisterPayload) =>
+			toUser(
+				await apiClient.post<IUserResponse>("/auth/register", {
+					first_name: details.firstName,
+					last_name: details.lastName,
+					email: details.email,
+					password: details.password,
+					password_confirmation: details.passwordConfirmation,
+				}),
+			),
 		onSuccess: (user) => queryClient.setQueryData(CURRENT_USER_QUERY_KEY, user),
 	});
 

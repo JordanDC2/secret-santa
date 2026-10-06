@@ -122,7 +122,7 @@ class ExchangeDetailsTest extends TestCase
 
     public function test_your_persons_wishlist_forgets_groups_whose_exchange_has_passed(): void
     {
-        $person = User::factory()->create(['name' => 'Ivy']);
+        $person = User::factory()->create(['first_name' => 'Ivy']);
         $santa = User::factory()->create();
         $groups = [
             'past' => Group::factory()->create(['name' => 'Last Year', 'exchange_date' => now()->subMonth()->toDateString()]),

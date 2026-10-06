@@ -13,7 +13,8 @@ class RegisterHandler extends Controller
     public function __invoke(RegisterRequest $request): User
     {
         $user = User::create([
-            'name' => $request->string('name'),
+            'first_name' => $request->string('first_name'),
+            'last_name' => $request->string('last_name'),
             'email' => $request->string('email'),
             'password' => $request->string('password'),
         ]);

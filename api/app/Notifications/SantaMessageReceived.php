@@ -50,7 +50,7 @@ class SantaMessageReceived extends Notification implements OptionalEmail, Should
 
         if ($this->fromSanta) {
             $message->subject($who->isManaged()
-                ? "🎅 {$notifiable->name}'s Secret Santa sent a message in {$this->groupName}"
+                ? "🎅 {$notifiable->first_name}'s Secret Santa sent a message in {$this->groupName}"
                 : "🎅 Your Secret Santa sent you a message in {$this->groupName}")
                 ->line("{$who->your(startOfSentence: true)} Secret Santa in **{$group}** has a question for {$who->you()}!")
                 ->line($who->isManaged()
@@ -59,7 +59,7 @@ class SantaMessageReceived extends Notification implements OptionalEmail, Should
         } else {
             $person = ElfMailMessage::plain($this->personName);
             $message->subject($who->isManaged()
-                ? "💌 {$this->personName} wrote back to {$notifiable->name}"
+                ? "💌 {$this->personName} wrote back to {$notifiable->first_name}"
                 : "💌 {$this->personName} wrote back to their Secret Santa")
                 ->line($who->isManaged()
                     ? "{$person} sent a message to their Secret Santa, {$who->name()}, in **{$group}**."

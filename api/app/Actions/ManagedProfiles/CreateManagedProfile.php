@@ -14,11 +14,12 @@ class CreateManagedProfile
      * email is a unique placeholder on the reserved .invalid domain (which can't receive mail;
      * its emails go to its managers) and its password is random and never shown to anyone.
      */
-    public function __invoke(User $manager, string $name, string $kind): User
+    public function __invoke(User $manager, string $firstName, ?string $lastName, string $kind): User
     {
-        return DB::transaction(function () use ($manager, $name, $kind) {
+        return DB::transaction(function () use ($manager, $firstName, $lastName, $kind) {
             $profile = User::create([
-                'name' => $name,
+                'first_name' => $firstName,
+                'last_name' => $lastName,
                 'email' => 'profile-'.Str::uuid().'@profiles.invalid',
                 'password' => Str::password(48),
                 'managed_kind' => $kind,

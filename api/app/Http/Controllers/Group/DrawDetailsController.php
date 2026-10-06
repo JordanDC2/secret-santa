@@ -28,8 +28,9 @@ class DrawDetailsController extends Controller
 
         $pairs = $group->currentAssignments()->with('giver', 'receiver')->get()
             ->map(fn (SecretSantaAssignment $assignment) => [
-                'giver' => ['id' => $assignment->giver->id, 'name' => $assignment->giver->name],
-                'receiver' => ['id' => $assignment->receiver->id, 'name' => $assignment->receiver->name],
+                // In full: the owner may be checking the draw against a list of real people.
+                'giver' => ['id' => $assignment->giver->id, 'name' => $assignment->giver->full_name],
+                'receiver' => ['id' => $assignment->receiver->id, 'name' => $assignment->receiver->full_name],
             ])
             ->sortBy('giver.name', SORT_NATURAL | SORT_FLAG_CASE)
             ->values();

@@ -40,7 +40,7 @@ class OwnerAndAdminEmailsTest extends TestCase
                 $mail = $notification->toMail($notifiable);
 
                 return $notifiable->routes['mail'] === 'organizer@example.test'
-                    && $mail->subject === '🎅 New elf on the list: Tinsel'
+                    && $mail->subject === '🎅 New elf on the list: Tinsel Sparkle'
                     // The body is Markdown, so typed text arrives escaped ("tinsel@example\\.test").
                     && str_contains(implode(' ', $mail->introLines), ElfMailMessage::plain('tinsel@example.test'));
             },
@@ -59,7 +59,7 @@ class OwnerAndAdminEmailsTest extends TestCase
     public function test_the_owner_hears_when_someone_joins_their_group(): void
     {
         $group = Group::factory()->create(['name' => 'Cousins']);
-        $joiner = User::factory()->create(['name' => 'Ivy']);
+        $joiner = User::factory()->create(['first_name' => 'Ivy']);
         Sanctum::actingAs($joiner);
 
         $this->postJson(route('groups.join'), ['join_code' => $group->join_code])->assertSuccessful();
@@ -67,7 +67,7 @@ class OwnerAndAdminEmailsTest extends TestCase
         Notification::assertSentTo($group->owner, MemberJoinedGroup::class, function (MemberJoinedGroup $notification) use ($group) {
             $mail = $notification->toMail($group->owner);
 
-            return $notification->member->name === 'Ivy'
+            return $notification->member->first_name === 'Ivy'
                 && $notification->membersCount === 2
                 && $mail->subject === '🎄 Ivy joined Cousins';
         });
@@ -90,7 +90,8 @@ class OwnerAndAdminEmailsTest extends TestCase
     private function register(string $name, string $email): TestResponse
     {
         return $this->postJson(route('auth.register'), [
-            'name' => $name,
+            'first_name' => $name,
+            'last_name' => 'Sparkle',
             'email' => $email,
             'password' => 'a-long-test-password-1',
             'password_confirmation' => 'a-long-test-password-1',

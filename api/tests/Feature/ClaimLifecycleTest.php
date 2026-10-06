@@ -53,7 +53,7 @@ class ClaimLifecycleTest extends TestCase
 
         $this->viewAs($this->nick)
             ->assertJsonPath('items.0.claim.claimed', 1)
-            ->assertJsonPath('items.0.claim.others.0.name', $this->holly->name)
+            ->assertJsonPath('items.0.claim.others.0.name', $this->holly->full_name)
             ->assertJsonPath('items.0.claim.others.0.claimed_at', fn ($date) => str_starts_with($date, '2026-11-15'));
         $this->claimAs($this->nick, $lamp)->assertUnprocessable()->assertJsonValidationErrors('item');
     }
@@ -112,9 +112,9 @@ class ClaimLifecycleTest extends TestCase
         Notification::assertSentTo($this->holly, ClaimNudged::class, function (ClaimNudged $notification) {
             $mail = $notification->toMail($this->holly);
 
-            return $notification->nudgerName === $this->nick->name
+            return $notification->nudgerName === $this->nick->full_name
                 && $notification->claimedAt === 'November 2026'
-                && $mail->subject === "🔔 Still getting Reading lamp for {$this->ivy->name}?";
+                && $mail->subject === "🔔 Still getting Reading lamp for {$this->ivy->full_name}?";
         });
         $this->viewAs($this->nick)->assertJsonPath('items.0.claim.others.0.nudged_at', fn ($date) => $date !== null);
     }

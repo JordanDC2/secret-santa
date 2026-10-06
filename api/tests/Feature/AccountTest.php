@@ -29,9 +29,11 @@ class AccountTest extends TestCase
         $user = User::factory()->create();
         Sanctum::actingAs($user);
 
-        $this->patchJson(route('account.profile'), ['name' => 'Jordan C', 'email' => $user->email])
+        $this->patchJson(route('account.profile'), ['first_name' => 'Jordan', 'last_name' => 'Christmas', 'email' => $user->email])
             ->assertOk()
-            ->assertJsonPath('name', 'Jordan C');
+            ->assertJsonPath('first_name', 'Jordan')
+            ->assertJsonPath('last_name', 'Christmas')
+            ->assertJsonPath('full_name', 'Jordan Christmas');
     }
 
     public function test_changing_email_requires_the_current_password(): void
@@ -39,18 +41,18 @@ class AccountTest extends TestCase
         $user = User::factory()->create();
         Sanctum::actingAs($user);
 
-        $this->patchJson(route('account.profile'), ['name' => $user->name, 'email' => 'new@example.com'])
+        $this->patchJson(route('account.profile'), ['first_name' => $user->first_name, 'last_name' => $user->last_name, 'email' => 'new@example.com'])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('current_password');
 
         $this->patchJson(route('account.profile'), [
-            'name' => $user->name,
+            'first_name' => $user->first_name, 'last_name' => $user->last_name,
             'email' => 'new@example.com',
             'current_password' => 'wrong-password',
         ])->assertUnprocessable()->assertJsonValidationErrors('current_password');
 
         $this->patchJson(route('account.profile'), [
-            'name' => $user->name,
+            'first_name' => $user->first_name, 'last_name' => $user->last_name,
             'email' => 'new@example.com',
             'current_password' => 'password',
         ])->assertOk()->assertJsonPath('email', 'new@example.com');
@@ -63,7 +65,7 @@ class AccountTest extends TestCase
         Sanctum::actingAs($user);
 
         $this->patchJson(route('account.profile'), [
-            'name' => $user->name,
+            'first_name' => $user->first_name, 'last_name' => $user->last_name,
             'email' => $other->email,
             'current_password' => 'password',
         ])->assertUnprocessable()->assertJsonValidationErrors('email');
@@ -74,7 +76,7 @@ class AccountTest extends TestCase
         $group = Group::factory()->create();
         Sanctum::actingAs($group->owner);
 
-        $this->patchJson(route('account.profile'), ['name' => 'New Name', 'email' => $group->owner->email])->assertOk();
+        $this->patchJson(route('account.profile'), ['first_name' => 'New', 'last_name' => 'Name', 'email' => $group->owner->email])->assertOk();
 
         Event::assertDispatched(GroupChanged::class, fn (GroupChanged $event) => $event->groupId === $group->id);
     }

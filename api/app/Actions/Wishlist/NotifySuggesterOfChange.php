@@ -25,10 +25,10 @@ class NotifySuggesterOfChange
 
         $suggester->notify(new SuggestionChanged(
             ownerId: $item->user_id,
-            ownerName: $item->owner->name,
+            ownerName: $item->owner->full_name,
             itemName: (string) ($changes['name'][0] ?? $item->name),
             // Same rule as claims: only name people the suggester shares a group with.
-            editorName: $suggester->sharesGroupWith($editor) ? $editor->name : null,
+            editorName: $suggester->sharesGroupWith($editor) ? $editor->full_name : null,
             changes: $changes,
             removed: $removed,
         ));

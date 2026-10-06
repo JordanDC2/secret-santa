@@ -1,19 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CURRENT_USER_QUERY_KEY } from "Components/Auth/AuthContext";
+import { CURRENT_USER_QUERY_KEY, toUser } from "Components/Auth/AuthContext";
 import type { IEmailKind, IEmailPreferences } from "Components/Account/types";
-import type { IUser } from "Components/Auth/types";
+import type { IUserResponse } from "Components/Auth/types";
 import { apiClient } from "Data/Api/Client";
 
 export function useUpdateProfileMutation() {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: (details: { name: string; email: string; currentPassword: string }) =>
-			apiClient.patch<IUser>("/account/profile", {
-				name: details.name,
-				email: details.email,
-				current_password: details.currentPassword || null,
-			}),
+		mutationFn: async (details: { firstName: string; lastName: string; email: string; currentPassword: string }) =>
+			toUser(
+				await apiClient.patch<IUserResponse>("/account/profile", {
+					first_name: details.firstName,
+					last_name: details.lastName,
+					email: details.email,
+					current_password: details.currentPassword || null,
+				}),
+			),
 		onSuccess: (user) => queryClient.setQueryData(CURRENT_USER_QUERY_KEY, user),
 	});
 }
@@ -44,6 +47,8 @@ export function useDeleteAccountMutation() {
 
 /** API field names → form field names, for apiFieldErrors. */
 export const ACCOUNT_FIELD_NAMES = {
+	first_name: "firstName",
+	last_name: "lastName",
 	current_password: "currentPassword",
 	password_confirmation: "passwordConfirmation",
 };

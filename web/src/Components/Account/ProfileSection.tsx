@@ -1,4 +1,15 @@
-import { Alert, Button, Card, Group, PasswordInput, Stack, TextInput, Title } from "@mantine/core";
+import {
+	Alert,
+	Button,
+	Card,
+	Group,
+	PasswordInput,
+	SimpleGrid,
+	Stack,
+	Text as MantineText,
+	TextInput,
+	Title,
+} from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { ACCOUNT_FIELD_NAMES, useUpdateProfileMutation } from "Components/Account/hooks";
 import type { IUser } from "Components/Auth/types";
@@ -6,16 +17,28 @@ import { apiErrorMessage, apiFieldErrors } from "Data/Api/Client";
 
 export default function ProfileSection({ user }: { user: IUser }) {
 	const updateProfile = useUpdateProfileMutation();
-	const form = useForm({ initialValues: { name: user.name, email: user.email, currentPassword: "" } });
+	const form = useForm({
+		initialValues: { firstName: user.firstName, lastName: user.lastName ?? "", email: user.email, currentPassword: "" },
+	});
 	const emailChanged = form.values.email.trim().toLowerCase() !== user.email.toLowerCase();
 
 	function handleSubmit(values: typeof form.values) {
 		updateProfile.mutate(
-			{ name: values.name.trim(), email: values.email.trim(), currentPassword: values.currentPassword },
+			{
+				firstName: values.firstName.trim(),
+				lastName: values.lastName.trim(),
+				email: values.email.trim(),
+				currentPassword: values.currentPassword,
+			},
 			{
 				onSuccess: (saved) => {
 					// The saved values become the new "unchanged" baseline.
-					const savedValues = { name: saved.name, email: saved.email, currentPassword: "" };
+					const savedValues = {
+						firstName: saved.firstName,
+						lastName: saved.lastName ?? "",
+						email: saved.email,
+						currentPassword: "",
+					};
 					form.setValues(savedValues);
 					form.resetDirty(savedValues);
 				},
@@ -35,12 +58,13 @@ export default function ProfileSection({ user }: { user: IUser }) {
 					{updateProfile.isError && Object.keys(form.errors).length === 0 && (
 						<Alert color="red">{apiErrorMessage(updateProfile.error)}</Alert>
 					)}
-					<TextInput
-						label="Name"
-						description="What your groups see on cards and wishlists."
-						required
-						{...form.getInputProps("name")}
-					/>
+					<SimpleGrid cols={{ base: 1, xs: 2 }}>
+						<TextInput label="First name" required {...form.getInputProps("firstName")} />
+						<TextInput label="Last name" required {...form.getInputProps("lastName")} />
+					</SimpleGrid>
+					<MantineText size="xs" c="dimmed" mt={-8}>
+						Groups see your first name, with your last name on your wishlist so people know it&apos;s you.
+					</MantineText>
 					<TextInput
 						label="Email"
 						description="You log in with this, and assignment emails go here."

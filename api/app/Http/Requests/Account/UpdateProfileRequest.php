@@ -20,7 +20,9 @@ class UpdateProfileRequest extends FormRequest
         $user = $this->user();
 
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            // Required for adults, so people sharing a first name can be told apart.
+            'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             // Email is the login and where assignments go, so changing it needs the password.
             'current_password' => [

@@ -7,8 +7,10 @@ use App\Enums\EmailKind;
 use App\Notifications\Contracts\OptionalEmail;
 use App\Notifications\ResetPasswordLink;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Attributes\Appends;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -22,9 +24,12 @@ use Laravel\Sanctum\HasApiTokens;
 /**
  * @property array<string, bool>|null $email_preferences Kinds of optional email turned off (missing means on).
  * @property string|null $managed_kind "child" or "pet" for a managed profile (no login of its own).
+ * @property string|null $last_name Required for adults; kids, pets and older one-word accounts may have none.
+ * @property-read string $full_name
  */
-#[Fillable(['name', 'email', 'password', 'email_preferences', 'managed_kind'])]
+#[Fillable(['first_name', 'last_name', 'email', 'password', 'email_preferences', 'managed_kind'])]
 #[Hidden(['password', 'remember_token', 'email_preferences'])]
+#[Appends(['full_name'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -45,6 +50,17 @@ class User extends Authenticatable
             'password' => 'hashed',
             'email_preferences' => 'array',
         ];
+    }
+
+    /**
+     * First and last name together, for wishlists and anywhere a person must be unmistakable.
+     * Most of the app shows first names instead; see App\Support\PersonNames.
+     *
+     * @return Attribute<string, never>
+     */
+    protected function fullName(): Attribute
+    {
+        return Attribute::get(fn () => trim($this->first_name.' '.$this->last_name));
     }
 
     /**
@@ -257,7 +273,7 @@ class User extends Authenticatable
             ->whereColumn('secret_santa_assignments.draw_number', 'groups.draw_number')
             ->with('receiver', 'group')
             ->get()
-            ->sortBy(fn (SecretSantaAssignment $assignment) => [$assignment->receiver->name, $assignment->group->name])
+            ->sortBy(fn (SecretSantaAssignment $assignment) => [$assignment->receiver->full_name, $assignment->group->name])
             ->values();
     }
 }

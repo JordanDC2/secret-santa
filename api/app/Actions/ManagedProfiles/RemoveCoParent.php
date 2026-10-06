@@ -15,7 +15,7 @@ class RemoveCoParent
     {
         if ($profile->managers()->count() <= 1) {
             throw ValidationException::withMessages([
-                'manager' => ["{$profile->name} needs someone looking after them. To stop entirely, remove {$profile->name} instead."],
+                'manager' => ["{$profile->first_name} needs someone looking after them. To stop entirely, remove {$profile->first_name} instead."],
             ]);
         }
 

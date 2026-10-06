@@ -17,7 +17,7 @@ class AddProfileToGroup
     public function __invoke(User $profile, Group $group): void
     {
         if ($group->members()->whereKey($profile->id)->exists()) {
-            throw ValidationException::withMessages(['profile_id' => ["{$profile->name} is already in this group."]]);
+            throw ValidationException::withMessages(['profile_id' => ["{$profile->first_name} is already in this group."]]);
         }
 
         if ($group->is_drawn) {

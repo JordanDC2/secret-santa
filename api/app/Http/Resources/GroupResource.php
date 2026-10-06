@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Models\Group;
 use App\Models\User;
+use App\Support\PersonNames;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -23,6 +24,8 @@ class GroupResource extends JsonResource
         $myAssignment = $this->assignmentFor($viewer);
         // Never send this assignment's giver: it's the viewer's own Secret Santa.
         $mySantasAssignment = $this->assignmentOfSantaFor($request->user());
+        // First names, with a bit of the last name where two members share one.
+        $names = PersonNames::among($this->members);
 
         return [
             'id' => $this->id,
@@ -35,7 +38,7 @@ class GroupResource extends JsonResource
             'members_count' => $this->members_count,
             'members' => $this->members->map(fn (User $member) => [
                 'id' => $member->id,
-                'name' => $member->name,
+                'name' => $names[$member->id],
                 // "child" or "pet" for a managed profile, so the card can mark it.
                 'kind' => $member->managed_kind,
                 'managed_by_me' => $viewer->manages($member),
@@ -49,7 +52,8 @@ class GroupResource extends JsonResource
             'exclusions_count' => $this->when($this->owner_id === $request->user()->id, fn () => $this->exclusions()->count()),
             'my_assignment' => $myAssignment ? [
                 'recipient_id' => $myAssignment->receiver->id,
-                'recipient_name' => $myAssignment->receiver->name,
+                // In full, so there's no doubt who to shop for.
+                'recipient_name' => $myAssignment->receiver->full_name,
                 'unread_messages' => $myAssignment->unreadCountFor(viewerIsSanta: true),
             ] : null,
             'my_santa' => $mySantasAssignment ? [
@@ -57,22 +61,23 @@ class GroupResource extends JsonResource
             ] : null,
             // The same, for each kid or pet the viewer looks after in this group: who they drew,
             // and their two Santa chats (never who their Santa is).
-            'managed_assignments' => $this->is_drawn ? $this->managedAssignments($viewer) : [],
+            'managed_assignments' => $this->is_drawn ? $this->managedAssignments($viewer, $names) : [],
         ];
     }
 
     /**
+     * @param  array<int, string>  $names  Members' names as the group shows them.
      * @return array<int, array{
      *     profile: array{id: int, name: string, kind: string|null},
      *     recipient: array{id: int, name: string, unread_messages: int}|null,
      *     santa: array{unread_messages: int}|null,
      * }>
      */
-    private function managedAssignments(User $viewer): array
+    private function managedAssignments(User $viewer, array $names): array
     {
         $rows = $this->members
             ->filter(fn (User $member) => $viewer->manages($member))
-            ->map(fn (User $profile) => $this->managedAssignment($profile))
+            ->map(fn (User $profile) => $this->managedAssignment($profile, $names[$profile->id]))
             ->values()
             ->all();
 
@@ -90,16 +95,16 @@ class GroupResource extends JsonResource
      *     santa: array{unread_messages: int}|null,
      * }
      */
-    private function managedAssignment(User $profile): array
+    private function managedAssignment(User $profile, string $name): array
     {
         $theirAssignment = $this->assignmentFor($profile);
         $theirSantasAssignment = $this->assignmentOfSantaFor($profile);
 
         return [
-            'profile' => ['id' => $profile->id, 'name' => $profile->name, 'kind' => $profile->managed_kind],
+            'profile' => ['id' => $profile->id, 'name' => $name, 'kind' => $profile->managed_kind],
             'recipient' => $theirAssignment ? [
                 'id' => $theirAssignment->receiver->id,
-                'name' => $theirAssignment->receiver->name,
+                'name' => $theirAssignment->receiver->full_name,
                 'unread_messages' => $theirAssignment->unreadCountFor(viewerIsSanta: true),
             ] : null,
             'santa' => $theirSantasAssignment ? [

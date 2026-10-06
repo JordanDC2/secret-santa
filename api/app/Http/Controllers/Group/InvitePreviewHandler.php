@@ -27,7 +27,8 @@ class InvitePreviewHandler extends Controller
 
         return response()->json([
             'group_name' => $group->name,
-            'owner_name' => $group->owner->name,
+            // In full: an invite may come from someone the visitor barely knows.
+            'owner_name' => $group->owner->full_name,
             'members_count' => $group->members_count,
             'is_drawn' => $group->is_drawn,
             'already_member' => $viewer instanceof User && $group->members()->whereKey($viewer->id)->exists(),

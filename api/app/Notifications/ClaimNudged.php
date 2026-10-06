@@ -39,7 +39,7 @@ class ClaimNudged extends Notification implements OptionalEmail, ShouldQueue
 
         return (new ElfMailMessage)
             ->subject("🔔 Still getting {$this->itemName} for {$this->ownerName}?")
-            ->greeting('Hi '.ElfMailMessage::plain($notifiable->name).'!')
+            ->greeting('Hi '.ElfMailMessage::plain($notifiable->first_name).'!')
             ->line("{$who} is wondering if you're still getting **".ElfMailMessage::plain($this->itemName)."** for {$owner}."
                 .($this->claimedAt ? " You claimed it in {$this->claimedAt}." : ''))
             ->line("If you've bought it, mark it **bought** so everyone knows. If you've changed your mind, undo your claim so someone else can get it.")

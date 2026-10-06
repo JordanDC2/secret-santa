@@ -61,7 +61,7 @@ class WishlistTest extends TestCase
 
         $this->assertArrayNotHasKey('claim', $own->json('0'));
         $this->assertArrayNotHasKey('claim', $viaProfile->json('items.0'));
-        $this->assertStringNotContainsString($friend->name, $own->getContent().$viaProfile->getContent());
+        $this->assertStringNotContainsString($friend->full_name, $own->getContent().$viaProfile->getContent());
     }
 
     public function test_group_mate_sees_the_list_with_who_claimed_what(): void
@@ -74,8 +74,8 @@ class WishlistTest extends TestCase
 
         $this->getJson(route('users.wishlist', $owner))
             ->assertOk()
-            ->assertJsonPath('user.name', $owner->name)
-            ->assertJsonPath('items.0.claim.others.0.name', $cousin->name)
+            ->assertJsonPath('user.name', $owner->full_name)
+            ->assertJsonPath('items.0.claim.others.0.name', $cousin->full_name)
             ->assertJsonPath('items.0.claim.mine', 0)
             ->assertJsonPath('items.1.claim', null);
     }
@@ -93,7 +93,7 @@ class WishlistTest extends TestCase
             ->assertOk()
             ->assertJsonPath('my_recipients', [[
                 'id' => $cousin->id,
-                'name' => $cousin->name,
+                'name' => $cousin->full_name,
                 'santa_name' => null,
                 'group' => ['id' => $group->id, 'name' => $group->name, 'exchange_date' => null, 'budget' => null],
             ]]);
@@ -125,7 +125,7 @@ class WishlistTest extends TestCase
         // Someone who does share a group with the claimer still sees their name.
         $otherGroup->members()->attach($friend);
         $this->getJson(route('users.wishlist', $owner))
-            ->assertJsonPath('items.0.claim.others.0.name', $stranger->name);
+            ->assertJsonPath('items.0.claim.others.0.name', $stranger->full_name);
 
         $this->assertModelExists($item);
     }
