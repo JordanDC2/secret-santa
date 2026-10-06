@@ -16,6 +16,7 @@ import GroupList from "Components/Groups/GroupList";
 import { useGroupsQuery } from "Components/Groups/hooks";
 import PageTitle from "Components/Layout/PageTitle";
 import SectionCard from "Components/Common/SectionCard";
+import classes from "Components/Dashboard/DashboardPage.module.less";
 
 type IOpenForm = "create" | "join" | null;
 
@@ -49,7 +50,7 @@ export default function DashboardPage() {
 							Your groups
 						</Title>
 						{groupsQuery.isSuccess && !hasNoGroups && (
-							<Group gap="xs">
+							<Group gap="xs" className={classes.actions}>
 								<Button leftSection={<FontAwesomeIcon icon={faPlus} />} onClick={() => setOpenForm("create")}>
 									Create group
 								</Button>

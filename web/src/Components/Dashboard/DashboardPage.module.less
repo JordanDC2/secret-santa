@@ -1,0 +1,16 @@
+@import (reference) "../../Styles/breakpoints.less";
+
+/*
+ * Create group / Join group. Beside the heading on wider screens; on phones they get their
+ * own row and split it evenly, and if even that's too tight (a very narrow phone), each
+ * takes a full row, still the same width as the other.
+ */
+.actions {
+	@media @phone {
+		width: 100%;
+
+		> * {
+			flex: 1 1 9rem;
+		}
+	}
+}
