@@ -105,6 +105,7 @@ check "ivy never learns who asked" null "$(as ivy GET /groups/$gid/santa-chat/my
 check "ivy marks it read" 204 "$(as ivy POST /groups/$gid/santa-chat/my-santa/read | code)"
 check "owner sets exchange date and budget" 200 "$(as holly PATCH /groups/$gid "{\"exchange_date\":\"$(date -d '+2 months' +%F)\",\"budget_min\":30,\"budget_max\":50}" | code)"
 check "card shows the budget" '{"min":30,"max":50}' "$(as nick GET /groups/$gid | body | jq -c '.budget')"
+check "date/budget email waits to combine quick edits" 1 "$(db "select count(*) from jobs where payload like '%SendExchangeChangeEmail%' and available_at > strftime('%s', 'now') + 200")"
 check "reminders run" 0 "$(php artisan app:send-exchange-reminders >/dev/null 2>&1; echo $?)"
 check "reminders are scheduled" yes "$(php artisan schedule:list 2>/dev/null | grep -q 'app:send-exchange-reminders' && echo yes)"
 check "cards use first names" "Holly,Ivy,Nick" "$(as nick GET /groups/$gid | body | jq -r '[.members[].name] | sort | join(",")')"

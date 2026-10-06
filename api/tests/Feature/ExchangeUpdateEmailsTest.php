@@ -2,12 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Groups\NotifyMembersOfExchangeChange;
 use App\Actions\ManagedProfiles\CreateManagedProfile;
+use App\Jobs\SendExchangeChangeEmail;
 use App\Models\Group;
 use App\Models\User;
 use App\Notifications\ExchangeDetailsChanged;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Testing\Fakes\QueueFake;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -20,6 +24,9 @@ class ExchangeUpdateEmailsTest extends TestCase
     private User $holly;
 
     private User $nick;
+
+    /** Set by the tests that hold the emails back, to run them later. */
+    private QueueFake $queue;
 
     protected function setUp(): void
     {
@@ -100,5 +107,63 @@ class ExchangeUpdateEmailsTest extends TestCase
         Notification::assertNotSentTo($lily, ExchangeDetailsChanged::class);
         // Nick switched these off.
         Notification::assertNotSentTo($this->nick, ExchangeDetailsChanged::class);
+    }
+
+    public function test_quick_edits_become_one_email_against_the_original_values(): void
+    {
+        $this->queue = Queue::fake();
+        Sanctum::actingAs($this->holly);
+
+        $this->patchJson(route('groups.update', $this->group), ['exchange_date' => '2026-12-19'])->assertOk();
+        $this->patchJson(route('groups.update', $this->group), ['name' => 'Family Swap!'])->assertOk();
+        $this->patchJson(route('groups.update', $this->group), ['exchange_date' => '2026-12-20', 'budget_max' => 30])->assertOk();
+
+        // The rename didn't restart the wait; each date or budget change queued its own email.
+        Queue::assertPushed(SendExchangeChangeEmail::class, 2);
+        Queue::assertPushed(
+            SendExchangeChangeEmail::class,
+            fn (SendExchangeChangeEmail $job) => $job->delay instanceof \DateTimeInterface
+                && (int) round(now()->diffInMinutes($job->delay)) === NotifyMembersOfExchangeChange::WAIT_MINUTES,
+        );
+
+        $this->runQueuedEmails();
+
+        Notification::assertSentToTimes($this->nick, ExchangeDetailsChanged::class, 1);
+        Notification::assertSentTo($this->nick, ExchangeDetailsChanged::class, function (ExchangeDetailsChanged $notification) {
+            $text = implode(' ', $notification->toMail($this->nick)->introLines);
+
+            return str_contains($text, 'Exchange date: **Sunday, December 20, 2026** (was Sunday, December 13, 2026)')
+                && str_contains($text, 'Budget: **$30** (was $25)');
+        });
+    }
+
+    public function test_a_change_thats_undone_before_the_email_goes_sends_nothing(): void
+    {
+        $this->queue = Queue::fake();
+        Sanctum::actingAs($this->holly);
+
+        $this->patchJson(route('groups.update', $this->group), ['budget_max' => 40])->assertOk();
+        $this->patchJson(route('groups.update', $this->group), ['budget_max' => 25])->assertOk();
+        $this->runQueuedEmails();
+
+        Notification::assertNothingSent();
+
+        // The next change starts fresh, compared against what members last heard about.
+        $this->patchJson(route('groups.update', $this->group), ['budget_max' => 35])->assertOk();
+        $this->runQueuedEmails();
+
+        Notification::assertSentTo($this->nick, ExchangeDetailsChanged::class, fn (ExchangeDetailsChanged $notification) => str_contains(
+            implode(' ', $notification->toMail($this->nick)->introLines),
+            'Budget: **$35** (was $25)',
+        ));
+    }
+
+    /**
+     * Runs the queued emails as the queue would once their wait is over, oldest first.
+     */
+    private function runQueuedEmails(): void
+    {
+        $this->queue->pushed(SendExchangeChangeEmail::class)->each(fn (SendExchangeChangeEmail $job) => $job->handle());
+        $this->queue = Queue::fake();
     }
 }
