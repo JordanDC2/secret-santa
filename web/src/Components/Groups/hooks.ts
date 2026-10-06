@@ -245,3 +245,14 @@ export function useSetInDrawMutation(groupId: number) {
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: GROUPS_QUERY_KEY }),
 	});
 }
+
+/** Owner-only, before the draw: everyone in the draw, or no one. */
+export function useSetEveryoneInDrawMutation(groupId: number) {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (inDraw: boolean) =>
+			apiClient.patch<Record<string, unknown>>(`/groups/${groupId}/in-draw`, { in_draw: inDraw }),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: GROUPS_QUERY_KEY }),
+	});
+}

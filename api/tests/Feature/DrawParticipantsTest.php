@@ -47,6 +47,24 @@ class DrawParticipantsTest extends TestCase
             ->assertJsonPath('members.1.in_draw', true);
     }
 
+    public function test_the_owner_can_switch_everyone_off_or_on_at_once(): void
+    {
+        Sanctum::actingAs($this->holly);
+
+        $this->patchJson(route('groups.in-draw', $this->group), ['in_draw' => false])
+            ->assertOk()
+            ->assertJsonPath('members.0.in_draw', false)
+            ->assertJsonPath('members.1.in_draw', false);
+        $this->patchJson(route('groups.in-draw', $this->group), ['in_draw' => true])->assertJsonPath('members.1.in_draw', true);
+
+        Sanctum::actingAs($this->nick);
+        $this->patchJson(route('groups.in-draw', $this->group), ['in_draw' => false])->assertForbidden();
+
+        $this->group->update(['drawn_at' => now()]);
+        Sanctum::actingAs($this->holly);
+        $this->patchJson(route('groups.in-draw', $this->group), ['in_draw' => false])->assertJsonValidationErrors('in_draw');
+    }
+
     public function test_only_the_owner_only_members_only_before_the_draw(): void
     {
         Sanctum::actingAs($this->nick);
