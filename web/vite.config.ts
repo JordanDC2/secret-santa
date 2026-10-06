@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
 
@@ -42,8 +42,26 @@ function versionStamp(): Plugin {
 	};
 }
 
+/**
+ * Fills %SITE_URL% in index.html with the site's address (FRONTEND_URL from the API's .env), so
+ * the link-preview tags point at absolute URLs: chat apps ignore a relative preview image.
+ */
+function siteUrl(): Plugin {
+	let url = "";
+
+	return {
+		name: "site-url",
+		configResolved(config) {
+			url = (loadEnv(config.mode, config.envDir || process.cwd(), "").FRONTEND_URL ?? "").replace(/\/$/, "");
+		},
+		transformIndexHtml(html) {
+			return html.split("%SITE_URL%").join(url);
+		},
+	};
+}
+
 export default defineConfig({
-	plugins: [react(), tsconfigPaths(), versionStamp()],
+	plugins: [react(), tsconfigPaths(), versionStamp(), siteUrl()],
 	// VITE_* values (e.g. the Reverb app key) come from the API's .env, so there's one source of truth.
 	envDir: "../api",
 	server: {
