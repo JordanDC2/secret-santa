@@ -94,34 +94,40 @@
 }
 
 /*
- * Focused inputs get a green border: red is kept for errors, so a field you're typing in
- * never looks like it has one. Covers every Mantine input via its documented static class;
- * password fields put the class on the bordered wrapper, hence :focus-within. Fields with a
- * validation error keep their red border.
- */
-.mantine-Input-input:not([data-error]):focus,
-.mantine-Input-input:not([data-error]):focus-within {
-	border-color: var(--mantine-color-green-6);
-}
-
-/*
- * A soft green glow, drawn as a faded layer just behind the field inside
- * Mantine's documented input wrapper, so it peeks out without changing the field's size.
- * `isolation` keeps the layer behind the input but in front of the card underneath.
+ * Glowing fields (after lightswind's glowing cards): a thin ring over the field's border
+ * lights up where the mouse is near, festive gold at the hotspot fading into evergreen, so
+ * nearby fields glow a little too. While you're typing the whole ring is lit, green to gold.
+ * Fields with an error keep their plain red border, and disabled fields never glow.
+ * --glow-x / --glow-y are the mouse position relative to each field, set by
+ * Styles/inputGlow.ts; they start far away, so nothing shows until the mouse moves.
+ * Drawn on Mantine's documented input wrapper (the same size as the field).
  */
 .mantine-Input-wrapper {
-	isolation: isolate;
+	--festive-glow-gold: var(--festive-gold-deep);
+	--festive-glow-green: var(--mantine-color-green-5);
 }
 
-.mantine-Input-wrapper:focus-within:not(:has([data-error]))::before {
+.mantine-Input-wrapper:not(:has([data-error], :disabled))::after {
 	content: "";
 	position: absolute;
-	inset: -3px;
-	z-index: -1;
-	border-radius: calc(var(--mantine-radius-sm) + 3px);
-	background: var(--mantine-color-green-6);
-	opacity: 0.25;
+	inset: 0;
+	border-radius: var(--input-radius, var(--mantine-radius-sm));
+	padding: 1.5px;
 	pointer-events: none;
+	background: radial-gradient(
+		circle 110px at var(--glow-x, -999px) var(--glow-y, -999px),
+		var(--festive-glow-gold) 0%,
+		var(--festive-glow-green) 45%,
+		transparent 100%
+	);
+	/* Only the padding ring shows: the content box is cut out of the gradient. */
+	mask:
+		linear-gradient(#000 0 0) content-box exclude,
+		linear-gradient(#000 0 0);
+}
+
+.mantine-Input-wrapper:focus-within:not(:has([data-error], :disabled))::after {
+	background: linear-gradient(135deg, var(--festive-glow-green) 0%, var(--festive-glow-gold) 100%);
 }
 
 html,

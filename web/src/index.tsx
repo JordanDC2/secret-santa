@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 import App from "Components/App";
 import { listenForInstallPrompt } from "Components/AppInstall/installPrompt";
 import { configureLiveUpdates } from "Data/Api/LiveUpdates";
+import { trackPointerForInputGlow } from "Styles/inputGlow";
 
 const root = document.getElementById("app");
 
@@ -16,5 +17,6 @@ if (!root) {
 configureLiveUpdates();
 // Before rendering: Android's "can be installed" event fires early and only once.
 listenForInstallPrompt();
+trackPointerForInputGlow();
 
 createRoot(root).render(<App />);
