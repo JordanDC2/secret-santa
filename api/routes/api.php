@@ -12,6 +12,7 @@ use App\Http\Controllers\Auth\ResetPasswordHandler;
 use App\Http\Controllers\Group\DrawDetailsController;
 use App\Http\Controllers\Group\DrawHandler;
 use App\Http\Controllers\Group\ExclusionController;
+use App\Http\Controllers\Group\InvitePreviewHandler;
 use App\Http\Controllers\Group\JoinHandler;
 use App\Http\Controllers\Group\LeaveHandler;
 use App\Http\Controllers\Group\StartNewDrawHandler;
@@ -46,6 +47,9 @@ Route::prefix('auth')->name('auth.')->group(function () {
         ->middleware('auth:sanctum')
         ->name('logout');
 });
+
+// Public: an invite link shows which group it's for before the visitor signs in.
+Route::get('invites/{code}', InvitePreviewHandler::class)->middleware('throttle:join')->name('invites.show');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {

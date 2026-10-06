@@ -12,6 +12,7 @@ import LoginPage from "Components/Auth/LoginPage";
 import RegisterPage from "Components/Auth/RegisterPage";
 import ResetPasswordPage from "Components/Auth/ResetPasswordPage";
 import DashboardPage from "Components/Dashboard/DashboardPage";
+import JoinInvitePage from "Components/Invites/JoinInvitePage";
 import AuthenticatedLayout from "Components/Layout/AuthenticatedLayout";
 import MemberWishlistPage from "Components/Wishlist/MemberWishlistPage";
 import MyWishlistPage from "Components/Wishlist/MyWishlistPage";
@@ -42,6 +43,8 @@ function AppRoutes() {
 				element={status === "authenticated" ? <Navigate to="/" /> : <ForgotPasswordPage />}
 			/>
 			<Route path="/reset-password" element={<ResetPasswordPage />} />
+			{/* Signed in or not: an invite link explains itself, then joins once they're in. */}
+			<Route path="/join/:code" element={<JoinInvitePage />} />
 			<Route element={<AuthenticatedLayout />}>
 				<Route path="/" element={<DashboardPage />} />
 				<Route path="/wishlist" element={<MyWishlistPage />} />

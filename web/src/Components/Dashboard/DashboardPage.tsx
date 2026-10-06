@@ -1,5 +1,8 @@
-import { Card, Container, SimpleGrid, Stack, Title } from "@mantine/core";
+import { useState } from "react";
+import { Alert, Card, Container, SimpleGrid, Stack, Title } from "@mantine/core";
+import { useLocation } from "react-router-dom";
 import InstallAppTip from "Components/AppInstall/InstallAppTip";
+import type { IInviteNotice } from "Components/Invites/types";
 import ChristmasTreeIcon from "Components/Common/FestiveIcons/ChristmasTreeIcon";
 import HollyIcon from "Components/Common/FestiveIcons/HollyIcon";
 import WreathIcon from "Components/Common/FestiveIcons/WreathIcon";
@@ -13,11 +16,21 @@ import classes from "Components/Dashboard/DashboardPage.module.less";
 
 export default function DashboardPage() {
 	const { user } = useAuth();
+	const location = useLocation();
+	// "You joined …" after following an invite link, until dismissed.
+	const [inviteNotice, setInviteNotice] = useState(
+		() => (location.state as IInviteNotice | null)?.inviteNotice ?? null,
+	);
 
 	return (
 		<Container my={40}>
 			<Stack gap="xl">
 				<PageTitle icon={<ChristmasTreeIcon />}>Welcome{user ? `, ${user.name}` : ""}!</PageTitle>
+				{inviteNotice && (
+					<Alert color="green" withCloseButton closeButtonLabel="Dismiss" onClose={() => setInviteNotice(null)}>
+						{inviteNotice}
+					</Alert>
+				)}
 				<InstallAppTip />
 
 				<Stack>

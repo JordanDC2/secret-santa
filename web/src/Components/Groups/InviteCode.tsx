@@ -2,12 +2,15 @@ import { ActionIcon, Code, CopyButton, Group, Text as MantineText, Tooltip } fro
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCopy } from "@fortawesome/free-regular-svg-icons";
 import { faCheck } from "@fortawesome/free-solid-svg-icons";
+import ShareInviteButton from "Components/Invites/ShareInviteButton";
 
 type IInviteCodeProps = {
 	code: string;
+	groupName: string;
 };
 
-export default function InviteCode({ code }: IInviteCodeProps) {
+/** The group's join code, with two icon buttons: copy the code, and copy (or share) the invite link. */
+export default function InviteCode({ code, groupName }: IInviteCodeProps) {
 	return (
 		<Group gap={6}>
 			<MantineText size="sm" c="dimmed">
@@ -29,6 +32,7 @@ export default function InviteCode({ code }: IInviteCodeProps) {
 					</Tooltip>
 				)}
 			</CopyButton>
+			<ShareInviteButton groupName={groupName} joinCode={code} />
 		</Group>
 	);
 }

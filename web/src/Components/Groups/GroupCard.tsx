@@ -167,7 +167,7 @@ export default function GroupCard({ group }: IGroupCardProps) {
 				<MantineText size="sm" c="dimmed">
 					{group.membersCount} member{group.membersCount === 1 ? "" : "s"}
 				</MantineText>
-				<InviteCode code={group.joinCode} />
+				<InviteCode code={group.joinCode} groupName={group.name} />
 			</Group>
 			{/* Date & budget first, then the note, each on its own row; owners get "+ Add" chips for either that's missing. */}
 			{group.isOwner && !group.exchangeDate && !group.budget ? (
