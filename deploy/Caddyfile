@@ -38,6 +38,9 @@ YOUR_HOSTNAME {
 		# server on each load, so a refresh always picks up a new deploy.
 		@appShell not path /assets/*
 		header @appShell Cache-Control "no-cache"
+		# Caddy doesn't know this extension; phones read the manifest to install the app.
+		@manifest path /manifest.webmanifest
+		header @manifest Content-Type "application/manifest+json"
 		try_files {path} /index.html
 		file_server
 	}
