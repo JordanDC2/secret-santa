@@ -31,6 +31,8 @@ type IWishlistItemFormModalProps = {
 	item: IWishlistItem | null;
 	/** Set when this is a gift idea for someone else's list: no star rating, and saved as a suggestion. */
 	suggestionFor?: IWishlistPerson;
+	/** Adding to a kid's or pet's list you manage, rather than your own. */
+	managedFor?: IWishlistPerson;
 	onClose: () => void;
 };
 
@@ -56,16 +58,26 @@ function initialValues(item: IWishlistItem | null): IFormValues {
 	};
 }
 
-function modalTitle(item: IWishlistItem | null, suggestionFor: IWishlistPerson | undefined) {
+function modalTitle(item: IWishlistItem | null, suggestionFor?: IWishlistPerson, managedFor?: IWishlistPerson) {
 	if (suggestionFor) {
 		return item ? "Edit gift idea" : `Suggest a gift for ${suggestionFor.name}`;
 	}
 
-	return item ? "Edit item" : "Add to your wishlist";
+	if (item) {
+		return "Edit item";
+	}
+
+	return managedFor ? `Add to ${managedFor.name}'s wishlist` : "Add to your wishlist";
 }
 
-export default function WishlistItemFormModal({ opened, item, suggestionFor, onClose }: IWishlistItemFormModalProps) {
-	const saveOwnItem = useSaveWishlistItemMutation();
+export default function WishlistItemFormModal({
+	opened,
+	item,
+	suggestionFor,
+	managedFor,
+	onClose,
+}: IWishlistItemFormModalProps) {
+	const saveOwnItem = useSaveWishlistItemMutation(managedFor?.id ?? null);
 	const saveSuggestion = useSaveSuggestionMutation(suggestionFor?.id ?? 0);
 	const saveItem = suggestionFor ? saveSuggestion : saveOwnItem;
 	const form = useForm<IFormValues>({ initialValues: initialValues(item) });
@@ -104,7 +116,7 @@ export default function WishlistItemFormModal({ opened, item, suggestionFor, onC
 	}
 
 	return (
-		<Modal opened={opened} onClose={onClose} title={modalTitle(item, suggestionFor)} centered>
+		<Modal opened={opened} onClose={onClose} title={modalTitle(item, suggestionFor, managedFor)} centered>
 			<form onSubmit={form.onSubmit(handleSubmit)}>
 				<Stack>
 					{suggestionFor && (

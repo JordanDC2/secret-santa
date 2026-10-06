@@ -8,7 +8,10 @@ import type {
 } from "Components/Wishlist/types";
 import { apiClient } from "Data/Api/Client";
 
+// Your own list and the kids' and pets' lists you keep, all under one prefix so a change to
+// any of them refreshes whichever is showing.
 const MY_WISHLIST_QUERY_KEY = ["wishlist", "mine"];
+export const ownWishlistQueryKey = (ownerId: number | null) => [...MY_WISHLIST_QUERY_KEY, ownerId ?? "self"];
 export const memberWishlistQueryKey = (userId: number) => ["wishlist", "member", userId];
 
 function mapItem(raw: Record<string, unknown>): IWishlistItem {
@@ -45,24 +48,28 @@ function mapItem(raw: Record<string, unknown>): IWishlistItem {
 	};
 }
 
-export function useMyWishlistQuery() {
+/** Your own list, or (given an id) a kid's or pet's list you manage, which includes claims. */
+export function useMyWishlistQuery(ownerId: number | null = null) {
 	return useQuery({
-		queryKey: MY_WISHLIST_QUERY_KEY,
+		queryKey: ownWishlistQueryKey(ownerId),
 		queryFn: async () => {
-			const items = await apiClient.get<Record<string, unknown>[]>("/wishlist/items");
+			const items = await apiClient.get<Record<string, unknown>[]>(
+				ownerId ? `/wishlist/items?owner=${ownerId}` : "/wishlist/items",
+			);
 
 			return items.map(mapItem);
 		},
 	});
 }
 
-export function useSaveWishlistItemMutation() {
+/** Adds to or edits your own list, or (given an id) a kid's or pet's list you manage. */
+export function useSaveWishlistItemMutation(ownerId: number | null = null) {
 	const queryClient = useQueryClient();
 
 	return useMutation({
 		mutationFn: async ({ id, details }: { id?: number; details: IWishlistItemDetails }) => {
 			const { imageUrl, ...rest } = details;
-			const body = { ...rest, image_url: imageUrl };
+			const body = { ...rest, image_url: imageUrl, ...(ownerId && !id && { owner_id: ownerId }) };
 			const item = id
 				? await apiClient.patch<Record<string, unknown>>(`/wishlist/items/${id}`, body)
 				: await apiClient.post<Record<string, unknown>>("/wishlist/items", body);

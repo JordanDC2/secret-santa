@@ -1,9 +1,15 @@
 import { useState } from "react";
 import { Accordion, Button, Container, Group, Stack, Text as MantineText } from "@mantine/core";
+import { useSearchParams } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPenToSquare, faTrashCan } from "@fortawesome/free-regular-svg-icons";
 import { faCheck, faPlus, faRotateLeft } from "@fortawesome/free-solid-svg-icons";
 import WishListIcon from "Components/Common/FestiveIcons/WishListIcon";
+import { useManagedProfilesQuery } from "Components/ManagedProfiles/hooks";
+import WishlistOwnerSelect from "Components/ManagedProfiles/WishlistOwnerSelect";
+import ClaimStatus from "Components/Wishlist/ClaimStatus";
+import WishlistLiveUpdates from "Components/Wishlist/WishlistLiveUpdates";
+import { liveUpdatesEnabled } from "Data/Api/LiveUpdates";
 import { useDeleteWishlistItemMutation, useMyWishlistQuery, useSetReceivedMutation } from "Components/Wishlist/hooks";
 import type { IWishlistItem } from "Components/Wishlist/types";
 import WishlistItemRow from "Components/Wishlist/WishlistItemRow";
@@ -19,8 +25,15 @@ function receivedDate(isoDate: string | null | undefined) {
 
 type IModalState = { opened: boolean; item: IWishlistItem | null; key: number };
 
+/**
+ * Your own wishlist, or (with ?for=ID) a kid's or pet's you look after. Theirs shows what's been
+ * claimed: they're the one being surprised, and you shop for them too.
+ */
 export default function MyWishlistPage() {
-	const wishlistQuery = useMyWishlistQuery();
+	const [searchParams, setSearchParams] = useSearchParams();
+	const profiles = useManagedProfilesQuery().data ?? [];
+	const profile = profiles.find((candidate) => candidate.id === Number(searchParams.get("for"))) ?? null;
+	const wishlistQuery = useMyWishlistQuery(profile?.id ?? null);
 	const deleteItem = useDeleteWishlistItemMutation();
 	const [modal, setModal] = useState<IModalState>({ opened: false, item: null, key: 0 });
 	const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(null);
@@ -36,15 +49,25 @@ export default function MyWishlistPage() {
 
 	return (
 		<Container my={40}>
+			{profile && liveUpdatesEnabled() && <WishlistLiveUpdates ownerId={profile.id} />}
 			<Stack gap="lg">
+				{profiles.length > 0 && (
+					<WishlistOwnerSelect
+						profiles={profiles}
+						value={profile?.id ?? null}
+						onChange={(profileId) => setSearchParams(profileId === null ? {} : { for: String(profileId) })}
+					/>
+				)}
 				<Group justify="space-between">
-					<PageTitle icon={<WishListIcon />}>My wishlist</PageTitle>
+					<PageTitle icon={<WishListIcon />}>{profile ? `${profile.name}'s wishlist` : "My wishlist"}</PageTitle>
 					<Button leftSection={<FontAwesomeIcon icon={faPlus} />} onClick={() => openModal(null)}>
 						Add item
 					</Button>
 				</Group>
 				<MantineText c="dimmed">
-					Everyone in your groups can see this list. Don&apos;t worry, you&apos;ll never see what&apos;s been claimed.
+					{profile
+						? `Everyone in ${profile.name}'s groups can see this list. Since you look after it, you can see what's been claimed.`
+						: "Everyone in your groups can see this list. Don't worry, you'll never see what's been claimed."}
 				</MantineText>
 
 				{wishlistQuery.isPending && <MantineText c="dimmed">Loading your wishlist...</MantineText>}
@@ -53,7 +76,9 @@ export default function MyWishlistPage() {
 
 				{wishlistQuery.isSuccess && items.length === 0 && (
 					<MantineText c="dimmed">
-						Your list is empty. Add a few things so your Secret Santa isn&apos;t guessing!
+						{profile
+							? `${profile.name}'s list is empty. Add a few things so their Secret Santa isn't guessing!`
+							: "Your list is empty. Add a few things so your Secret Santa isn't guessing!"}
 					</MantineText>
 				)}
 
@@ -65,10 +90,13 @@ export default function MyWishlistPage() {
 							<WishlistItemRow
 								key={item.id}
 								item={item}
+								status={profile ? <ClaimStatus item={item} /> : undefined}
 								actions={
 									confirmingDeleteId === item.id ? (
 										<>
-											<MantineText size="sm">Remove this from your list?</MantineText>
+											<MantineText size="sm">
+												Remove this from {profile ? `${profile.name}'s` : "your"} list?
+											</MantineText>
 											<Button
 												size="xs"
 												color="red"
@@ -121,7 +149,9 @@ export default function MyWishlistPage() {
 					<Accordion variant="contained" radius="md" className={classes.list}>
 						<Accordion.Item value="received">
 							<Accordion.Control>
-								<MantineText fw={700}>Gifts you&apos;ve received ({receivedItems.length})</MantineText>
+								<MantineText fw={700}>
+									{profile ? `Gifts ${profile.name} has received` : "Gifts you've received"} ({receivedItems.length})
+								</MantineText>
 							</Accordion.Control>
 							<Accordion.Panel>
 								<Stack gap="xs">
@@ -158,6 +188,7 @@ export default function MyWishlistPage() {
 				key={modal.key}
 				opened={modal.opened}
 				item={modal.item}
+				managedFor={profile ? { id: profile.id, name: profile.name } : undefined}
 				onClose={() => setModal((current) => ({ ...current, opened: false }))}
 			/>
 		</Container>

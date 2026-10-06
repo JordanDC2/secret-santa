@@ -19,13 +19,17 @@ use Laravel\Sanctum\HasApiTokens;
 
 /**
  * @property array<string, bool>|null $email_preferences Kinds of optional email turned off (missing means on).
+ * @property string|null $managed_kind "child" or "pet" for a managed profile (no login of its own).
  */
-#[Fillable(['name', 'email', 'password', 'email_preferences'])]
+#[Fillable(['name', 'email', 'password', 'email_preferences', 'managed_kind'])]
 #[Hidden(['password', 'remember_token', 'email_preferences'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
+
+    /** @var array<int, int>|null See managedProfileIds(). */
+    private ?array $managedProfileIdsCache = null;
 
     /**
      * Get the attributes that should be cast.
@@ -79,7 +83,72 @@ class User extends Authenticatable
 
     public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
     {
-        $this->notify(new ResetPasswordLink($token));
+        // A managed profile has no login, so there's nothing to reset.
+        if (! $this->isManagedProfile()) {
+            $this->notify(new ResetPasswordLink($token));
+        }
+    }
+
+    /**
+     * Where this user's emails go. A managed profile's placeholder address can't receive mail,
+     * so its emails go to the people who manage it.
+     *
+     * @return string|array<int, string>
+     */
+    public function routeNotificationForMail(): string|array
+    {
+        return $this->isManagedProfile() ? $this->managers()->pluck('email')->all() : $this->email;
+    }
+
+    /**
+     * A kid or pet without a login, whose wishlist (and later, groups) someone else looks after.
+     */
+    public function isManagedProfile(): bool
+    {
+        return $this->managed_kind !== null;
+    }
+
+    /**
+     * The people looking after this managed profile.
+     *
+     * @return BelongsToMany<User, $this>
+     */
+    public function managers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'profile_managers', 'profile_id', 'manager_id')->withTimestamps();
+    }
+
+    /**
+     * The kids and pets this user looks after.
+     *
+     * @return BelongsToMany<User, $this>
+     */
+    public function managedProfiles(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'profile_managers', 'manager_id', 'profile_id')->withTimestamps();
+    }
+
+    public function manages(User|int $profile): bool
+    {
+        return in_array($profile instanceof User ? $profile->id : $profile, $this->managedProfileIds(), true);
+    }
+
+    /**
+     * Whether this user looks after the given list: their own, or a profile they manage.
+     */
+    public function actsFor(User|int $owner): bool
+    {
+        return ($owner instanceof User ? $owner->id : $owner) === $this->id || $this->manages($owner);
+    }
+
+    /**
+     * Looked up once per request: policies and resources ask for every item on a list.
+     *
+     * @return array<int, int>
+     */
+    public function managedProfileIds(): array
+    {
+        return $this->managedProfileIdsCache ??= $this->managedProfiles()->pluck('users.id')->all();
     }
 
     /**

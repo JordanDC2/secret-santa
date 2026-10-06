@@ -26,6 +26,8 @@ class WishlistItemRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            // Adding to a kid's or pet's list you manage; the controller checks it's yours.
+            'owner_id' => ['sometimes', 'integer'],
             // Only web links, so a crafted "javascript:" URL can't run when someone clicks it.
             'url' => ['nullable', 'url:http,https', 'max:2048'],
             'image_url' => ['nullable', 'url:http,https', 'max:2048'],

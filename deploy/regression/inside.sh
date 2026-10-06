@@ -104,6 +104,11 @@ check "owner sets exchange date and budget" 200 "$(as holly PATCH /groups/$gid "
 check "card shows the budget" '{"min":30,"max":50}' "$(as nick GET /groups/$gid | body | jq -c '.budget')"
 check "reminders run" 0 "$(php artisan app:send-exchange-reminders >/dev/null 2>&1; echo $?)"
 check "reminders are scheduled" yes "$(php artisan schedule:list 2>/dev/null | grep -q 'app:send-exchange-reminders' && echo yes)"
+lily=$(as holly POST /account/profiles '{"name":"Lily","kind":"child"}' | body | jq -r .id)
+check "holly adds a kid profile" true "$( [ "$lily" != null ] && echo true )"
+check "holly adds to lily's list" 201 "$(as holly POST /wishlist/items "{\"name\":\"Kite\",\"rating\":4,\"owner_id\":$lily}" | code)"
+check "lily's list shows" Kite "$(as holly GET "/wishlist/items?owner=$lily" | body | jq -r '.[0].name')"
+check "others can't see lily's list as hers" 403 "$(as nick GET "/wishlist/items?owner=$lily" | code)"
 check "deploy announcement runs" 0 "$(php artisan app:announce-deploy test-version >/dev/null 2>&1; echo $?)"
 echo "--- queued mail jobs: $(db 'select count(*) from jobs')"
 php artisan queue:work --once --queue=default --stop-when-empty -q >/dev/null 2>&1 || true

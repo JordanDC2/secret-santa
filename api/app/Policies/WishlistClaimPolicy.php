@@ -19,6 +19,6 @@ class WishlistClaimPolicy
             && $item->received_at === null
             && $user->id !== $claim->user_id
             && $user->id !== $item->user_id
-            && $user->sharesGroupWith($item->owner);
+            && ($user->sharesGroupWith($item->owner) || $user->manages($item->user_id));
     }
 }

@@ -21,14 +21,15 @@ class WishlistItemPolicy
     }
 
     /**
-     * Owners manage their own items. Suggestions are the reverse: anyone who can see the
-     * list may edit or remove them, except the owner, who must never know they exist.
+     * Owners (and whoever manages a kid's or pet's list) keep their own items. Suggestions are
+     * the reverse: anyone who can see the list may edit or remove them, except the owner, who
+     * must never know they exist.
      */
     public function update(User $user, WishlistItem $item): bool
     {
         return $item->is_suggestion
-            ? $user->id !== $item->user_id && $user->sharesGroupWith($item->owner)
-            : $user->id === $item->user_id;
+            ? $user->id !== $item->user_id && ($user->sharesGroupWith($item->owner) || $user->manages($item->user_id))
+            : $user->actsFor($item->user_id);
     }
 
     public function delete(User $user, WishlistItem $item): bool
@@ -42,16 +43,16 @@ class WishlistItemPolicy
      */
     public function markReceived(User $user, WishlistItem $item): bool
     {
-        return $user->id === $item->user_id && ! $item->is_suggestion;
+        return $user->actsFor($item->user_id) && ! $item->is_suggestion;
     }
 
     /**
-     * Anyone sharing a group with the owner can claim, except the owner, who must
-     * never learn what's been claimed.
+     * Anyone sharing a group with the owner can claim, except the owner, who must never
+     * learn what's been claimed. A kid's or pet's managers can too: they shop for them.
      */
     public function claim(User $user, WishlistItem $item): bool
     {
-        return $user->id !== $item->user_id && $user->sharesGroupWith($item->owner);
+        return $user->id !== $item->user_id && ($user->sharesGroupWith($item->owner) || $user->manages($item->user_id));
     }
 
     /**

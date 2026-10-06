@@ -32,8 +32,9 @@ class WishlistItemResource extends JsonResource
             // Suggestions have no rating: only the owner knows how much they want something.
             'rating' => $this->is_suggestion ? null : $this->rating,
             'quantity' => $this->quantity,
-            // "Got it" date, only for the owner: everyone else never sees received items.
-            'received_at' => $this->when($viewer->id === $this->user_id, fn () => $this->received_at?->toIso8601String()),
+            // "Got it" date, only for the owner (or a kid's or pet's managers): everyone else
+            // never sees received items.
+            'received_at' => $this->when($viewer->actsFor($this->user_id), fn () => $this->received_at?->toIso8601String()),
             // The owner never receives claim info, not even a "claimed" flag, so the
             // surprise can't leak through the browser's network tab.
             'claim' => $this->when($viewer->id !== $this->user_id, fn () => $this->claimSummary($viewer->id)),
