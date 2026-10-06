@@ -20,11 +20,12 @@ class AddExclusion
             ]);
         }
 
-        $memberIds = $group->members()->pluck('users.id')->all();
+        // Only people in the draw: an exclusion with someone sitting it out would do nothing.
+        $memberIds = $group->drawMembers()->pluck('users.id')->all();
 
         if (! in_array($giverId, $memberIds, true) || ! in_array($receiverId, $memberIds, true)) {
             throw ValidationException::withMessages([
-                'giver_id' => ['Both people must be members of this group.'],
+                'giver_id' => ['Both people need to be in the draw.'],
             ]);
         }
 

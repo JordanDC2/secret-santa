@@ -48,6 +48,14 @@ class GroupPolicy
     }
 
     /**
+     * Only the owner decides who's in the draw.
+     */
+    public function chooseDrawMembers(User $user, Group $group): bool
+    {
+        return $user->id === $group->owner_id;
+    }
+
+    /**
      * Only the owner can check the draw or see who drew whom.
      */
     public function viewDraw(User $user, Group $group): bool

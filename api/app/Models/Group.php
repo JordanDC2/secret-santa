@@ -71,7 +71,17 @@ class Group extends Model
      */
     public function members(): BelongsToMany
     {
-        return $this->belongsToMany(User::class)->withTimestamps();
+        return $this->belongsToMany(User::class)->withPivot('in_draw')->withTimestamps();
+    }
+
+    /**
+     * The members who are drawn: everyone, unless the owner let some sit this draw out.
+     *
+     * @return BelongsToMany<User, $this>
+     */
+    public function drawMembers(): BelongsToMany
+    {
+        return $this->members()->wherePivot('in_draw', true);
     }
 
     /**

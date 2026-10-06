@@ -32,6 +32,8 @@ export type IGroupMember = {
 	kind: "child" | "pet" | null;
 	/** A kid or pet you look after. */
 	managedByMe: boolean;
+	/** False when the owner has them sitting this draw out (they stay in the group). */
+	inDraw: boolean;
 };
 
 /** For a parent: who their kid or pet drew, and unread messages in the kid's two Santa chats. */

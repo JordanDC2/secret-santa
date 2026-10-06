@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Badge, Card, Group, Stack, Text as MantineText } from "@mantine/core";
 import { faChildren } from "@fortawesome/free-solid-svg-icons";
+import { useAuth } from "Components/Auth/AuthContext";
 import type { IGroup } from "Components/Groups/types";
 import AssignmentReveal from "Components/Groups/AssignmentReveal";
 import DeleteGroupControl from "Components/Groups/DeleteGroupControl";
 import DrawDetailsModal from "Components/Groups/DrawDetailsModal";
+import DrawMembersModal from "Components/Groups/DrawMembersModal";
 import DrawNamesControl from "Components/Groups/DrawNamesControl";
 import ExchangeDetails from "Components/Groups/ExchangeDetails";
 import ExchangeDetailsModal from "Components/Groups/ExchangeDetailsModal";
@@ -51,9 +53,21 @@ type IGroupCardProps = {
 };
 
 /** A one-line status for members, shown in the footer row beside Leave group. */
-function statusMessage(group: IGroup): string | null {
+function statusMessage(group: IGroup, myId: number | undefined): string | null {
+	const sittingOut = group.members.find((member) => member.id === myId)?.inDraw === false;
+
 	if (!group.isDrawn) {
-		return group.isOwner ? null : "Waiting for the group owner to draw names.";
+		if (group.isOwner) {
+			return null;
+		}
+
+		return sittingOut
+			? "Waiting for the group owner to draw names. You're sitting this draw out."
+			: "Waiting for the group owner to draw names.";
+	}
+
+	if (sittingOut) {
+		return "You're sitting this draw out.";
 	}
 
 	return group.myAssignment ? null : "Names have already been drawn for this group.";
@@ -67,6 +81,8 @@ export default function GroupCard({ group }: IGroupCardProps) {
 	const [openAction, setOpenAction] = useState<IConfirmedAction | null>(null);
 	const [exclusionsOpen, setExclusionsOpen] = useState(false);
 	const [drawDetailsOpen, setDrawDetailsOpen] = useState(false);
+	const [drawMembersOpen, setDrawMembersOpen] = useState(false);
+	const { user } = useAuth();
 	const [editingNote, setEditingNote] = useState(false);
 	// A fresh key each time it opens, so the form starts from the group's current details.
 	const [exchangeModal, setExchangeModal] = useState({ opened: false, key: 0 });
@@ -125,6 +141,8 @@ export default function GroupCard({ group }: IGroupCardProps) {
 	function onMenuAction(action: IGroupMenuAction) {
 		if (action === "exchange") {
 			openExchangeModal();
+		} else if (action === "drawMembers") {
+			setDrawMembersOpen(true);
 		} else if (action === "exclusions") {
 			setExclusionsOpen(true);
 		} else if (action === "drawDetails") {
@@ -158,7 +176,8 @@ export default function GroupCard({ group }: IGroupCardProps) {
 		setChat((current) => ({ ...current, opened: false }));
 	}
 
-	const message = statusMessage(group);
+	const message = statusMessage(group, user?.id);
+	const inDrawCount = group.members.filter((member) => member.inDraw).length;
 	const exchangeOver = group.exchangeDate !== null && daysUntil(group.exchangeDate) < 0;
 	const exchangeOverNotice =
 		exchangeOver && group.exchangeDate !== null && (group.isDrawn || group.isOwner) ? (
@@ -192,6 +211,7 @@ export default function GroupCard({ group }: IGroupCardProps) {
 			<Group gap="md" mt={4}>
 				<MantineText size="sm" c="dimmed">
 					{group.membersCount} member{group.membersCount === 1 ? "" : "s"}
+					{inDrawCount < group.members.length && ` · ${inDrawCount} in the draw`}
 				</MantineText>
 				<InviteCode code={group.joinCode} groupName={group.name} />
 			</Group>
@@ -225,6 +245,13 @@ export default function GroupCard({ group }: IGroupCardProps) {
 				<Card.Section inheritPadding py="md" mt="md" withBorder>
 					<Stack gap="md">
 						{exchangeOverNotice}
+
+						{/* E.g. "You're sitting this draw out", above your kids' and pets' button. */}
+						{message && (
+							<MantineText size="sm" c="dimmed">
+								{message}
+							</MantineText>
+						)}
 
 						{/* Compact buttons side by side (stacked, all the same width, on phones); a revealed
 						    assignment takes its own full-width row. */}
@@ -290,6 +317,7 @@ export default function GroupCard({ group }: IGroupCardProps) {
 			{hasManagedProfiles && !group.isDrawn && (
 				<GroupKidsModal group={group} opened={kidsOpen} onClose={() => setKidsOpen(false)} />
 			)}
+			{canDraw && <DrawMembersModal group={group} opened={drawMembersOpen} onClose={() => setDrawMembersOpen(false)} />}
 			{canDraw && <ExclusionsModal group={group} opened={exclusionsOpen} onClose={() => setExclusionsOpen(false)} />}
 		</Card>
 	);

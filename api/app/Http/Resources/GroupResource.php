@@ -39,6 +39,8 @@ class GroupResource extends JsonResource
                 // "child" or "pet" for a managed profile, so the card can mark it.
                 'kind' => $member->managed_kind,
                 'managed_by_me' => $viewer->manages($member),
+                // False when the owner has them sitting this draw out.
+                'in_draw' => (bool) ($member->pivot->in_draw ?? true),
             ])->values(),
             'is_drawn' => $this->is_drawn,
             // Lets the draw confirmation offer "avoid last draw's matches".

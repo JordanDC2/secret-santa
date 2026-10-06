@@ -8,11 +8,19 @@ import {
 	faListCheck,
 	faTrashCan,
 	faUserSlash,
+	faUsers,
 } from "@fortawesome/free-solid-svg-icons";
 import type { IGroup } from "Components/Groups/types";
 
 /** Things the menu can ask the card to open: a modal, or an "are you sure?" panel in the footer. */
-export type IGroupMenuAction = "exchange" | "exclusions" | "drawDetails" | "newDraw" | "delete" | "leave";
+export type IGroupMenuAction =
+	| "exchange"
+	| "drawMembers"
+	| "exclusions"
+	| "drawDetails"
+	| "newDraw"
+	| "delete"
+	| "leave";
 
 type IGroupActionsMenuProps = {
 	group: IGroup;
@@ -44,6 +52,14 @@ export default function GroupActionsMenu({ group, onAction }: IGroupActionsMenuP
 						onClick={() => onAction("exchange")}
 					>
 						Exchange date & budget
+					</Menu.Item>
+				)}
+				{group.isOwner && !group.isDrawn && (
+					<Menu.Item
+						leftSection={<FontAwesomeIcon icon={faUsers} fixedWidth />}
+						onClick={() => onAction("drawMembers")}
+					>
+						Who&apos;s in the draw
 					</Menu.Item>
 				)}
 				{group.isOwner && !group.isDrawn && (

@@ -12,6 +12,7 @@ use App\Http\Controllers\Auth\RegisterHandler;
 use App\Http\Controllers\Auth\ResetPasswordHandler;
 use App\Http\Controllers\Group\DrawDetailsController;
 use App\Http\Controllers\Group\DrawHandler;
+use App\Http\Controllers\Group\DrawParticipantHandler;
 use App\Http\Controllers\Group\ExclusionController;
 use App\Http\Controllers\Group\GroupProfilesController;
 use App\Http\Controllers\Group\InvitePreviewHandler;
@@ -83,6 +84,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('groups/{group}/draw', DrawHandler::class)->name('groups.draw');
 
     Route::post('groups/{group}/new-draw', StartNewDrawHandler::class)->name('groups.new-draw');
+
+    // The owner chooses who's in the draw; everyone is, until they say otherwise.
+    Route::patch('groups/{group}/members/{member}/in-draw', DrawParticipantHandler::class)->name('groups.members.in-draw');
 
     Route::post('groups/{group}/leave', LeaveHandler::class)->name('groups.leave');
 

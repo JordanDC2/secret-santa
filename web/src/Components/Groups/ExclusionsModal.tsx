@@ -31,19 +31,30 @@ function describe(giver: string, receiver: string, mutual: boolean) {
 		: `${giver} won't draw ${receiver}. ${receiver} still might draw ${giver}.`;
 }
 
-function ExclusionRow({ groupId, exclusion }: { groupId: number; exclusion: IGroupExclusion }) {
+function ExclusionRow({
+	groupId,
+	exclusion,
+	sittingOut,
+}: {
+	groupId: number;
+	exclusion: IGroupExclusion;
+	/** Names of anyone in it who's sitting this draw out; then it doesn't apply for now. */
+	sittingOut: string[];
+}) {
 	const removeExclusion = useRemoveExclusionMutation(groupId);
 	const { giver, receiver, mutual } = exclusion;
 
 	return (
-		<Paper withBorder radius="md" px="md" py="xs">
+		<Paper withBorder radius="md" px="md" py="xs" opacity={sittingOut.length > 0 ? 0.6 : 1}>
 			<Group justify="space-between" wrap="nowrap">
 				<div>
 					<MantineText fw={600}>
 						{giver.name} {mutual ? "↔" : "→"} {receiver.name}
 					</MantineText>
 					<MantineText size="sm" c="dimmed">
-						{describe(giver.name, receiver.name, mutual)}
+						{sittingOut.length > 0
+							? `Not used this draw: ${sittingOut.join(" and ")} ${sittingOut.length === 1 ? "is" : "are"} sitting it out.`
+							: describe(giver.name, receiver.name, mutual)}
 					</MantineText>
 				</div>
 				<Tooltip label="Remove" withArrow>
@@ -70,7 +81,11 @@ export default function ExclusionsModal({ group, opened, onClose }: IExclusionsM
 	const [receiverId, setReceiverId] = useState<string | null>(null);
 	const [mutual, setMutual] = useState(true);
 
-	const memberOptions = group.members.map((member) => ({ value: String(member.id), label: member.name }));
+	// Only people in the draw can be excluded from drawing each other.
+	const memberOptions = group.members
+		.filter((member) => member.inDraw)
+		.map((member) => ({ value: String(member.id), label: member.name }));
+	const sittingOutIds = new Set(group.members.filter((member) => !member.inDraw).map((member) => member.id));
 	const nameOf = (id: string | null) => group.members.find((member) => String(member.id) === id)?.name;
 	const fieldErrors = apiFieldErrors(addExclusion.error);
 	const formError = fieldErrors.giver_id ?? fieldErrors.receiver_id ?? fieldErrors.group;
@@ -109,7 +124,14 @@ export default function ExclusionsModal({ group, opened, onClose }: IExclusionsM
 					</MantineText>
 				)}
 				{exclusionsQuery.data?.map((exclusion) => (
-					<ExclusionRow key={exclusion.id} groupId={group.id} exclusion={exclusion} />
+					<ExclusionRow
+						key={exclusion.id}
+						groupId={group.id}
+						exclusion={exclusion}
+						sittingOut={[exclusion.giver, exclusion.receiver]
+							.filter((person) => sittingOutIds.has(person.id))
+							.map((person) => person.name)}
+					/>
 				))}
 
 				<Paper withBorder radius="md" p="md" bg="gray.0">

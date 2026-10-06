@@ -34,7 +34,7 @@ class SendExchangeReminders
         $groups = Group::query()
             ->whereDate('exchange_date', '>', $today->toDateString())
             ->whereDate('exchange_date', '<=', $today->copy()->addDays(self::EMPTY_WISHLIST_DAYS)->toDateString())
-            ->with('members')
+            ->with('drawMembers')
             ->get();
 
         foreach ($groups as $group) {
@@ -68,7 +68,8 @@ class SendExchangeReminders
 
     private function remindEmptyWishlists(Group $group, int $daysLeft): int
     {
-        $empty = $group->members->filter(
+        // Only people in the draw: anyone sitting it out has no Santa waiting on their list.
+        $empty = $group->drawMembers->filter(
             fn (User $member) => ! $member->wishlistItems()->whereNull('received_at')->exists()
         );
 

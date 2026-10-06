@@ -32,6 +32,7 @@ function mapGroup(raw: Record<string, unknown>): IGroup {
 			name: member.name as string,
 			kind: (member.kind as IGroupMember["kind"]) ?? null,
 			managedByMe: Boolean(member.managed_by_me),
+			inDraw: member.in_draw !== false,
 		})),
 		managedAssignments: ((raw.managed_assignments as Record<string, unknown>[] | undefined) ?? []).map((managed) => {
 			const recipient = managed.recipient as Record<string, unknown> | null;
@@ -230,6 +231,17 @@ export function useSetProfileInGroupMutation(groupId: number) {
 			inGroup
 				? apiClient.post<void>(`/groups/${groupId}/profiles`, { profile_id: profileId })
 				: apiClient.delete<void>(`/groups/${groupId}/profiles/${profileId}`),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: GROUPS_QUERY_KEY }),
+	});
+}
+
+/** Owner-only, before the draw: puts a member in the draw or lets them sit it out. */
+export function useSetInDrawMutation(groupId: number) {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: ({ memberId, inDraw }: { memberId: number; inDraw: boolean }) =>
+			apiClient.patch<Record<string, unknown>>(`/groups/${groupId}/members/${memberId}/in-draw`, { in_draw: inDraw }),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: GROUPS_QUERY_KEY }),
 	});
 }

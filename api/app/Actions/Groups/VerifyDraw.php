@@ -16,19 +16,21 @@ class VerifyDraw
     public function __invoke(Group $group): array
     {
         $members = $group->members()->get(['users.id', 'users.name'])->keyBy('id');
+        // Only those in the draw need a person and a Santa; anyone sitting it out has neither.
+        $drawn = $group->drawMembers()->pluck('users.id');
         $assignments = $group->currentAssignments()->get();
         $name = fn (int $id): string => $members[$id]->name ?? 'A former member';
 
         $checks = [
             $this->check(
                 'Everyone has exactly one person to buy for',
-                $members->keys()
+                $drawn
                     ->filter(fn (int $id) => $assignments->where('giver_id', $id)->count() !== 1)
                     ->map(fn (int $id) => "{$name($id)} doesn't have exactly one person to buy for."),
             ),
             $this->check(
                 'Everyone has exactly one Secret Santa',
-                $members->keys()
+                $drawn
                     ->filter(fn (int $id) => $assignments->where('receiver_id', $id)->count() !== 1)
                     ->map(fn (int $id) => "{$name($id)} doesn't have exactly one Secret Santa."),
             ),
@@ -40,7 +42,7 @@ class VerifyDraw
             ),
             $this->check(
                 'Every exclusion was respected',
-                collect($group->blockedPairsAmong($members->keys()->all()))
+                collect($group->blockedPairsAmong($drawn->all()))
                     ->filter(fn (array $pair) => $assignments->contains(
                         fn (SecretSantaAssignment $assignment) => [$assignment->giver_id, $assignment->receiver_id] === $pair,
                     ))

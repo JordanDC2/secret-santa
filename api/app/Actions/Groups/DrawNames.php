@@ -25,11 +25,12 @@ class DrawNames
             ]);
         }
 
-        $members = $group->members;
+        // Only the people in the draw; anyone the owner let sit it out stays in the group.
+        $members = $group->drawMembers()->get();
 
         if ($members->count() < 2) {
             throw ValidationException::withMessages([
-                'group' => ['A group needs at least 2 members before names can be drawn.'],
+                'group' => ['At least 2 people need to be in the draw before names can be drawn.'],
             ]);
         }
 

@@ -93,6 +93,7 @@ check "ivy marks boots received" 200 "$(as ivy POST /wishlist/items/$boots/recei
 check "received hidden from others" 0 "$(as nick GET /users/$ivy_id/wishlist | body | jq "[.items[] | select(.id == $boots)] | length")"
 check "received kept for owner" true "$(as ivy GET /wishlist/items | body | jq -r ".[] | select(.id == $boots) | .received_at != null")"
 check "owner never gets claim data" 0 "$(as ivy GET /wishlist/items | body | jq '[.[] | select(has("claim"))] | length')"
+check "owner can set who's in the draw" 200 "$(as holly PATCH /groups/$gid/members/$ivy_id/in-draw '{"in_draw":true}' | code)"
 check "holly draws names" 200 "$(as holly POST /groups/$gid/draw '{}' | code)"
 ivys_santa=$(db "select lower(u.name) from secret_santa_assignments a join users u on u.id = a.giver_id where a.group_id = $gid and a.receiver_id = $ivy_id")
 check "ivy's santa asks her a question" 204 "$(as "$ivys_santa" POST /groups/$gid/santa-chat/my-person '{"body":"Do you like blue?"}' | code)"
