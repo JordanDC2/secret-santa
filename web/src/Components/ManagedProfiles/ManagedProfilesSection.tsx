@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, Button, Card, Group, Stack, Text as MantineText, Title } from "@mantine/core";
+import { ActionIcon, Alert, Button, Card, Group, Stack, Text as MantineText, Title, Tooltip } from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPenToSquare, faTrashCan } from "@fortawesome/free-regular-svg-icons";
 import { faChild, faListUl, faPaw, faPlus } from "@fortawesome/free-solid-svg-icons";
@@ -9,6 +9,7 @@ import { useAuth } from "Components/Auth/AuthContext";
 import ManagedProfileFormModal from "Components/ManagedProfiles/ManagedProfileFormModal";
 import type { IManagedProfile } from "Components/ManagedProfiles/types";
 import { apiErrorMessage } from "Data/Api/Client";
+import classes from "Components/ManagedProfiles/ManagedProfilesSection.module.less";
 
 /**
  * Kids and pets without a login of their own: you keep their wishlists and (soon) add them
@@ -92,11 +93,13 @@ export default function ManagedProfilesSection() {
 							</Group>
 						</Group>
 					) : (
-						<Group key={profile.id} gap="xs" justify="space-between">
-							<Group gap="sm">
+						<Group key={profile.id} gap="xs" justify="space-between" wrap="nowrap">
+							<Group gap="xs" wrap="nowrap" flex={1} miw={0}>
 								<FontAwesomeIcon icon={profile.kind === "pet" ? faPaw : faChild} fixedWidth />
 								<div>
-									<MantineText fw={600}>{profile.name}</MantineText>
+									<MantineText fw={600} className={classes.name}>
+										{profile.name}
+									</MantineText>
 									{coParentNames(profile, user?.id) && (
 										<MantineText size="xs" c="dimmed">
 											with {coParentNames(profile, user?.id)}
@@ -104,34 +107,42 @@ export default function ManagedProfilesSection() {
 									)}
 								</div>
 							</Group>
-							<Group gap="xs">
+							{/* Tight spacing so the row still fits on small phones. */}
+							<Group gap={2} wrap="nowrap">
 								<Button
 									component={Link}
 									to={`/wishlist?for=${profile.id}`}
 									size="xs"
+									px={10}
+									mr={4}
 									variant="secondary"
 									leftSection={<FontAwesomeIcon icon={faListUl} />}
 								>
 									Wishlist
 								</Button>
-								<Button
-									size="xs"
-									variant="subtle"
-									color="gray"
-									leftSection={<FontAwesomeIcon icon={faPenToSquare} />}
-									onClick={() => openModal(profile)}
-								>
-									Edit
-								</Button>
-								<Button
-									size="xs"
-									variant="subtle"
-									color="red"
-									leftSection={<FontAwesomeIcon icon={faTrashCan} />}
-									onClick={() => setConfirmingDeleteId(profile.id)}
-								>
-									Remove
-								</Button>
+								{/* Icons only, so the row fits on a phone; the tooltip and label name them. */}
+								<Tooltip label={`Edit ${profile.firstName}`}>
+									<ActionIcon
+										size="input-xs"
+										variant="subtle"
+										color="gray"
+										aria-label={`Edit ${profile.firstName}`}
+										onClick={() => openModal(profile)}
+									>
+										<FontAwesomeIcon icon={faPenToSquare} />
+									</ActionIcon>
+								</Tooltip>
+								<Tooltip label={`Remove ${profile.firstName}`}>
+									<ActionIcon
+										size="input-xs"
+										variant="subtle"
+										color="red"
+										aria-label={`Remove ${profile.firstName}`}
+										onClick={() => setConfirmingDeleteId(profile.id)}
+									>
+										<FontAwesomeIcon icon={faTrashCan} />
+									</ActionIcon>
+								</Tooltip>
 							</Group>
 						</Group>
 					),
