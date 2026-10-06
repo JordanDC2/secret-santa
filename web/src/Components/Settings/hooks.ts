@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CURRENT_USER_QUERY_KEY, toUser } from "Components/Auth/AuthContext";
-import type { IEmailKind, IEmailPreferences } from "Components/Account/types";
+import type { IEmailKind, IEmailPreferences } from "Components/Settings/types";
 import type { IUserResponse } from "Components/Auth/types";
 import { apiClient } from "Data/Api/Client";
 

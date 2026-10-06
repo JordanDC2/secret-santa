@@ -1,8 +1,8 @@
 import { Alert, Stack, Switch } from "@mantine/core";
 import LoadingText from "Components/Common/LoadingText";
 import SectionCard from "Components/Common/SectionCard";
-import { useEmailPreferencesQuery, useUpdateEmailPreferenceMutation } from "Components/Account/hooks";
-import type { IEmailKind } from "Components/Account/types";
+import { useEmailPreferencesQuery, useUpdateEmailPreferenceMutation } from "Components/Settings/hooks";
+import type { IEmailKind } from "Components/Settings/types";
 import { apiErrorMessage } from "Data/Api/Client";
 
 const SWITCHES: { kind: IEmailKind; label: string; description: string }[] = [

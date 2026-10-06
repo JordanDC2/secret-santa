@@ -105,7 +105,7 @@ class EmailPreferencesTest extends TestCase
         $mail = (new ClaimNudged(1, 'Ivy', 'Reading lamp', null, null))->toMail($claimer);
 
         $this->assertStringContainsString("You're getting this because nudge emails are on.", implode(' ', $mail->outroLines));
-        $this->assertStringContainsString('/account)', implode(' ', $mail->outroLines));
+        $this->assertStringContainsString('/settings)', implode(' ', $mail->outroLines));
     }
 
     public function test_every_email_kind_has_a_label(): void

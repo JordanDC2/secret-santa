@@ -3,7 +3,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { localStorageColorSchemeManager, MantineProvider } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import AccountPage from "Components/Account/AccountPage";
+import SettingsPage from "Components/Settings/SettingsPage";
 import UpdateNotice from "Components/AppUpdates/UpdateNotice";
 import { liveUpdatesEnabled } from "Data/Api/LiveUpdates";
 import { AuthProvider, useAuth } from "Components/Auth/AuthContext";
@@ -48,7 +48,9 @@ function AppRoutes() {
 			<Route element={<AuthenticatedLayout />}>
 				<Route path="/" element={<DashboardPage />} />
 				<Route path="/wishlist" element={<MyWishlistPage />} />
-				<Route path="/account" element={<AccountPage />} />
+				<Route path="/settings" element={<SettingsPage />} />
+				{/* The page was called Account before; older emails still link here. */}
+				<Route path="/account" element={<Navigate to="/settings" replace />} />
 				<Route path="/wishlists/:userId" element={<MemberWishlistPage />} />
 			</Route>
 		</Routes>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Alert, Button, Group, List, PasswordInput, Stack, Text as MantineText } from "@mantine/core";
 import ConfirmButtons from "Components/Common/ConfirmButtons";
-import { useDeleteAccountMutation } from "Components/Account/hooks";
+import { useDeleteAccountMutation } from "Components/Settings/hooks";
 import { useGroupsQuery } from "Components/Groups/hooks";
 import { apiFieldErrors } from "Data/Api/Client";
 import SectionCard from "Components/Common/SectionCard";

@@ -22,7 +22,7 @@ class ElfMailMessage extends MailMessage
      */
     public function settingsFooter(EmailKind $kind, ?Addressee $about = null): static
     {
-        $settings = config('app.frontend_url').'/account';
+        $settings = config('app.frontend_url').'/settings';
         $because = $about?->isManaged() ? "you look after {$about->name()} and {$kind->label()} emails are on" : "{$kind->label()} emails are on";
 
         return $this->line("You're getting this because {$because}. [Change your email settings]({$settings}).");

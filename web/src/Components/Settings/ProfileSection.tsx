@@ -1,7 +1,7 @@
 import { Alert, Button, Group, PasswordInput, SimpleGrid, Stack, Text as MantineText, TextInput } from "@mantine/core";
 import SectionCard from "Components/Common/SectionCard";
 import { useForm } from "@mantine/form";
-import { ACCOUNT_FIELD_NAMES, useUpdateProfileMutation } from "Components/Account/hooks";
+import { ACCOUNT_FIELD_NAMES, useUpdateProfileMutation } from "Components/Settings/hooks";
 import type { IUser } from "Components/Auth/types";
 import { apiErrorMessage, apiFieldErrors } from "Data/Api/Client";
 

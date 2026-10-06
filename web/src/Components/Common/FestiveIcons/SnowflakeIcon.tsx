@@ -2,7 +2,7 @@ import FestiveSvg, { type IFestiveIconProps } from "Components/Common/FestiveIco
 
 const ARM_ANGLES = [0, 60, 120, 180, 240, 300];
 
-/** The falling snow. Drawn in currentColor, so the surrounding CSS picks its color. */
+/** The falling snow, and the Settings icon (it reads a bit like a gear). Drawn in currentColor, so the surrounding CSS picks its color. */
 export default function SnowflakeIcon(props: IFestiveIconProps) {
 	return (
 		<FestiveSvg {...props}>

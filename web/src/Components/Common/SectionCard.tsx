@@ -14,7 +14,7 @@ type ISectionCardProps = {
 };
 
 /**
- * One titled card on a page (the Account sections, "Create a group"...). The heading is a
+ * One titled card on a page (the Settings sections, "Create a group"...). The heading is a
  * level 2 under the page's title, sized like the rest of the app's card headings.
  */
 export default function SectionCard({ title, icon, action, danger = false, children }: ISectionCardProps) {

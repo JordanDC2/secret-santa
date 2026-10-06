@@ -1,7 +1,7 @@
 import { Anchor, Button, Container, Group } from "@mantine/core";
 import { Link } from "react-router-dom";
 import SantaHatIcon from "Components/Common/FestiveIcons/SantaHatIcon";
-import StockingIcon from "Components/Common/FestiveIcons/StockingIcon";
+import SnowflakeIcon from "Components/Common/FestiveIcons/SnowflakeIcon";
 import WishListIcon from "Components/Common/FestiveIcons/WishListIcon";
 import { useAuth } from "Components/Auth/AuthContext";
 import classes from "Components/Layout/AppHeader.module.less";
@@ -25,9 +25,9 @@ export default function AppHeader() {
 							<WishListIcon size="1.3em" />
 							My wishlist
 						</Anchor>
-						<Anchor component={Link} to="/account" className={classes.navLink}>
-							<StockingIcon size="1.3em" />
-							Account
+						<Anchor component={Link} to="/settings" className={classes.navLink}>
+							<SnowflakeIcon size="1.3em" />
+							Settings
 						</Anchor>
 						<Button variant="white" color="red" size="xs" onClick={() => logout()}>
 							Log out

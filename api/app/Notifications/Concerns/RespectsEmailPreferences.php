@@ -7,7 +7,7 @@ use App\Models\User;
 
 /**
  * For notifications people can switch off: sends by email unless the recipient turned this
- * kind off on their Account page. For a kid or pet, each of their parents' own settings
+ * kind off on their Settings page. For a kid or pet, each of their parents' own settings
  * decide (see User::routeNotificationForMail()).
  */
 trait RespectsEmailPreferences

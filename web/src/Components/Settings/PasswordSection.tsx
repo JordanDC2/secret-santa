@@ -1,7 +1,7 @@
 import { Alert, Button, Group, PasswordInput, Stack } from "@mantine/core";
 import SectionCard from "Components/Common/SectionCard";
 import { useForm } from "@mantine/form";
-import { ACCOUNT_FIELD_NAMES, useUpdatePasswordMutation } from "Components/Account/hooks";
+import { ACCOUNT_FIELD_NAMES, useUpdatePasswordMutation } from "Components/Settings/hooks";
 import { apiErrorMessage, apiFieldErrors } from "Data/Api/Client";
 
 const EMPTY = { currentPassword: "", password: "", passwordConfirmation: "" };

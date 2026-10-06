@@ -1,17 +1,17 @@
 import { Stack } from "@mantine/core";
 import Page from "Components/Layout/Page";
-import StockingIcon from "Components/Common/FestiveIcons/StockingIcon";
-import DeleteAccountSection from "Components/Account/DeleteAccountSection";
-import AppearanceSection from "Components/Account/AppearanceSection";
-import EmailPreferencesSection from "Components/Account/EmailPreferencesSection";
+import SnowflakeIcon from "Components/Common/FestiveIcons/SnowflakeIcon";
+import DeleteAccountSection from "Components/Settings/DeleteAccountSection";
+import AppearanceSection from "Components/Settings/AppearanceSection";
+import EmailPreferencesSection from "Components/Settings/EmailPreferencesSection";
 import ManagedProfilesSection from "Components/ManagedProfiles/ManagedProfilesSection";
-import PasswordSection from "Components/Account/PasswordSection";
-import ProfileSection from "Components/Account/ProfileSection";
+import PasswordSection from "Components/Settings/PasswordSection";
+import ProfileSection from "Components/Settings/ProfileSection";
 import { useAuth } from "Components/Auth/AuthContext";
 import BackToGroups from "Components/Layout/BackToGroups";
 import PageTitle from "Components/Layout/PageTitle";
 
-export default function AccountPage() {
+export default function SettingsPage() {
 	const { user } = useAuth();
 
 	if (!user) {
@@ -22,7 +22,7 @@ export default function AccountPage() {
 		<Page size="sm">
 			<Stack gap="lg">
 				<BackToGroups />
-				<PageTitle icon={<StockingIcon />}>Your account</PageTitle>
+				<PageTitle icon={<SnowflakeIcon />}>Settings</PageTitle>
 				<ProfileSection user={user} />
 				<ManagedProfilesSection />
 				<PasswordSection />
