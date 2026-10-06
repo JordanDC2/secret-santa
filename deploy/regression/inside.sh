@@ -97,7 +97,7 @@ check "received kept for owner" true "$(as ivy GET /wishlist/items | body | jq -
 check "owner never gets claim data" 0 "$(as ivy GET /wishlist/items | body | jq '[.[] | select(has("claim"))] | length')"
 check "owner can set who's in the draw" 200 "$(as holly PATCH /groups/$gid/members/$ivy_id/in-draw '{"in_draw":true}' | code)"
 check "holly draws names" 200 "$(as holly POST /groups/$gid/draw '{}' | code)"
-ivys_santa=$(db "select lower(u.name) from secret_santa_assignments a join users u on u.id = a.giver_id where a.group_id = $gid and a.receiver_id = $ivy_id")
+ivys_santa=$(db "select lower(u.first_name) from secret_santa_assignments a join users u on u.id = a.giver_id where a.group_id = $gid and a.receiver_id = $ivy_id")
 check "ivy's santa asks her a question" 204 "$(as "$ivys_santa" POST /groups/$gid/santa-chat/my-person '{"body":"Do you like blue?"}' | code)"
 check "ivy's card counts it unread" 1 "$(as ivy GET /groups/$gid | body | jq -r '.my_santa.unread_messages')"
 check "ivy reads the question" "Do you like blue?" "$(as ivy GET /groups/$gid/santa-chat/my-santa | body | jq -r '.messages[0].body')"
