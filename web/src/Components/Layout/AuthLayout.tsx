@@ -2,6 +2,7 @@ import type { PropsWithChildren } from "react";
 import { Paper } from "@mantine/core";
 import InstallAppLink from "Components/AppInstall/InstallAppLink";
 import SantaHatIcon from "Components/Common/FestiveIcons/SantaHatIcon";
+import SiteFooter from "Components/Layout/SiteFooter";
 import Snowfall from "Components/Layout/Snowfall";
 import classes from "Components/Layout/AuthLayout.module.less";
 
@@ -23,6 +24,7 @@ export default function AuthLayout({ subtitle, children }: IAuthLayoutProps) {
 					{children}
 					<InstallAppLink />
 				</Paper>
+				<SiteFooter onDark />
 			</div>
 		</div>
 	);

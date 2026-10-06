@@ -4,6 +4,9 @@ import { localStorageColorSchemeManager, MantineProvider } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import SettingsPage from "Components/Settings/SettingsPage";
+import PrivacyPage from "Components/Legal/PrivacyPage";
+import TermsPage from "Components/Legal/TermsPage";
+import PublicLayout from "Components/Layout/PublicLayout";
 import UpdateNotice from "Components/AppUpdates/UpdateNotice";
 import { liveUpdatesEnabled } from "Data/Api/LiveUpdates";
 import { AuthProvider, useAuth } from "Components/Auth/AuthContext";
@@ -45,6 +48,11 @@ function AppRoutes() {
 			<Route path="/reset-password" element={<ResetPasswordPage />} />
 			{/* Signed in or not: an invite link explains itself, then joins once they're in. */}
 			<Route path="/join/:code" element={<JoinInvitePage />} />
+			{/* Signed in or not. */}
+			<Route element={<PublicLayout />}>
+				<Route path="/privacy" element={<PrivacyPage />} />
+				<Route path="/terms" element={<TermsPage />} />
+			</Route>
 			<Route element={<AuthenticatedLayout />}>
 				<Route path="/" element={<DashboardPage />} />
 				<Route path="/wishlist" element={<MyWishlistPage />} />

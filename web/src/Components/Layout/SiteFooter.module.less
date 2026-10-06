@@ -1,0 +1,19 @@
+.footer {
+	padding: var(--mantine-spacing-lg) var(--mantine-spacing-md)
+		calc(var(--mantine-spacing-lg) + env(safe-area-inset-bottom));
+	text-align: center;
+}
+
+/* On the dark sign-in pages: the header's gold, readable on the dark gradient. */
+.onDark {
+	color: var(--festive-gold);
+
+	a {
+		color: var(--festive-gold);
+
+		&:hover,
+		&:focus-visible {
+			color: var(--festive-white);
+		}
+	}
+}

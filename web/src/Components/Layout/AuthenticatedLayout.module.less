@@ -1,6 +1,15 @@
+/*
+ * Header, the page, then the footer, which sits at the bottom of the screen even on short
+ * pages. A flex column also keeps child margins from escaping and showing the body below
+ * the gradient.
+ */
 .page {
-	// Contain child margins; otherwise a page's bottom margin escapes and exposes the body below the gradient.
-	display: flow-root;
+	display: flex;
+	flex-direction: column;
 	min-height: 100vh;
 	background: var(--festive-page-bg);
+}
+
+.footer {
+	margin-top: auto;
 }

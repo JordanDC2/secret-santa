@@ -3,6 +3,7 @@ import { useAuth } from "Components/Auth/AuthContext";
 import GroupLiveUpdates from "Components/Groups/GroupLiveUpdates";
 import SantaChatLiveUpdates from "Components/SantaChat/SantaChatLiveUpdates";
 import AppHeader from "Components/Layout/AppHeader";
+import SiteFooter from "Components/Layout/SiteFooter";
 import PendingInviteRedirect from "Components/Invites/PendingInviteRedirect";
 import classes from "Components/Layout/AuthenticatedLayout.module.less";
 
@@ -20,6 +21,9 @@ export default function AuthenticatedLayout() {
 			<SantaChatLiveUpdates />
 			<AppHeader />
 			<Outlet />
+			<div className={classes.footer}>
+				<SiteFooter />
+			</div>
 		</div>
 	);
 }

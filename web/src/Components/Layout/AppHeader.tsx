@@ -7,7 +7,7 @@ import { useAuth } from "Components/Auth/AuthContext";
 import classes from "Components/Layout/AppHeader.module.less";
 
 export default function AppHeader() {
-	const { logout } = useAuth();
+	const { user, logout } = useAuth();
 
 	return (
 		<div className={classes.header}>
@@ -19,20 +19,28 @@ export default function AppHeader() {
 							Secret Santa
 						</span>
 					</Anchor>
-					{/* xs gap: the nav pills carry their own padding, and it keeps them on one row on phones. */}
-					<Group gap="xs">
-						<Anchor component={Link} to="/wishlist" className={classes.navLink}>
-							<WishListIcon size="1.3em" />
-							My wishlist
-						</Anchor>
-						<Anchor component={Link} to="/settings" className={classes.navLink}>
-							<SnowflakeIcon size="1.3em" />
-							Settings
-						</Anchor>
-						<Button variant="white" color="red" size="xs" onClick={() => logout()}>
-							Log out
+					{/* Signed out (e.g. reading the Privacy page): just a way in. */}
+					{!user && (
+						<Button component={Link} to="/login" variant="white" color="red" size="xs">
+							Log in
 						</Button>
-					</Group>
+					)}
+					{/* xs gap: the nav pills carry their own padding, and it keeps them on one row on phones. */}
+					{user && (
+						<Group gap="xs">
+							<Anchor component={Link} to="/wishlist" className={classes.navLink}>
+								<WishListIcon size="1.3em" />
+								My wishlist
+							</Anchor>
+							<Anchor component={Link} to="/settings" className={classes.navLink}>
+								<SnowflakeIcon size="1.3em" />
+								Settings
+							</Anchor>
+							<Button variant="white" color="red" size="xs" onClick={() => logout()}>
+								Log out
+							</Button>
+						</Group>
+					)}
 				</Group>
 			</Container>
 		</div>
