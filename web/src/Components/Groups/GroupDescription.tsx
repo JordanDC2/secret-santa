@@ -1,9 +1,6 @@
 import { useState } from "react";
-import { ActionIcon, Box, Group, Text as MantineText, Textarea, Tooltip } from "@mantine/core";
-import Eyebrow from "Components/Common/Eyebrow";
+import { Anchor, Box, Group, Text as MantineText, Textarea } from "@mantine/core";
 import ConfirmButtons from "Components/Common/ConfirmButtons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPenToSquare, faThumbtack } from "@fortawesome/free-solid-svg-icons";
 import { useUpdateGroupMutation } from "Components/Groups/hooks";
 import { apiErrorMessage } from "Data/Api/Client";
 import classes from "Components/Groups/GroupDescription.module.less";
@@ -19,11 +16,19 @@ type IGroupDescriptionProps = {
 	onEditingChange: (editing: boolean) => void;
 };
 
-function NoteLabel() {
+/** "Group note", with a quiet "Edit" link on the right for the owner. */
+function NoteLabel({ onEdit }: { onEdit?: () => void }) {
 	return (
-		<Eyebrow>
-			<FontAwesomeIcon icon={faThumbtack} /> Group note
-		</Eyebrow>
+		<Group justify="space-between" gap="xs">
+			<MantineText size="xs" c="dimmed">
+				Group note
+			</MantineText>
+			{onEdit && (
+				<Anchor component="button" type="button" size="xs" aria-label="Edit group note" onClick={onEdit}>
+					Edit
+				</Anchor>
+			)}
+		</Group>
 	);
 }
 
@@ -48,22 +53,7 @@ export default function GroupDescription({
 
 	return (
 		<Box className={classes.note}>
-			<Group gap={4} wrap="nowrap">
-				<NoteLabel />
-				{canEdit && (
-					<Tooltip label="Edit note" withArrow>
-						<ActionIcon
-							variant="subtle"
-							color="gray"
-							size="sm"
-							aria-label="Edit group note"
-							onClick={() => onEditingChange(true)}
-						>
-							<FontAwesomeIcon icon={faPenToSquare} />
-						</ActionIcon>
-					</Tooltip>
-				)}
-			</Group>
+			<NoteLabel onEdit={canEdit ? () => onEditingChange(true) : undefined} />
 			<MantineText size="sm" className={classes.text}>
 				{description}
 			</MantineText>
