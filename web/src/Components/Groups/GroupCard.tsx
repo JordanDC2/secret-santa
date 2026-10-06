@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Badge, Card, Group, Stack, Text as MantineText } from "@mantine/core";
+import { faChildren } from "@fortawesome/free-solid-svg-icons";
 import type { IGroup } from "Components/Groups/types";
 import AssignmentReveal from "Components/Groups/AssignmentReveal";
 import DeleteGroupControl from "Components/Groups/DeleteGroupControl";
@@ -11,6 +12,7 @@ import ExchangeOverNotice from "Components/Groups/ExchangeOverNotice";
 import { daysUntil } from "Components/Groups/exchange";
 import ExclusionsModal from "Components/Groups/ExclusionsModal";
 import GroupKidsModal from "Components/Groups/GroupKidsModal";
+import ManagedAssignmentsModal from "Components/Groups/ManagedAssignmentsModal";
 import { useManagedProfilesQuery } from "Components/ManagedProfiles/hooks";
 import GroupActionsMenu, { type IGroupMenuAction } from "Components/Groups/GroupActionsMenu";
 import GroupDescription from "Components/Groups/GroupDescription";
@@ -82,6 +84,11 @@ export default function GroupCard({ group }: IGroupCardProps) {
 	const { linkedSide, linkedAsProfileId, clearLink } = useLinkedSantaChat(group.id);
 	const hasManagedProfiles = (useManagedProfilesQuery().data ?? []).length > 0;
 	const [kidsOpen, setKidsOpen] = useState(false);
+	const [managedOpen, setManagedOpen] = useState(false);
+	const managedUnread = group.managedAssignments.reduce(
+		(total, { recipient, santa }) => total + (recipient?.unreadMessages ?? 0) + (santa?.unreadMessages ?? 0),
+		0,
+	);
 	const canViewDraw = group.isOwner && group.isDrawn;
 	const canDraw = group.isOwner && !group.isDrawn;
 	const canLeave = !group.isOwner && !group.isDrawn;
@@ -219,9 +226,10 @@ export default function GroupCard({ group }: IGroupCardProps) {
 					<Stack gap="md">
 						{exchangeOverNotice}
 
-						{/* Compact buttons side by side; a revealed assignment takes its own full-width row. */}
-						{(group.myAssignment || group.mySanta) && (
-							<Group gap="sm">
+						{/* Compact buttons side by side (stacked, all the same width, on phones); a revealed
+						    assignment takes its own full-width row. */}
+						{(group.myAssignment || group.mySanta || group.managedAssignments.length > 0) && (
+							<Group gap="sm" className={classes.footerButtons}>
 								{group.myAssignment && (
 									<AssignmentReveal
 										recipientId={group.myAssignment.recipientId}
@@ -235,32 +243,14 @@ export default function GroupCard({ group }: IGroupCardProps) {
 										Message your Santa
 									</SantaChatButton>
 								)}
+								{/* Every kid and pet you look after, behind one button however big the family. */}
+								{group.managedAssignments.length > 0 && (
+									<SantaChatButton icon={faChildren} unread={managedUnread} onClick={() => setManagedOpen(true)}>
+										Kids &amp; pets
+									</SantaChatButton>
+								)}
 							</Group>
 						)}
-
-						{/* The same, for each kid or pet you look after: you shop and chat for them. */}
-						{group.managedAssignments.map(({ profile, recipient, santa }) => {
-							const asProfile = { id: profile.id, name: profile.name };
-
-							return (
-								<Group key={profile.id} gap="sm">
-									{recipient && (
-										<AssignmentReveal
-											recipientId={recipient.id}
-											recipientName={recipient.name}
-											unreadMessages={recipient.unreadMessages}
-											santaName={profile.name}
-											onAsk={() => openChat("my-person", asProfile)}
-										/>
-									)}
-									{santa && (
-										<SantaChatButton unread={santa.unreadMessages} onClick={() => openChat("my-santa", asProfile)}>
-											Message {profile.name}&apos;s Santa
-										</SantaChatButton>
-									)}
-								</Group>
-							);
-						})}
 
 						{footer}
 					</Stack>
@@ -283,6 +273,18 @@ export default function GroupCard({ group }: IGroupCardProps) {
 					group={group}
 					opened={exchangeModal.opened}
 					onClose={() => setExchangeModal((current) => ({ ...current, opened: false }))}
+				/>
+			)}
+			{group.managedAssignments.length > 0 && (
+				<ManagedAssignmentsModal
+					groupName={group.name}
+					assignments={group.managedAssignments}
+					opened={managedOpen}
+					onClose={() => setManagedOpen(false)}
+					onOpenChat={(side, asProfile) => {
+						setManagedOpen(false);
+						openChat(side, asProfile);
+					}}
 				/>
 			)}
 			{hasManagedProfiles && !group.isDrawn && (

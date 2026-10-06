@@ -31,3 +31,19 @@
 		background-color: var(--mantine-color-red-0);
 	}
 }
+
+/*
+ * The assignment and chat buttons: a compact row on wider screens. On phones there's no room
+ * for two across ("Reveal my assignment" alone is wider than half a card), so they stack, all
+ * the same width, which reads as a deliberate menu rather than a lopsided pile.
+ */
+.footerButtons {
+	@media (max-width: 36em) {
+		flex-direction: column;
+		align-items: stretch;
+
+		> * {
+			width: 100%;
+		}
+	}
+}
