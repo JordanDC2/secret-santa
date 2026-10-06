@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Alert, Card, Container, SimpleGrid, Stack, Title } from "@mantine/core";
 import { useLocation } from "react-router-dom";
-import AddLastNameTip from "Components/Account/AddLastNameTip";
 import InstallAppTip from "Components/AppInstall/InstallAppTip";
 import type { IInviteNotice } from "Components/Invites/types";
 import ChristmasTreeIcon from "Components/Common/FestiveIcons/ChristmasTreeIcon";
@@ -32,7 +31,6 @@ export default function DashboardPage() {
 						{inviteNotice}
 					</Alert>
 				)}
-				<AddLastNameTip />
 				<InstallAppTip />
 
 				<Stack>
