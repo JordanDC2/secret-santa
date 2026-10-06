@@ -66,7 +66,6 @@ export default function GroupCard({ group }: IGroupCardProps) {
 	const [drawMembersOpen, setDrawMembersOpen] = useState(false);
 	const { user } = useAuth();
 	const [editingNote, setEditingNote] = useState(false);
-	const canAddExchange = !group.exchangeDate && !group.budget;
 	const canAddNote = !group.description && !editingNote;
 	// A fresh key each time it opens, so the form starts from the group's current details.
 	const [exchangeModal, setExchangeModal] = useState({ opened: false, key: 0 });
@@ -199,14 +198,10 @@ export default function GroupCard({ group }: IGroupCardProps) {
 				</MantineText>
 				<InviteCode code={group.joinCode} groupName={group.name} />
 			</Group>
-			{/* Date & budget, then the note; owners get one row of "Add" chips for whichever is missing. */}
-			<ExchangeDetails group={group} onEdit={group.isOwner ? openExchangeModal : undefined} />
-			{group.isOwner && (canAddExchange || canAddNote) && (
-				<Group gap="xs" mt="xs">
-					{canAddExchange && <AddChip onClick={openExchangeModal}>Add date &amp; budget</AddChip>}
-					{canAddNote && <AddChip onClick={() => setEditingNote(true)}>Add note</AddChip>}
-				</Group>
-			)}
+			{/* Date & budget chips, plus the owner's "Add" chips for anything missing, in one row. */}
+			<ExchangeDetails group={group} onEdit={group.isOwner ? openExchangeModal : undefined}>
+				{group.isOwner && canAddNote && <AddChip onClick={() => setEditingNote(true)}>Add note</AddChip>}
+			</ExchangeDetails>
 			<GroupDescription
 				groupId={group.id}
 				description={group.description}

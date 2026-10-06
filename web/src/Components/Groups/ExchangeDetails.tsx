@@ -1,6 +1,8 @@
+import type { ReactNode } from "react";
 import { Badge, Group, Tooltip } from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCalendarDays, faWallet, type IconDefinition } from "@fortawesome/free-solid-svg-icons";
+import AddChip from "Components/Common/AddChip";
 import { budgetLabel, countdownLabel, daysUntil } from "Components/Groups/exchange";
 import type { IGroup } from "Components/Groups/types";
 import classes from "Components/Groups/ExchangeDetails.module.less";
@@ -9,6 +11,8 @@ type IExchangeDetailsProps = {
 	group: IGroup;
 	/** Owners can click a chip to edit; everyone else just sees it. */
 	onEdit?: () => void;
+	/** More chips for the same row, e.g. the owner's "Add note". */
+	children?: ReactNode;
 };
 
 type IChipProps = {
@@ -49,9 +53,15 @@ function Chip({ color, icon, editLabel, onEdit, children }: IChipProps) {
 	);
 }
 
-/** The exchange countdown and the budget as two small chips; nothing when neither is set. */
-export default function ExchangeDetails({ group, onEdit }: IExchangeDetailsProps) {
-	if (!group.exchangeDate && !group.budget) {
+/**
+ * The exchange countdown and the budget as small chips, in one wrapping row. Owners also get
+ * "Add" chips for whatever's missing ("Add date & budget", or "Add date" / "Add budget" when
+ * one is set), followed by any extra chips the card passes in.
+ */
+export default function ExchangeDetails({ group, onEdit, children }: IExchangeDetailsProps) {
+	const hasEither = group.exchangeDate !== null || group.budget !== null;
+
+	if (!hasEither && !onEdit && !children) {
 		return null;
 	}
 
@@ -70,6 +80,10 @@ export default function ExchangeDetails({ group, onEdit }: IExchangeDetailsProps
 					{budgetLabel(group.budget)}
 				</Chip>
 			)}
+			{onEdit && !hasEither && <AddChip onClick={onEdit}>Add date &amp; budget</AddChip>}
+			{onEdit && hasEither && !group.exchangeDate && <AddChip onClick={onEdit}>Add date</AddChip>}
+			{onEdit && hasEither && !group.budget && <AddChip onClick={onEdit}>Add budget</AddChip>}
+			{children}
 		</Group>
 	);
 }
