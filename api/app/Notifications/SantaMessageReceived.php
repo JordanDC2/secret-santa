@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Enums\EmailKind;
+use App\Models\SantaMessage;
 use App\Models\User;
 use App\Notifications\Concerns\RespectsEmailPreferences;
 use App\Notifications\Contracts\OptionalEmail;
@@ -13,9 +14,10 @@ use Illuminate\Queue\Attributes\Backoff;
 use Illuminate\Queue\Attributes\Tries;
 
 /**
- * A new message in a Santa ↔ person thread. Only sent for the first unread message, so a
- * back-and-forth doesn't flood anyone's inbox. Leaves out the message itself so people
- * reply in the app, which also marks it read and lets the next message email them again.
+ * A new message in a Santa ↔ person thread. Only sent for the first unread message, and only
+ * if it's still unread WAIT_MINUTES later, so a back-and-forth in the app doesn't flood
+ * anyone's inbox. Leaves out the message itself so people reply in the app, which also marks
+ * it read and lets the next message email them again.
  */
 #[Tries(4)]
 #[Backoff(10, 60, 300)]
@@ -23,18 +25,33 @@ class SantaMessageReceived extends Notification implements OptionalEmail, Should
 {
     use Queueable, RespectsEmailPreferences;
 
+    /** Long enough that someone with the chat open has read it, short enough to still feel prompt. */
+    public const WAIT_MINUTES = 5;
+
     /**
      * @param  bool  $fromSanta  Whether the Santa wrote it, i.e. this email goes to their person.
      * @param  string  $personName  The Santa's person. Only ever shown to the Santa.
      */
     public function __construct(
+        /** The message that started the unread run; reading it cancels the email. */
+        public readonly int $messageId,
         public readonly int $groupId,
         public readonly string $groupName,
         public readonly bool $fromSanta,
         public readonly string $personName,
         /** Set when the reader is a kid or pet: the link opens the chat as them. */
         public readonly ?int $asProfileId = null,
-    ) {}
+    ) {
+        $this->delay(now()->addMinutes(self::WAIT_MINUTES));
+    }
+
+    /**
+     * Checked again when the queued email goes out: skip it if they've read the message since.
+     */
+    public function shouldSend(User $notifiable, string $channel): bool
+    {
+        return SantaMessage::query()->whereKey($this->messageId)->whereNull('read_at')->exists();
+    }
 
     public function emailKind(): EmailKind
     {

@@ -91,7 +91,7 @@ class CoParentsTest extends TestCase
     {
         $this->lily->managers()->attach($this->nick);
         $assignment = new SecretSantaAssigned(Group::factory()->make(), $this->nick, 1);
-        $chat = new SantaMessageReceived(1, 'Swap', true, 'Lily');
+        $chat = new SantaMessageReceived(1, 1, 'Swap', true, 'Lily');
 
         $this->assertSame(['holly@example.test', 'nick@example.test'], $this->lily->routeNotificationForMail($assignment));
 
@@ -115,11 +115,11 @@ class CoParentsTest extends TestCase
         $this->assertStringContainsString("Lily's wishlist is still empty", $text($empty));
         $this->assertStringEndsWith("/wishlist?for={$this->lily->id}", (string) $empty->actionUrl);
 
-        $chat = $text((new SantaMessageReceived(1, 'Swap', true, 'Lily', $this->lily->id))->toMail($this->lily));
+        $chat = $text((new SantaMessageReceived(1, 1, 'Swap', true, 'Lily', $this->lily->id))->toMail($this->lily));
         $this->assertStringContainsString("Lily's Secret Santa sent a message in Swap", $chat);
         $this->assertStringContainsString("Lily's Secret Santa in **Swap** has a question for Lily!", $chat);
 
-        $reply = $text((new SantaMessageReceived(1, 'Swap', false, 'Nick', $this->lily->id))->toMail($this->lily));
+        $reply = $text((new SantaMessageReceived(1, 1, 'Swap', false, 'Nick', $this->lily->id))->toMail($this->lily));
         $this->assertStringContainsString('Nick wrote back to Lily', $reply);
         $this->assertStringContainsString("Nick still has no idea it's Lily.", $reply);
 

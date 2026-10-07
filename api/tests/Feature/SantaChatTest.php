@@ -7,6 +7,7 @@ use App\Models\Group;
 use App\Models\SantaMessage;
 use App\Models\User;
 use App\Notifications\SantaMessageReceived;
+use DateTimeInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
@@ -104,6 +105,24 @@ class SantaChatTest extends TestCase
         $this->postJson(route('groups.santa-chat.store', [$this->group, 'my-person']), ['body' => 'Three']);
         Notification::assertSentToTimes($this->person, SantaMessageReceived::class, 2);
         Notification::assertNotSentTo($this->santa, SantaMessageReceived::class);
+    }
+
+    public function test_the_email_waits_and_is_skipped_if_they_read_it_in_the_meantime(): void
+    {
+        // A back-and-forth in the app: the person has the chat open and reads it straight away.
+        Sanctum::actingAs($this->santa);
+        $this->postJson(route('groups.santa-chat.store', [$this->group, 'my-person']), ['body' => 'Quick question']);
+
+        $sent = Notification::sent($this->person, SantaMessageReceived::class)->first();
+        $this->assertInstanceOf(SantaMessageReceived::class, $sent);
+        $this->assertInstanceOf(DateTimeInterface::class, $sent->delay);
+        $this->assertEqualsWithDelta(now()->addMinutes(SantaMessageReceived::WAIT_MINUTES)->timestamp, $sent->delay->getTimestamp(), 5);
+        $this->assertTrue($sent->shouldSend($this->person, 'mail'));
+
+        Sanctum::actingAs($this->person);
+        $this->postJson(route('groups.santa-chat.read', [$this->group, 'my-santa']))->assertNoContent();
+
+        $this->assertFalse($sent->shouldSend($this->person, 'mail'));
     }
 
     public function test_the_persons_email_never_names_their_santa(): void

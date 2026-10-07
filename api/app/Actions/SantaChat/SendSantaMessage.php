@@ -11,7 +11,8 @@ class SendSantaMessage
 {
     /**
      * Adds a message to a Santa ↔ person thread. The other side gets an email only when
-     * this is their first unread message from this side; more wait for them in the app.
+     * this is their first unread message from this side, and only if they haven't read it a
+     * few minutes later (see SantaMessageReceived); more wait for them in the app.
      */
     public function __invoke(SecretSantaAssignment $assignment, bool $fromSanta, string $body): SantaMessage
     {
@@ -24,6 +25,7 @@ class SendSantaMessage
 
         if (! $alreadyUnread) {
             $reader->notify(new SantaMessageReceived(
+                messageId: $message->id,
                 groupId: $group->id,
                 groupName: $group->name,
                 fromSanta: $fromSanta,
