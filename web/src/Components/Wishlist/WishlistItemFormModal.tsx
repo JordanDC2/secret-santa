@@ -85,16 +85,25 @@ export default function WishlistItemFormModal({
 	const linkPreview = useLinkPreviewMutation();
 	const linkLooksValid = /^https?:\/\/\S+\.\S+/i.test(form.values.url.trim());
 
-	/** Fill in whatever the link's page tells us, but only into fields that are still empty. */
+	/**
+	 * Update the form to match the link's page: what it tells us replaces what's there, and the
+	 * rest is left alone. The picture follows the page (none if it has none), so one from an
+	 * earlier link doesn't linger, unless the page told us nothing at all (a blocked shop, say).
+	 */
 	function lookUpLink() {
 		linkPreview.mutate(form.values.url.trim(), {
-			onSuccess: (preview) =>
+			onSuccess: (preview) => {
+				if (preview.name === null && preview.price === null && preview.imageUrl === null) {
+					return;
+				}
+
 				// Read the latest values: the person may have typed while we were fetching.
 				form.setValues((current) => ({
-					name: current.name?.trim() ? current.name : (preview.name ?? current.name),
-					price: current.price === "" && preview.price !== null ? preview.price : current.price,
-					imageUrl: current.imageUrl ? current.imageUrl : (preview.imageUrl ?? ""),
-				})),
+					name: preview.name ?? current.name,
+					price: preview.price ?? current.price,
+					imageUrl: preview.imageUrl ?? "",
+				}));
+			},
 		});
 	}
 
@@ -129,7 +138,7 @@ export default function WishlistItemFormModal({
 					<Group gap="xs" align="flex-end" wrap="nowrap">
 						<TextInput
 							label="Link"
-							description="Paste a product link, then fetch to fill in any empty fields we can."
+							description="Paste a product link, then fetch to fill in what the shop shares."
 							placeholder="https://"
 							type="url"
 							className={classes.linkField}
