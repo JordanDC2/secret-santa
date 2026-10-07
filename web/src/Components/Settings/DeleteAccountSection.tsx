@@ -3,16 +3,20 @@ import { Alert, Button, Group, List, PasswordInput, Stack, Text as MantineText }
 import ConfirmButtons from "Components/Common/ConfirmButtons";
 import { useDeleteAccountMutation } from "Components/Settings/hooks";
 import { useGroupsQuery } from "Components/Groups/hooks";
+import { useManagedProfilesQuery } from "Components/ManagedProfiles/hooks";
 import { apiFieldErrors } from "Data/Api/Client";
 import SectionCard from "Components/Common/SectionCard";
 
 export default function DeleteAccountSection() {
 	const deleteAccount = useDeleteAccountMutation();
 	const groupsQuery = useGroupsQuery();
+	const profilesQuery = useManagedProfilesQuery();
 	const [confirming, setConfirming] = useState(false);
 	const [password, setPassword] = useState("");
 
 	const ownedGroups = groupsQuery.data?.filter((group) => group.isOwner) ?? [];
+	// Nobody would be left to look after these, so they're deleted with the account.
+	const onlyYours = profilesQuery.data?.filter((profile) => profile.managers.length === 1) ?? [];
 	const drawnMemberGroups = groupsQuery.data?.filter((group) => !group.isOwner && group.isDrawn) ?? [];
 	const passwordError = apiFieldErrors(deleteAccount.error).current_password;
 
@@ -37,6 +41,20 @@ export default function DeleteAccountSection() {
 								<List.Item key={group.id}>{group.name}</List.Item>
 							))}
 						</List>
+					</Alert>
+				)}
+
+				{onlyYours.length > 0 && (
+					<Alert color="red" title="These kids and pets go too">
+						<List size="sm">
+							{onlyYours.map((profile) => (
+								<List.Item key={profile.id}>{profile.name}</List.Item>
+							))}
+						</List>
+						<MantineText size="sm" mt="xs">
+							You&apos;re the only one looking after them, so their wishlists and group places are deleted with your
+							account. To keep one, share it with someone else first.
+						</MantineText>
 					</Alert>
 				)}
 

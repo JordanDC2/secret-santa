@@ -12,10 +12,17 @@ class DeleteAccount
 {
     /**
      * Deletes the user and every group they own. The database cascades the rest
-     * (memberships, assignments, wishlist items) and clears claims they made.
+     * (memberships, assignments, wishlist items) and clears claims they made. Kids and pets
+     * only they look after go too (nobody would be left to look after them); ones with
+     * another parent stay with them.
      */
     public function __invoke(User $user): void
     {
+        $user->managedProfiles()
+            ->whereDoesntHave('managers', fn ($managers) => $managers->whereKeyNot($user->id))
+            ->get()
+            ->each(fn (User $profile) => $this($profile));
+
         $affectedGroupIds = $user->groups()->pluck('groups.id');
         // Lists that change: ones they claimed from, and ones they suggested gifts for (those
         // suggestions stay, now "suggested by someone").

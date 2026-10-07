@@ -22,12 +22,23 @@ function matches(account: IAdminAccount, search: string): boolean {
 
 /** Same consequences as deleting your own account on the Settings page. */
 function DeleteAccountPrompt({ account }: { account: IAdminAccount }) {
+	const onlyTheirs = account.kidsAndPets.filter((profile) => profile.onlyCarer);
+
 	return (
 		<Stack gap="xs">
 			<MantineText size="sm">
 				This permanently deletes {account.fullName}&apos;s account and wishlist. Gifts they claimed on other lists
 				become available again. It can&apos;t be undone.
 			</MantineText>
+			{onlyTheirs.length > 0 && (
+				<Alert color="red" title="These kids and pets only they look after go too">
+					<BulletList size="sm">
+						{onlyTheirs.map((profile) => (
+							<List.Item key={profile.id}>{profile.name}</List.Item>
+						))}
+					</BulletList>
+				</Alert>
+			)}
 			{account.ownedGroups.length > 0 && (
 				<Alert color="red" title="These groups they own will be deleted for everyone">
 					<BulletList size="sm">

@@ -103,6 +103,7 @@ class AdminTest extends TestCase
         $this->assertSame('Ski Trip', $nick['owned_groups'][0]['name']);
         $this->assertSame(2, $nick['owned_groups'][0]['members_count']);
         $this->assertSame('Biscuit', $nick['kids_and_pets'][0]['name']);
+        $this->assertTrue($nick['kids_and_pets'][0]['only_carer']);
         $this->assertSame([['id' => $owned->id, 'name' => 'Ski Trip']], $accounts->firstWhere('id', $this->admin->id)['member_of']);
     }
 

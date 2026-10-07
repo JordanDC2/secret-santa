@@ -38,7 +38,8 @@ export type IAdminAccount = {
 	lastSeenAt: string | null;
 	ownedGroups: { id: number; name: string; membersCount: number; isDrawn: boolean }[];
 	memberOf: { id: number; name: string }[];
-	kidsAndPets: { id: number; name: string; kind: "child" | "pet" }[];
+	/** onlyCarer: nobody else looks after them, so they're deleted along with this account. */
+	kidsAndPets: { id: number; name: string; kind: "child" | "pet"; onlyCarer: boolean }[];
 };
 
 export type IAdminGroup = {

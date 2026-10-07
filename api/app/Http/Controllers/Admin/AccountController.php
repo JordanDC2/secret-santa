@@ -30,7 +30,7 @@ class AccountController extends Controller
             ->with([
                 'ownedGroups' => fn ($groups) => $groups->withCount('members')->orderBy('name'),
                 'groups' => fn ($groups) => $groups->orderBy('name'),
-                'managedProfiles' => fn ($profiles) => $profiles->orderBy('first_name'),
+                'managedProfiles' => fn ($profiles) => $profiles->withCount('managers')->orderBy('first_name'),
             ])
             ->orderByDesc('created_at')
             ->get()
@@ -58,6 +58,8 @@ class AccountController extends Controller
                     'id' => $profile->id,
                     'name' => $profile->full_name,
                     'kind' => $profile->managed_kind,
+                    // Deleted along with this account (see DeleteAccount).
+                    'only_carer' => $profile->managers_count === 1,
                 ])->values(),
             ]);
 

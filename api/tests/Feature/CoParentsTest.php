@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Actions\ManagedProfiles\CreateManagedProfile;
 use App\Models\Group;
 use App\Models\User;
+use App\Models\WishlistItem;
 use App\Notifications\EmptyWishlistReminder;
 use App\Notifications\ProfileShared;
 use App\Notifications\SantaMessageReceived;
@@ -55,6 +56,26 @@ class CoParentsTest extends TestCase
 
         Sanctum::actingAs($this->nick);
         $this->getJson(route('account.profiles.index'))->assertJsonPath('0.name', 'Lily');
+    }
+
+    public function test_deleting_your_account_takes_the_kids_only_you_look_after(): void
+    {
+        // Biscuit is shared with Nick, so he stays; Lily is Holly's alone, so she goes too.
+        $biscuit = app(CreateManagedProfile::class)($this->holly, 'Biscuit', null, 'pet');
+        $biscuit->managers()->attach($this->nick);
+        $nicksGroup = Group::factory()->create(['owner_id' => $this->nick->id]);
+        $nicksGroup->members()->attach([$this->lily->id, $biscuit->id]);
+        $lilysItem = WishlistItem::factory()->for($this->lily, 'owner')->create();
+
+        Sanctum::actingAs($this->holly);
+        $this->deleteJson(route('account.destroy'), ['current_password' => 'password'])->assertNoContent();
+
+        $this->assertModelMissing($this->holly);
+        $this->assertModelMissing($this->lily);
+        $this->assertModelMissing($lilysItem);
+        $this->assertModelExists($biscuit);
+        $this->assertTrue($this->nick->manages($biscuit));
+        $this->assertEqualsCanonicalizing([$this->nick->id, $biscuit->id], $nicksGroup->members()->pluck('users.id')->all());
     }
 
     public function test_only_people_from_your_groups_only_once_and_only_by_a_parent(): void

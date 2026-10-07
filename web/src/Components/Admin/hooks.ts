@@ -33,7 +33,7 @@ type IAccountResponse = {
 	last_seen_at: string | null;
 	owned_groups: { id: number; name: string; members_count: number; is_drawn: boolean }[];
 	member_of: { id: number; name: string }[];
-	kids_and_pets: { id: number; name: string; kind: "child" | "pet" }[];
+	kids_and_pets: { id: number; name: string; kind: "child" | "pet"; only_carer: boolean }[];
 };
 
 type IGroupResponse = {
@@ -94,7 +94,12 @@ function toAccount(account: IAccountResponse): IAdminAccount {
 			isDrawn: group.is_drawn,
 		})),
 		memberOf: account.member_of,
-		kidsAndPets: account.kids_and_pets,
+		kidsAndPets: account.kids_and_pets.map((profile) => ({
+			id: profile.id,
+			name: profile.name,
+			kind: profile.kind,
+			onlyCarer: profile.only_carer,
+		})),
 	};
 }
 
