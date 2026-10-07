@@ -32,6 +32,10 @@ class LinkPreviewFetcher
     {
         $page = $this->download($url);
 
+        if ($page !== null && SteamProductPage::matches($page['url']) && ! SteamProductPage::isStorePage($page['url'])) {
+            $page = null;
+        }
+
         return $page === null
             ? ['name' => null, 'price' => null, 'image_url' => null]
             : $this->parse($page['html'], $page['url']);
@@ -73,7 +77,7 @@ class LinkPreviewFetcher
                         // Guzzle strips curl's default Accept-Encoding, and some shops (Amazon)
                         // answer requests without one with a bot-check page instead.
                         'Accept-Encoding' => 'gzip, deflate',
-                    ])
+                    ] + (SteamProductPage::matches($safe->url) ? ['Cookie' => SteamProductPage::AGE_CHECK_COOKIE] : []))
                     ->get($safe->url);
             } catch (ConnectionException|TransferException) {
                 return null;
@@ -110,6 +114,7 @@ class LinkPreviewFetcher
         $site = match (true) {
             AmazonProductPage::matches($pageUrl) => AmazonProductPage::read($xpath, $pageUrl),
             WalmartProductPage::matches($pageUrl) => WalmartProductPage::read($xpath),
+            SteamProductPage::matches($pageUrl) => SteamProductPage::read($xpath),
             default => [],
         };
         $meta = fn (string ...$names) => $this->meta($xpath, ...$names);

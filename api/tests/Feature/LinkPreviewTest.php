@@ -26,6 +26,7 @@ class LinkPreviewTest extends TestCase
         'metadata.example' => ['169.254.169.254'],
         'www.amazon.com' => ['93.184.216.37'],
         'www.walmart.com' => ['93.184.216.38'],
+        'store.steampowered.com' => ['93.184.216.39'],
     ];
 
     protected function setUp(): void
@@ -142,6 +143,45 @@ class LinkPreviewTest extends TestCase
             'price' => 5.97,
             'image_url' => 'https://i5.walmartimages.com/seo/water.jpeg',
         ]);
+    }
+
+    public function test_reads_steam_store_pages(): void
+    {
+        // Steam's og:title is sale copy with no price tag; the heading and microdata are clean.
+        Http::fake(['store.steampowered.com/app/*' => Http::response($this->page(
+            '<meta property="og:title" content="Save 50% on Kena: Bridge of Spirits on Steam">'
+            .'<meta property="og:image" content="https://shared.fastly.steamstatic.com/apps/1954200/capsule_616x353.jpg">'
+            .'<meta itemprop="priceCurrency" content="USD"><meta itemprop="price" content="19.99">'
+        ).'<div class="apphub_AppName" role="heading">Kena: Bridge of Spirits</div>', 200, ['Content-Type' => 'text/html'])]);
+
+        $this->previewAs('https://store.steampowered.com/app/1954200/Kena_Bridge_of_Spirits/')->assertExactJson([
+            'name' => 'Kena: Bridge of Spirits',
+            'price' => 19.99,
+            'image_url' => 'https://shared.fastly.steamstatic.com/apps/1954200/capsule_616x353.jpg',
+        ]);
+
+        // Bundle pages have no store heading.
+        Http::fake(['store.steampowered.com/bundle/*' => Http::response($this->page(
+            '<meta property="og:title" content="Save 80% on Valve Complete Pack on Steam">'
+        ), 200, ['Content-Type' => 'text/html'])]);
+
+        $this->previewAs('https://store.steampowered.com/bundle/232/Valve_Complete_Pack/')->assertJsonPath('name', 'Valve Complete Pack');
+
+        // Without these cookies, mature-rated games redirect to an age check page.
+        Http::assertSent(fn (Request $request) => str_contains($request->header('Cookie')[0] ?? '', 'wants_mature_content=1'));
+    }
+
+    public function test_steam_links_that_land_on_the_store_front_return_nothing(): void
+    {
+        // Games Steam won't show redirect to the store front, whose picture is Steam's own art.
+        Http::fake([
+            'store.steampowered.com/app/999999999/*' => Http::response('', 302, ['Location' => 'https://store.steampowered.com/']),
+            'store.steampowered.com/' => Http::response($this->page(
+                '<meta property="og:title" content="Steam Store"><meta property="og:image" content="https://shared.fastly.steamstatic.com/sale.jpg">'
+            ), 200, ['Content-Type' => 'text/html']),
+        ]);
+
+        $this->previewAs('https://store.steampowered.com/app/999999999/Gone/')->assertExactJson(['name' => null, 'price' => null, 'image_url' => null]);
     }
 
     public function test_a_plain_page_title_is_not_used_as_the_item_name(): void
