@@ -80,7 +80,8 @@ export default function App() {
 				colorSchemeManager={colorSchemeManager}
 			>
 				<AuthProvider>
-					<BrowserRouter>
+					{/* React Router v7's behaviour now, which also quiets its upgrade warnings. */}
+					<BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
 						<AppRoutes />
 						{liveUpdatesEnabled() && <UpdateNotice />}
 					</BrowserRouter>

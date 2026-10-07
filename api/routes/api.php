@@ -58,6 +58,10 @@ Route::prefix('auth')->name('auth.')->group(function () {
         ->name('logout');
 });
 
+// Who's signed in, if anyone: the React app asks on every page load. Answers null rather than
+// 401 when signed out, so signed-out pages don't log a failed request in the console.
+Route::get('session', fn (Request $request) => response()->json(['user' => $request->user()]))->name('session');
+
 // Public: an invite link shows which group it's for before the visitor signs in.
 Route::get('invites/{code}', InvitePreviewHandler::class)->middleware('throttle:join')->name('invites.show');
 

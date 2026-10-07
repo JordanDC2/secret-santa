@@ -270,7 +270,8 @@ export default function GroupCard({ group }: IGroupCardProps) {
 			)}
 			{(group.myAssignment || group.mySanta || group.managedAssignments.length > 0) && (
 				<SantaChatModal
-					key={chat.key}
+					// Prefixed: Card's children share one key space, and both counters start at 0.
+					key={`chat-${chat.key}`}
 					target={{ groupId: group.id, groupName: group.name, ...(linkedChat ?? chat) }}
 					opened={chat.opened || linkedChat !== null}
 					onClose={closeChat}
@@ -278,7 +279,7 @@ export default function GroupCard({ group }: IGroupCardProps) {
 			)}
 			{group.isOwner && (
 				<ExchangeDetailsModal
-					key={exchangeModal.key}
+					key={`exchange-${exchangeModal.key}`}
 					group={group}
 					opened={exchangeModal.opened}
 					onClose={() => setExchangeModal((current) => ({ ...current, opened: false }))}

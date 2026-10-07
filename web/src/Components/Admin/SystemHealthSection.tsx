@@ -5,7 +5,7 @@ import { faCircleCheck, faTriangleExclamation } from "@fortawesome/free-solid-sv
 import SectionCard from "Components/Common/SectionCard";
 import FailedJobsList from "Components/Admin/FailedJobsList";
 import { formatBytes, formatDateTime, timeAgo } from "Components/Admin/format";
-import type { ISystemHealth } from "Components/Admin/types";
+import type { ILoggedError, ISystemHealth } from "Components/Admin/types";
 import classes from "Components/Admin/SystemHealthSection.module.less";
 
 // The nightly backup runs at 03:00; more than a day and a bit since the last one means it missed.
@@ -15,6 +15,22 @@ const QUEUE_STUCK_MINUTES = 10;
 
 function hoursSince(iso: string): number {
 	return (Date.now() - new Date(iso).getTime()) / 3_600_000;
+}
+
+/**
+ * The same error can be logged several times in one second, so repeats get numbered keys
+ * ("…#2") to stay unique.
+ */
+function withRepeatKeys(errors: ILoggedError[]): { key: string; error: ILoggedError }[] {
+	const seen = new Map<string, number>();
+
+	return errors.map((error) => {
+		const base = `${error.loggedAt} ${error.message}`;
+		const count = (seen.get(base) ?? 0) + 1;
+		seen.set(base, count);
+
+		return { key: count === 1 ? base : `${base}#${count}`, error };
+	});
 }
 
 /** One line of the health check: a status icon and label, never color alone. */
@@ -72,8 +88,8 @@ export default function SystemHealthSection({ health }: { health: ISystemHealth 
 						"Nothing in the log."
 					) : (
 						<Stack gap={6} mt={4}>
-							{health.recentErrors.map((error) => (
-								<div key={`${error.loggedAt}-${error.message}`}>
+							{withRepeatKeys(health.recentErrors).map(({ key, error }) => (
+								<div key={key}>
 									<MantineText size="xs">
 										{formatDateTime(error.loggedAt)} · {error.level}
 									</MantineText>

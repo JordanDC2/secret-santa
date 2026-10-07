@@ -158,4 +158,13 @@ class AccountTest extends TestCase
         $this->get('/api/user', ['Accept' => '*/*, application/json'])->assertUnauthorized();
         $this->getJson('/api/user')->assertUnauthorized();
     }
+
+    public function test_the_session_endpoint_answers_null_when_signed_out(): void
+    {
+        $this->getJson(route('session'))->assertOk()->assertExactJson(['user' => null]);
+
+        $user = User::factory()->create(['first_name' => 'Holly']);
+        Sanctum::actingAs($user);
+        $this->getJson(route('session'))->assertOk()->assertJsonPath('user.first_name', 'Holly')->assertJsonPath('user.is_admin', false);
+    }
 }

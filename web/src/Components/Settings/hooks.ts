@@ -37,11 +37,8 @@ export function useDeleteAccountMutation() {
 
 	return useMutation({
 		mutationFn: (currentPassword: string) => apiClient.delete<void>("/account", { current_password: currentPassword }),
-		onSuccess: () => {
-			// Same as logging out: the app falls back to the login page.
-			queryClient.setQueryData(CURRENT_USER_QUERY_KEY, null);
-			queryClient.clear();
-		},
+		// Same as logging out: the app falls back to the login page, and AuthProvider clears the cache.
+		onSuccess: () => queryClient.setQueryData(CURRENT_USER_QUERY_KEY, null),
 	});
 }
 

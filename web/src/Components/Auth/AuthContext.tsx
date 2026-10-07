@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, type PropsWithChildren } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, type PropsWithChildren } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { UseMutationResult } from "@tanstack/react-query";
 import type { IUser, IUserResponse } from "Components/Auth/types";
@@ -40,7 +40,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
 	const queryClient = useQueryClient();
 	const currentUserQuery = useQuery({
 		queryKey: CURRENT_USER_QUERY_KEY,
-		queryFn: async () => toUser(await apiClient.get<IUserResponse>("/user")),
+		// Null when signed out (a 200, so signed-out pages don't log a failed request).
+		queryFn: async () => {
+			const { user } = await apiClient.get<{ user: IUserResponse | null }>("/session");
+
+			return user ? toUser(user) : null;
+		},
 		retry: false,
 	});
 
@@ -66,10 +71,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
 	const logoutMutation = useMutation({
 		mutationFn: () => apiClient.post<void>("/auth/logout"),
-		onSuccess: () => {
-			queryClient.setQueryData(CURRENT_USER_QUERY_KEY, null);
-			queryClient.clear();
-		},
+		// The cleanup effect below clears everything else once the signed-in pages are gone.
+		onSuccess: () => queryClient.setQueryData(CURRENT_USER_QUERY_KEY, null),
 	});
 
 	// Only the first check counts as loading. A logged-out user has no cached data, so
@@ -80,6 +83,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
 		: currentUserQuery.data
 			? "authenticated"
 			: "unauthenticated";
+
+	// Once nobody is signed in, drop everyone else's cached data. Done here, after the signed-in
+	// pages have unmounted, so they don't refetch it (and get 401s) on the way out.
+	const userId = currentUserQuery.data?.id ?? null;
+	useEffect(() => {
+		if (userId === null) {
+			queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== CURRENT_USER_QUERY_KEY[0] });
+		}
+	}, [userId, queryClient]);
 
 	const logout = useCallback(() => logoutMutation.mutate(), [logoutMutation]);
 
