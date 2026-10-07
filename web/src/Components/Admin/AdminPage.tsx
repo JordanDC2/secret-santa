@@ -15,6 +15,7 @@ import BackToGroups from "Components/Layout/BackToGroups";
 import Page from "Components/Layout/Page";
 import PageTitle from "Components/Layout/PageTitle";
 import { apiErrorMessage } from "Data/Api/Client";
+import classes from "Components/Admin/AdminPage.module.less";
 
 // The map and its outlines (~200 KB) load only when the Map tab opens.
 const LocationsTab = lazy(() => import("Components/Admin/Map/LocationsTab"));
@@ -61,7 +62,7 @@ export default function AdminPage() {
 			<Stack gap="lg">
 				<BackToGroups />
 				<PageTitle icon={<HollyIcon />}>Admin</PageTitle>
-				<Tabs defaultValue="overview" keepMounted={false}>
+				<Tabs defaultValue="overview" keepMounted={false} classNames={{ tab: classes.tab }}>
 					<Tabs.List mb="lg">
 						<Tabs.Tab value="overview">Overview</Tabs.Tab>
 						<Tabs.Tab value="accounts">Accounts</Tabs.Tab>

@@ -2,7 +2,7 @@ import { Button, Group, Text as MantineText } from "@mantine/core";
 import { Link } from "react-router-dom";
 import SectionCard from "Components/Common/SectionCard";
 
-/** Only for the site's owner: the way to the admin page on phones, where the header has no room. */
+/** Only for the site's owner: a quick way to the admin page (the only way on phones, where the header has no room). */
 export default function AdminSection() {
 	return (
 		<SectionCard title="Admin">

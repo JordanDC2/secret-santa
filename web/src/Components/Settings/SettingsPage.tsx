@@ -24,12 +24,13 @@ export default function SettingsPage() {
 			<Stack gap="lg">
 				<BackToGroups />
 				<PageTitle icon={<SnowflakeIcon />}>Settings</PageTitle>
+				{/* First, since only the site's owner ever sees it and it's what they come here for. */}
+				{user.isAdmin && <AdminSection />}
 				<ProfileSection user={user} />
 				<ManagedProfilesSection />
 				<PasswordSection />
 				<EmailPreferencesSection />
 				<AppearanceSection />
-				{user.isAdmin && <AdminSection />}
 				<DeleteAccountSection />
 			</Stack>
 		</Page>
