@@ -6,6 +6,16 @@ import WishListIcon from "Components/Common/FestiveIcons/WishListIcon";
 import { useAuth } from "Components/Auth/AuthContext";
 import classes from "Components/Layout/AppHeader.module.less";
 
+// Mantine sets a button's colours inline, so they're swapped through its vars, not CSS.
+const accountButtonVars = () => ({
+	root: {
+		"--button-bg": "var(--festive-header-button)",
+		"--button-hover": "var(--festive-header-button-hover)",
+		"--button-color": "var(--festive-header-button-text)",
+		"--button-bd": "1px solid var(--festive-header-button-border)",
+	},
+});
+
 export default function AppHeader() {
 	const { user, logout } = useAuth();
 
@@ -21,7 +31,7 @@ export default function AppHeader() {
 					</Anchor>
 					{/* Signed out (e.g. reading the Privacy page): just a way in. */}
 					{!user && (
-						<Button component={Link} to="/login" variant="white" color="red" size="xs">
+						<Button component={Link} to="/login" size="xs" className={classes.accountButton} vars={accountButtonVars}>
 							Log in
 						</Button>
 					)}
@@ -36,7 +46,7 @@ export default function AppHeader() {
 								<SnowflakeIcon size="1.3em" />
 								Settings
 							</Anchor>
-							<Button variant="white" color="red" size="xs" onClick={() => logout()}>
+							<Button size="xs" className={classes.accountButton} vars={accountButtonVars} onClick={() => logout()}>
 								Log out
 							</Button>
 						</Group>
