@@ -20,7 +20,7 @@ export default function AuthLayout({ subtitle, children }: IAuthLayoutProps) {
 					Secret Santa
 				</h1>
 				<p className={classes.subtitle}>{subtitle}</p>
-				<Paper shadow="xl" p={30} radius="lg" className={classes.card}>
+				<Paper shadow="xl" p={30} radius="lg">
 					{children}
 					<InstallAppLink />
 				</Paper>
