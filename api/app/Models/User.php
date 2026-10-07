@@ -6,7 +6,10 @@ namespace App\Models;
 use App\Enums\EmailKind;
 use App\Notifications\Contracts\OptionalEmail;
 use App\Notifications\ResetPasswordLink;
+use App\Notifications\VerifyEmailAddress;
 use Database\Factories\UserFactory;
+use Illuminate\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
 use Illuminate\Database\Eloquent\Attributes\Appends;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -35,10 +38,10 @@ use Laravel\Sanctum\HasApiTokens;
 #[Fillable(['first_name', 'last_name', 'email', 'password', 'email_preferences', 'managed_kind'])]
 #[Hidden(['password', 'remember_token', 'email_preferences', 'region_country', 'region_name', 'region_checked_at'])]
 #[Appends(['full_name', 'is_admin'])]
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmailContract
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, MustVerifyEmail, Notifiable;
 
     /** @var array<int, int>|null See managedProfileIds(). */
     private ?array $managedProfileIdsCache = null;
@@ -103,6 +106,18 @@ class User extends Authenticatable
     public function groups(): BelongsToMany
     {
         return $this->belongsToMany(Group::class)->withTimestamps();
+    }
+
+    /**
+     * The "confirm your email" email (sent on sign-up by Laravel's Registered listener, and after
+     * an email change). Verification is a nudge only: nothing is blocked until it's done.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        // A kid or pet has no address of their own to confirm.
+        if (! $this->isManagedProfile()) {
+            $this->notify(new VerifyEmailAddress);
+        }
     }
 
     public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void

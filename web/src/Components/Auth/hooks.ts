@@ -3,10 +3,10 @@ import { apiClient } from "Data/Api/Client";
 
 type IMessageResponse = { message: string };
 
-/** Maps the API's snake_case field names to the sign-in forms' fields, for apiFieldErrors(). */
 /** Under every new-password field; the API enforces the same (AppServiceProvider). */
 export const PASSWORD_HINT = "At least 8 characters. Longer is better, and a few unrelated words make a strong one.";
 
+/** Maps the API's snake_case field names to the sign-in forms' fields, for apiFieldErrors(). */
 export const AUTH_FIELD_NAMES = {
 	first_name: "firstName",
 	last_name: "lastName",
@@ -35,5 +35,12 @@ export function useResetPasswordMutation() {
 				password: details.password,
 				password_confirmation: details.passwordConfirmation,
 			}),
+	});
+}
+
+/** The banner's "Send it again": a fresh confirmation link to the signed-in person's email. */
+export function useResendVerificationMutation() {
+	return useMutation({
+		mutationFn: () => apiClient.post<IMessageResponse>("/auth/email/resend"),
 	});
 }

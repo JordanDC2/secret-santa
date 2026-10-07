@@ -11,6 +11,7 @@ import PublicLayout from "Components/Layout/PublicLayout";
 import UpdateNotice from "Components/AppUpdates/UpdateNotice";
 import { liveUpdatesEnabled } from "Data/Api/LiveUpdates";
 import { AuthProvider, useAuth } from "Components/Auth/AuthContext";
+import EmailVerifiedPage from "Components/Auth/EmailVerifiedPage";
 import ForgotPasswordPage from "Components/Auth/ForgotPasswordPage";
 import LoginPage from "Components/Auth/LoginPage";
 import RegisterPage from "Components/Auth/RegisterPage";
@@ -47,6 +48,7 @@ function AppRoutes() {
 				element={status === "authenticated" ? <Navigate to="/" /> : <ForgotPasswordPage />}
 			/>
 			<Route path="/reset-password" element={<ResetPasswordPage />} />
+			<Route path="/email-verified" element={<EmailVerifiedPage />} />
 			{/* Signed in or not: an invite link explains itself, then joins once they're in. */}
 			<Route path="/join/:code" element={<JoinInvitePage />} />
 			{/* Signed in or not. */}

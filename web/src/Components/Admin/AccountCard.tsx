@@ -26,6 +26,11 @@ export default function AccountCard({ account, onAction }: IAccountCardProps) {
 									You
 								</Badge>
 							)}
+							{!account.emailVerified && (
+								<Badge size="sm" variant="light" color="orange">
+									Email not confirmed
+								</Badge>
+							)}
 						</Group>
 						<MantineText size="sm" c="dimmed" className={classes.email}>
 							{account.email}

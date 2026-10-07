@@ -92,6 +92,11 @@ return [
     |
     */
 
+    // How long the "confirm your email" link works. A day, since people often open it later.
+    'verification' => [
+        'expire' => 1440,
+    ],
+
     'passwords' => [
         'users' => [
             'provider' => 'users',

@@ -41,7 +41,13 @@ export default function ProfileSection({ user }: { user: IUser }) {
 		<SectionCard title="Profile">
 			<form onSubmit={form.onSubmit(handleSubmit)}>
 				<Stack>
-					{updateProfile.isSuccess && !form.isDirty() && <Alert color="green">Profile saved.</Alert>}
+					{updateProfile.isSuccess && !form.isDirty() && (
+						<Alert color="green">
+							{updateProfile.data.emailVerified
+								? "Profile saved."
+								: `Profile saved. We sent a link to ${updateProfile.data.email} to confirm your new email.`}
+						</Alert>
+					)}
 					{updateProfile.isError && Object.keys(form.errors).length === 0 && (
 						<Alert color="red">{apiErrorMessage(updateProfile.error)}</Alert>
 					)}

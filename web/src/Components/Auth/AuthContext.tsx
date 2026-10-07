@@ -33,6 +33,7 @@ export function toUser(user: IUserResponse): IUser {
 		fullName: user.full_name,
 		email: user.email,
 		isAdmin: user.is_admin,
+		emailVerified: user.email_verified_at !== null,
 	};
 }
 

@@ -7,6 +7,8 @@ export type IUser = {
 	email: string;
 	/** The site's owner, who gets the admin page. */
 	isAdmin: boolean;
+	/** Whether they've clicked the link in the "confirm your email" email (a nudge; nothing waits on it). */
+	emailVerified: boolean;
 };
 
 /** The signed-in user as the API sends it. */
@@ -17,4 +19,5 @@ export type IUserResponse = {
 	full_name: string;
 	email: string;
 	is_admin: boolean;
+	email_verified_at: string | null;
 };

@@ -15,7 +15,9 @@ use App\Http\Controllers\Auth\ForgotPasswordHandler;
 use App\Http\Controllers\Auth\LoginHandler;
 use App\Http\Controllers\Auth\LogoutHandler;
 use App\Http\Controllers\Auth\RegisterHandler;
+use App\Http\Controllers\Auth\ResendVerificationHandler;
 use App\Http\Controllers\Auth\ResetPasswordHandler;
+use App\Http\Controllers\Auth\VerifyEmailHandler;
 use App\Http\Controllers\Group\DrawDetailsController;
 use App\Http\Controllers\Group\DrawEveryoneHandler;
 use App\Http\Controllers\Group\DrawHandler;
@@ -52,6 +54,15 @@ Route::prefix('auth')->name('auth.')->group(function () {
     Route::post('reset-password', ResetPasswordHandler::class)
         ->middleware('throttle:6,1')
         ->name('password.update');
+
+    // The "Confirm my email" link: signed and expiring, so it works without being signed in.
+    Route::get('email/verify/{user}/{hash}', VerifyEmailHandler::class)
+        ->middleware('throttle:12,1')
+        ->name('email.verify');
+
+    Route::post('email/resend', ResendVerificationHandler::class)
+        ->middleware(['auth:sanctum', 'throttle:3,10'])
+        ->name('email.resend');
 
     Route::post('logout', LogoutHandler::class)
         ->middleware('auth:sanctum')

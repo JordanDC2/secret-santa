@@ -34,6 +34,8 @@ export type IAdminAccount = {
 	fullName: string;
 	email: string;
 	isAdmin: boolean;
+	/** Clicked the "confirm your email" link (or signed up before verification existed). */
+	emailVerified: boolean;
 	createdAt: string;
 	/** Null once their sessions have expired. */
 	lastSeenAt: string | null;

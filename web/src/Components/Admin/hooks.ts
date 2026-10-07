@@ -29,6 +29,7 @@ type IAccountResponse = {
 	full_name: string;
 	email: string;
 	is_admin: boolean;
+	email_verified: boolean;
 	created_at: string;
 	last_seen_at: string | null;
 	owned_groups: { id: number; name: string; members_count: number; is_drawn: boolean }[];
@@ -89,6 +90,7 @@ function toAccount(account: IAccountResponse): IAdminAccount {
 		fullName: account.full_name,
 		email: account.email,
 		isAdmin: account.is_admin,
+		emailVerified: account.email_verified,
 		createdAt: account.created_at,
 		lastSeenAt: account.last_seen_at,
 		ownedGroups: account.owned_groups.map((group) => ({

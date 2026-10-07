@@ -41,6 +41,7 @@ class AccountController extends Controller
                 'full_name' => $user->full_name,
                 'email' => $user->email,
                 'is_admin' => $user->is_admin,
+                'email_verified' => $user->hasVerifiedEmail(),
                 'created_at' => $user->created_at?->toIso8601String(),
                 // Sessions expire after a while, so someone long gone shows as null.
                 'last_seen_at' => isset($lastSeen[$user->id]) ? Carbon::createFromTimestamp((int) $lastSeen[$user->id])->toIso8601String() : null,
@@ -71,7 +72,19 @@ class AccountController extends Controller
      */
     public function update(UpdateAccountRequest $request, User $user): JsonResponse
     {
-        $user->update($request->safe()->only('first_name', 'last_name', 'email'));
+        $user->fill($request->safe()->only('first_name', 'last_name', 'email'));
+        $emailChanged = $user->isDirty('email');
+
+        // A corrected address still needs confirming. No heads-up to the old one: it was usually a typo.
+        if ($emailChanged) {
+            $user->email_verified_at = null;
+        }
+
+        $user->save();
+
+        if ($emailChanged) {
+            $user->sendEmailVerificationNotification();
+        }
 
         // Their name shows on other members' group cards.
         $user->groups()->pluck('groups.id')->each(fn (int $groupId) => GroupChanged::dispatch($groupId));

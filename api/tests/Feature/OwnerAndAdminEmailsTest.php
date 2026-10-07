@@ -53,7 +53,7 @@ class OwnerAndAdminEmailsTest extends TestCase
 
         $this->register('Tinsel', 'tinsel@example.test')->assertSuccessful();
 
-        Notification::assertNothingSent();
+        Notification::assertSentTimes(NewAccountRegistered::class, 0);
     }
 
     public function test_the_owner_hears_when_someone_joins_their_group(): void
