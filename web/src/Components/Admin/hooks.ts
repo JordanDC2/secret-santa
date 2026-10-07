@@ -17,7 +17,7 @@ type IOverviewResponse = {
 		version: string | null;
 		queued_jobs: { queue: string; count: number; oldest_due_at: string | null }[];
 		failed_jobs: { uuid: string; job: string; queue: string; failed_at: string; error: string }[];
-		last_backup: { finished_at: string; bytes: number } | null;
+		last_backup: { finished_at: string; bytes: number; offsite_finished_at: string | null } | null;
 		recent_errors: { logged_at: string; level: string; message: string }[];
 	};
 };
@@ -71,7 +71,11 @@ function toOverview({ counts, sign_ups, health }: IOverviewResponse): IAdminOver
 				oldestDueAt: jobs.oldest_due_at,
 			})),
 			failedJobs: health.failed_jobs.map((job) => ({ ...job, failedAt: job.failed_at })),
-			lastBackup: health.last_backup && { finishedAt: health.last_backup.finished_at, bytes: health.last_backup.bytes },
+			lastBackup: health.last_backup && {
+				finishedAt: health.last_backup.finished_at,
+				bytes: health.last_backup.bytes,
+				offsiteFinishedAt: health.last_backup.offsite_finished_at,
+			},
 			recentErrors: health.recent_errors.map((error) => ({ ...error, loggedAt: error.logged_at })),
 		},
 	};

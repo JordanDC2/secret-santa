@@ -94,7 +94,7 @@ class SystemHealth
      * Written by deploy/backup-database.sh after each nightly backup (the backups themselves
      * are root-only, so the app can't look at them).
      *
-     * @return array{finished_at: string, bytes: int}|null
+     * @return array{finished_at: string, bytes: int, offsite_finished_at: ?string}|null
      */
     private function lastBackup(): ?array
     {
@@ -111,7 +111,14 @@ class SystemHealth
             return null;
         }
 
-        return ['finished_at' => $finishedAt, 'bytes' => (int) ($data['bytes'] ?? 0)];
+        // Written by deploy/offsite-backup.sh once the encrypted copy is in Object Storage.
+        $offsite = $data['offsite_finished_at'] ?? null;
+
+        return [
+            'finished_at' => $finishedAt,
+            'bytes' => (int) ($data['bytes'] ?? 0),
+            'offsite_finished_at' => is_string($offsite) ? Carbon::parse($offsite)->toIso8601String() : null,
+        ];
     }
 
     /**

@@ -23,3 +23,6 @@ printf '{"finished_at":"%s","bytes":%s}\n' "$(date -u +%FT%TZ)" "$(stat -c %s "$
 chown www-data:www-data "$STATUS_FILE"
 chmod 644 "$STATUS_FILE"
 
+# Then a copy off the server (see offsite-backup.sh). Its failure mustn't count against the
+# local backup above, which already succeeded.
+"$(dirname "$0")/offsite-backup.sh" || echo "Off-site copy failed; the local backup is fine."

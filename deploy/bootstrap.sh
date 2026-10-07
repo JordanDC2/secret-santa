@@ -33,7 +33,7 @@ export DEBIAN_FRONTEND=noninteractive
 step "Base packages"
 apt-get update -q
 apt-get install -yq --no-install-recommends \
-	ca-certificates curl git gnupg unzip sqlite3 cron sudo software-properties-common \
+	ca-certificates curl git gnupg unzip sqlite3 cron sudo software-properties-common age \
 	debian-keyring debian-archive-keyring apt-transport-https
 
 step "Swap (only on small machines, e.g. the 1 GB AMD micro)"

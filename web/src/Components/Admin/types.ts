@@ -20,7 +20,8 @@ export type ISystemHealth = {
 	version: string | null;
 	queuedJobs: IQueuedJobs[];
 	failedJobs: IFailedJob[];
-	lastBackup: { finishedAt: string; bytes: number } | null;
+	/** offsiteFinishedAt: when the encrypted copy last reached Object Storage (null: not set up or failing). */
+	lastBackup: { finishedAt: string; bytes: number; offsiteFinishedAt: string | null } | null;
 	recentErrors: ILoggedError[];
 };
 

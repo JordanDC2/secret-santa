@@ -63,6 +63,8 @@ export default function SystemHealthSection({ health }: { health: ISystemHealth 
 	);
 	const queueStuck = oldestDue !== undefined && hoursSince(oldestDue) * 60 > QUEUE_STUCK_MINUTES;
 	const backupOk = health.lastBackup !== null && hoursSince(health.lastBackup.finishedAt) < BACKUP_OVERDUE_HOURS;
+	const offsiteAt = health.lastBackup?.offsiteFinishedAt ?? null;
+	const offsiteOk = offsiteAt !== null && hoursSince(offsiteAt) < BACKUP_OVERDUE_HOURS;
 
 	return (
 		<SectionCard title="System health">
@@ -79,6 +81,11 @@ export default function SystemHealthSection({ health }: { health: ISystemHealth 
 					{health.lastBackup
 						? `${formatDateTime(health.lastBackup.finishedAt)} (${timeAgo(health.lastBackup.finishedAt)}), ${formatBytes(health.lastBackup.bytes)}.`
 						: "No backup has reported in yet."}
+				</HealthRow>
+				<HealthRow ok={offsiteOk} label="Off-site copy">
+					{offsiteAt
+						? `${formatDateTime(offsiteAt)} (${timeAgo(offsiteAt)}), encrypted, in Oracle Object Storage.`
+						: "No encrypted copy has reached Object Storage yet."}
 				</HealthRow>
 				<HealthRow ok={health.failedJobs.length === 0} label="Failed jobs">
 					{health.failedJobs.length === 0 ? "None." : <FailedJobsList jobs={health.failedJobs} />}
