@@ -51,3 +51,10 @@
 .header .accountButton:hover {
 	color: var(--festive-header-button-hover-text);
 }
+
+/* Nav links that phones reach another way (the admin link lives in Settings there). */
+.header .wideOnly {
+	@media @phone {
+		display: none;
+	}
+}

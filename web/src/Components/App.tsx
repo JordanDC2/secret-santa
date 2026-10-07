@@ -4,6 +4,7 @@ import { localStorageColorSchemeManager, MantineProvider } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import SettingsPage from "Components/Settings/SettingsPage";
+import AdminPage from "Components/Admin/AdminPage";
 import PrivacyPage from "Components/Legal/PrivacyPage";
 import TermsPage from "Components/Legal/TermsPage";
 import PublicLayout from "Components/Layout/PublicLayout";
@@ -57,6 +58,7 @@ function AppRoutes() {
 				<Route path="/" element={<DashboardPage />} />
 				<Route path="/wishlist" element={<MyWishlistPage />} />
 				<Route path="/settings" element={<SettingsPage />} />
+				<Route path="/admin" element={<AdminPage />} />
 				{/* The page was called Account before; older emails still link here. */}
 				<Route path="/account" element={<Navigate to="/settings" replace />} />
 				<Route path="/wishlists/:userId" element={<MemberWishlistPage />} />

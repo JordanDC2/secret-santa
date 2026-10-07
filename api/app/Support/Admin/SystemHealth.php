@@ -1,0 +1,154 @@
+<?php
+
+namespace App\Support\Admin;
+
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Throwable;
+
+/**
+ * Is the site working: what's live, whether emails are getting out, when the last backup ran
+ * and what's gone wrong lately. Never reads people's data, only the plumbing around it.
+ */
+class SystemHealth
+{
+    private const RECENT_ERRORS = 10;
+
+    // Enough of the log's end for the last few errors without reading the whole file.
+    private const LOG_TAIL_BYTES = 262_144;
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function report(): array
+    {
+        return [
+            'version' => $this->version(),
+            'queued_jobs' => $this->queuedJobs(),
+            'failed_jobs' => $this->failedJobs(),
+            'last_backup' => $this->lastBackup(),
+            'recent_errors' => $this->recentErrors(),
+        ];
+    }
+
+    /**
+     * The commit the live web app was built from (deploy/update.sh writes it into the build).
+     */
+    private function version(): ?string
+    {
+        $file = base_path('../web/dist/version.json');
+        $data = is_file($file) ? json_decode((string) file_get_contents($file), true) : null;
+
+        return is_array($data) && is_string($data['version'] ?? null) ? $data['version'] : null;
+    }
+
+    /**
+     * Jobs waiting per queue, and how long the oldest has been ready to run. Email jobs that
+     * are meant to wait (a chat email's few minutes, say) only count once they're due.
+     *
+     * @return array<int, array{queue: string, count: int, oldest_due_at: ?string}>
+     */
+    private function queuedJobs(): array
+    {
+        return DB::table('jobs')
+            ->selectRaw('queue, count(*) as count, min(available_at) as oldest')
+            ->where('available_at', '<=', now()->timestamp)
+            ->groupBy('queue')
+            ->orderBy('queue')
+            ->get()
+            ->map(fn (object $row) => [
+                'queue' => (string) $row->queue,
+                'count' => (int) $row->count,
+                'oldest_due_at' => $row->oldest ? Carbon::createFromTimestamp((int) $row->oldest)->toIso8601String() : null,
+            ])
+            ->all();
+    }
+
+    /**
+     * Jobs that gave up after their retries: mostly emails that couldn't be sent.
+     *
+     * @return array<int, array{uuid: string, job: string, queue: string, failed_at: string, error: string}>
+     */
+    private function failedJobs(): array
+    {
+        return DB::table('failed_jobs')
+            ->orderByDesc('failed_at')
+            ->get(['uuid', 'queue', 'payload', 'exception', 'failed_at'])
+            ->map(function (object $row) {
+                $payload = json_decode((string) $row->payload, true);
+
+                return [
+                    'uuid' => (string) $row->uuid,
+                    // For an email this is the notification's class, e.g. "SecretSantaAssigned".
+                    'job' => class_basename(is_array($payload) ? (string) ($payload['displayName'] ?? 'Unknown job') : 'Unknown job'),
+                    'queue' => (string) $row->queue,
+                    'failed_at' => Carbon::parse((string) $row->failed_at)->toIso8601String(),
+                    'error' => Str::limit(Str::before((string) $row->exception, "\n"), 300),
+                ];
+            })
+            ->all();
+    }
+
+    /**
+     * Written by deploy/backup-database.sh after each nightly backup (the backups themselves
+     * are root-only, so the app can't look at them).
+     *
+     * @return array{finished_at: string, bytes: int}|null
+     */
+    private function lastBackup(): ?array
+    {
+        $file = storage_path('app/backup-status.json');
+        $data = is_file($file) ? json_decode((string) file_get_contents($file), true) : null;
+
+        if (! is_array($data) || ! is_string($data['finished_at'] ?? null)) {
+            return null;
+        }
+
+        try {
+            $finishedAt = Carbon::parse($data['finished_at'])->toIso8601String();
+        } catch (Throwable) {
+            return null;
+        }
+
+        return ['finished_at' => $finishedAt, 'bytes' => (int) ($data['bytes'] ?? 0)];
+    }
+
+    /**
+     * The newest errors in the app's log, first line only.
+     *
+     * @return array<int, array{logged_at: string, level: string, message: string}>
+     */
+    private function recentErrors(): array
+    {
+        $file = storage_path('logs/laravel.log');
+
+        if (! is_file($file)) {
+            return [];
+        }
+
+        $size = (int) filesize($file);
+        $handle = fopen($file, 'r');
+
+        if ($handle === false) {
+            return [];
+        }
+
+        fseek($handle, max(0, $size - self::LOG_TAIL_BYTES));
+        $tail = (string) stream_get_contents($handle);
+        fclose($handle);
+
+        preg_match_all('/^\[([^\]]+)\] \w+\.(ERROR|CRITICAL|ALERT|EMERGENCY): (.*)$/m', $tail, $matches, PREG_SET_ORDER);
+
+        return collect($matches)
+            ->reverse()
+            ->take(self::RECENT_ERRORS)
+            ->map(fn (array $match) => [
+                'logged_at' => Carbon::parse($match[1])->toIso8601String(),
+                'level' => strtolower($match[2]),
+                'message' => Str::limit($match[3], 300),
+            ])
+            ->values()
+            ->all();
+    }
+}

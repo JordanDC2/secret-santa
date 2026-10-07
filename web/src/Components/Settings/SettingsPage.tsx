@@ -2,6 +2,7 @@ import { Stack } from "@mantine/core";
 import Page from "Components/Layout/Page";
 import SnowflakeIcon from "Components/Common/FestiveIcons/SnowflakeIcon";
 import DeleteAccountSection from "Components/Settings/DeleteAccountSection";
+import AdminSection from "Components/Settings/AdminSection";
 import AppearanceSection from "Components/Settings/AppearanceSection";
 import EmailPreferencesSection from "Components/Settings/EmailPreferencesSection";
 import ManagedProfilesSection from "Components/ManagedProfiles/ManagedProfilesSection";
@@ -28,6 +29,7 @@ export default function SettingsPage() {
 				<PasswordSection />
 				<EmailPreferencesSection />
 				<AppearanceSection />
+				{user.isAdmin && <AdminSection />}
 				<DeleteAccountSection />
 			</Stack>
 		</Page>

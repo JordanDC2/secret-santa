@@ -62,9 +62,13 @@ return [
 
     /*
     | Where "a new account was created" emails go, so the person running the app notices strangers
-    | or bots finding it. Leave unset to send none.
+    | or bots finding it. Leave unset to send none. This person also gets the admin page.
     */
     'admin_email' => env('ADMIN_EMAIL'),
+
+    // More logins that get the admin page but no emails, comma-separated. For local development
+    // (e.g. the fake test users); production only needs ADMIN_EMAIL.
+    'admin_emails' => array_values(array_filter(array_map('trim', explode(',', (string) env('ADMIN_EMAILS', ''))))),
 
     // The timezone those emails show sign-up times in (e.g. America/Chicago).
     'admin_timezone' => env('ADMIN_TIMEZONE', 'UTC'),

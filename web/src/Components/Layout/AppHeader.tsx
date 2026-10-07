@@ -1,5 +1,6 @@
 import { Anchor, Button, Container, Group } from "@mantine/core";
 import { Link } from "react-router-dom";
+import HollyIcon from "Components/Common/FestiveIcons/HollyIcon";
 import SantaHatIcon from "Components/Common/FestiveIcons/SantaHatIcon";
 import SnowflakeIcon from "Components/Common/FestiveIcons/SnowflakeIcon";
 import WishListIcon from "Components/Common/FestiveIcons/WishListIcon";
@@ -42,6 +43,13 @@ export default function AppHeader() {
 								<WishListIcon size="1.3em" />
 								My wishlist
 							</Anchor>
+							{/* The site owner's page. Phones reach it from Settings, so the row still fits. */}
+							{user.isAdmin && (
+								<Anchor component={Link} to="/admin" className={`${classes.navLink} ${classes.wideOnly}`}>
+									<HollyIcon size="1.3em" />
+									Admin
+								</Anchor>
+							)}
 							<Anchor component={Link} to="/settings" className={classes.navLink}>
 								<SnowflakeIcon size="1.3em" />
 								Settings

@@ -5,6 +5,11 @@ use App\Http\Controllers\Account\EmailPreferencesController;
 use App\Http\Controllers\Account\ManagedProfileController;
 use App\Http\Controllers\Account\UpdatePasswordHandler;
 use App\Http\Controllers\Account\UpdateProfileHandler;
+use App\Http\Controllers\Admin\AccountController as AdminAccountController;
+use App\Http\Controllers\Admin\FailedJobController;
+use App\Http\Controllers\Admin\GroupController as AdminGroupController;
+use App\Http\Controllers\Admin\OverviewHandler;
+use App\Http\Controllers\Admin\SendPasswordResetHandler;
 use App\Http\Controllers\Auth\ForgotPasswordHandler;
 use App\Http\Controllers\Auth\LoginHandler;
 use App\Http\Controllers\Auth\LogoutHandler;
@@ -56,6 +61,21 @@ Route::prefix('auth')->name('auth.')->group(function () {
 Route::get('invites/{code}', InvitePreviewHandler::class)->middleware('throttle:join')->name('invites.show');
 
 Route::middleware('auth:sanctum')->group(function () {
+    // The site owner's admin page (ADMIN_EMAIL only).
+    Route::prefix('admin')->name('admin.')->middleware('can:admin')->group(function () {
+        Route::get('overview', OverviewHandler::class)->name('overview');
+
+        Route::apiResource('accounts', AdminAccountController::class)->only(['index', 'update', 'destroy'])->parameters(['accounts' => 'user']);
+
+        Route::post('accounts/{user}/password-reset', SendPasswordResetHandler::class)->name('accounts.password-reset');
+
+        Route::apiResource('groups', AdminGroupController::class)->only(['index', 'destroy']);
+
+        Route::post('failed-jobs/{uuid}/retry', [FailedJobController::class, 'retry'])->name('failed-jobs.retry');
+
+        Route::delete('failed-jobs/{uuid}', [FailedJobController::class, 'destroy'])->name('failed-jobs.destroy');
+    });
+
     Route::get('/user', function (Request $request) {
         return $request->user();
     });

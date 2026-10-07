@@ -32,6 +32,7 @@ export function toUser(user: IUserResponse): IUser {
 		lastName: user.last_name,
 		fullName: user.full_name,
 		email: user.email,
+		isAdmin: user.is_admin,
 	};
 }
 

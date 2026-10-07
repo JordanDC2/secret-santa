@@ -5,6 +5,8 @@ export type IUser = {
 	lastName: string | null;
 	fullName: string;
 	email: string;
+	/** The site's owner, who gets the admin page. */
+	isAdmin: boolean;
 };
 
 /** The signed-in user as the API sends it. */
@@ -14,4 +16,5 @@ export type IUserResponse = {
 	last_name: string | null;
 	full_name: string;
 	email: string;
+	is_admin: boolean;
 };

@@ -26,10 +26,11 @@ use Laravel\Sanctum\HasApiTokens;
  * @property string|null $managed_kind "child" or "pet" for a managed profile (no login of its own).
  * @property string|null $last_name Required for adults; kids, pets and older one-word accounts may have none.
  * @property-read string $full_name
+ * @property-read bool $is_admin
  */
 #[Fillable(['first_name', 'last_name', 'email', 'password', 'email_preferences', 'managed_kind'])]
 #[Hidden(['password', 'remember_token', 'email_preferences'])]
-#[Appends(['full_name'])]
+#[Appends(['full_name', 'is_admin'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -125,6 +126,22 @@ class User extends Authenticatable
             ->pluck('email')
             ->values()
             ->all();
+    }
+
+    /**
+     * The site's owner (ADMIN_EMAIL), plus any extra logins in ADMIN_EMAILS (local development),
+     * get the admin page. Never a kid or pet. Sent to the React app so it can show the admin
+     * link; the admin routes check it themselves too.
+     *
+     * @return Attribute<bool, never>
+     */
+    protected function isAdmin(): Attribute
+    {
+        return Attribute::get(function () {
+            $adminEmails = array_map('strtolower', array_filter([config('app.admin_email'), ...(array) config('app.admin_emails')], 'is_string'));
+
+            return ! $this->isManagedProfile() && in_array(strtolower($this->email), $adminEmails, true);
+        });
     }
 
     /**
