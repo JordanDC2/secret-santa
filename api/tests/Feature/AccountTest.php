@@ -150,4 +150,12 @@ class AccountTest extends TestCase
         Event::assertDispatched(GroupChanged::class, fn (GroupChanged $event) => $event->groupId === $joined->id);
         Event::assertDispatched(WishlistChanged::class, fn (WishlistChanged $event) => $event->ownerId === $joined->owner_id);
     }
+
+    public function test_signed_out_api_requests_get_a_401_whatever_they_accept(): void
+    {
+        // A browser asking for "*/*" first used to be redirected to a "login" route that only
+        // exists in the React app, which crashed with a 500.
+        $this->get('/api/user', ['Accept' => '*/*, application/json'])->assertUnauthorized();
+        $this->getJson('/api/user')->assertUnauthorized();
+    }
 }

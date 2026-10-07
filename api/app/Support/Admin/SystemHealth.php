@@ -115,40 +115,52 @@ class SystemHealth
     }
 
     /**
-     * The newest errors in the app's log, first line only.
+     * The newest errors in the app's logs, first line only. Production writes a file per day
+     * (laravel-2026-10-07.log), development one laravel.log; only this environment's lines count.
      *
      * @return array<int, array{logged_at: string, level: string, message: string}>
      */
     private function recentErrors(): array
     {
-        $file = storage_path('logs/laravel.log');
+        $files = glob(storage_path('logs/laravel*.log')) ?: [];
+        usort($files, fn (string $a, string $b) => filemtime($b) <=> filemtime($a));
+        $environment = preg_quote(app()->environment(), '/');
+        $errors = [];
 
-        if (! is_file($file)) {
-            return [];
+        foreach ($files as $file) {
+            preg_match_all("/^\\[([^\\]]+)\\] {$environment}\\.(ERROR|CRITICAL|ALERT|EMERGENCY): (.*)$/m", $this->tail($file), $matches, PREG_SET_ORDER);
+
+            foreach (array_reverse($matches) as $match) {
+                $errors[] = [
+                    'logged_at' => Carbon::parse($match[1])->toIso8601String(),
+                    'level' => strtolower($match[2]),
+                    'message' => Str::limit($match[3], 300),
+                ];
+
+                if (count($errors) === self::RECENT_ERRORS) {
+                    return $errors;
+                }
+            }
         }
 
-        $size = (int) filesize($file);
+        return $errors;
+    }
+
+    /**
+     * The end of a log file: enough for the last few errors without reading all of it.
+     */
+    private function tail(string $file): string
+    {
         $handle = fopen($file, 'r');
 
         if ($handle === false) {
-            return [];
+            return '';
         }
 
-        fseek($handle, max(0, $size - self::LOG_TAIL_BYTES));
+        fseek($handle, max(0, (int) filesize($file) - self::LOG_TAIL_BYTES));
         $tail = (string) stream_get_contents($handle);
         fclose($handle);
 
-        preg_match_all('/^\[([^\]]+)\] \w+\.(ERROR|CRITICAL|ALERT|EMERGENCY): (.*)$/m', $tail, $matches, PREG_SET_ORDER);
-
-        return collect($matches)
-            ->reverse()
-            ->take(self::RECENT_ERRORS)
-            ->map(fn (array $match) => [
-                'logged_at' => Carbon::parse($match[1])->toIso8601String(),
-                'level' => strtolower($match[2]),
-                'message' => Str::limit($match[3], 300),
-            ])
-            ->values()
-            ->all();
+        return $tail;
     }
 }

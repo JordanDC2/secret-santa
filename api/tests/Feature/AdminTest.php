@@ -107,6 +107,33 @@ class AdminTest extends TestCase
         $this->assertSame([['id' => $owned->id, 'name' => 'Ski Trip']], $accounts->firstWhere('id', $this->admin->id)['member_of']);
     }
 
+    public function test_recent_errors_come_from_daily_logs_and_only_this_environment(): void
+    {
+        // Production logs a file per day; another environment's lines (e.g. a dev server
+        // sharing the folder) don't count.
+        $file = storage_path('logs/laravel-2099-01-01.log');
+        file_put_contents($file, implode("\n", [
+            '[2099-01-01 10:00:00] testing.ERROR: Older problem {"exception":"..."}',
+            '#0 /some/stack/frame.php(12)',
+            '[2099-01-01 11:00:00] local.ERROR: Not this environment',
+            '[2099-01-01 12:00:00] testing.WARNING: Only a warning',
+            '[2099-01-01 13:00:00] testing.CRITICAL: Newest problem',
+        ])."\n");
+        touch($file, now()->addMinute()->getTimestamp());
+
+        try {
+            Sanctum::actingAs($this->admin);
+            $this->getJson(route('admin.overview'))
+                ->assertJsonPath('health.recent_errors.0.message', 'Newest problem')
+                ->assertJsonPath('health.recent_errors.0.level', 'critical')
+                ->assertJsonPath('health.recent_errors.1.message', 'Older problem {"exception":"..."}')
+                ->assertJsonMissing(['message' => 'Not this environment'])
+                ->assertJsonMissing(['message' => 'Only a warning']);
+        } finally {
+            unlink($file);
+        }
+    }
+
     public function test_the_admin_can_fix_someones_name_and_email(): void
     {
         $someone = User::factory()->create(['email' => 'typo@gmial.com']);
