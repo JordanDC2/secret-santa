@@ -9,6 +9,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,6 +27,17 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         JsonResource::withoutWrapping();
+
+        // Every new password (sign-up, reset, change): 8+ characters, as NIST 800-63B advises
+        // instead of "must include a symbol" rules, and at most 72, since bcrypt ignores the rest.
+        // In production, also not one from a known data breach (Have I Been Pwned; only the
+        // first 5 characters of its SHA-1 hash leave the server, and it lets passwords through
+        // if the service is down). Not locally or in tests, so they make no outside calls.
+        Password::defaults(function () {
+            $rule = Password::min(8)->max(72);
+
+            return $this->app->isProduction() ? $rule->uncompromised() : $rule;
+        });
 
         // The admin page: only the site's owner (ADMIN_EMAIL).
         Gate::define('admin', fn (User $user) => $user->is_admin);

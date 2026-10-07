@@ -79,6 +79,11 @@ export default function PrivacyPage() {
 						shop&apos;s website, so those sites see your internet address.
 					</List.Item>
 					<List.Item>
+						When you choose a password, the server checks it isn&apos;t one known from data breaches on other sites,
+						using Have I Been Pwned. Only the first 5 characters of a scrambled version of it are sent, never the
+						password itself.
+					</List.Item>
+					<List.Item>
 						When you press Fetch on a link, the server visits that shop page to read the item&apos;s name, price and
 						picture.
 					</List.Item>

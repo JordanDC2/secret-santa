@@ -4,6 +4,9 @@ import { apiClient } from "Data/Api/Client";
 type IMessageResponse = { message: string };
 
 /** Maps the API's snake_case field names to the sign-in forms' fields, for apiFieldErrors(). */
+/** Under every new-password field; the API enforces the same (AppServiceProvider). */
+export const PASSWORD_HINT = "At least 8 characters. Longer is better, and a few unrelated words make a strong one.";
+
 export const AUTH_FIELD_NAMES = {
 	first_name: "firstName",
 	last_name: "lastName",

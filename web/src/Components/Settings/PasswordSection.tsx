@@ -1,4 +1,5 @@
 import { Alert, Button, Group, PasswordInput, Stack } from "@mantine/core";
+import { PASSWORD_HINT } from "Components/Auth/hooks";
 import SectionCard from "Components/Common/SectionCard";
 import { useForm } from "@mantine/form";
 import { ACCOUNT_FIELD_NAMES, useUpdatePasswordMutation } from "Components/Settings/hooks";
@@ -26,7 +27,13 @@ export default function PasswordSection() {
 						<Alert color="red">{apiErrorMessage(updatePassword.error)}</Alert>
 					)}
 					<PasswordInput label="Current password" required {...form.getInputProps("currentPassword")} />
-					<PasswordInput label="New password" required {...form.getInputProps("password")} />
+					<PasswordInput
+						label="New password"
+						description={PASSWORD_HINT}
+						autoComplete="new-password"
+						required
+						{...form.getInputProps("password")}
+					/>
 					<PasswordInput label="Confirm new password" required {...form.getInputProps("passwordConfirmation")} />
 					<Group justify="flex-end">
 						<Button type="submit" loading={updatePassword.isPending}>

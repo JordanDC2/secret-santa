@@ -1,7 +1,7 @@
 import { Anchor, Alert, Button, PasswordInput, Stack, Text as MantineText } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { Link, useSearchParams } from "react-router-dom";
-import { AUTH_FIELD_NAMES, useResetPasswordMutation } from "Components/Auth/hooks";
+import { AUTH_FIELD_NAMES, PASSWORD_HINT, useResetPasswordMutation } from "Components/Auth/hooks";
 import { apiErrorMessage, apiFieldErrors } from "Data/Api/Client";
 import AuthLayout from "Components/Layout/AuthLayout";
 
@@ -60,6 +60,7 @@ export default function ResetPasswordPage() {
 					)}
 					<PasswordInput
 						label="New password"
+						description={PASSWORD_HINT}
 						autoComplete="new-password"
 						required
 						{...form.getInputProps("password")}

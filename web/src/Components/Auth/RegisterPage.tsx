@@ -2,7 +2,7 @@ import { Anchor, Alert, Button, PasswordInput, SimpleGrid, Stack, Text as Mantin
 import { useForm } from "@mantine/form";
 import { Link } from "react-router-dom";
 import { useAuth } from "Components/Auth/AuthContext";
-import { AUTH_FIELD_NAMES } from "Components/Auth/hooks";
+import { AUTH_FIELD_NAMES, PASSWORD_HINT } from "Components/Auth/hooks";
 import { apiErrorMessage, apiFieldErrors } from "Data/Api/Client";
 import AuthLayout from "Components/Layout/AuthLayout";
 
@@ -28,7 +28,13 @@ export default function RegisterPage() {
 						<TextInput label="Last name" autoComplete="family-name" required {...form.getInputProps("lastName")} />
 					</SimpleGrid>
 					<TextInput label="Email" type="email" autoComplete="email" required {...form.getInputProps("email")} />
-					<PasswordInput label="Password" autoComplete="new-password" required {...form.getInputProps("password")} />
+					<PasswordInput
+						label="Password"
+						description={PASSWORD_HINT}
+						autoComplete="new-password"
+						required
+						{...form.getInputProps("password")}
+					/>
 					<PasswordInput
 						label="Confirm password"
 						autoComplete="new-password"
