@@ -33,17 +33,9 @@
 		<meta name="theme-color" content="#1a3a2e" />
 		<!-- Installing to the home screen: the manifest for Android/Chrome, and Apple's own tags for iPhone. -->
 		<link rel="manifest" href="/manifest.webmanifest" />
-		<!-- Light or dark before the page draws, so dark mode doesn't flash white. Same key and rule as
-		     the app's colorSchemeManager (Components/App.tsx): a saved choice, else the system setting. -->
-		<script>
-			try {
-				var saved = localStorage.getItem("secret-santa-color-scheme");
-				var dark = saved === "dark" || (saved !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-				document.documentElement.setAttribute("data-mantine-color-scheme", dark ? "dark" : "light");
-			} catch (error) {
-				// Storage blocked (private browsing): the app sorts it out once it loads.
-			}
-		</script>
+		<!-- Light or dark before the page draws, so dark mode doesn't flash white. A file rather than an
+		     inline script, so the Content-Security-Policy can allow only the site's own scripts. -->
+		<script src="/color-scheme.js"></script>
 		<meta name="mobile-web-app-capable" content="yes" />
 		<meta name="apple-mobile-web-app-capable" content="yes" />
 		<meta name="apple-mobile-web-app-title" content="Secret Santa" />

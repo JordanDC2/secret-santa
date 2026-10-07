@@ -5,13 +5,19 @@ YOUR_HOSTNAME {
 	encode zstd gzip
 
 	# Security headers: force HTTPS for a year (HSTS), block being framed by other sites
-	# (clickjacking), stop MIME sniffing, and keep full URLs out of the Referer header.
+	# (clickjacking), stop MIME sniffing, keep full URLs out of the Referer header, and limit
+	# what the page may load (CSP).
 	header {
 		Strict-Transport-Security "max-age=31536000"
 		X-Frame-Options "DENY"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# Content-Security-Policy: only this site's own scripts run (no inline ones, see
+		# web/public/color-scheme.js); styles may be inline (Mantine writes its theme that way)
+		# plus Google Fonts; pictures from any https site (shop images); live updates over this
+		# host's WebSocket; never framed, no plugins, forms only post here.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' wss://YOUR_HOSTNAME; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 		-Server
 	}
 

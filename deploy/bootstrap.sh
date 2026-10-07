@@ -99,6 +99,33 @@ else
 	echo "Skipped (no REJECT rule found, or running in a container)."
 fi
 
+step "Hardening: SSH, fail2ban, unused services"
+# Key-only SSH is Oracle's default; also refuse root and X11 forwarding outright.
+cat > /etc/ssh/sshd_config.d/60-secret-santa.conf <<'SSHD'
+PermitRootLogin no
+X11Forwarding no
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+SSHD
+chmod 644 /etc/ssh/sshd_config.d/60-secret-santa.conf
+# fail2ban bans addresses that keep failing SSH logins (bots try hundreds a day). Ubuntu 24.04
+# runs SSH as ssh.service, but the stock jail watches sshd.service, so point it at the right one.
+apt-get install -yq fail2ban
+cat > /etc/fail2ban/jail.d/secret-santa.local <<'JAIL'
+[sshd]
+enabled = true
+journalmatch = _SYSTEMD_UNIT=ssh.service + _COMM=sshd
+maxretry = 5
+findtime = 10m
+bantime = 1h
+JAIL
+if $HAS_SYSTEMD; then
+	sshd -t && systemctl reload ssh
+	systemctl enable fail2ban && systemctl restart fail2ban
+	# rpcbind (NFS) comes with Oracle's image; nothing here uses it.
+	systemctl disable --now rpcbind.service rpcbind.socket 2>/dev/null || true
+fi
+
 step "App code in ${APP_DIR}"
 mkdir -p "$(dirname "$APP_DIR")"
 if [ ! -d "$APP_DIR/.git" ]; then
@@ -134,6 +161,8 @@ for dir in storage bootstrap/cache database; do
 	# setgid: new files created inside stay group www-data.
 	find "$APP_DIR/api/$dir" -type d -exec chmod g+s {} +
 done
+# The database and storage (logs, uploads) are for the app only: no access for other accounts.
+chmod -R o-rwx "$APP_DIR/api/database" "$APP_DIR/api/storage"
 
 step "PHP dependencies, app key, migrations, caches"
 cd "$APP_DIR/api"
