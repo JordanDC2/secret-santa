@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Group\InvitePageHandler;
+use App\Http\Middleware\RecordRegion;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -26,6 +27,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
+
+        // Roughly where signed-in people are, for the admin page's map (once a day each).
+        $middleware->api(append: [RecordRegion::class]);
 
         // This server only has the API: signed-out requests get a 401, never a redirect to a
         // "login" route that lives in the React app (that crashed with a 500 before).

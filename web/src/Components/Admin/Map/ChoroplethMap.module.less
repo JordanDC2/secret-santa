@@ -1,0 +1,59 @@
+.map {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+/* Places are separated by a thin line in the card's own colour. */
+.place {
+	fill: var(--festive-map-none);
+	stroke: var(--mantine-color-body);
+	stroke-width: 0.5;
+
+	&[data-step="1"] {
+		fill: var(--festive-map-1);
+	}
+
+	&[data-step="2"] {
+		fill: var(--festive-map-2);
+	}
+
+	&[data-step="3"] {
+		fill: var(--festive-map-3);
+	}
+
+	&[data-step="4"] {
+		fill: var(--festive-map-4);
+	}
+
+	&[tabindex]:hover,
+	&[tabindex]:focus-visible {
+		stroke: var(--mantine-color-text);
+		stroke-width: 1.5;
+		outline: none;
+	}
+}
+
+.legend {
+	display: inline-block;
+	width: 18px;
+	height: 12px;
+	border-radius: 2px;
+	background: var(--festive-map-none);
+
+	&[data-step="1"] {
+		background: var(--festive-map-1);
+	}
+
+	&[data-step="2"] {
+		background: var(--festive-map-2);
+	}
+
+	&[data-step="3"] {
+		background: var(--festive-map-3);
+	}
+
+	&[data-step="4"] {
+		background: var(--festive-map-4);
+	}
+}

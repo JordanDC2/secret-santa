@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -27,9 +28,12 @@ use Laravel\Sanctum\HasApiTokens;
  * @property string|null $last_name Required for adults; kids, pets and older one-word accounts may have none.
  * @property-read string $full_name
  * @property-read bool $is_admin
+ * @property string|null $region_country Roughly where they use the app (see RecordRegion).
+ * @property string|null $region_name
+ * @property Carbon|null $region_checked_at
  */
 #[Fillable(['first_name', 'last_name', 'email', 'password', 'email_preferences', 'managed_kind'])]
-#[Hidden(['password', 'remember_token', 'email_preferences'])]
+#[Hidden(['password', 'remember_token', 'email_preferences', 'region_country', 'region_name', 'region_checked_at'])]
 #[Appends(['full_name', 'is_admin'])]
 class User extends Authenticatable
 {
@@ -50,6 +54,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'email_preferences' => 'array',
+            'region_checked_at' => 'datetime',
         ];
     }
 

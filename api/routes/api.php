@@ -8,6 +8,7 @@ use App\Http\Controllers\Account\UpdateProfileHandler;
 use App\Http\Controllers\Admin\AccountController as AdminAccountController;
 use App\Http\Controllers\Admin\FailedJobController;
 use App\Http\Controllers\Admin\GroupController as AdminGroupController;
+use App\Http\Controllers\Admin\LocationsHandler;
 use App\Http\Controllers\Admin\OverviewHandler;
 use App\Http\Controllers\Admin\SendPasswordResetHandler;
 use App\Http\Controllers\Auth\ForgotPasswordHandler;
@@ -64,6 +65,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // The site owner's admin page (ADMIN_EMAIL only).
     Route::prefix('admin')->name('admin.')->middleware('can:admin')->group(function () {
         Route::get('overview', OverviewHandler::class)->name('overview');
+
+        Route::get('locations', LocationsHandler::class)->name('locations');
 
         Route::apiResource('accounts', AdminAccountController::class)->only(['index', 'update', 'destroy'])->parameters(['accounts' => 'user']);
 

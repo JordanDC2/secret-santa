@@ -13,3 +13,6 @@ Artisan::command('inspire', function () {
 Schedule::command('app:send-exchange-reminders')
     ->dailyAt('09:00')
     ->timezone(config('app.reminder_timezone'));
+
+// The admin page's map reads a DB-IP location file; DB-IP publishes a new one each month.
+Schedule::command('geo:update')->monthlyOn(3, '04:00');

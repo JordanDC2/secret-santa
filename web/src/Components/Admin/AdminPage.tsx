@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Alert, Stack, Tabs } from "@mantine/core";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "Components/Auth/AuthContext";
@@ -14,6 +15,9 @@ import BackToGroups from "Components/Layout/BackToGroups";
 import Page from "Components/Layout/Page";
 import PageTitle from "Components/Layout/PageTitle";
 import { apiErrorMessage } from "Data/Api/Client";
+
+// The map and its outlines (~200 KB) load only when the Map tab opens.
+const LocationsTab = lazy(() => import("Components/Admin/Map/LocationsTab"));
 
 function OverviewTab() {
 	const overview = useAdminOverviewQuery();
@@ -62,6 +66,7 @@ export default function AdminPage() {
 						<Tabs.Tab value="overview">Overview</Tabs.Tab>
 						<Tabs.Tab value="accounts">Accounts</Tabs.Tab>
 						<Tabs.Tab value="groups">Groups</Tabs.Tab>
+						<Tabs.Tab value="map">Map</Tabs.Tab>
 					</Tabs.List>
 					<Tabs.Panel value="overview">
 						<OverviewTab />
@@ -71,6 +76,11 @@ export default function AdminPage() {
 					</Tabs.Panel>
 					<Tabs.Panel value="groups">
 						<GroupsSection />
+					</Tabs.Panel>
+					<Tabs.Panel value="map">
+						<Suspense fallback={<LoadingText>Loading the map...</LoadingText>}>
+							<LocationsTab />
+						</Suspense>
 					</Tabs.Panel>
 				</Tabs>
 			</Stack>

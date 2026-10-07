@@ -36,8 +36,19 @@ export default function PrivacyPage() {
 						never enter anything themselves.
 					</List.Item>
 					<List.Item>
-						<strong>On your device:</strong> a cookie that keeps you logged in (for up to a week), a security cookie,
-						and a couple of preferences such as light or dark mode.
+						<strong>Your general region:</strong> just your country and state or province, for the site&apos;s visitor
+						stats, worked out on the server from your internet address at most once a day. Your internet address never
+						leaves the server (see server records below).
+					</List.Item>
+					<List.Item>
+						<strong>On your device:</strong> only what the app needs to work: a cookie that keeps you logged in (for up
+						to a week), a security cookie that protects your forms, and a couple of preferences such as light or dark
+						mode. No tracking or advertising cookies.
+					</List.Item>
+					<List.Item>
+						<strong>Server records:</strong> like most websites, the server notes your internet address and browser with
+						your login (for up to a week) and in its request log (for up to about three months), to keep things secure
+						and fix problems. These stay on the server.
 					</List.Item>
 				</BulletList>
 			</LegalSection>

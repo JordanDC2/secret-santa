@@ -53,3 +53,12 @@ export type IAdminGroup = {
 	budget: string | null;
 	createdAt: string;
 };
+
+export type IAdminLocations = {
+	countries: { country: string; count: number }[];
+	regions: { country: string; region: string; count: number }[];
+	/** Accounts with no location yet (not on since the map was added, or only from home networks). */
+	unknown: number;
+	/** When the DB-IP file was built, for the credit; null until it's downloaded. */
+	dataBuiltAt: string | null;
+};

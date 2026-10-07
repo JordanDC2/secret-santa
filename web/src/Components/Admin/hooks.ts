@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { IAdminAccount, IAdminGroup, IAdminOverview } from "Components/Admin/types";
+import type { IAdminAccount, IAdminGroup, IAdminLocations, IAdminOverview } from "Components/Admin/types";
 import { apiClient } from "Data/Api/Client";
 
 /* The API's snake_case shapes; the hooks hand the page camelCase. */
@@ -135,6 +135,24 @@ export function useAdminGroupsQuery() {
 	return useQuery({
 		queryKey: GROUPS_KEY,
 		queryFn: async () => (await apiClient.get<IGroupResponse[]>("/admin/groups")).map(toGroup),
+	});
+}
+
+export function useAdminLocationsQuery() {
+	return useQuery({
+		queryKey: ["admin", "locations"],
+		queryFn: async () => {
+			const data = await apiClient.get<Omit<IAdminLocations, "dataBuiltAt"> & { data_built_at: string | null }>(
+				"/admin/locations",
+			);
+
+			return {
+				countries: data.countries,
+				regions: data.regions,
+				unknown: data.unknown,
+				dataBuiltAt: data.data_built_at,
+			};
+		},
 	});
 }
 

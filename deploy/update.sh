@@ -18,6 +18,9 @@ sudo -u www-data php artisan migrate --force
 sudo -u www-data php artisan config:cache
 sudo -u www-data php artisan route:cache
 sudo -u www-data php artisan event:cache
+# The admin page's map needs DB-IP's location file (~130 MB). Fetch it the first time; the
+# scheduler refreshes it each month after that.
+sudo -u www-data php artisan geo:update --if-missing || echo "Couldn't download the location file (the map will show everyone as unknown)."
 
 cd ../web
 npm ci
