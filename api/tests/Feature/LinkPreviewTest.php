@@ -152,6 +152,22 @@ class LinkPreviewTest extends TestCase
         $this->previewAs('https://shop.example/jacket')->assertJsonPath('name', null);
     }
 
+    public function test_unrendered_template_tags_and_invalid_image_urls_are_dropped(): void
+    {
+        // Some shops fill their meta tags in with JavaScript, so we see the raw placeholders.
+        Http::fake(['shop.example/barrel' => Http::response($this->page(
+            '<meta property="og:title" content="{{::og.title}}"><meta property="og:image" content="{{::og.image}}">'
+        ), 200, ['Content-Type' => 'text/html'])]);
+
+        $this->previewAs('https://shop.example/barrel')->assertExactJson(['name' => null, 'price' => null, 'image_url' => null]);
+
+        Http::fake(['shop.example/spaced' => Http::response($this->page(
+            '<meta property="og:title" content="Barrel"><meta property="og:image" content="https://cdn.shop.example/a barrel.jpg">'
+        ), 200, ['Content-Type' => 'text/html'])]);
+
+        $this->previewAs('https://shop.example/spaced')->assertJsonPath('name', 'Barrel')->assertJsonPath('image_url', null);
+    }
+
     public function test_a_redirect_to_a_private_address_is_not_followed(): void
     {
         Http::fake([

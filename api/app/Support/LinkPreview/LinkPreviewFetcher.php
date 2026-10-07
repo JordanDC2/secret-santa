@@ -9,6 +9,7 @@ use GuzzleHttp\Exception\TransferException;
 use GuzzleHttp\Handler\CurlHandler;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Throwable;
 
 /**
@@ -126,20 +127,24 @@ class LinkPreviewFetcher
         return [
             'name' => $name ? mb_substr(trim(html_entity_decode($name, ENT_QUOTES | ENT_HTML5)), 0, 255) : null,
             'price' => $price,
-            'image_url' => $imageUrl && preg_match('#^https?://#i', $imageUrl) && strlen($imageUrl) <= 2048 ? $imageUrl : null,
+            // Same check the wishlist form applies, so a bad image is dropped here instead of failing the save.
+            'image_url' => $imageUrl && Str::isUrl($imageUrl, ['http', 'https']) && strlen($imageUrl) <= 2048 ? $imageUrl : null,
         ];
     }
 
     /**
-     * The first of these meta tags that has a value.
+     * The first of these meta tags that has a value. Skips unrendered template
+     * placeholders ("{{::og.title}}") from pages that fill their tags in with JavaScript.
      */
     private function meta(DOMXPath $xpath, string ...$names): ?string
     {
         foreach ($names as $name) {
             $nodes = $xpath->query("//meta[@property='{$name}' or @name='{$name}']/@content");
 
-            if ($nodes && $nodes->length && trim($nodes->item(0)->nodeValue) !== '') {
-                return trim($nodes->item(0)->nodeValue);
+            $value = $nodes && $nodes->length ? trim($nodes->item(0)->nodeValue) : '';
+
+            if ($value !== '' && ! str_contains($value, '{{')) {
+                return $value;
             }
         }
 
