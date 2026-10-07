@@ -8,10 +8,11 @@
 /* Long emails wrap instead of pushing the button off a phone screen. */
 .message {
 	flex: 1 1 16rem;
+	min-width: 0;
 	overflow-wrap: anywhere;
 }
 
 .icon {
-	margin-right: var(--mantine-spacing-xs);
+	flex-shrink: 0;
 	color: var(--festive-gold-text);
 }

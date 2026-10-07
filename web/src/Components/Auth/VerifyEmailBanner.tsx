@@ -22,14 +22,17 @@ export default function VerifyEmailBanner() {
 		<Container size="lg" w="100%" mt="md">
 			<Paper withBorder radius="md" className={classes.banner} role="status">
 				<Group gap="sm" justify="space-between">
-					<MantineText size="sm" className={classes.message}>
+					{/* Icon and text centred on each other, not on the text's baseline. */}
+					<Group gap="xs" wrap="nowrap" className={classes.message}>
 						<FontAwesomeIcon icon={faEnvelope} className={classes.icon} />
-						{resend.isSuccess
-							? "Sent! Check your inbox, and your spam folder just in case."
-							: resend.isError
-								? apiErrorMessage(resend.error)
-								: `Please confirm your email: we sent a link to ${user.email}.`}
-					</MantineText>
+						<MantineText size="sm">
+							{resend.isSuccess
+								? "Sent! Check your inbox, and your spam folder just in case."
+								: resend.isError
+									? apiErrorMessage(resend.error)
+									: `Please confirm your email: we sent a link to ${user.email}.`}
+						</MantineText>
+					</Group>
 					{!resend.isSuccess && (
 						<Button
 							size="xs"
