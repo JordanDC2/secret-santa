@@ -276,10 +276,13 @@ function MemberWishlist({ userId }: { userId: number }) {
 					<>
 						<PageTitle icon={<WishListIcon />}>{wishlistQuery.data.user.name}&apos;s wishlist</PageTitle>
 						<AssignmentNotice owner={wishlistQuery.data.user} myRecipients={wishlistQuery.data.myRecipients} />
-						<MantineText c="dimmed">
-							Claim something so nobody else buys it too. {wishlistQuery.data.user.firstName} can&apos;t see who claimed
-							what.
-						</MantineText>
+						{/* Only with something to claim: their own items or the group's gift ideas. */}
+						{(wishlistQuery.data.items.length > 0 || wishlistQuery.data.suggestions.length > 0) && (
+							<MantineText c="dimmed">
+								Claim something so nobody else buys it too. {wishlistQuery.data.user.firstName} can&apos;t see who
+								claimed what.
+							</MantineText>
+						)}
 
 						{claim.isError && <Alert color="red">{apiErrorMessage(claim.error)}</Alert>}
 						{nudge.isError && <Alert color="red">{apiErrorMessage(nudge.error)}</Alert>}
