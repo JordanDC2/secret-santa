@@ -5,7 +5,7 @@ namespace App\Notifications;
 use App\Enums\EmailKind;
 use App\Models\Group;
 use App\Models\User;
-use App\Notifications\Concerns\RespectsEmailPreferences;
+use App\Notifications\Concerns\RespectsNotificationPreferences;
 use App\Notifications\Contracts\OptionalEmail;
 use App\Support\PersonNames;
 use Illuminate\Bus\Queueable;
@@ -15,13 +15,14 @@ use Illuminate\Queue\Attributes\Backoff;
 use Illuminate\Queue\Attributes\Tries;
 use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
+use NotificationChannels\WebPush\WebPushMessage;
 use Symfony\Component\Mime\Email;
 
 #[Tries(4)]
 #[Backoff(10, 60, 300)]
 class SecretSantaAssigned extends Notification implements OptionalEmail, ShouldQueue
 {
-    use Queueable, RespectsEmailPreferences;
+    use Queueable, RespectsNotificationPreferences;
 
     /**
      * Subjects for later draws (a re-draw, or next year's exchange), in turn. Gmail threads emails
@@ -120,6 +121,18 @@ class SecretSantaAssigned extends Notification implements OptionalEmail, ShouldQ
 
         return new HtmlString(
             '<strong>A note from '.$escape(PersonNames::inGroup($this->group->owner, $this->group)).':</strong><br>'.nl2br($escape($description), false),
+        );
+    }
+
+    public function toWebPush(User $notifiable): WebPushMessage
+    {
+        $who = new Addressee($notifiable);
+
+        // Not the name: lock screens are on show.
+        return FestivePush::make(
+            "🎁 Names are drawn in {$this->group->name}!",
+            "Tap to see who {$who->youAre()} buying for.",
+            '/',
         );
     }
 }

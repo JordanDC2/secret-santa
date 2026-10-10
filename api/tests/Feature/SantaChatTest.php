@@ -12,6 +12,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Sanctum\Sanctum;
+use NotificationChannels\WebPush\WebPushChannel;
 use Tests\TestCase;
 
 class SantaChatTest extends TestCase
@@ -115,8 +116,11 @@ class SantaChatTest extends TestCase
 
         $sent = Notification::sent($this->person, SantaMessageReceived::class)->first();
         $this->assertInstanceOf(SantaMessageReceived::class, $sent);
-        $this->assertInstanceOf(DateTimeInterface::class, $sent->delay);
-        $this->assertEqualsWithDelta(now()->addMinutes(SantaMessageReceived::WAIT_MINUTES)->timestamp, $sent->delay->getTimestamp(), 5);
+        // Only the email waits; a push (if they have one) goes straight away.
+        $emailDelay = $sent->withDelay($this->person, 'mail')['mail'];
+        $this->assertInstanceOf(DateTimeInterface::class, $emailDelay);
+        $this->assertEqualsWithDelta(now()->addMinutes(SantaMessageReceived::WAIT_MINUTES)->timestamp, $emailDelay->getTimestamp(), 5);
+        $this->assertArrayNotHasKey(WebPushChannel::class, $sent->withDelay($this->person, WebPushChannel::class));
         $this->assertTrue($sent->shouldSend($this->person, 'mail'));
 
         Sanctum::actingAs($this->person);

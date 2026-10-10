@@ -4,13 +4,14 @@ namespace App\Notifications;
 
 use App\Enums\EmailKind;
 use App\Models\User;
-use App\Notifications\Concerns\RespectsEmailPreferences;
+use App\Notifications\Concerns\RespectsNotificationPreferences;
 use App\Notifications\Contracts\OptionalEmail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use Illuminate\Queue\Attributes\Backoff;
 use Illuminate\Queue\Attributes\Tries;
+use NotificationChannels\WebPush\WebPushMessage;
 
 /**
  * Tells a suggester that someone else edited or removed their gift idea. Carries plain values
@@ -20,7 +21,7 @@ use Illuminate\Queue\Attributes\Tries;
 #[Backoff(10, 60, 300)]
 class SuggestionChanged extends Notification implements OptionalEmail, ShouldQueue
 {
-    use Queueable, RespectsEmailPreferences;
+    use Queueable, RespectsNotificationPreferences;
 
     private const FIELD_LABELS = [
         'name' => 'Name',
@@ -78,5 +79,14 @@ class SuggestionChanged extends Notification implements OptionalEmail, ShouldQue
             in_array($field, ['url', 'image_url'], true) => 'changed',
             default => ElfMailMessage::plain((string) $value),
         };
+    }
+
+    public function toWebPush(User $notifiable): WebPushMessage
+    {
+        return FestivePush::make(
+            "🎁 Gift idea for {$this->ownerName}",
+            ($this->editorName ?? 'Someone').($this->removed ? ' removed' : ' changed')." your idea: {$this->itemName}.",
+            "/wishlists/{$this->ownerId}",
+        );
     }
 }

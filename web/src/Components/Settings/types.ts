@@ -1,4 +1,4 @@
-/** The kinds of optional email, matching the API's EmailKind enum. */
+/** The kinds of notification people can switch off (by email and push separately), matching the API's EmailKind enum. */
 export type IEmailKind =
 	| "assignments"
 	| "santa_chat"

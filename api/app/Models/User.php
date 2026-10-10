@@ -24,9 +24,12 @@ use Illuminate\Notifications\Notification;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\HasApiTokens;
+use NotificationChannels\WebPush\HasPushSubscriptions;
+use NotificationChannels\WebPush\PushSubscription;
 
 /**
  * @property array<string, bool>|null $email_preferences Kinds of optional email turned off (missing means on).
+ * @property array<string, bool>|null $push_preferences Kinds of push notification turned off (missing means on).
  * @property string|null $managed_kind "child" or "pet" for a managed profile (no login of its own).
  * @property string|null $last_name Required for adults; kids, pets and older one-word accounts may have none.
  * @property-read string $full_name
@@ -35,13 +38,13 @@ use Laravel\Sanctum\HasApiTokens;
  * @property string|null $region_name
  * @property Carbon|null $region_checked_at
  */
-#[Fillable(['first_name', 'last_name', 'email', 'password', 'email_preferences', 'managed_kind'])]
-#[Hidden(['password', 'remember_token', 'email_preferences', 'region_country', 'region_name', 'region_checked_at'])]
+#[Fillable(['first_name', 'last_name', 'email', 'password', 'email_preferences', 'push_preferences', 'managed_kind'])]
+#[Hidden(['password', 'remember_token', 'email_preferences', 'push_preferences', 'region_country', 'region_name', 'region_checked_at'])]
 #[Appends(['full_name', 'is_admin'])]
 class User extends Authenticatable implements MustVerifyEmailContract
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, MustVerifyEmail, Notifiable;
+    use HasApiTokens, HasFactory, HasPushSubscriptions, MustVerifyEmail, Notifiable;
 
     /** @var array<int, int>|null See managedProfileIds(). */
     private ?array $managedProfileIdsCache = null;
@@ -57,6 +60,7 @@ class User extends Authenticatable implements MustVerifyEmailContract
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'email_preferences' => 'array',
+            'push_preferences' => 'array',
             'region_checked_at' => 'datetime',
         ];
     }
@@ -90,6 +94,47 @@ class User extends Authenticatable implements MustVerifyEmailContract
         return collect(EmailKind::cases())
             ->mapWithKeys(fn (EmailKind $kind) => [$kind->value => $this->wantsEmail($kind)])
             ->all();
+    }
+
+    /**
+     * Whether they want this kind pushed to their devices (once they've turned push on for one).
+     * Everything is on until turned off, like email.
+     */
+    public function wantsPush(EmailKind $kind): bool
+    {
+        return ($this->push_preferences[$kind->value] ?? true) === true;
+    }
+
+    /**
+     * Every kind and whether it's pushed, e.g. ['santa_chat' => true, ...].
+     *
+     * @return array<string, bool>
+     */
+    public function pushPreferences(): array
+    {
+        return collect(EmailKind::cases())
+            ->mapWithKeys(fn (EmailKind $kind) => [$kind->value => $this->wantsPush($kind)])
+            ->all();
+    }
+
+    /**
+     * The devices a notification is pushed to: their own (if they want that kind pushed), or
+     * for a kid or pet, the devices of each person looking after them who wants it.
+     *
+     * @return Collection<int, PushSubscription>
+     */
+    public function routeNotificationForWebPush(?Notification $notification = null): Collection
+    {
+        $wants = fn (User $person) => ! $notification instanceof OptionalEmail || $person->wantsPush($notification->emailKind());
+
+        if (! $this->isManagedProfile()) {
+            return $wants($this) ? $this->pushSubscriptions()->get() : new Collection;
+        }
+
+        return PushSubscription::query()
+            ->where('subscribable_type', self::class)
+            ->whereIn('subscribable_id', $this->managers()->get()->filter($wants)->modelKeys())
+            ->get();
     }
 
     /**

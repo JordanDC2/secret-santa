@@ -5,7 +5,8 @@ namespace App\Notifications\Contracts;
 use App\Enums\EmailKind;
 
 /**
- * An email people can switch off on their Settings page (see RespectsEmailPreferences).
+ * A notification people can switch off on their Settings page, by email and by push separately
+ * (see RespectsNotificationPreferences).
  */
 interface OptionalEmail
 {

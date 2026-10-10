@@ -3,8 +3,9 @@
 namespace App\Enums;
 
 /**
- * The kinds of email people can turn off on their Settings page. Password resets and the
- * organizer's new-account email aren't here: those always go.
+ * The kinds of notification people can turn off on their Settings page, by email and by push
+ * separately. Password resets, email confirmation and the organizer's new-account email aren't
+ * here: those are email only, and always go.
  */
 enum EmailKind: string
 {

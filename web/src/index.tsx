@@ -5,6 +5,7 @@ import "Styles/index.less";
 import { createRoot } from "react-dom/client";
 import App from "Components/App";
 import { listenForInstallPrompt } from "Components/AppInstall/installPrompt";
+import { registerServiceWorker } from "Components/PushNotifications/devicePush";
 import { configureLiveUpdates } from "Data/Api/LiveUpdates";
 import { trackPointerForInputGlow } from "Styles/inputGlow";
 
@@ -18,5 +19,7 @@ configureLiveUpdates();
 // Before rendering: Android's "can be installed" event fires early and only once.
 listenForInstallPrompt();
 trackPointerForInputGlow();
+// For push notifications (public/sw.js); it caches nothing, so updates still arrive as before.
+registerServiceWorker();
 
 createRoot(root).render(<App />);

@@ -3,6 +3,8 @@
 use App\Http\Controllers\Account\DeleteAccountHandler;
 use App\Http\Controllers\Account\EmailPreferencesController;
 use App\Http\Controllers\Account\ManagedProfileController;
+use App\Http\Controllers\Account\PushPreferencesController;
+use App\Http\Controllers\Account\PushSubscriptionController;
 use App\Http\Controllers\Account\UpdatePasswordHandler;
 use App\Http\Controllers\Account\UpdateProfileHandler;
 use App\Http\Controllers\Admin\AccountController as AdminAccountController;
@@ -106,6 +108,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('email-preferences', [EmailPreferencesController::class, 'show'])->name('email-preferences.show');
 
         Route::patch('email-preferences', [EmailPreferencesController::class, 'update'])->name('email-preferences.update');
+
+        Route::get('push-preferences', [PushPreferencesController::class, 'show'])->name('push-preferences.show');
+
+        Route::patch('push-preferences', [PushPreferencesController::class, 'update'])->name('push-preferences.update');
+
+        // This device's push address ("Allow notifications on this device").
+        Route::post('push-subscriptions', [PushSubscriptionController::class, 'store'])->name('push-subscriptions.store');
+
+        Route::delete('push-subscriptions', [PushSubscriptionController::class, 'destroy'])->name('push-subscriptions.destroy');
 
         // Kids and pets this user looks after.
         Route::apiResource('profiles', ManagedProfileController::class)->except('show')->parameters(['profiles' => 'profile']);

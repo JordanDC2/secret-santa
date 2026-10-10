@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, type PropsWithChildren } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { UseMutationResult } from "@tanstack/react-query";
+import { turnOffPush } from "Components/PushNotifications/devicePush";
 import type { IUser, IUserResponse } from "Components/Auth/types";
 import { apiClient } from "Data/Api/Client";
 
@@ -94,7 +95,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
 		}
 	}, [userId, queryClient]);
 
-	const logout = useCallback(() => logoutMutation.mutate(), [logoutMutation]);
+	// Stop pushes to this device first (a shared computer shouldn't keep getting the last
+	// person's notifications), but never let that hold up logging out.
+	const logout = useCallback(() => {
+		turnOffPush()
+			.catch(() => {})
+			.finally(() => logoutMutation.mutate());
+	}, [logoutMutation]);
 
 	const value: IAuthContext = useMemo(
 		() => ({

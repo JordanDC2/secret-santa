@@ -50,37 +50,41 @@ export const ACCOUNT_FIELD_NAMES = {
 	password_confirmation: "passwordConfirmation",
 };
 
-const EMAIL_PREFERENCES_QUERY_KEY = ["account", "email-preferences"];
+/** Email and push have the same switches (one per kind), saved separately. */
+export type INotificationChannel = "email" | "push";
 
-export function useEmailPreferencesQuery() {
+const preferencesKey = (channel: INotificationChannel) => ["account", `${channel}-preferences`];
+
+export function usePreferencesQuery(channel: INotificationChannel) {
 	return useQuery({
-		queryKey: EMAIL_PREFERENCES_QUERY_KEY,
-		queryFn: () => apiClient.get<IEmailPreferences>("/account/email-preferences"),
+		queryKey: preferencesKey(channel),
+		queryFn: () => apiClient.get<IEmailPreferences>(`/account/${channel}-preferences`),
 	});
 }
 
 /** Flips one switch straight away, and flips it back if the save fails. */
-export function useUpdateEmailPreferenceMutation() {
+export function useUpdatePreferenceMutation(channel: INotificationChannel) {
 	const queryClient = useQueryClient();
+	const key = preferencesKey(channel);
 
 	return useMutation({
 		mutationFn: ({ kind, on }: { kind: IEmailKind; on: boolean }) =>
-			apiClient.patch<IEmailPreferences>("/account/email-preferences", { [kind]: on }),
+			apiClient.patch<IEmailPreferences>(`/account/${channel}-preferences`, { [kind]: on }),
 		onMutate: async ({ kind, on }) => {
-			await queryClient.cancelQueries({ queryKey: EMAIL_PREFERENCES_QUERY_KEY });
-			const previous = queryClient.getQueryData<IEmailPreferences>(EMAIL_PREFERENCES_QUERY_KEY);
+			await queryClient.cancelQueries({ queryKey: key });
+			const previous = queryClient.getQueryData<IEmailPreferences>(key);
 
 			if (previous) {
-				queryClient.setQueryData<IEmailPreferences>(EMAIL_PREFERENCES_QUERY_KEY, { ...previous, [kind]: on });
+				queryClient.setQueryData<IEmailPreferences>(key, { ...previous, [kind]: on });
 			}
 
 			return { previous };
 		},
 		onError: (_error, _change, context) => {
 			if (context?.previous) {
-				queryClient.setQueryData(EMAIL_PREFERENCES_QUERY_KEY, context.previous);
+				queryClient.setQueryData(key, context.previous);
 			}
 		},
-		onSuccess: (preferences) => queryClient.setQueryData(EMAIL_PREFERENCES_QUERY_KEY, preferences),
+		onSuccess: (preferences) => queryClient.setQueryData(key, preferences),
 	});
 }

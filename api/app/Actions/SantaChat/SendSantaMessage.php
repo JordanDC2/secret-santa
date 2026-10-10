@@ -10,9 +10,9 @@ use App\Notifications\SantaMessageReceived;
 class SendSantaMessage
 {
     /**
-     * Adds a message to a Santa ↔ person thread. The other side gets an email only when
-     * this is their first unread message from this side, and only if they haven't read it a
-     * few minutes later (see SantaMessageReceived); more wait for them in the app.
+     * Adds a message to a Santa ↔ person thread. The other side gets a push for every message
+     * (if they've turned push on), and an email only for their first unread message from this
+     * side, and only if they haven't read it a few minutes later (see SantaMessageReceived).
      */
     public function __invoke(SecretSantaAssignment $assignment, bool $fromSanta, string $body): SantaMessage
     {
@@ -23,18 +23,18 @@ class SendSantaMessage
         $group = $assignment->group;
         $reader = $fromSanta ? $assignment->receiver : $assignment->giver;
 
-        if (! $alreadyUnread) {
-            $reader->notify(new SantaMessageReceived(
-                messageId: $message->id,
-                groupId: $group->id,
-                groupName: $group->name,
-                fromSanta: $fromSanta,
-                // Who the Santa drew, in full like the reveal.
-                personName: $assignment->receiver->full_name,
-                // A kid's or pet's email goes to their managers, whose link opens it as them.
-                asProfileId: $reader->isManagedProfile() ? $reader->id : null,
-            ));
-        }
+        // Every message is pushed; only the first unread one of a run is emailed.
+        $reader->notify(new SantaMessageReceived(
+            messageId: $message->id,
+            groupId: $group->id,
+            groupName: $group->name,
+            fromSanta: $fromSanta,
+            // Who the Santa drew, in full like the reveal.
+            personName: $assignment->receiver->full_name,
+            // A kid's or pet's email goes to their managers, whose link opens it as them.
+            asProfileId: $reader->isManagedProfile() ? $reader->id : null,
+            emailToo: ! $alreadyUnread,
+        ));
 
         // Both sides: the reader for their unread badge, the writer for their other tabs. A kid
         // or pet has no browser of their own, so their managers get it instead.

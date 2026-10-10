@@ -5,7 +5,7 @@ namespace App\Notifications;
 use App\Enums\EmailKind;
 use App\Models\Group;
 use App\Models\User;
-use App\Notifications\Concerns\RespectsEmailPreferences;
+use App\Notifications\Concerns\RespectsNotificationPreferences;
 use App\Notifications\Contracts\OptionalEmail;
 use App\Support\PersonNames;
 use Illuminate\Bus\Queueable;
@@ -13,13 +13,14 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use Illuminate\Queue\Attributes\Backoff;
 use Illuminate\Queue\Attributes\Tries;
+use NotificationChannels\WebPush\WebPushMessage;
 
 /** Tells a group's owner that someone joined with the invite code. */
 #[Tries(4)]
 #[Backoff(10, 60, 300)]
 class MemberJoinedGroup extends Notification implements OptionalEmail, ShouldQueue
 {
-    use Queueable, RespectsEmailPreferences;
+    use Queueable, RespectsNotificationPreferences;
 
     /**
      * @param  int  $membersCount  Captured at join time, since the queued email reloads the group when it sends.
@@ -49,5 +50,10 @@ class MemberJoinedGroup extends Notification implements OptionalEmail, ShouldQue
             ->line("That makes {$this->membersCount} members on the list so far.")
             ->action('View your groups', config('app.frontend_url').'/')
             ->settingsFooter(EmailKind::NewMembers);
+    }
+
+    public function toWebPush(User $notifiable): WebPushMessage
+    {
+        return FestivePush::make("🎄 {$this->group->name}", "{$this->member->first_name} joined. That's {$this->membersCount} of you now.", '/');
     }
 }

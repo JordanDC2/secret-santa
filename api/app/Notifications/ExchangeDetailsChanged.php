@@ -5,13 +5,14 @@ namespace App\Notifications;
 use App\Enums\EmailKind;
 use App\Models\Group;
 use App\Models\User;
-use App\Notifications\Concerns\RespectsEmailPreferences;
+use App\Notifications\Concerns\RespectsNotificationPreferences;
 use App\Notifications\Contracts\OptionalEmail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use Illuminate\Queue\Attributes\Backoff;
 use Illuminate\Queue\Attributes\Tries;
+use NotificationChannels\WebPush\WebPushMessage;
 
 /**
  * Tells a group's members that the owner set, moved or removed the exchange date or budget.
@@ -22,7 +23,7 @@ use Illuminate\Queue\Attributes\Tries;
 #[Backoff(10, 60, 300)]
 class ExchangeDetailsChanged extends Notification implements OptionalEmail, ShouldQueue
 {
-    use Queueable, RespectsEmailPreferences;
+    use Queueable, RespectsNotificationPreferences;
 
     public function __construct(
         public readonly Group $group,
@@ -77,5 +78,10 @@ class ExchangeDetailsChanged extends Notification implements OptionalEmail, Shou
         $was = $before === null ? 'new' : 'was '.ElfMailMessage::plain($before);
 
         return "{$label}: {$now} ({$was})";
+    }
+
+    public function toWebPush(User $notifiable): WebPushMessage
+    {
+        return FestivePush::make("📅 {$this->group->name}", ucfirst($this->whatChanged()).'.', '/');
     }
 }

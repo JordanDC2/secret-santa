@@ -4,7 +4,7 @@ import SnowflakeIcon from "Components/Common/FestiveIcons/SnowflakeIcon";
 import DeleteAccountSection from "Components/Settings/DeleteAccountSection";
 import AdminSection from "Components/Settings/AdminSection";
 import AppearanceSection from "Components/Settings/AppearanceSection";
-import EmailPreferencesSection from "Components/Settings/EmailPreferencesSection";
+import NotificationsSection from "Components/Settings/NotificationsSection";
 import ManagedProfilesSection from "Components/ManagedProfiles/ManagedProfilesSection";
 import PasswordSection from "Components/Settings/PasswordSection";
 import ProfileSection from "Components/Settings/ProfileSection";
@@ -29,7 +29,7 @@ export default function SettingsPage() {
 				<ProfileSection user={user} />
 				<ManagedProfilesSection />
 				<PasswordSection />
-				<EmailPreferencesSection />
+				<NotificationsSection />
 				<AppearanceSection />
 				<DeleteAccountSection />
 			</Stack>

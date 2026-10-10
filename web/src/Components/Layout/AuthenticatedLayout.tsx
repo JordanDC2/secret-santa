@@ -6,6 +6,7 @@ import AppHeader from "Components/Layout/AppHeader";
 import VerifyEmailBanner from "Components/Auth/VerifyEmailBanner";
 import SiteFooter from "Components/Layout/SiteFooter";
 import PendingInviteRedirect from "Components/Invites/PendingInviteRedirect";
+import PushSync from "Components/PushNotifications/PushSync";
 import classes from "Components/Layout/AuthenticatedLayout.module.less";
 
 export default function AuthenticatedLayout() {
@@ -20,6 +21,7 @@ export default function AuthenticatedLayout() {
 			<PendingInviteRedirect />
 			<GroupLiveUpdates />
 			<SantaChatLiveUpdates />
+			<PushSync />
 			<AppHeader />
 			<VerifyEmailBanner />
 			<Outlet />

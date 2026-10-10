@@ -4,13 +4,14 @@ namespace App\Notifications;
 
 use App\Enums\EmailKind;
 use App\Models\User;
-use App\Notifications\Concerns\RespectsEmailPreferences;
+use App\Notifications\Concerns\RespectsNotificationPreferences;
 use App\Notifications\Contracts\OptionalEmail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use Illuminate\Queue\Attributes\Backoff;
 use Illuminate\Queue\Attributes\Tries;
+use NotificationChannels\WebPush\WebPushMessage;
 
 /**
  * Two weeks before an exchange, so there's time for shipping: a nudge to a Santa who hasn't
@@ -20,7 +21,7 @@ use Illuminate\Queue\Attributes\Tries;
 #[Backoff(10, 60, 300)]
 class ShoppingReminder extends Notification implements OptionalEmail, ShouldQueue
 {
-    use Queueable, RespectsEmailPreferences;
+    use Queueable, RespectsNotificationPreferences;
 
     public function __construct(
         public readonly string $groupName,
@@ -74,5 +75,17 @@ class ShoppingReminder extends Notification implements OptionalEmail, ShouldQueu
 
         return $message->action('View their wishlist', config('app.frontend_url')."/wishlists/{$this->recipientId}")
             ->settingsFooter(EmailKind::Reminders, $who);
+    }
+
+    public function toWebPush(User $notifiable): WebPushMessage
+    {
+        $who = new Addressee($notifiable);
+
+        // Not the name: lock screens are on show.
+        return FestivePush::make(
+            "🎁 {$this->daysLeft} days until {$this->groupName}",
+            "{$who->you(startOfSentence: true)} still need".($who->isManaged() ? 's' : '').' to get a gift for '.($who->isManaged() ? 'their' : 'your').' Secret Santa person.',
+            '/',
+        );
     }
 }

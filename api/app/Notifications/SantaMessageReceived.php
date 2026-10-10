@@ -5,13 +5,14 @@ namespace App\Notifications;
 use App\Enums\EmailKind;
 use App\Models\SantaMessage;
 use App\Models\User;
-use App\Notifications\Concerns\RespectsEmailPreferences;
+use App\Notifications\Concerns\RespectsNotificationPreferences;
 use App\Notifications\Contracts\OptionalEmail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use Illuminate\Queue\Attributes\Backoff;
 use Illuminate\Queue\Attributes\Tries;
+use NotificationChannels\WebPush\WebPushMessage;
 
 /**
  * A new message in a Santa ↔ person thread. Only sent for the first unread message, and only
@@ -23,17 +24,18 @@ use Illuminate\Queue\Attributes\Tries;
 #[Backoff(10, 60, 300)]
 class SantaMessageReceived extends Notification implements OptionalEmail, ShouldQueue
 {
-    use Queueable, RespectsEmailPreferences;
+    use Queueable, RespectsNotificationPreferences;
 
     /** Long enough that someone with the chat open has read it, short enough to still feel prompt. */
     public const WAIT_MINUTES = 5;
 
     /**
-     * @param  bool  $fromSanta  Whether the Santa wrote it, i.e. this email goes to their person.
-     * @param  string  $personName  The Santa's person. Only ever shown to the Santa.
+     * @param  bool  $fromSanta  Whether the Santa wrote it, i.e. this goes to their person.
+     * @param  string  $personName  The Santa's person. Only ever shown to the Santa, and only by email.
+     * @param  bool  $emailToo  Only the first unread message of a run is emailed; every one is pushed.
      */
     public function __construct(
-        /** The message that started the unread run; reading it cancels the email. */
+        /** The message being notified about; reading it cancels anything not sent yet. */
         public readonly int $messageId,
         public readonly int $groupId,
         public readonly string $groupName,
@@ -41,16 +43,50 @@ class SantaMessageReceived extends Notification implements OptionalEmail, Should
         public readonly string $personName,
         /** Set when the reader is a kid or pet: the link opens the chat as them. */
         public readonly ?int $asProfileId = null,
-    ) {
-        $this->delay(now()->addMinutes(self::WAIT_MINUTES));
+        public readonly bool $emailToo = true,
+    ) {}
+
+    /**
+     * Pushes go straight away; the email waits WAIT_MINUTES, so someone chatting in the app
+     * (who reads it before then) gets no email at all.
+     *
+     * @return array<string, mixed>
+     */
+    public function withDelay(object $notifiable, string $channel): array
+    {
+        return ['mail' => now()->addMinutes(self::WAIT_MINUTES)];
     }
 
     /**
-     * Checked again when the queued email goes out: skip it if they've read the message since.
+     * @return array<int, string>
+     */
+    public function via(object $notifiable): array
+    {
+        $channels = $this->preferredChannels($notifiable);
+
+        return $this->emailToo ? $channels : array_values(array_diff($channels, ['mail']));
+    }
+
+    /**
+     * Checked again when each channel sends: skip it if they've read the message since.
      */
     public function shouldSend(User $notifiable, string $channel): bool
     {
         return SantaMessage::query()->whereKey($this->messageId)->whereNull('read_at')->exists();
+    }
+
+    public function toWebPush(User $notifiable): WebPushMessage
+    {
+        $who = new Addressee($notifiable);
+        $side = $this->fromSanta ? 'my-santa' : 'my-person';
+
+        // Never the person's name: it could show on the Santa's lock screen in front of them.
+        return FestivePush::make(
+            $this->fromSanta ? "🎅 {$who->your(startOfSentence: true)} Secret Santa sent a message" : '💌 Your Secret Santa person wrote back',
+            "In {$this->groupName}. Tap to reply.",
+            "/?group={$this->groupId}&chat={$side}".($this->asProfileId ? "&as={$this->asProfileId}" : ''),
+            tag: "chat-{$this->groupId}-{$side}".($this->asProfileId ? "-{$this->asProfileId}" : ''),
+        );
     }
 
     public function emailKind(): EmailKind

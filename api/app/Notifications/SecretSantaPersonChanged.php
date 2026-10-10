@@ -5,13 +5,14 @@ namespace App\Notifications;
 use App\Enums\EmailKind;
 use App\Models\Group;
 use App\Models\User;
-use App\Notifications\Concerns\RespectsEmailPreferences;
+use App\Notifications\Concerns\RespectsNotificationPreferences;
 use App\Notifications\Contracts\OptionalEmail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use Illuminate\Queue\Attributes\Backoff;
 use Illuminate\Queue\Attributes\Tries;
+use NotificationChannels\WebPush\WebPushMessage;
 
 /**
  * Tells a Santa that the person they drew left the group, so they now buy for whoever that
@@ -22,7 +23,7 @@ use Illuminate\Queue\Attributes\Tries;
 #[Backoff(10, 60, 300)]
 class SecretSantaPersonChanged extends Notification implements OptionalEmail, ShouldQueue
 {
-    use Queueable, RespectsEmailPreferences;
+    use Queueable, RespectsNotificationPreferences;
 
     /**
      * @param  string  $leaverName  As the group named them, captured before they left.
@@ -55,5 +56,16 @@ class SecretSantaPersonChanged extends Notification implements OptionalEmail, Sh
             ->line("If you'd already claimed something on {$leaver}'s list, it's still marked as yours. Undo the claim there if you won't be giving it now.")
             ->action('View their wishlist', config('app.frontend_url')."/wishlists/{$this->recipient->id}")
             ->settingsFooter(EmailKind::Assignments, $who);
+    }
+
+    public function toWebPush(User $notifiable): WebPushMessage
+    {
+        $who = new Addressee($notifiable);
+
+        return FestivePush::make(
+            "🎁 New Secret Santa person in {$this->group->name}",
+            "{$this->leaverName} left, so {$who->youAre()} buying for someone new. Tap to see who.",
+            '/',
+        );
     }
 }

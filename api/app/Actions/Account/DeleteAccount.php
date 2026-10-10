@@ -35,6 +35,8 @@ class DeleteAccount
         DB::transaction(function () use ($user) {
             $user->ownedGroups()->delete();
             $user->tokens()->delete();
+            // Push addresses aren't tied to users by a foreign key, so remove them here.
+            $user->pushSubscriptions()->delete();
             $user->endOtherSessions();
             $user->delete();
         });
