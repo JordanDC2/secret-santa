@@ -12,6 +12,8 @@ type IConfirmButtonsProps = {
 	/** Omit to make the confirm button submit its form instead. */
 	onConfirm?: () => void;
 	onCancel: () => void;
+	/** "Cancel" unless backing out means something else, e.g. "Not now". */
+	cancelLabel?: string;
 	disabled?: boolean;
 };
 
@@ -27,13 +29,14 @@ export default function ConfirmButtons({
 	isPending = false,
 	onConfirm,
 	onCancel,
+	cancelLabel = "Cancel",
 	disabled = false,
 }: IConfirmButtonsProps) {
 	return (
 		// ml="auto" keeps them on the right even when they wrap below a prompt.
 		<Group gap="xs" justify="flex-end" ml="auto">
 			<Button size={size} variant="subtle" color="gray" onClick={onCancel}>
-				Cancel
+				{cancelLabel}
 			</Button>
 			<Button
 				size={size}
