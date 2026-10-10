@@ -89,6 +89,21 @@ export async function turnOffPush(): Promise<void> {
 	}
 }
 
+/**
+ * Closes this device's notifications with a tag (e.g. a chat's, once it's been read here).
+ * Only this device: other phones and computers keep theirs until tapped or swiped away.
+ */
+export async function clearNotifications(tag: string): Promise<void> {
+	if (!("serviceWorker" in navigator)) {
+		return;
+	}
+
+	const registration = await navigator.serviceWorker.getRegistration();
+	const notifications = (await registration?.getNotifications({ tag })) ?? [];
+
+	notifications.forEach((notification) => notification.close());
+}
+
 /** Push keys come base64url-encoded; the browser wants the raw bytes. */
 function urlBase64ToBytes(base64Url: string): Uint8Array<ArrayBuffer> {
 	const base64 = (base64Url + "=".repeat((4 - (base64Url.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/");

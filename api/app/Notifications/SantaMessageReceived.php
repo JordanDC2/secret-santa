@@ -85,6 +85,7 @@ class SantaMessageReceived extends Notification implements OptionalEmail, Should
             $this->fromSanta ? "🎅 {$who->your(startOfSentence: true)} Secret Santa sent a message" : '💌 Your Secret Santa person wrote back',
             "In {$this->groupName}. Tap to reply.",
             "/?group={$this->groupId}&chat={$side}".($this->asProfileId ? "&as={$this->asProfileId}" : ''),
+            // Keep in step with chatPushTag() in web/src/Components/SantaChat/types.ts.
             tag: "chat-{$this->groupId}-{$side}".($this->asProfileId ? "-{$this->asProfileId}" : ''),
         );
     }

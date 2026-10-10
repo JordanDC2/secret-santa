@@ -13,6 +13,8 @@ import SantaChatThread from "Components/SantaChat/SantaChatThread";
 import type { ISantaChatTarget } from "Components/SantaChat/types";
 import { apiErrorMessage } from "Data/Api/Client";
 import classes from "Components/SantaChat/SantaChatModal.module.less";
+import { clearNotifications } from "Components/PushNotifications/devicePush";
+import { chatPushTag } from "Components/SantaChat/types";
 
 /** Matches the server's limit. */
 const MAX_LENGTH = 1000;
@@ -52,14 +54,24 @@ export default function SantaChatModal({ target, opened, onClose }: ISantaChatMo
 			? `${asProfile.name}'s Santa`
 			: "Your Santa";
 
-	// Opening the thread, or a new reply arriving while it's open, counts as reading it.
+	// Opening the thread, or a new reply arriving while it's open, counts as reading it, and
+	// clears this chat's push notifications from this device.
 	const latestTheirsId = latest && !latest.mine ? latest.id : null;
 	const { mutate: markReadMutate } = markRead;
+	const pushTag = chatPushTag(target);
 	useEffect(() => {
-		if (opened && latestTheirsId !== null) {
+		if (!opened) {
+			return;
+		}
+
+		if (latestTheirsId !== null) {
 			markReadMutate();
 		}
-	}, [opened, latestTheirsId, markReadMutate]);
+
+		clearNotifications(pushTag).catch(() => {
+			// Best effort: they can still swipe it away.
+		});
+	}, [opened, latestTheirsId, markReadMutate, pushTag]);
 
 	function submit() {
 		const body = draft.trim();

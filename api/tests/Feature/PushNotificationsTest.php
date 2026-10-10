@@ -117,6 +117,9 @@ class PushNotificationsTest extends TestCase
             $this->assertStringNotContainsString('Polly', json_encode($push->toArray(), JSON_THROW_ON_ERROR));
         }
         $this->assertSame('/?group='.$group->id.'&chat=my-person', $pushes[2]->toArray()['data']['url']);
+        // The web app clears a chat's notifications by this tag when it's read (chatPushTag()).
+        $this->assertSame('chat-'.$group->id.'-my-person', $pushes[2]->toArray()['tag']);
+        $this->assertSame('chat-'.$group->id.'-my-santa-34', (new SantaMessageReceived(1, $group->id, 'Ski Trip', true, 'Polly', 34))->toWebPush($santa)->toArray()['tag']);
         // Android's status bar shows the Santa hat badge, not the browser's bell.
         $this->assertSame('/badge-96.png', $pushes[0]->toArray()['badge']);
     }

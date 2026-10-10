@@ -28,3 +28,11 @@ export type ISantaThreadRef = {
 
 /** What the chat modal opens on, with optional text to start the message (e.g. "Ask about this"). */
 export type ISantaChatTarget = ISantaThreadRef & { groupName: string; draft?: string };
+
+/**
+ * The tag on this chat's push notifications, so reading the chat can clear them. Must match
+ * SantaMessageReceived::toWebPush on the API.
+ */
+export function chatPushTag({ groupId, side, asProfile }: ISantaThreadRef): string {
+	return `chat-${groupId}-${side}${asProfile ? `-${asProfile.id}` : ""}`;
+}
