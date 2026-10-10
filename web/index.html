@@ -3,8 +3,13 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-		<!-- viewport-fit=cover lets the installed app draw under the iPhone status bar; layouts pad for it. -->
-		<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+		<!-- viewport-fit=cover lets the installed app draw under the iPhone status bar; layouts pad for it.
+		     resizes-content: on Android the page shrinks above the keyboard instead of being covered by
+		     it, so the full-screen Santa chat keeps its messages in view while typing. -->
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
+		/>
 		<title>Secret Santa</title>
 		<meta
 			name="description"

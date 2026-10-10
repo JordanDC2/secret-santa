@@ -31,8 +31,36 @@ export default function SantaChatThread({ messages, theirName, isSanta, emptyMes
 		}
 	}, [latestId]);
 
+	// When the window shrinks (a phone's keyboard opening), stay on the newest message if that's
+	// where they were, like any messaging app.
+	useEffect(() => {
+		const element = viewport.current;
+
+		if (!element) {
+			return;
+		}
+
+		let atBottom = true;
+		const onScroll = () => {
+			atBottom = element.scrollHeight - element.clientHeight - element.scrollTop < 24;
+		};
+		const observer = new ResizeObserver(() => {
+			if (atBottom) {
+				element.scrollTo({ top: element.scrollHeight });
+			}
+		});
+
+		element.addEventListener("scroll", onScroll, { passive: true });
+		observer.observe(element);
+
+		return () => {
+			element.removeEventListener("scroll", onScroll);
+			observer.disconnect();
+		};
+	}, []);
+
 	return (
-		<ScrollArea.Autosize mah="50vh" viewportRef={viewport} className={classes.thread}>
+		<ScrollArea viewportRef={viewport} className={classes.thread}>
 			<Stack gap="xs" p="sm">
 				{messages.length === 0 && (
 					<MantineText size="sm" c="dimmed" ta="center" py="md">
@@ -58,6 +86,6 @@ export default function SantaChatThread({ messages, theirName, isSanta, emptyMes
 					</div>
 				))}
 			</Stack>
-		</ScrollArea.Autosize>
+		</ScrollArea>
 	);
 }

@@ -1,7 +1,37 @@
+@import (reference) "../../Styles/breakpoints.less";
+
+/*
+ * On a computer: a steady window, most of the screen's height. On a phone the modal is full
+ * screen (see SantaChatModal) and the thread takes whatever height is left, which shrinks when
+ * the keyboard opens (index.html asks Android to resize the page for it).
+ */
 .thread {
+	height: clamp(18rem, 60vh, 40rem);
 	background-color: var(--festive-surface);
 	border: 1px solid var(--festive-line);
 	border-radius: var(--mantine-radius-md);
+
+	@media @phone {
+		flex: 1;
+		height: auto;
+		min-height: 8rem;
+	}
+}
+
+@media @phone {
+	/* Header, then the chat filling the rest of the screen. */
+	.content {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.modalBody,
+	.layout {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+	}
 }
 
 /*

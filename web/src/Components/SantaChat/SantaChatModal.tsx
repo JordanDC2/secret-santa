@@ -1,5 +1,6 @@
 import { useEffect, useState, type KeyboardEvent } from "react";
 import { Alert, Button, Group, Modal, Stack, Text as MantineText, Textarea } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import LoadingText from "Components/Common/LoadingText";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPaperPlane } from "@fortawesome/free-solid-svg-icons";
@@ -11,6 +12,7 @@ import {
 import SantaChatThread from "Components/SantaChat/SantaChatThread";
 import type { ISantaChatTarget } from "Components/SantaChat/types";
 import { apiErrorMessage } from "Data/Api/Client";
+import classes from "Components/SantaChat/SantaChatModal.module.less";
 
 /** Matches the server's limit. */
 const MAX_LENGTH = 1000;
@@ -34,6 +36,8 @@ function chatTitle(isSanta: boolean, theirName: string, profileName?: string) {
  * person's name; the person only ever sees "Your Santa".
  */
 export default function SantaChatModal({ target, opened, onClose }: ISantaChatModalProps) {
+	// The app's phone breakpoint (Styles/breakpoints.less @phone).
+	const isPhone = useMediaQuery("(max-width: 36em)") ?? false;
 	const { groupName, side, asProfile } = target;
 	const threadQuery = useSantaChatQuery(target, opened);
 	const send = useSendSantaMessageMutation(target);
@@ -74,9 +78,18 @@ export default function SantaChatModal({ target, opened, onClose }: ISantaChatMo
 	}
 
 	return (
-		<Modal opened={opened} onClose={onClose} centered size="lg" title={chatTitle(isSanta, theirName, asProfile?.name)}>
-			<Stack gap="sm">
-				<MantineText size="sm" c="dimmed">
+		// Full screen on phones, so the messages get every bit of height the keyboard leaves.
+		<Modal
+			opened={opened}
+			onClose={onClose}
+			centered
+			size="lg"
+			fullScreen={isPhone}
+			classNames={{ content: classes.content, body: classes.modalBody }}
+			title={chatTitle(isSanta, theirName, asProfile?.name)}
+		>
+			<Stack gap="sm" className={classes.layout}>
+				<MantineText size={isPhone ? "xs" : "sm"} c="dimmed">
 					{asProfile
 						? isSanta
 							? `You're writing for ${asProfile.name}. ${theirName} only sees "Your Santa" in ${groupName}.`
@@ -106,7 +119,8 @@ export default function SantaChatModal({ target, opened, onClose }: ISantaChatMo
 					aria-label="Your message"
 					placeholder={isSanta ? `Ask ${theirName} a question...` : "Write to your Santa..."}
 					autosize
-					minRows={2}
+					// One line on phones (it grows as they type), leaving more room for the messages.
+					minRows={isPhone ? 1 : 2}
 					maxRows={6}
 					maxLength={MAX_LENGTH}
 					data-autofocus
