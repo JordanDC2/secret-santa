@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+	<!-- The notification badge: Android shows it in the status bar as a white silhouette (only the
+	     shape counts, so no background and no colours). The Santa hat from favicon.svg, with thin
+	     cut-outs between the hat, its pom-pom and its brim so the shape still reads as a hat.
+	     badge-96.png is this, rendered at 96x96 with a transparent background. -->
+	<defs>
+		<mask id="gaps">
+			<rect width="64" height="64" fill="#fff" />
+			<circle cx="55" cy="26" r="9" fill="#000" />
+			<rect x="2" y="40.5" width="60" height="4" fill="#000" />
+		</mask>
+	</defs>
+	<g transform="translate(32 33) scale(0.95) translate(-33.75 -33.5)" fill="#fff">
+		<path d="M10 47 C10 30 19 14 34 10 C45 7 54 13 56 24 C51 20 46 22 44.5 27 C43.5 33 54.3 37 54.3 47 Z" mask="url(#gaps)" />
+		<circle cx="55" cy="26" r="6.5" />
+		<rect x="6" y="44" width="52" height="13" rx="6.5" />
+	</g>
+</svg>

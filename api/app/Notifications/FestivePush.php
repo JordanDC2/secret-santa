@@ -21,6 +21,9 @@ class FestivePush
             ->title($title)
             ->body($body)
             ->icon('/icon-192.png')
+            // Android's status-bar icon: a white Santa hat silhouette (web/public/badge.svg),
+            // instead of the browser's generic bell.
+            ->badge('/badge-96.png')
             ->data(['url' => $path]);
 
         return $tag === null ? $message : $message->tag($tag)->renotify();

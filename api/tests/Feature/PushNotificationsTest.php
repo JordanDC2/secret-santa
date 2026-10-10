@@ -117,6 +117,8 @@ class PushNotificationsTest extends TestCase
             $this->assertStringNotContainsString('Polly', json_encode($push->toArray(), JSON_THROW_ON_ERROR));
         }
         $this->assertSame('/?group='.$group->id.'&chat=my-person', $pushes[2]->toArray()['data']['url']);
+        // Android's status bar shows the Santa hat badge, not the browser's bell.
+        $this->assertSame('/badge-96.png', $pushes[0]->toArray()['badge']);
     }
 
     public function test_push_switches_are_saved_separately_from_email(): void
