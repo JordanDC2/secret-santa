@@ -16,7 +16,7 @@ const SWITCHES: { kind: IEmailKind; label: string; description: string }[] = [
 		kind: "santa_chat",
 		label: "Santa chat messages",
 		description:
-			"When your Santa or your person sends you a message. Pushed for each one; emailed only if you haven't read it within 5 minutes.",
+			"When your Santa or your person sends you a message. Pushed for each one; emailed only if you haven't read it within 5 minutes, or 30 if you got a push.",
 	},
 	{
 		kind: "reminders",

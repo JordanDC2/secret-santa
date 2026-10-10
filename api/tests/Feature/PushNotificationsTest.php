@@ -101,6 +101,23 @@ class PushNotificationsTest extends TestCase
         $this->assertSame([WebPushChannel::class], $sent[1]->via($person));
     }
 
+    public function test_the_chat_email_waits_longer_when_a_push_went_out_too(): void
+    {
+        $person = User::factory()->create();
+        $notification = new SantaMessageReceived(1, 1, 'Ski Trip', true, 'Polly');
+        $minutesUntil = fn () => (int) round(now()->diffInMinutes($notification->withDelay($person, 'mail')['mail']));
+
+        $this->assertSame(SantaMessageReceived::WAIT_MINUTES, $minutesUntil());
+
+        $person->updatePushSubscription(self::DEVICE['endpoint'], 'key', 'token');
+        $this->assertSame(SantaMessageReceived::WAIT_MINUTES_WITH_PUSH, $minutesUntil());
+
+        // Push switched off for chats: no push goes out, so the email is their only alert again.
+        $person->update(['push_preferences' => [EmailKind::SantaChat->value => false]]);
+        $person->refresh();
+        $this->assertSame(SantaMessageReceived::WAIT_MINUTES, $minutesUntil());
+    }
+
     public function test_pushes_never_name_who_someone_is_buying_for(): void
     {
         $group = Group::factory()->create(['name' => 'Ski Trip']);

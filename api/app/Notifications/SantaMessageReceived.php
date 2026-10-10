@@ -26,8 +26,11 @@ class SantaMessageReceived extends Notification implements OptionalEmail, Should
 {
     use Queueable, RespectsNotificationPreferences;
 
-    /** Long enough that someone with the chat open has read it, short enough to still feel prompt. */
+    /** Email wait for people without push: long enough that someone with the chat open has read it. */
     public const WAIT_MINUTES = 5;
+
+    /** Email wait when they also got a push: time to see it and open the chat first. */
+    public const WAIT_MINUTES_WITH_PUSH = 30;
 
     /**
      * @param  bool  $fromSanta  Whether the Santa wrote it, i.e. this goes to their person.
@@ -47,14 +50,17 @@ class SantaMessageReceived extends Notification implements OptionalEmail, Should
     ) {}
 
     /**
-     * Pushes go straight away; the email waits WAIT_MINUTES, so someone chatting in the app
-     * (who reads it before then) gets no email at all.
+     * Pushes go straight away. The email waits, so someone chatting in the app (who reads it
+     * before then) gets none: WAIT_MINUTES, or WAIT_MINUTES_WITH_PUSH if a push went out too,
+     * since then the email is only a backup.
      *
      * @return array<string, mixed>
      */
     public function withDelay(object $notifiable, string $channel): array
     {
-        return ['mail' => now()->addMinutes(self::WAIT_MINUTES)];
+        $pushed = $notifiable instanceof User && $notifiable->routeNotificationForWebPush($this)->isNotEmpty();
+
+        return ['mail' => now()->addMinutes($pushed ? self::WAIT_MINUTES_WITH_PUSH : self::WAIT_MINUTES)];
     }
 
     /**
