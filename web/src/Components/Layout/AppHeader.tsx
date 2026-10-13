@@ -1,5 +1,5 @@
 import { Anchor, Button, Container, Group } from "@mantine/core";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import HollyIcon from "Components/Common/FestiveIcons/HollyIcon";
 import SantaHatIcon from "Components/Common/FestiveIcons/SantaHatIcon";
 import SnowflakeIcon from "Components/Common/FestiveIcons/SnowflakeIcon";
@@ -19,6 +19,7 @@ const accountButtonVars = () => ({
 
 export default function AppHeader() {
 	const { user, logout } = useAuth();
+	const navigate = useNavigate();
 
 	return (
 		<div className={classes.header}>
@@ -54,7 +55,12 @@ export default function AppHeader() {
 								<SnowflakeIcon size="1.3em" />
 								Settings
 							</Anchor>
-							<Button size="xs" className={classes.accountButton} vars={accountButtonVars} onClick={() => logout()}>
+							<Button
+								size="xs"
+								className={classes.accountButton}
+								vars={accountButtonVars}
+								onClick={() => logout(() => navigate("/login"))}
+							>
 								Log out
 							</Button>
 						</Group>

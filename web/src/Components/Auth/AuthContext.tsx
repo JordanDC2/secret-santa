@@ -21,7 +21,8 @@ type IAuthContext = {
 	status: "loading" | "authenticated" | "unauthenticated";
 	login: UseMutationResult<IUser, Error, ILoginPayload>;
 	register: UseMutationResult<IUser, Error, IRegisterPayload>;
-	logout: () => void;
+	/** onLoggedOut runs once the session has ended, e.g. to go to the log in page. */
+	logout: (onLoggedOut?: () => void) => void;
 };
 
 const AuthContext = createContext<IAuthContext | null>(null);
@@ -97,11 +98,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
 	// Stop pushes to this device first (a shared computer shouldn't keep getting the last
 	// person's notifications), but never let that hold up logging out.
-	const logout = useCallback(() => {
-		turnOffPush()
-			.catch(() => {})
-			.finally(() => logoutMutation.mutate());
-	}, [logoutMutation]);
+	const logout = useCallback(
+		(onLoggedOut?: () => void) => {
+			turnOffPush()
+				.catch(() => {})
+				.finally(() => logoutMutation.mutate(undefined, { onSuccess: onLoggedOut }));
+		},
+		[logoutMutation],
+	);
 
 	const value: IAuthContext = useMemo(
 		() => ({
