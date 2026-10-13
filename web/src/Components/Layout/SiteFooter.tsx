@@ -6,7 +6,7 @@ import classes from "Components/Layout/SiteFooter.module.less";
 /** For the copyright line; read once when the app loads. */
 const YEAR = new Date().getFullYear();
 
-/** Privacy, Terms and the copyright line, at the bottom of every page. */
+/** About, Privacy, Terms and the copyright line, at the bottom of every page. */
 export default function SiteFooter({ onDark = false }: { onDark?: boolean }) {
 	return (
 		<MantineText
@@ -16,6 +16,10 @@ export default function SiteFooter({ onDark = false }: { onDark?: boolean }) {
 			className={[classes.footer, onDark ? classes.onDark : ""].join(" ")}
 		>
 			<Group gap="xs" justify="center" component="span">
+				<Anchor component={Link} to="/about" size="xs">
+					About
+				</Anchor>
+				<span aria-hidden="true">·</span>
 				<Anchor component={Link} to="/privacy" size="xs">
 					Privacy
 				</Anchor>

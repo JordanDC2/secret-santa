@@ -54,6 +54,21 @@
 	</head>
 	<body>
 		<div id="app"></div>
+		<!-- What the About page (/about) says, for readers that don't run JavaScript (Google's app
+		     review among them). Keep in step with Components/About/AboutPage.tsx. -->
+		<noscript>
+			<h1>Secret Santa</h1>
+			<p>The easy way to run a gift exchange with family and friends. Free, with no ads.</p>
+			<ul>
+				<li>Draw names: start a group, invite everyone with a link or code, and draw names in one tap.</li>
+				<li>
+					Share wishlists: others claim what they'll buy so nobody doubles up, and you never see what's been claimed.
+				</li>
+				<li>Ask your Santa: ask the person you're buying for about sizes or hints without giving yourself away.</li>
+				<li>Kids and pets too: keep wishlists for kids and pets who don't have their own account.</li>
+			</ul>
+			<p>Secret Santa needs JavaScript turned on. <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p>
+		</noscript>
 		<script type="module" src="/src/index.tsx"></script>
 	</body>
 </html>

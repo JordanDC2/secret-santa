@@ -5,6 +5,7 @@ import { useMediaQuery } from "@mantine/hooks";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import SettingsPage from "Components/Settings/SettingsPage";
 import AdminPage from "Components/Admin/AdminPage";
+import AboutPage from "Components/About/AboutPage";
 import PrivacyPage from "Components/Legal/PrivacyPage";
 import TermsPage from "Components/Legal/TermsPage";
 import PublicLayout from "Components/Layout/PublicLayout";
@@ -55,7 +56,11 @@ function AppRoutes() {
 			<Route element={<PublicLayout />}>
 				<Route path="/privacy" element={<PrivacyPage />} />
 				<Route path="/terms" element={<TermsPage />} />
+				{/* The home page Google's branding review checks: under the header when logged in... */}
+				{status === "authenticated" && <Route path="/about" element={<AboutPage />} />}
 			</Route>
+			{/* ...and full screen, like the log in pages, when not. */}
+			{status !== "authenticated" && <Route path="/about" element={<AboutPage />} />}
 			<Route element={<AuthenticatedLayout />}>
 				<Route path="/" element={<DashboardPage />} />
 				<Route path="/wishlist" element={<MyWishlistPage />} />
