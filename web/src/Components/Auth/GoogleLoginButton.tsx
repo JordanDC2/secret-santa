@@ -74,7 +74,9 @@ export default function GoogleLoginButton() {
 					ref={buttonRef}
 					mih={44}
 					display="flex"
-					style={{ justifyContent: "center" }}
+					// Google's frame is a light page, so place it as light: in dark mode the browser
+					// would otherwise paint a white box behind it.
+					style={{ justifyContent: "center", colorScheme: "light" }}
 					aria-busy={googleLogin.isPending}
 				/>
 			</Box>
