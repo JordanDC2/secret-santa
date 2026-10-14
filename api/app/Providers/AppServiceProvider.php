@@ -57,6 +57,9 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(20)->by($request->ip()),
         ]);
 
+        // Each attempt may create an account, like registering, but people sign in this way too.
+        RateLimiter::for('google-login', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
+
         RateLimiter::for('register', fn (Request $request) => Limit::perHour(10)->by($request->ip()));
 
         // Join codes are 6 characters, so cap guesses per signed-in user.

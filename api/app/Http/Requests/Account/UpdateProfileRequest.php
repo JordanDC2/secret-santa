@@ -25,11 +25,22 @@ class UpdateProfileRequest extends FormRequest
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             // Email is the login and where assignments go, so changing it needs the password.
+            // Someone who only uses "Continue with Google" sets one first (Settings explains).
             'current_password' => [
                 Rule::requiredIf(fn () => $this->string('email')->lower()->value() !== strtolower($user->email)),
                 'nullable',
                 'current_password:sanctum',
             ],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return $this->user()->has_password ? [] : [
+            'current_password.required' => 'To change your email, set a password first (under Password).',
         ];
     }
 

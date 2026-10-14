@@ -65,7 +65,12 @@ export default function ProfileSection({ user }: { user: IUser }) {
 						required
 						{...form.getInputProps("email")}
 					/>
-					{emailChanged && (
+					{emailChanged && !user.hasPassword && (
+						<MantineText size="sm" c="dimmed">
+							To change your email, set a password first (under Password, below).
+						</MantineText>
+					)}
+					{emailChanged && user.hasPassword && (
 						<PasswordInput
 							label="Current password"
 							description="Needed to change your email."
@@ -74,7 +79,11 @@ export default function ProfileSection({ user }: { user: IUser }) {
 						/>
 					)}
 					<Group justify="flex-end">
-						<Button type="submit" loading={updateProfile.isPending} disabled={!form.isDirty()}>
+						<Button
+							type="submit"
+							loading={updateProfile.isPending}
+							disabled={!form.isDirty() || (emailChanged && !user.hasPassword)}
+						>
 							Save profile
 						</Button>
 					</Group>

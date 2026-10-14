@@ -15,7 +15,8 @@ export default function PrivacyPage() {
 				<BulletList>
 					<List.Item>
 						<strong>Your account:</strong> your first and last name, email address, password (stored scrambled, so
-						nobody can read it) and which emails you want.
+						nobody can read it) and which emails you want. If you use Continue with Google, it also keeps Google&apos;s
+						id number for your Google account, so it knows it&apos;s you next time.
 					</List.Item>
 					<List.Item>
 						<strong>Wishlists:</strong> each item&apos;s name, link, price, notes, picture link, how much you want it,
@@ -73,6 +74,11 @@ export default function PrivacyPage() {
 					<List.Item>
 						Emails go out through Gmail, so Google handles your email address and the messages. You can turn most emails
 						off in Settings.
+					</List.Item>
+					<List.Item>
+						On the log in and create account pages, your browser loads Google&apos;s Continue with Google button from
+						Google. If you use it, Google shares your name, email address and profile picture; the app keeps only your
+						name, email address and Google&apos;s id number for your account.
 					</List.Item>
 					<List.Item>
 						Your browser loads the app&apos;s fonts from Google Fonts, and product pictures straight from the

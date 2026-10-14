@@ -5,6 +5,7 @@ import { useAuth } from "Components/Auth/AuthContext";
 import { AUTH_FIELD_NAMES, PASSWORD_HINT } from "Components/Auth/hooks";
 import { apiErrorMessage, apiFieldErrors } from "Data/Api/Client";
 import AuthLayout from "Components/Layout/AuthLayout";
+import GoogleLoginButton from "Components/Auth/GoogleLoginButton";
 
 export default function RegisterPage() {
 	const { register } = useAuth();
@@ -18,6 +19,7 @@ export default function RegisterPage() {
 
 	return (
 		<AuthLayout subtitle="Join the nice list and create your account.">
+			<GoogleLoginButton />
 			<form onSubmit={form.onSubmit(handleSubmit)}>
 				<Stack>
 					{register.isError && Object.keys(form.errors).length === 0 && (

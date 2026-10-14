@@ -16,8 +16,9 @@ YOUR_HOSTNAME {
 		# Content-Security-Policy: only this site's own scripts run (no inline ones, see
 		# web/public/color-scheme.js); styles may be inline (Mantine writes its theme that way)
 		# plus Google Fonts; pictures from any https site (shop images); live updates over this
-		# host's WebSocket; never framed, no plugins, forms only post here.
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' wss://YOUR_HOSTNAME; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		# host's WebSocket; never framed, no plugins, forms only post here. The /gsi/ entries are
+		# Google's "Continue with Google" button (its script, styles, and the frame it draws in).
+		Content-Security-Policy "default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com/gsi/style; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' wss://YOUR_HOSTNAME https://accounts.google.com/gsi/; frame-src https://accounts.google.com/gsi/; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 		-Server
 	}
 

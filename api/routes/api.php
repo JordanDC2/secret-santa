@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\LocationsHandler;
 use App\Http\Controllers\Admin\OverviewHandler;
 use App\Http\Controllers\Admin\SendPasswordResetHandler;
 use App\Http\Controllers\Auth\ForgotPasswordHandler;
+use App\Http\Controllers\Auth\GoogleLoginHandler;
 use App\Http\Controllers\Auth\LoginHandler;
 use App\Http\Controllers\Auth\LogoutHandler;
 use App\Http\Controllers\Auth\RegisterHandler;
@@ -48,6 +49,9 @@ Route::prefix('auth')->name('auth.')->group(function () {
     Route::post('register', RegisterHandler::class)->middleware('throttle:register')->name('register');
 
     Route::post('login', LoginHandler::class)->middleware('throttle:login')->name('login');
+
+    // "Continue with Google": logs in, or creates the account on first use.
+    Route::post('google', GoogleLoginHandler::class)->middleware('throttle:google-login')->name('google');
 
     Route::post('forgot-password', ForgotPasswordHandler::class)
         ->middleware('throttle:6,1')

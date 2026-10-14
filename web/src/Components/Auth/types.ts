@@ -9,6 +9,8 @@ export type IUser = {
 	isAdmin: boolean;
 	/** Whether they've clicked the link in the "confirm your email" email (a nudge; nothing waits on it). */
 	emailVerified: boolean;
+	/** False if they've only ever used "Continue with Google" (Settings offers to email a link to set one). */
+	hasPassword: boolean;
 };
 
 /** The signed-in user as the API sends it. */
@@ -20,4 +22,5 @@ export type IUserResponse = {
 	email: string;
 	is_admin: boolean;
 	email_verified_at: string | null;
+	has_password: boolean;
 };

@@ -42,6 +42,7 @@ class AccountController extends Controller
                 'email' => $user->email,
                 'is_admin' => $user->is_admin,
                 'email_verified' => $user->hasVerifiedEmail(),
+                'uses_google' => $user->google_id !== null,
                 'created_at' => $user->created_at?->toIso8601String(),
                 // Sessions expire after a while, so someone long gone shows as null.
                 'last_seen_at' => isset($lastSeen[$user->id]) ? Carbon::createFromTimestamp((int) $lastSeen[$user->id])->toIso8601String() : null,

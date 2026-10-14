@@ -36,6 +36,8 @@ export type IAdminAccount = {
 	isAdmin: boolean;
 	/** Clicked the "confirm your email" link (or signed up before verification existed). */
 	emailVerified: boolean;
+	/** Has used "Continue with Google". */
+	usesGoogle: boolean;
 	createdAt: string;
 	/** Null once their sessions have expired. */
 	lastSeenAt: string | null;

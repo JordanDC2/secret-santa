@@ -30,6 +30,7 @@ type IAccountResponse = {
 	email: string;
 	is_admin: boolean;
 	email_verified: boolean;
+	uses_google: boolean;
 	created_at: string;
 	last_seen_at: string | null;
 	owned_groups: { id: number; name: string; members_count: number; is_drawn: boolean }[];
@@ -91,6 +92,7 @@ function toAccount(account: IAccountResponse): IAdminAccount {
 		email: account.email,
 		isAdmin: account.is_admin,
 		emailVerified: account.email_verified,
+		usesGoogle: account.uses_google,
 		createdAt: account.created_at,
 		lastSeenAt: account.last_seen_at,
 		ownedGroups: account.owned_groups.map((group) => ({

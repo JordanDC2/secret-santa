@@ -34,13 +34,15 @@ use NotificationChannels\WebPush\PushSubscription;
  * @property string|null $last_name Required for adults; kids, pets and older one-word accounts may have none.
  * @property-read string $full_name
  * @property-read bool $is_admin
+ * @property-read bool $has_password
+ * @property string|null $google_id Set once they've used "Continue with Google".
  * @property string|null $region_country Roughly where they use the app (see RecordRegion).
  * @property string|null $region_name
  * @property Carbon|null $region_checked_at
  */
 #[Fillable(['first_name', 'last_name', 'email', 'password', 'email_preferences', 'push_preferences', 'managed_kind'])]
-#[Hidden(['password', 'remember_token', 'email_preferences', 'push_preferences', 'region_country', 'region_name', 'region_checked_at'])]
-#[Appends(['full_name', 'is_admin'])]
+#[Hidden(['password', 'google_id', 'remember_token', 'email_preferences', 'push_preferences', 'region_country', 'region_name', 'region_checked_at'])]
+#[Appends(['full_name', 'is_admin', 'has_password'])]
 class User extends Authenticatable implements MustVerifyEmailContract
 {
     /** @use HasFactory<UserFactory> */
@@ -74,6 +76,17 @@ class User extends Authenticatable implements MustVerifyEmailContract
     protected function fullName(): Attribute
     {
         return Attribute::get(fn () => trim($this->first_name.' '.$this->last_name));
+    }
+
+    /**
+     * False for someone who has only ever used "Continue with Google": Settings offers to email
+     * them a link to set one, and asks for their email instead of a password where it'd ask.
+     *
+     * @return Attribute<bool, never>
+     */
+    protected function hasPassword(): Attribute
+    {
+        return Attribute::get(fn () => $this->password !== null);
     }
 
     /**

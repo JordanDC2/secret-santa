@@ -36,7 +36,14 @@ export function useDeleteAccountMutation() {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: (currentPassword: string) => apiClient.delete<void>("/account", { current_password: currentPassword }),
+		/** Their password, or for someone who only uses "Continue with Google", their email typed out. */
+		mutationFn: (confirmation: { currentPassword: string } | { confirmEmail: string }) =>
+			apiClient.delete<void>(
+				"/account",
+				"confirmEmail" in confirmation
+					? { confirm_email: confirmation.confirmEmail }
+					: { current_password: confirmation.currentPassword },
+			),
 		// Same as logging out: the app falls back to the login page, and AuthProvider clears the cache.
 		onSuccess: () => queryClient.setQueryData(CURRENT_USER_QUERY_KEY, null),
 	});

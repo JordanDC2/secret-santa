@@ -21,6 +21,8 @@ type IAuthContext = {
 	status: "loading" | "authenticated" | "unauthenticated";
 	login: UseMutationResult<IUser, Error, ILoginPayload>;
 	register: UseMutationResult<IUser, Error, IRegisterPayload>;
+	/** "Continue with Google": logs in, creating the account on first use. Takes Google's signed token. */
+	googleLogin: UseMutationResult<IUser, Error, string>;
 	/** onLoggedOut runs once the session has ended, e.g. to go to the log in page. */
 	logout: (onLoggedOut?: () => void) => void;
 };
@@ -36,6 +38,7 @@ export function toUser(user: IUserResponse): IUser {
 		email: user.email,
 		isAdmin: user.is_admin,
 		emailVerified: user.email_verified_at !== null,
+		hasPassword: user.has_password,
 	};
 }
 
@@ -69,6 +72,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
 					password_confirmation: details.passwordConfirmation,
 				}),
 			),
+		onSuccess: (user) => queryClient.setQueryData(CURRENT_USER_QUERY_KEY, user),
+	});
+
+	const googleLoginMutation = useMutation({
+		mutationFn: async (credential: string) =>
+			toUser(await apiClient.post<IUserResponse>("/auth/google", { credential })),
 		onSuccess: (user) => queryClient.setQueryData(CURRENT_USER_QUERY_KEY, user),
 	});
 
@@ -113,9 +122,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
 			status,
 			login: loginMutation,
 			register: registerMutation,
+			googleLogin: googleLoginMutation,
 			logout,
 		}),
-		[currentUserQuery.data, status, loginMutation, registerMutation, logout],
+		[currentUserQuery.data, status, loginMutation, registerMutation, googleLoginMutation, logout],
 	);
 
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

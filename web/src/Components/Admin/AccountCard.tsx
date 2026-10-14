@@ -26,6 +26,11 @@ export default function AccountCard({ account, onAction }: IAccountCardProps) {
 									You
 								</Badge>
 							)}
+							{account.usesGoogle && (
+								<Badge size="sm" variant="light" color="gray">
+									Google
+								</Badge>
+							)}
 							{!account.emailVerified && (
 								<Badge size="sm" variant="light" color="orange">
 									Email not confirmed

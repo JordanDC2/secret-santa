@@ -22,6 +22,12 @@ return [
         'url' => 'https://download.db-ip.com/free/dbip-city-lite-%s.mmdb.gz',
     ],
 
+    // "Continue with Google" on the sign-in pages. The client id is public (the React app gets
+    // it as VITE_GOOGLE_CLIENT_ID); leave it empty to hide the button.
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],

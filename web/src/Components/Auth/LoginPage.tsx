@@ -5,6 +5,7 @@ import { useAuth } from "Components/Auth/AuthContext";
 import { AUTH_FIELD_NAMES } from "Components/Auth/hooks";
 import { apiErrorMessage, apiFieldErrors } from "Data/Api/Client";
 import AuthLayout from "Components/Layout/AuthLayout";
+import GoogleLoginButton from "Components/Auth/GoogleLoginButton";
 
 export default function LoginPage() {
 	const { login } = useAuth();
@@ -16,6 +17,7 @@ export default function LoginPage() {
 
 	return (
 		<AuthLayout subtitle="Ho ho ho! Log in to find out who needs a gift.">
+			<GoogleLoginButton />
 			<form onSubmit={form.onSubmit(handleSubmit)}>
 				<Stack>
 					{login.isError && Object.keys(form.errors).length === 0 && (
