@@ -46,14 +46,15 @@ export default function AppHeader() {
 					)}
 					{user && (
 						<>
-							<Group gap="xs" wrap="nowrap" visibleFrom="md" component="nav" aria-label="Pages">
+							<Group gap={2} wrap="nowrap" visibleFrom="md" component="nav" aria-label="Pages">
 								{items.map((item) => (
 									<Anchor key={item.to} component={Link} to={item.to} className={classes.navLink}>
 										<item.icon size="1.3em" />
 										{item.label}
 									</Anchor>
 								))}
-								<Button size="xs" className={classes.accountButton} vars={accountButtonVars} onClick={logOut}>
+								{/* A little apart from the page links: it's an action, not a page. */}
+								<Button size="xs" ml="sm" className={classes.accountButton} vars={accountButtonVars} onClick={logOut}>
 									Log out
 								</Button>
 							</Group>
