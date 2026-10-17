@@ -255,8 +255,9 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 					opened={shopOpen}
 					onClose={() => setShopOpen(false)}
 					position={touchScreen ? "bottom" : "right"}
-					size={touchScreen ? "85%" : "md"}
+					size={touchScreen ? "100%" : "md"}
 					withinPortal={false}
+					classNames={{ inner: classes.shopDrawer }}
 					aria-label="Shop"
 					padding="sm"
 				>

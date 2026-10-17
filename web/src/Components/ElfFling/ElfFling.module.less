@@ -95,6 +95,12 @@
 	}
 }
 
+/* The shop drawer sits inside the stage (so it shows in full screen) rather than at the end
+   of the page, and Mantine leaves its frame's left unset, so pin it to the screen's edge. */
+.shopDrawer {
+	left: 0;
+}
+
 .fullscreen .rocketButton {
 	right: calc(var(--mantine-spacing-sm) + env(safe-area-inset-right));
 	bottom: calc(var(--mantine-spacing-sm) + env(safe-area-inset-bottom));
