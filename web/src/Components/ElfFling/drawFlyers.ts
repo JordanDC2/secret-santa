@@ -3,8 +3,8 @@ import { ELF_RADIUS, type IGameState } from "Components/ElfFling/physics";
 import type { ISkinId } from "Components/ElfFling/skins";
 
 /**
- * Whoever's being flung, in the skin the player's wearing: the little elf, Santa, Mrs. Claus
- * or a little snowman. Each is drawn about its middle, ELF_RADIUS tall either side (feet at
+ * Whoever's being flung, in the skin the player's wearing: the little elf, Santa, Mrs. Claus,
+ * a little snowman or (revenge at last) a little reindeer. Each is drawn about its middle, ELF_RADIUS tall either side (feet at
  * -ELF_RADIUS), in world units (metres, y up), and tumbles as it flies.
  */
 
@@ -19,6 +19,7 @@ const DRAWINGS: Record<ISkinId, (context: CanvasRenderingContext2D, palette: IPa
 	santa: drawSanta,
 	mrsClaus: drawMrsClaus,
 	snowman: drawLittleSnowman,
+	reindeer: drawLittleReindeer,
 };
 
 /**
@@ -198,6 +199,55 @@ function drawLittleSnowman(context: CanvasRenderingContext2D, palette: IPalette)
 	context.fillRect(-0.08, 0.27, 0.16, 0.13);
 	context.fillStyle = palette.green;
 	context.fillRect(-0.08, 0.28, 0.16, 0.025);
+}
+
+/** A little reindeer, standing up like the big one: brown fur, pale belly, antlers, red scarf. */
+function drawLittleReindeer(context: CanvasRenderingContext2D, palette: IPalette) {
+	// Legs and hooves.
+	context.fillStyle = palette.bark;
+	context.fillRect(-0.11, -ELF_RADIUS, 0.07, 0.17);
+	context.fillRect(0.04, -ELF_RADIUS, 0.07, 0.17);
+	context.fillStyle = BOOT;
+	context.fillRect(-0.12, -ELF_RADIUS, 0.09, 0.04);
+	context.fillRect(0.03, -ELF_RADIUS, 0.09, 0.04);
+
+	// Body, with a pale belly.
+	context.fillStyle = palette.fur;
+	ellipse(context, 0, -0.05, 0.15, 0.16);
+	context.fillStyle = palette.gold;
+	ellipse(context, 0.02, -0.07, 0.08, 0.11);
+
+	// Antlers, behind the head.
+	context.strokeStyle = palette.bark;
+	context.lineWidth = 0.025;
+	context.lineCap = "round";
+	context.beginPath();
+	context.moveTo(-0.04, 0.24);
+	context.lineTo(-0.08, 0.4);
+	context.moveTo(-0.06, 0.33);
+	context.lineTo(-0.13, 0.38);
+	context.moveTo(0.04, 0.24);
+	context.lineTo(0.07, 0.41);
+	context.moveTo(0.055, 0.33);
+	context.lineTo(0.12, 0.38);
+	context.stroke();
+
+	// Head, ear, snout and nose, facing ahead.
+	context.fillStyle = palette.fur;
+	ellipse(context, 0.01, 0.18, 0.1, 0.1);
+	ellipse(context, -0.09, 0.23, 0.045, 0.02, -0.5);
+	ellipse(context, 0.09, 0.15, 0.065, 0.045);
+	context.fillStyle = BOOT;
+	ellipse(context, 0.15, 0.16, 0.024, 0.02);
+	context.fillStyle = palette.white;
+	ellipse(context, 0.04, 0.2, 0.026, 0.026);
+	context.fillStyle = COAL;
+	ellipse(context, 0.048, 0.2, 0.014, 0.014);
+
+	// A red scarf, so it reads at a glance mid-tumble.
+	context.fillStyle = palette.red;
+	context.fillRect(-0.1, 0.07, 0.2, 0.04);
+	context.fillRect(-0.09, -0.03, 0.04, 0.1);
 }
 
 function drawEyes(context: CanvasRenderingContext2D, y: number) {

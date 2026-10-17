@@ -4,7 +4,7 @@
  * line calls the flyer), never how far it goes.
  */
 
-export type ISkinId = "elf" | "santa" | "mrsClaus" | "snowman";
+export type ISkinId = "elf" | "santa" | "mrsClaus" | "snowman" | "reindeer";
 
 export type ISkin = {
 	id: ISkinId;
@@ -45,6 +45,13 @@ export const SKINS: ISkin[] = [
 		description: "A little snowman in a top hat and scarf. Try not to think about the big ones.",
 		price: 200,
 	},
+	{
+		id: "reindeer",
+		name: "Little reindeer",
+		subject: "the reindeer",
+		description: "Revenge at last: after all those swings, a reindeer finds out how the elves feel.",
+		price: 300,
+	},
 ];
 
 export const DEFAULT_SKIN: ISkinId = "elf";
@@ -63,7 +70,7 @@ export function capitalised(subject: string): string {
 }
 
 /** Who swings: the reindeer, or one of the flyers' characters, drawn big. */
-export type IBatterId = "reindeer" | ISkinId;
+export type IBatterId = ISkinId;
 
 export type IBatter = {
 	id: IBatterId;
