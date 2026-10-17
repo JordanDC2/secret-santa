@@ -4,6 +4,7 @@ import { drawCrackers, drawPopLabels } from "Components/ElfFling/drawCrackers";
 import { drawFlyer, flyerEnlargement } from "Components/ElfFling/drawFlyers";
 import { drawOrnaments } from "Components/ElfFling/drawOrnaments";
 import { drawSleigh } from "Components/ElfFling/drawSleigh";
+import { drawSnowfall } from "Components/ElfFling/drawSnowfall";
 import { drawSnowmen } from "Components/ElfFling/drawSnowmen";
 import type { IBatterId, ISkinId } from "Components/ElfFling/skins";
 import { drawBatter } from "Components/ElfFling/drawBatters";
@@ -96,6 +97,8 @@ export function drawFrame(
 	best: number | null,
 	skin: ISkinId,
 	batter: IBatterId,
+	/** Seconds on the page's own clock, for the falling snow. */
+	clock: number,
 ) {
 	const { width, height } = size;
 	const groundY = height * (1 - GROUND_SHARE);
@@ -124,6 +127,7 @@ export function drawFrame(
 	drawFlyer(context, palette, state, camera.pixelsPerMetre, skin);
 	context.restore();
 	drawPopLabels(context, palette, state.crackers, state.time, toScreen);
+	drawSnowfall(context, palette, camera, size, clock);
 	drawCoinCount(context, palette, state.coinsCollected);
 
 	if (state.phase === "flying" || state.phase === "sliding") {

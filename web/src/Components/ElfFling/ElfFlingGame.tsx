@@ -176,6 +176,7 @@ export default function ElfFlingGame({
 				bestRef.current,
 				skinRef.current,
 				batterRef.current,
+				now / 1000,
 			);
 			frame = requestAnimationFrame(render);
 		}
