@@ -19,6 +19,7 @@ import LoginPage from "Components/Auth/LoginPage";
 import RegisterPage from "Components/Auth/RegisterPage";
 import ResetPasswordPage from "Components/Auth/ResetPasswordPage";
 import DashboardPage from "Components/Dashboard/DashboardPage";
+import GamesPage from "Components/Games/GamesPage";
 import JoinInvitePage from "Components/Invites/JoinInvitePage";
 import AuthenticatedLayout from "Components/Layout/AuthenticatedLayout";
 import MemberWishlistPage from "Components/Wishlist/MemberWishlistPage";
@@ -74,8 +75,9 @@ function AppRoutes() {
 				{/* The page was called Account before; older emails still link here. */}
 				<Route path="/account" element={<Navigate to="/settings" replace />} />
 				<Route path="/wishlists/:userId" element={<MemberWishlistPage />} />
+				<Route path="/games" element={<GamesPage />} />
 				<Route
-					path="/elf-fling"
+					path="/games/elf-fling"
 					element={
 						<Suspense fallback={<LoadingText>Loading Elf Fling...</LoadingText>}>
 							<ElfFlingPage />

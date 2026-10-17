@@ -63,7 +63,7 @@ export default function ElfFlingPage() {
 	return (
 		<Page>
 			<Stack gap="lg">
-				<BackToGroups />
+				<BackToGroups to="/games" label="Back to games" />
 				<PageTitle icon={<GiftBoxIcon />}>Elf Fling</PageTitle>
 				<MantineText>
 					The elf hops off the presents; swing the candy cane as it falls past. Hit it right on the sweet spot to send

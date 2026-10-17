@@ -1,10 +1,9 @@
-import { Anchor, Button, Container, Group } from "@mantine/core";
+import { Anchor, Burger, Button, Collapse, Container, Group, Stack } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { Link, useNavigate } from "react-router-dom";
-import HollyIcon from "Components/Common/FestiveIcons/HollyIcon";
 import SantaHatIcon from "Components/Common/FestiveIcons/SantaHatIcon";
-import SnowflakeIcon from "Components/Common/FestiveIcons/SnowflakeIcon";
-import WishListIcon from "Components/Common/FestiveIcons/WishListIcon";
 import { useAuth } from "Components/Auth/AuthContext";
+import { navigationItems } from "Components/Layout/navigationItems";
 import classes from "Components/Layout/AppHeader.module.less";
 
 // Mantine sets a button's colours inline, so they're swapped through its vars, not CSS.
@@ -17,15 +16,23 @@ const accountButtonVars = () => ({
 	},
 });
 
+/**
+ * The app's header. Signed in, wide screens show the pages in a row; narrower ones get a
+ * menu button that opens them as a list under the header, so nothing wraps under the logo.
+ */
 export default function AppHeader() {
 	const { user, logout } = useAuth();
 	const navigate = useNavigate();
+	const [menuOpened, menu] = useDisclosure(false);
+	const items = navigationItems.filter((item) => !item.adminOnly || user?.isAdmin);
+
+	const logOut = () => logout(() => navigate("/login"));
 
 	return (
 		<div className={classes.header}>
 			<Container size="lg" py="sm">
-				<Group justify="space-between">
-					<Anchor component={Link} to="/" className={classes.homeLink}>
+				<Group justify="space-between" wrap="nowrap">
+					<Anchor component={Link} to="/" className={classes.homeLink} onClick={menu.close}>
 						<span className={classes.title}>
 							<SantaHatIcon size="1.15em" />
 							Secret Santa
@@ -37,36 +44,57 @@ export default function AppHeader() {
 							Log in
 						</Button>
 					)}
-					{/* xs gap: the nav pills carry their own padding, and it keeps them on one row on phones. */}
 					{user && (
-						<Group gap="xs">
-							<Anchor component={Link} to="/wishlist" className={classes.navLink}>
-								<WishListIcon size="1.3em" />
-								My wishlist
-							</Anchor>
-							{/* The site owner's page. Phones reach it from Settings, so the row still fits. */}
-							{user.isAdmin && (
-								<Anchor component={Link} to="/admin" className={`${classes.navLink} ${classes.wideOnly}`}>
-									<HollyIcon size="1.3em" />
-									Admin
-								</Anchor>
-							)}
-							<Anchor component={Link} to="/settings" className={classes.navLink}>
-								<SnowflakeIcon size="1.3em" />
-								Settings
-							</Anchor>
-							<Button
-								size="xs"
-								className={classes.accountButton}
-								vars={accountButtonVars}
-								onClick={() => logout(() => navigate("/login"))}
-							>
-								Log out
-							</Button>
-						</Group>
+						<>
+							<Group gap="xs" wrap="nowrap" visibleFrom="md" component="nav" aria-label="Pages">
+								{items.map((item) => (
+									<Anchor key={item.to} component={Link} to={item.to} className={classes.navLink}>
+										<item.icon size="1.3em" />
+										{item.label}
+									</Anchor>
+								))}
+								<Button size="xs" className={classes.accountButton} vars={accountButtonVars} onClick={logOut}>
+									Log out
+								</Button>
+							</Group>
+							<Burger
+								opened={menuOpened}
+								onClick={menu.toggle}
+								hiddenFrom="md"
+								size="sm"
+								color="var(--festive-gold)"
+								aria-label={menuOpened ? "Close menu" : "Open menu"}
+								aria-expanded={menuOpened}
+								aria-controls="header-menu"
+							/>
+						</>
 					)}
 				</Group>
 			</Container>
+			{user && (
+				<Collapse in={menuOpened} hiddenFrom="md" id="header-menu">
+					<Container size="lg" pb="md">
+						<Stack gap={4} component="nav" aria-label="Pages">
+							{items.map((item) => (
+								<Anchor key={item.to} component={Link} to={item.to} className={classes.menuLink} onClick={menu.close}>
+									<item.icon size="1.3em" />
+									{item.label}
+								</Anchor>
+							))}
+							<Button
+								size="sm"
+								mt="xs"
+								className={classes.accountButton}
+								vars={accountButtonVars}
+								onClick={logOut}
+								fullWidth
+							>
+								Log out
+							</Button>
+						</Stack>
+					</Container>
+				</Collapse>
+			)}
 		</div>
 	);
 }
