@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ActionIcon, Tooltip } from "@mantine/core";
-import { useElementSize } from "@mantine/hooks";
+import { useElementSize, useMediaQuery, useViewportSize } from "@mantine/hooks";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCompress, faExpand } from "@fortawesome/free-solid-svg-icons";
 import RocketIcon from "Components/Common/FestiveIcons/RocketIcon";
 import { drawFrame, nextCamera, readPalette, type ICamera, type IPalette } from "Components/ElfFling/draw";
 import {
@@ -16,6 +18,7 @@ import {
 } from "Components/ElfFling/physics";
 import type { IBatterId, ISkinId } from "Components/ElfFling/skins";
 import type { IUpgrades } from "Components/ElfFling/upgrades";
+import { releaseFocus } from "Components/ElfFling/releaseFocus";
 import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
 import classes from "Components/ElfFling/ElfFling.module.less";
 
@@ -33,6 +36,11 @@ type IElfFlingGameProps = {
 	onJumpsChange: (jumps: { available: boolean; left: number }) => void;
 	/** A tap after the elf has stopped: the page starts the next round. */
 	onRestart: () => void;
+	/** What to tell the player over the game in full screen, where the page's text is hidden. */
+	overlay: string;
+	/** Full screen belongs to the page (it outlasts each round's game); this just shows it. */
+	fullscreen: boolean;
+	onToggleFullscreen: () => void;
 };
 
 /** Never simulate more than this much at once, e.g. after the tab was in the background. */
@@ -41,7 +49,8 @@ const MAX_FRAME_TIME = 0.1;
 /**
  * The game's canvas: runs the physics in fixed steps on every animation frame and draws the
  * result. One input does almost everything: tap or click the canvas, or press Space or Enter.
- * The rocket (an upgrade) has its own button over the canvas (and the R key on a keyboard).
+ * The rocket (an upgrade) has its own button over the canvas (and the R key on a keyboard),
+ * and another button toggles full screen (the page owns it: see useFullscreen.ts).
  * Only phase changes reach React, so the page doesn't re-render sixty times a second.
  */
 export default function ElfFlingGame({
@@ -53,8 +62,13 @@ export default function ElfFlingGame({
 	onFinish,
 	onJumpsChange,
 	onRestart,
+	overlay,
+	fullscreen,
+	onToggleFullscreen,
 }: IElfFlingGameProps) {
-	const { ref: frameRef, width } = useElementSize();
+	const { ref: frameRef, width, height: frameHeight } = useElementSize();
+	const { height: viewportHeight } = useViewportSize();
+	const portrait = useMediaQuery("(orientation: portrait)");
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	// Built once per round (the page gives each round a new key), not on every render.
 	const [firstState] = useState(() => newGame(upgrades));
@@ -76,8 +90,18 @@ export default function ElfFlingGame({
 		callbacksRef.current = { onPhaseChange, onFinish, onJumpsChange, onRestart };
 	});
 
-	// Taller in proportion on phones, so there's room to see the flight on a narrow screen.
-	const height = Math.round(Math.min(440, Math.max(280, width * (width < 576 ? 0.85 : 0.6))));
+	// Full screen: all of it. Otherwise taller in proportion on phones, so there's room to see
+	// the flight on a narrow screen.
+	// It never needs scrolling to see, e.g. on a phone held sideways (where full screen is better).
+	const height = fullscreen
+		? Math.round(frameHeight)
+		: Math.round(
+				Math.min(
+					440,
+					viewportHeight > 0 ? viewportHeight * 0.85 : 440,
+					Math.max(280, width * (width < 576 ? 0.85 : 0.6)),
+				),
+			);
 	const touchScreen = useTouchScreen();
 
 	const setState = useCallback((next: IGameState) => {
@@ -141,7 +165,7 @@ export default function ElfFlingGame({
 		const canvas = canvasRef.current;
 		const context = canvas?.getContext("2d");
 
-		if (!canvas || !context || width === 0) {
+		if (!canvas || !context || width === 0 || height === 0) {
 			return;
 		}
 
@@ -216,12 +240,39 @@ export default function ElfFlingGame({
 							event.stopPropagation();
 							launchRocket();
 						}}
-						onClick={launchRocket}
+						onClick={(event) => {
+							launchRocket();
+							releaseFocus(event);
+						}}
 					>
 						<RocketIcon size="78%" />
 					</ActionIcon>
 				</Tooltip>
 			)}
+			{fullscreen && (overlay || (touchScreen && portrait)) && (
+				// The page's prompts are hidden behind the game, so they show over it instead.
+				<div className={classes.overlay} aria-live="polite">
+					{overlay}
+					{touchScreen && portrait && (
+						<div className={classes.overlayHint}>Turn your phone sideways for a wider view.</div>
+					)}
+				</div>
+			)}
+			<Tooltip label={fullscreen ? "Leave full screen (Esc)" : "Play full screen"} withArrow disabled={touchScreen}>
+				<ActionIcon
+					variant="transparent"
+					radius="xl"
+					size={touchScreen ? 52 : 44}
+					className={classes.fullscreenButton}
+					aria-label={fullscreen ? "Leave full screen" : "Play full screen"}
+					onClick={(event) => {
+						onToggleFullscreen();
+						releaseFocus(event);
+					}}
+				>
+					<FontAwesomeIcon icon={fullscreen ? faCompress : faExpand} />
+				</ActionIcon>
+			</Tooltip>
 		</div>
 	);
 }

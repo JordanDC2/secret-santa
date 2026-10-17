@@ -10,7 +10,10 @@ import type { IGameState, IPhase } from "Components/ElfFling/physics";
 import { readProgress, saveProgress, type IProgress } from "Components/ElfFling/progress";
 import { capitalised, skinById, type IBatterId, type ISkinId } from "Components/ElfFling/skins";
 import { coinMultiplier, type IUpgradeId } from "Components/ElfFling/upgrades";
+import { useFullscreen } from "Components/ElfFling/useFullscreen";
+import { releaseFocus } from "Components/ElfFling/releaseFocus";
 import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
+import classes from "Components/ElfFling/ElfFling.module.less";
 import BackToGroups from "Components/Layout/BackToGroups";
 import Page from "Components/Layout/Page";
 import PageTitle from "Components/Layout/PageTitle";
@@ -68,6 +71,8 @@ export default function ElfFlingPage() {
 	const [progress, setProgress] = useState(readProgress);
 	const [jumps, setJumps] = useState({ available: false, left: 0 });
 	const touchScreen = useTouchScreen();
+	const stageRef = useRef<HTMLDivElement>(null);
+	const { fullscreen, enter: enterFullscreen, exit: exitFullscreen } = useFullscreen(stageRef);
 	const skin = skinById(progress.skin);
 	// The result is written when a throw ends, inside a callback; it reads the skin from here.
 	const skinRef = useRef(progress.skin);
@@ -180,7 +185,17 @@ export default function ElfFlingPage() {
 					? `Tap the game to send ${skin.subject} hopping off the presents.`
 					: phase === "ready" || phase === "done"
 						? `Click the game (or press Space) to send ${skin.subject} hopping off the presents.`
-						: PROMPTS[phase];
+						: phase === "dropping" && !touchScreen
+							? "Now swing! (Click or press Space.)"
+							: PROMPTS[phase];
+	// Over the game in full screen: the same, minus the "Wheee!" (the flight speaks for itself),
+	// and after a throw, the coins and how to go again, since the page's buttons are hidden.
+	const overlay =
+		phase === "done" && result
+			? `${result.message}${result.coins > 0 ? ` +${result.coins} coins.` : ""} ${touchScreen ? "Tap" : "Click or press Space"} to throw again.`
+			: prompt === PROMPTS.flying
+				? ""
+				: prompt;
 
 	return (
 		<Page>
@@ -189,17 +204,23 @@ export default function ElfFlingPage() {
 				<PageTitle icon={<GiftBoxIcon />}>Elf Fling</PageTitle>
 				{/* On phones the game comes first, so it's on screen without scrolling; the intro follows it. */}
 				<MantineText visibleFrom="xs">{INTRO}</MantineText>
-				<ElfFlingGame
-					key={round}
-					upgrades={progress.upgrades}
-					skin={progress.skin}
-					batter={progress.batter}
-					best={best}
-					onPhaseChange={setPhase}
-					onFinish={handleFinish}
-					onJumpsChange={setJumps}
-					onRestart={throwAgain}
-				/>
+				{/* The stage outlasts each round's game, so full screen survives "throw again". */}
+				<div ref={stageRef} className={fullscreen ? `${classes.stage} ${classes.fullscreen}` : classes.stage}>
+					<ElfFlingGame
+						key={round}
+						upgrades={progress.upgrades}
+						skin={progress.skin}
+						batter={progress.batter}
+						best={best}
+						onPhaseChange={setPhase}
+						onFinish={handleFinish}
+						onJumpsChange={setJumps}
+						onRestart={throwAgain}
+						overlay={overlay}
+						fullscreen={fullscreen}
+						onToggleFullscreen={fullscreen ? exitFullscreen : enterFullscreen}
+					/>
+				</div>
 				<Group justify="space-between" align="flex-start" wrap="nowrap" gap="md">
 					<div aria-live="polite" style={{ flex: 1, minWidth: 0 }}>
 						<MantineText fw={700}>{prompt}</MantineText>
@@ -221,7 +242,10 @@ export default function ElfFlingPage() {
 					{phase === "done" && (
 						<Button
 							leftSection={<FontAwesomeIcon icon={faRotateRight} />}
-							onClick={throwAgain}
+							onClick={(event) => {
+								throwAgain();
+								releaseFocus(event);
+							}}
 							style={{ flex: "none" }}
 						>
 							Throw again

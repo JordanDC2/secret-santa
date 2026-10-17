@@ -48,3 +48,73 @@
 		transform: scale(0.92);
 	}
 }
+
+/* Holds the game; it stays put between rounds, so it's what goes full screen. */
+.stage {
+	position: relative;
+}
+
+/* Full screen: the game covers the whole page (useFullscreen.ts), edge to edge. */
+.fullscreen {
+	position: fixed;
+	inset: 0;
+	z-index: 300;
+	width: 100vw;
+	height: 100dvh;
+	background-color: var(--festive-darkest);
+
+	.frame {
+		height: 100%;
+		border-radius: 0;
+		box-shadow: none;
+	}
+}
+
+/* Bottom left, opposite the rocket; see-through like it. Clear of the phone's rounded corners
+   and notch in full screen. */
+.fullscreenButton {
+	position: absolute;
+	left: calc(var(--mantine-spacing-xs) + env(safe-area-inset-left));
+	bottom: calc(var(--mantine-spacing-xs) + env(safe-area-inset-bottom));
+	color: var(--festive-gold);
+	/* It sits over the white snow, so a faint dark disc keeps the gold icon readable. */
+	background-color: rgba(15, 32, 39, 0.5);
+	opacity: 0.8;
+	touch-action: manipulation;
+
+	&:hover,
+	&:focus-visible,
+	&:active {
+		opacity: 1;
+		background-color: rgba(15, 32, 39, 0.7);
+	}
+}
+
+.fullscreen .rocketButton {
+	right: calc(var(--mantine-spacing-sm) + env(safe-area-inset-right));
+	bottom: calc(var(--mantine-spacing-sm) + env(safe-area-inset-bottom));
+}
+
+/* The prompt or result in full screen: on the snow strip along the bottom, between the two
+   buttons, so it never hides the flyer or the sky. Taps pass through. */
+.overlay {
+	position: absolute;
+	bottom: calc(var(--mantine-spacing-sm) + env(safe-area-inset-bottom));
+	left: 50%;
+	transform: translateX(-50%);
+	width: max-content;
+	max-width: min(calc(100% - 160px), 34rem);
+	padding: 6px 14px;
+	border-radius: var(--mantine-radius-xl);
+	background-color: rgba(15, 32, 39, 0.72);
+	color: var(--festive-gold);
+	font-weight: 700;
+	text-align: center;
+	pointer-events: none;
+}
+
+.overlayHint {
+	font-weight: 500;
+	font-size: var(--mantine-font-size-sm);
+	color: var(--festive-white);
+}

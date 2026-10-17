@@ -5,6 +5,7 @@ import SectionCard from "Components/Common/SectionCard";
 import { nextPrice, SHOP_GROUPS, SHOP_ITEMS, type IShopItem, type IUpgradeId } from "Components/ElfFling/upgrades";
 import type { IProgress } from "Components/ElfFling/progress";
 import { BATTERS, SKINS, type IBatterId, type ISkinId } from "Components/ElfFling/skins";
+import { releaseFocus } from "Components/ElfFling/releaseFocus";
 import classes from "Components/ElfFling/ElfFling.module.less";
 
 type IElfFlingShopProps = {
@@ -132,7 +133,10 @@ function ShopRow({ item, level, coins, onBuy, touchScreen }: IShopRowProps) {
 					leftSection={<FontAwesomeIcon icon={faCoins} />}
 					disabled={coins < price}
 					aria-label={`Buy ${item.name}${hasLevels ? ` level ${level + 1}` : ""} for ${price} coins`}
-					onClick={() => onBuy(item.id, price)}
+					onClick={(event) => {
+						onBuy(item.id, price);
+						releaseFocus(event);
+					}}
 				>
 					{price}
 				</Button>
@@ -165,7 +169,15 @@ function LookRow({ look, owned, wearing, coins, onBuy, onWear }: ILookRowProps) 
 					In use
 				</Badge>
 			) : owned ? (
-				<Button variant="secondary" size="xs" style={{ flex: "none" }} onClick={onWear}>
+				<Button
+					variant="secondary"
+					size="xs"
+					style={{ flex: "none" }}
+					onClick={(event) => {
+						onWear();
+						releaseFocus(event);
+					}}
+				>
 					Use
 				</Button>
 			) : (
@@ -176,7 +188,10 @@ function LookRow({ look, owned, wearing, coins, onBuy, onWear }: ILookRowProps) 
 					leftSection={<FontAwesomeIcon icon={faCoins} />}
 					disabled={coins < look.price}
 					aria-label={`Buy ${look.name} for ${look.price} coins`}
-					onClick={onBuy}
+					onClick={(event) => {
+						onBuy();
+						releaseFocus(event);
+					}}
 				>
 					{look.price}
 				</Button>

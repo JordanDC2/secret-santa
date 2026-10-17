@@ -64,6 +64,8 @@ export type ICamera = { left: number; pixelsPerMetre: number };
 const GROUND_SHARE = 0.18;
 /** At rest the view is this tall; it grows to keep a high-flying elf in shot. */
 const BASE_VIEW_HEIGHT = 5.2;
+/** At least this much of the course is always in view across, so a tall, narrow screen (a phone held upright) still shows the batter and the presents. */
+const MIN_VIEW_WIDTH = 6.6;
 
 /** The camera for this frame, eased from the last one so zooming and panning stay smooth. */
 export function nextCamera(previous: ICamera | null, state: IGameState, width: number, height: number): ICamera {
@@ -71,7 +73,7 @@ export function nextCamera(previous: ICamera | null, state: IGameState, width: n
 	// In the air, leave room above the elf so it sits in the middle of the sky, not at the top.
 	const headroom = state.phase === "flying" ? state.elf.y * 0.6 + 1.5 : 1.2;
 	const viewHeight = Math.max(BASE_VIEW_HEIGHT, state.elf.y + headroom);
-	const targetScale = skyHeight / viewHeight;
+	const targetScale = Math.min(skyHeight / viewHeight, width / MIN_VIEW_WIDTH);
 	const viewWidth = width / targetScale;
 	const targetLeft = Math.max(-1.4, state.elf.x - viewWidth * 0.4);
 
