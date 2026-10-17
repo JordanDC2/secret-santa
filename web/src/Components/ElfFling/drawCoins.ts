@@ -1,4 +1,4 @@
-import { BIG_COIN_VALUE, type ICoin } from "Components/ElfFling/coins";
+import type { ICoin } from "Components/ElfFling/coins";
 import type { IPalette } from "Components/ElfFling/draw";
 
 /**
@@ -7,9 +7,25 @@ import type { IPalette } from "Components/ElfFling/draw";
  */
 
 const RADIUS = 0.28;
-const BIG_RADIUS = 0.42;
+
+/** Each value has its own rim colour and size, so the valuable ones stand out. */
+function coinStyle(palette: IPalette, value: number): { rim: string; scale: number } {
+	if (value >= 10) {
+		return { rim: palette.redBright, scale: 1.8 };
+	}
+
+	if (value >= 5) {
+		return { rim: palette.red, scale: 1.5 };
+	}
+
+	if (value >= 3) {
+		return { rim: palette.green, scale: 1.25 };
+	}
+
+	return { rim: palette.goldDeep, scale: 1 };
+}
 /** Zoomed far out, coins are drawn bigger than life, like the elf, so they stay visible. */
-const MIN_PIXELS = 14;
+const MIN_PIXELS = 10;
 const SPARKLE_SECONDS = 0.4;
 
 export function drawCoins(
@@ -27,12 +43,13 @@ export function drawCoins(
 			continue;
 		}
 
-		const radius = (coin.value === BIG_COIN_VALUE ? BIG_RADIUS : RADIUS) * enlarge;
+		const style = coinStyle(palette, coin.value);
+		const radius = RADIUS * style.scale * enlarge;
 
 		if (coin.collectedAt === null) {
 			// Turning: the disc narrows and widens, each coin a little out of step with its neighbours.
 			const turn = Math.max(0.25, Math.abs(Math.cos(time * 2.5 + coin.x * 0.7)));
-			drawDisc(context, palette, coin.x, coin.y, radius, turn, coin.value === BIG_COIN_VALUE);
+			drawDisc(context, palette, coin.x, coin.y, radius, turn, style.rim);
 		} else if (time - coin.collectedAt < SPARKLE_SECONDS) {
 			drawSparkle(context, palette, coin.x, coin.y, radius, (time - coin.collectedAt) / SPARKLE_SECONDS);
 		}
@@ -46,9 +63,9 @@ function drawDisc(
 	y: number,
 	radius: number,
 	turn: number,
-	big: boolean,
+	rim: string,
 ) {
-	context.fillStyle = big ? palette.red : palette.goldDeep;
+	context.fillStyle = rim;
 	context.beginPath();
 	context.ellipse(x, y, radius * turn, radius, 0, 0, Math.PI * 2);
 	context.fill();
@@ -92,7 +109,7 @@ function drawSparkle(
 export function drawCoinCount(context: CanvasRenderingContext2D, palette: IPalette, collected: number) {
 	const x = 26;
 	const y = 26;
-	drawDisc(context, palette, x, y, 10, 1, false);
+	drawDisc(context, palette, x, y, 10, 1, palette.goldDeep);
 	context.font = "800 20px Nunito, sans-serif";
 	context.textAlign = "left";
 	context.textBaseline = "middle";

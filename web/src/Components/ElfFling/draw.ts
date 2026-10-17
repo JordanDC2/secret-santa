@@ -9,12 +9,15 @@ import {
 } from "Components/ElfFling/physics";
 import { drawCoinCount, drawCoins } from "Components/ElfFling/drawCoins";
 import { drawCrackers, drawPopLabels } from "Components/ElfFling/drawCrackers";
+import { drawOrnaments } from "Components/ElfFling/drawOrnaments";
+import { drawSleigh } from "Components/ElfFling/drawSleigh";
+import { drawSnowmen } from "Components/ElfFling/drawSnowmen";
 
 /**
  * Draws one frame of Elf Fling on a canvas: a snowy night, distance flags, the stack of
  * presents, the reindeer swinging its candy cane, and the little elf. World units are metres
- * (y up); the camera follows the elf and zooms out when it flies high. The crackers and
- * coins have their own files (drawCrackers.ts, drawCoins.ts).
+ * (y up); the camera follows the elf and zooms out when it flies high. The crackers, sky
+ * ornaments, coins, snowmen and sleigh have their own files (drawCrackers.ts and so on).
  */
 
 /** The scene's colours, read once from the app's --festive-* tokens. */
@@ -115,6 +118,10 @@ export function drawFrame(
 	drawReindeer(context, palette, state.swingTime);
 	const visible = { left: camera.left, right: camera.left + width / camera.pixelsPerMetre };
 	drawCrackers(context, palette, state.crackers, state.time, camera.pixelsPerMetre, visible);
+	drawOrnaments(context, palette, state.ornaments, state.time, camera.pixelsPerMetre, visible);
+	drawSnowmen(context, palette, state.snowmen, state.time, camera.pixelsPerMetre, visible);
+	drawSleigh(context, palette, state.sleigh, state.time, camera.pixelsPerMetre);
+	drawRocketTrail(context, palette, state, camera.pixelsPerMetre);
 	drawCoins(context, palette, state.coins, state.time, camera.pixelsPerMetre, visible);
 	drawElf(context, palette, state, camera.pixelsPerMetre);
 	context.restore();
@@ -344,6 +351,43 @@ function drawCandyCane(context: CanvasRenderingContext2D, palette: IPalette) {
 
 	context.fillStyle = palette.fur;
 	ellipse(context, 0.36, 0, 0.09, 0.09);
+}
+
+/** While the rocket burns: sparks streaming out behind the elf, flickering red and gold. */
+function drawRocketTrail(
+	context: CanvasRenderingContext2D,
+	palette: IPalette,
+	state: IGameState,
+	pixelsPerMetre: number,
+) {
+	if (state.rocketUntil === null || state.time >= state.rocketUntil) {
+		return;
+	}
+
+	const { x, y, vx, vy } = state.elf;
+	const speed = Math.hypot(vx, vy) || 1;
+	// Behind the elf, along the way it's going.
+	const back = { x: -vx / speed, y: -vy / speed };
+	const enlarge = Math.max(1, ELF_MIN_PIXELS / (ELF_RADIUS * 2 * pixelsPerMetre));
+	const colors = [palette.goldDeep, palette.gold, palette.redBright, palette.white];
+
+	for (let spark = 0; spark < 14; spark++) {
+		const along = (spark / 14) * 1.6 * enlarge;
+		const wobble = Math.sin(state.time * 40 + spark * 1.7) * 0.15 * enlarge;
+		context.globalAlpha = 1 - spark / 14;
+		context.fillStyle = colors[spark % colors.length];
+		context.beginPath();
+		context.arc(
+			x + back.x * along - back.y * wobble,
+			y + back.y * along + back.x * wobble,
+			(0.09 + 0.05 * (spark % 3)) * enlarge,
+			0,
+			Math.PI * 2,
+		);
+		context.fill();
+	}
+
+	context.globalAlpha = 1;
 }
 
 /** Zoomed far out, the elf is drawn bigger than life so it stays easy to follow. */

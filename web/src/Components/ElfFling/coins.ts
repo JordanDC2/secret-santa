@@ -1,7 +1,9 @@
 /**
  * Coins hanging in the air along the course, in little patterns (a row, an arc, a column, a
- * slope) of random sizes at random heights. The elf collects any it flies or slides through;
- * now and then a pattern has a big coin worth five. A fresh layout each round.
+ * slope) of random sizes at random heights. The elf collects any it flies or slides through.
+ * Two layers: plenty of low coins worth 1 (now and then a big one worth 5), and fewer sky
+ * coins high up worth 3 (now and then 10), which only well-upgraded throws can reach.
+ * A fresh layout each round.
  */
 
 export type ICoin = {
@@ -14,78 +16,136 @@ export type ICoin = {
 
 /** Generous on purpose: the elf and coins are drawn bigger than life when zoomed out. */
 export const COLLECT_RADIUS = 1;
-export const BIG_COIN_VALUE = 5;
 
-const FIRST_AT = { min: 4, max: 9 };
-const GAP = { min: 4, max: 12 };
-const COURSE_LENGTH = 800;
-const SPACING = 1.3;
-const BIG_COIN_CHANCE = 0.15;
+type IRange = { min: number; max: number };
 
-type IPattern = (count: number, height: number) => Array<{ dx: number; dy: number }>;
+type ILayer = {
+	firstAt: IRange;
+	gap: IRange;
+	/** Height of a pattern's first coin, from a 0–1 random number. */
+	height: (random: number) => number;
+	/** How far apart a pattern's coins are. */
+	spacing: number;
+	value: number;
+	bigValue: number;
+	bigChance: number;
+};
+
+const LAYERS: ILayer[] = [
+	// Near the snow: easy pickings, most of them low enough to scoop up on a slide.
+	{
+		firstAt: { min: 4, max: 9 },
+		gap: { min: 4, max: 12 },
+		height: (r) => 0.5 + r ** 2 * 13,
+		spacing: 1.3,
+		value: 1,
+		bigValue: 5,
+		bigChance: 0.15,
+	},
+	// The sky: spread out and worth more, for throws strong enough to get up there.
+	{
+		firstAt: { min: 20, max: 30 },
+		gap: { min: 6, max: 14 },
+		height: (r) => 15 + r ** 1.4 * 35,
+		spacing: 2,
+		value: 3,
+		bigValue: 10,
+		bigChance: 0.25,
+	},
+];
+
+const COURSE_LENGTH = 1500;
+
+type IPattern = (count: number, spacing: number) => Array<{ dx: number; dy: number }>;
 
 const PATTERNS: Array<{ shape: IPattern; count: { min: number; max: number } }> = [
 	// A row.
 	{
-		shape: (count) => Array.from({ length: count }, (_, i) => ({ dx: i * SPACING, dy: 0 })),
+		shape: (count, spacing) => Array.from({ length: count }, (_, i) => ({ dx: i * spacing, dy: 0 })),
 		count: { min: 3, max: 7 },
 	},
 	// An arc, like a little rainbow.
 	{
-		shape: (count) =>
+		shape: (count, spacing) =>
 			Array.from({ length: count }, (_, i) => {
 				const t = count === 1 ? 0.5 : i / (count - 1);
-				return { dx: i * SPACING, dy: 4 * t * (1 - t) * 2.5 };
+				return { dx: i * spacing, dy: 4 * t * (1 - t) * 2 * spacing };
 			}),
 		count: { min: 5, max: 9 },
 	},
 	// A column.
 	{
-		shape: (count) => Array.from({ length: count }, (_, i) => ({ dx: 0, dy: i * SPACING })),
+		shape: (count, spacing) => Array.from({ length: count }, (_, i) => ({ dx: 0, dy: i * spacing })),
 		count: { min: 3, max: 5 },
 	},
 	// A slope, rising.
 	{
-		shape: (count) => Array.from({ length: count }, (_, i) => ({ dx: i * SPACING, dy: i * SPACING * 0.7 })),
+		shape: (count, spacing) => Array.from({ length: count }, (_, i) => ({ dx: i * spacing, dy: i * spacing * 0.7 })),
 		count: { min: 4, max: 6 },
 	},
 ];
 
 export function layCoins(random: () => number = Math.random): ICoin[] {
-	const between = (range: { min: number; max: number }) => range.min + random() * (range.max - range.min);
+	const between = (range: IRange) => range.min + random() * (range.max - range.min);
 	const coins: ICoin[] = [];
 
-	for (let x = between(FIRST_AT); x < COURSE_LENGTH; x += between(GAP)) {
-		const pattern = PATTERNS[Math.floor(random() * PATTERNS.length)];
-		const count = Math.round(between(pattern.count));
-		// Low patterns are easy pickings on a slide; high ones need a good flight.
-		const height = 0.5 + random() ** 2 * 13;
-		const big = random() < BIG_COIN_CHANCE ? Math.floor(random() * count) : -1;
+	for (const layer of LAYERS) {
+		for (let x = between(layer.firstAt); x < COURSE_LENGTH; x += between(layer.gap)) {
+			const pattern = PATTERNS[Math.floor(random() * PATTERNS.length)];
+			const count = Math.round(between(pattern.count));
+			const height = layer.height(random());
+			const big = random() < layer.bigChance ? Math.floor(random() * count) : -1;
 
-		pattern.shape(count, height).forEach(({ dx, dy }, i) => {
-			coins.push({ x: x + dx, y: height + dy, value: i === big ? BIG_COIN_VALUE : 1, collectedAt: null });
-		});
+			pattern.shape(count, layer.spacing).forEach(({ dx, dy }, i) => {
+				coins.push({ x: x + dx, y: height + dy, value: i === big ? layer.bigValue : layer.value, collectedAt: null });
+			});
+		}
 	}
 
 	return coins;
 }
 
-/** Collects every coin within reach of (x, y) at this time; returns the coins and what they were worth. */
-export function collectCoins(coins: ICoin[], x: number, y: number, time: number): { coins: ICoin[]; gained: number } {
+/** How fast a magnet pulls coins toward the elf, in m/s. */
+const PULL_SPEED = 22;
+
+/**
+ * Collects every coin within reach of the elf at (x, y), and with the candy magnet, draws
+ * nearby coins toward it first. Returns the coins and what was collected this step.
+ */
+export function collectCoins(
+	coins: ICoin[],
+	x: number,
+	y: number,
+	time: number,
+	magnet: number,
+	dt: number,
+): { coins: ICoin[]; gained: number } {
 	let gained = 0;
+	let changed = false;
 	const updated = coins.map((coin) => {
-		if (coin.collectedAt !== null || Math.abs(coin.x - x) > COLLECT_RADIUS) {
+		if (coin.collectedAt !== null || Math.abs(coin.x - x) > magnet) {
 			return coin;
 		}
 
-		if (Math.hypot(coin.x - x, coin.y - y) > COLLECT_RADIUS) {
+		const distance = Math.hypot(coin.x - x, coin.y - y);
+
+		if (distance <= COLLECT_RADIUS) {
+			gained += coin.value;
+			changed = true;
+
+			return { ...coin, collectedAt: time };
+		}
+
+		if (distance > magnet) {
 			return coin;
 		}
 
-		gained += coin.value;
+		// Inside the magnet's reach: drift toward the elf.
+		const pull = Math.min(distance, PULL_SPEED * dt) / distance;
+		changed = true;
 
-		return { ...coin, collectedAt: time };
+		return { ...coin, x: coin.x + (x - coin.x) * pull, y: coin.y + (y - coin.y) * pull };
 	});
 
-	return gained === 0 ? { coins, gained } : { coins: updated, gained };
+	return { coins: changed ? updated : coins, gained };
 }

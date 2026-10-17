@@ -8,12 +8,12 @@ import ElfFlingShop from "Components/ElfFling/ElfFlingShop";
 import { readBestThrow, saveBestThrow } from "Components/ElfFling/bestThrow";
 import type { IGameState, IPhase } from "Components/ElfFling/physics";
 import { readProgress, saveProgress, type IProgress } from "Components/ElfFling/progress";
-import type { IUpgradeId } from "Components/ElfFling/upgrades";
+import { coinMultiplier, type IUpgradeId } from "Components/ElfFling/upgrades";
 import BackToGroups from "Components/Layout/BackToGroups";
 import Page from "Components/Layout/Page";
 import PageTitle from "Components/Layout/PageTitle";
 
-type IResult = { message: string; coins: number; newBest: boolean };
+type IResult = { message: string; coins: number; bonus: number; newBest: boolean };
 
 const PROMPTS: Record<Exclude<IPhase, "done">, string> = {
 	ready: "Tap the game (or press Space) to send the elf hopping off the presents.",
@@ -22,10 +22,20 @@ const PROMPTS: Record<Exclude<IPhase, "done">, string> = {
 	sliding: "Wheee!",
 };
 
+/** "1 cracker", "3 crackers". */
+function count(n: number, one: string, many: string): string {
+	return `${n} ${n === 1 ? one : many}`;
+}
+
 function describe(state: IGameState): string {
 	const metres = `${(state.distance ?? 0).toFixed(1)} m`;
-	const crackers =
-		state.pops === 0 ? "" : ` and popped ${state.pops} ${state.pops === 1 ? "cracker" : "crackers"} on the way`;
+	const extras = [
+		state.sleigh?.boardedAt != null ? "caught a ride on a sleigh" : null,
+		state.pops > 0 ? `popped ${count(state.pops, "cracker", "crackers")}` : null,
+		state.smashes > 0 ? `smashed ${count(state.smashes, "ornament", "ornaments")}` : null,
+		state.bonks > 0 ? `bumped into ${count(state.bonks, "snowman", "snowmen")}` : null,
+	].filter(Boolean);
+	const crackers = extras.length === 0 ? "" : `, ${extras.join(", ")}`;
 
 	switch (state.outcome) {
 		case "perfect":
@@ -49,7 +59,7 @@ export default function ElfFlingPage() {
 	const [result, setResult] = useState<IResult | null>(null);
 	const [best, setBest] = useState(readBestThrow);
 	const [progress, setProgress] = useState(readProgress);
-	const [jumpUsed, setJumpUsed] = useState(false);
+	const [jumps, setJumps] = useState({ available: false, left: 0 });
 
 	const updateProgress = useCallback((change: (current: IProgress) => IProgress) => {
 		setProgress((current) => {
@@ -71,11 +81,19 @@ export default function ElfFlingPage() {
 				setBest(distance);
 			}
 
-			if (state.coinsCollected > 0) {
-				updateProgress((current) => ({ ...current, coins: current.coins + state.coinsCollected }));
+			// The lucky stocking adds its share on top of what was collected.
+			const banked = Math.round(state.coinsCollected * coinMultiplier(state.upgrades));
+
+			if (banked > 0) {
+				updateProgress((current) => ({ ...current, coins: current.coins + banked }));
 			}
 
-			setResult({ message: describe(state), coins: state.coinsCollected, newBest });
+			setResult({
+				message: describe(state),
+				coins: banked,
+				bonus: banked - state.coinsCollected,
+				newBest,
+			});
 		},
 		[updateProgress],
 	);
@@ -83,7 +101,7 @@ export default function ElfFlingPage() {
 	const throwAgain = useCallback(() => {
 		setResult(null);
 		setPhase("ready");
-		setJumpUsed(false);
+		setJumps({ available: false, left: 0 });
 		setRound((current) => current + 1);
 	}, []);
 
@@ -106,13 +124,11 @@ export default function ElfFlingPage() {
 		[phase, updateProgress],
 	);
 
-	const airborne = phase === "flying" || phase === "sliding";
-	const offerJump = airborne && progress.upgrades.elfJump > 0 && !jumpUsed;
 	const prompt =
 		phase === "done" && result
 			? result.message
-			: offerJump
-				? "Tap to give the elf a jump!"
+			: jumps.available
+				? `Tap to give the elf a jump! (${jumps.left} left)`
 				: PROMPTS[phase === "done" ? "ready" : phase];
 
 	return (
@@ -130,7 +146,7 @@ export default function ElfFlingPage() {
 					best={best}
 					onPhaseChange={setPhase}
 					onFinish={handleFinish}
-					onJump={() => setJumpUsed(true)}
+					onJumpsChange={setJumps}
 					onRestart={throwAgain}
 				/>
 				<Group justify="space-between" align="flex-start" wrap="nowrap" gap="md">
@@ -139,6 +155,7 @@ export default function ElfFlingPage() {
 						{phase === "done" && result && result.coins > 0 && (
 							<MantineText size="sm" fw={700} c="var(--festive-gold-text)">
 								+{result.coins} {result.coins === 1 ? "coin" : "coins"}
+								{result.bonus > 0 && ` (${result.bonus} from the lucky stocking)`}
 							</MantineText>
 						)}
 						{phase === "done" && result?.newBest && (

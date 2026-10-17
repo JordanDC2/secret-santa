@@ -2,15 +2,35 @@
  * Elf Fling's rules, in metres and seconds with no drawing or React: a little elf hops off a
  * stack of presents, the reindeer swings a candy cane when the player taps, and how close the
  * elf is to the bat's sweet spot at that moment sets how hard and how high it flies. Then it
- * bounces and slides along the snow until it stops, unless it runs into a Christmas cracker,
- * which pops and launches it again. Coins along the way are collected. What the player has
- * bought in the shop (upgrades.ts) changes the swing, the crackers and the elf's jump.
+ * bounces and slides along the snow until it stops. On the way: coins to collect, and (with
+ * shop upgrades, see upgrades.ts) crackers, sky ornaments and a sleigh that launch it on,
+ * jumps and a rocket the player sets off, and the odd snowman that gets in the way.
  * Distance is measured from the reindeer.
  */
 
 import { collectCoins, layCoins, type ICoin } from "Components/ElfFling/coins";
 import { crackerTouching, layCrackers, poppedVelocity, type ICracker } from "Components/ElfFling/crackers";
-import { NO_UPGRADES, swingMultiplier, type IUpgrades } from "Components/ElfFling/upgrades";
+import { kickedVelocity, layOrnaments, ornamentHit, type IOrnament } from "Components/ElfFling/ornaments";
+import {
+	canBoard,
+	maybeSleigh,
+	moveSleigh,
+	RELEASE_UP,
+	RIDE_SECONDS,
+	RIDE_SPEED,
+	type ISleigh,
+} from "Components/ElfFling/sleigh";
+import { laySnowmen, snowmanHit, type ISnowman } from "Components/ElfFling/snowmen";
+import {
+	bounceKeep,
+	magnetRadius,
+	NO_UPGRADES,
+	snowFriction,
+	snowmanKeep,
+	swingMultiplier,
+	swingReach,
+	type IUpgrades,
+} from "Components/ElfFling/upgrades";
 
 export type IPhase = "ready" | "dropping" | "flying" | "sliding" | "done";
 
@@ -29,18 +49,29 @@ export type IGameState = {
 	outcome: IOutcome | null;
 	/** Metres from the reindeer, once the elf has stopped. */
 	distance: number | null;
-	/** Seconds since the round began moving (for the crackers' confetti). */
+	/** Seconds since the round began moving (for animations and timed effects). */
 	time: number;
+	/** The shop upgrades in play this round. */
+	upgrades: IUpgrades;
+	coins: ICoin[];
+	/** What this round's coins are worth so far (before the lucky stocking). */
+	coinsCollected: number;
 	crackers: ICracker[];
 	/** How many crackers the elf has popped this round. */
 	pops: number;
-	coins: ICoin[];
-	/** What this round's coins are worth so far. */
-	coinsCollected: number;
-	/** The shop upgrades in play this round. */
-	upgrades: IUpgrades;
-	/** Whether the elf has had its one jump this round. */
-	jumpUsed: boolean;
+	ornaments: IOrnament[];
+	/** How many sky ornaments the elf has shattered this round. */
+	smashes: number;
+	snowmen: ISnowman[];
+	/** How many snowmen the elf has run into this round. */
+	bonks: number;
+	sleigh: ISleigh | null;
+	/** Jumps the elf still has this round. */
+	jumpsLeft: number;
+	/** Whether the rocket is still unused this round. */
+	rocketReady: boolean;
+	/** Game time the rocket burns out, while it's burning. */
+	rocketUntil: number | null;
 };
 
 export const GRAVITY = 9.8;
@@ -52,9 +83,8 @@ export const REINDEER_X = 0.2;
 export const STACK = { left: 1.9, right: 2.7, top: 4.5 };
 /** The elf's size: its centre sits this far above whatever it's touching. */
 export const ELF_RADIUS = 0.3;
-/** Height of the candy cane's sweet spot, and how far either side of it still connects. */
+/** Height of the candy cane's sweet spot. */
 export const SWEET_SPOT_Y = 1.4;
-export const SWING_REACH = 0.85;
 /** The bat takes this long from the tap to where it meets the elf, and this long in all. */
 export const SWING_CONTACT_TIME = 0.11;
 export const SWING_DURATION = 0.3;
@@ -67,15 +97,15 @@ const BEST_ANGLE = 38;
 const ANGLE_RANGE = 30;
 const PERFECT_QUALITY = 0.92;
 const AIR_DRAG = 0.003;
-/** Hard landings bounce (keeping this much speed), softer ones turn into a slide. */
+/** Landings harder than this bounce; softer ones turn into a slide. */
 const BOUNCE_MIN_SPEED = 3;
-const BOUNCE_KEEP_VERTICAL = 0.42;
-const BOUNCE_KEEP_FORWARD = 0.8;
-const SNOW_FRICTION = 4;
-/** The elf's jump (an upgrade): at least this much upward speed, once per round. */
+/** A jump: at least this much upward speed. */
 const JUMP_SPEED = 7;
+/** The firework rocket: pushes forward (and a little up) this hard, for this long. */
+export const ROCKET_SECONDS = 1.3;
+const ROCKET_PUSH = { forward: 22, up: 9 };
 
-/** A fresh round. The coins' and crackers' layouts are random; tests can pass their own randomness. */
+/** A fresh round. The course's layout is random; tests can pass their own randomness. */
 export function newGame(upgrades: IUpgrades = NO_UPGRADES, random?: () => number): IGameState {
 	return {
 		phase: "ready",
@@ -86,18 +116,39 @@ export function newGame(upgrades: IUpgrades = NO_UPGRADES, random?: () => number
 		outcome: null,
 		distance: null,
 		time: 0,
-		crackers: upgrades.crackers > 0 ? layCrackers(random) : [],
-		pops: 0,
+		upgrades,
 		coins: layCoins(random),
 		coinsCollected: 0,
-		upgrades,
-		jumpUsed: false,
+		crackers: upgrades.crackers > 0 ? layCrackers(random) : [],
+		pops: 0,
+		ornaments: upgrades.skyOrnaments > 0 ? layOrnaments(random) : [],
+		smashes: 0,
+		snowmen: laySnowmen(random),
+		bonks: 0,
+		sleigh: upgrades.sleigh > 0 ? maybeSleigh(random) : null,
+		jumpsLeft: upgrades.elfJump,
+		rocketReady: upgrades.rocket > 0,
+		rocketUntil: null,
 	};
 }
 
-/** Whether a tap now would make the elf jump (it has the upgrade, it's airborne or sliding, and it hasn't yet). */
+/** Whether the elf is out on the course: flying or sliding, not riding the sleigh. */
+function isLoose(state: IGameState): boolean {
+	return (state.phase === "flying" || state.phase === "sliding") && !isRiding(state);
+}
+
+function isRiding(state: IGameState): boolean {
+	return state.sleigh !== null && state.sleigh.boardedAt !== null && !state.sleigh.finished;
+}
+
+/** Whether a tap now would make the elf jump. */
 export function canJump(state: IGameState): boolean {
-	return state.upgrades.elfJump > 0 && !state.jumpUsed && (state.phase === "flying" || state.phase === "sliding");
+	return state.jumpsLeft > 0 && isLoose(state);
+}
+
+/** Whether the rocket button would fire now. */
+export function canRocket(state: IGameState): boolean {
+	return state.rocketReady && isLoose(state);
 }
 
 /** The one button: hop off the presents, then swing, then (with the upgrade) jump. */
@@ -116,7 +167,7 @@ export function tap(state: IGameState): IGameState {
 		return {
 			...state,
 			phase: "flying",
-			jumpUsed: true,
+			jumpsLeft: state.jumpsLeft - 1,
 			elf: { ...state.elf, y: Math.max(state.elf.y, ELF_RADIUS), vy },
 		};
 	}
@@ -124,12 +175,27 @@ export function tap(state: IGameState): IGameState {
 	return state;
 }
 
+/** The rocket button: a burst of thrust for a moment. */
+export function fireRocket(state: IGameState): IGameState {
+	if (!canRocket(state)) {
+		return state;
+	}
+
+	return {
+		...state,
+		phase: "flying",
+		rocketReady: false,
+		rocketUntil: state.time + ROCKET_SECONDS,
+		elf: { ...state.elf, y: Math.max(state.elf.y, ELF_RADIUS) },
+	};
+}
+
 /**
  * How the bat meets an elf at this height: null if it's out of reach, otherwise the launch
  * speed and angle (degrees) and how clean the hit was (1 is dead on the sweet spot).
  */
-export function hitAt(elfY: number): { speed: number; angle: number; quality: number } | null {
-	const offset = (elfY - SWEET_SPOT_Y) / SWING_REACH;
+export function hitAt(elfY: number, reach: number): { speed: number; angle: number; quality: number } | null {
+	const offset = (elfY - SWEET_SPOT_Y) / reach;
 
 	if (Math.abs(offset) > 1) {
 		return null;
@@ -150,6 +216,10 @@ export function step(state: IGameState, dt: number): IGameState {
 
 	let next: IGameState = { ...state, elf: { ...state.elf }, time: state.time + dt };
 
+	if (next.sleigh) {
+		next.sleigh = moveSleigh(next.sleigh, dt, next.elf);
+	}
+
 	if (next.swingTime !== null) {
 		next.swingTime += dt;
 
@@ -158,32 +228,34 @@ export function step(state: IGameState, dt: number): IGameState {
 		}
 	}
 
-	const elf = next.elf;
-
-	if (next.phase === "sliding") {
-		elf.vx = Math.max(0, elf.vx - SNOW_FRICTION * dt);
-		elf.x += elf.vx * dt;
-		elf.spin += (elf.vx / ELF_RADIUS) * dt * 0.5;
-		next = pickUpCoins(next);
-		const popped = popCracker(next);
-
-		if (popped) {
-			return popped;
-		}
-
-		return next.elf.vx === 0 ? finish(next, next.outcome ?? "hit") : next;
+	if (isRiding(next)) {
+		return ride(next, dt);
 	}
 
+	return next.phase === "sliding" ? slide(next, dt) : fly(next, dt);
+}
+
+/** Through the air (or dropping off the presents before the swing). */
+function fly(state: IGameState, dt: number): IGameState {
+	let next = state;
+	const elf = next.elf;
 	const speed = Math.hypot(elf.vx, elf.vy);
 	const gravity = next.phase === "dropping" ? DROP_GRAVITY : GRAVITY;
-	elf.vx -= AIR_DRAG * elf.vx * speed * dt;
-	elf.vy -= (gravity + AIR_DRAG * elf.vy * speed) * dt;
+	const rocket = next.rocketUntil !== null && next.time < next.rocketUntil;
+
+	elf.vx += ((rocket ? ROCKET_PUSH.forward : 0) - AIR_DRAG * elf.vx * speed) * dt;
+	elf.vy += ((rocket ? ROCKET_PUSH.up : 0) - gravity - AIR_DRAG * elf.vy * speed) * dt;
 	elf.x += elf.vx * dt;
 	elf.y += elf.vy * dt;
 
 	if (next.phase === "flying") {
 		elf.spin += (elf.vx / ELF_RADIUS) * dt * 0.35;
-		next = pickUpCoins(next);
+		next = bumpSnowman(smashOrnament(pickUpCoins(next, dt)));
+
+		if (canBoard(next.sleigh, next.elf.x, next.elf.y)) {
+			return { ...next, sleigh: { ...next.sleigh!, boardedAt: next.time, vx: RIDE_SPEED } };
+		}
+
 		const popped = popCracker(next);
 
 		if (popped) {
@@ -191,16 +263,46 @@ export function step(state: IGameState, dt: number): IGameState {
 		}
 	}
 
-	if (next.elf.y <= ELF_RADIUS) {
-		return land(next);
+	return next.elf.y <= ELF_RADIUS ? land(next) : next;
+}
+
+/** Along the snow, slowing until it stops. */
+function slide(state: IGameState, dt: number): IGameState {
+	const elf = state.elf;
+	elf.vx = Math.max(0, elf.vx - snowFriction(state.upgrades) * dt);
+	elf.x += elf.vx * dt;
+	elf.spin += (elf.vx / ELF_RADIUS) * dt * 0.5;
+
+	const next = bumpSnowman(pickUpCoins(state, dt));
+	const popped = popCracker(next);
+
+	if (popped) {
+		return popped;
 	}
 
-	return next;
+	return next.elf.vx === 0 ? finish(next, next.outcome ?? "hit") : next;
+}
+
+/** Aboard the sleigh: carried along at its speed, then let go with a forward fling. */
+function ride(state: IGameState, dt: number): IGameState {
+	const sleigh = state.sleigh!;
+	const elf = { ...state.elf, x: sleigh.x, y: sleigh.y + 0.45, vx: sleigh.vx, vy: 0 };
+
+	if (state.time - sleigh.boardedAt! < RIDE_SECONDS) {
+		return pickUpCoins({ ...state, phase: "flying", elf }, dt);
+	}
+
+	return {
+		...state,
+		phase: "flying",
+		sleigh: { ...sleigh, finished: true },
+		elf: { ...elf, vx: RIDE_SPEED, vy: RELEASE_UP },
+	};
 }
 
 /** The bat reaches the elf: either it connects and the elf flies, or it whiffs. */
 function resolveSwing(state: IGameState): IGameState {
-	const hit = hitAt(state.elf.y);
+	const hit = hitAt(state.elf.y, swingReach(state.upgrades));
 
 	if (!hit) {
 		return { ...state, swingResolved: true, outcome: "miss" };
@@ -218,10 +320,47 @@ function resolveSwing(state: IGameState): IGameState {
 	};
 }
 
-function pickUpCoins(state: IGameState): IGameState {
-	const { coins, gained } = collectCoins(state.coins, state.elf.x, state.elf.y, state.time);
+function pickUpCoins(state: IGameState, dt: number): IGameState {
+	const magnet = magnetRadius(state.upgrades);
+	const { coins, gained } = collectCoins(state.coins, state.elf.x, state.elf.y, state.time, magnet, dt);
 
-	return gained === 0 ? state : { ...state, coins, coinsCollected: state.coinsCollected + gained };
+	return coins === state.coins ? state : { ...state, coins, coinsCollected: state.coinsCollected + gained };
+}
+
+/** An elf flying into a sky ornament shatters it and gets kicked up and forward. */
+function smashOrnament(state: IGameState): IGameState {
+	const index = ornamentHit(state.ornaments, state.elf.x, state.elf.y);
+
+	if (index === -1) {
+		return state;
+	}
+
+	return {
+		...state,
+		ornaments: state.ornaments.map((ornament, i) =>
+			i === index ? { ...ornament, shatteredAt: state.time } : ornament,
+		),
+		smashes: state.smashes + 1,
+		elf: { ...state.elf, ...kickedVelocity(state.elf.vx, state.elf.vy) },
+	};
+}
+
+/** Running into a snowman knocks it over and costs the elf its speed (some of it, padded). */
+function bumpSnowman(state: IGameState): IGameState {
+	const index = snowmanHit(state.snowmen, state.elf.x, state.elf.y);
+
+	if (index === -1) {
+		return state;
+	}
+
+	const keep = snowmanKeep(state.upgrades);
+
+	return {
+		...state,
+		snowmen: state.snowmen.map((snowman, i) => (i === index ? { ...snowman, toppledAt: state.time } : snowman)),
+		bonks: state.bonks + 1,
+		elf: { ...state.elf, vx: state.elf.vx * keep, vy: Math.min(state.elf.vy, 0) },
+	};
 }
 
 /** If the elf is on a cracker, it goes bang and the elf takes off again; otherwise null. */
@@ -232,12 +371,10 @@ function popCracker(state: IGameState): IGameState | null {
 		return null;
 	}
 
-	const crackers = state.crackers.map((cracker, i) => (i === index ? { ...cracker, poppedAt: state.time } : cracker));
-
 	return {
 		...state,
 		phase: "flying",
-		crackers,
+		crackers: state.crackers.map((cracker, i) => (i === index ? { ...cracker, poppedAt: state.time } : cracker)),
 		pops: state.pops + 1,
 		elf: { ...state.elf, y: Math.max(state.elf.y, ELF_RADIUS), ...poppedVelocity(state.elf.vx) },
 	};
@@ -252,10 +389,9 @@ function land(state: IGameState): IGameState {
 	}
 
 	if (-elf.vy > BOUNCE_MIN_SPEED) {
-		return {
-			...state,
-			elf: { ...elf, vy: -elf.vy * BOUNCE_KEEP_VERTICAL, vx: elf.vx * BOUNCE_KEEP_FORWARD },
-		};
+		const keep = bounceKeep(state.upgrades);
+
+		return { ...state, elf: { ...elf, vy: -elf.vy * keep.vertical, vx: elf.vx * keep.forward } };
 	}
 
 	return { ...state, phase: "sliding", elf: { ...elf, vy: 0 } };

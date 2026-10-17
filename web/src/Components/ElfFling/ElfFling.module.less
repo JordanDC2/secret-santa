@@ -1,4 +1,5 @@
 .frame {
+	position: relative;
 	width: 100%;
 	border-radius: var(--mantine-radius-md);
 	overflow: hidden;
@@ -20,4 +21,12 @@
 .coins {
 	background-color: var(--festive-gold-button);
 	color: var(--festive-gold-text);
+}
+
+/* Over the bottom right of the game, while the rocket can fire. */
+.rocketButton {
+	position: absolute;
+	right: var(--mantine-spacing-sm);
+	bottom: var(--mantine-spacing-sm);
+	touch-action: none;
 }

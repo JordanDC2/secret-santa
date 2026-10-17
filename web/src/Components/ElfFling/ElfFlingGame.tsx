@@ -1,7 +1,20 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Button } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faRocket } from "@fortawesome/free-solid-svg-icons";
 import { drawFrame, nextCamera, readPalette, type ICamera, type IPalette } from "Components/ElfFling/draw";
-import { FIXED_STEP, newGame, step, tap, type IGameState, type IPhase } from "Components/ElfFling/physics";
+import {
+	canJump,
+	canRocket,
+	FIXED_STEP,
+	fireRocket,
+	newGame,
+	step,
+	tap,
+	type IGameState,
+	type IPhase,
+} from "Components/ElfFling/physics";
 import type { IUpgrades } from "Components/ElfFling/upgrades";
 import classes from "Components/ElfFling/ElfFling.module.less";
 
@@ -12,8 +25,8 @@ type IElfFlingGameProps = {
 	best: number | null;
 	onPhaseChange: (phase: IPhase) => void;
 	onFinish: (state: IGameState) => void;
-	/** The elf used its one jump (so the page can stop offering it). */
-	onJump: () => void;
+	/** Whether a tap would jump now, and how many jumps are left (so the page can offer them). */
+	onJumpsChange: (jumps: { available: boolean; left: number }) => void;
 	/** A tap after the elf has stopped: the page starts the next round. */
 	onRestart: () => void;
 };
@@ -23,7 +36,8 @@ const MAX_FRAME_TIME = 0.1;
 
 /**
  * The game's canvas: runs the physics in fixed steps on every animation frame and draws the
- * result. One input does everything: tap or click the canvas, or press Space or Enter.
+ * result. One input does almost everything: tap or click the canvas, or press Space or Enter.
+ * The rocket (an upgrade) has its own button over the canvas, and the R key.
  * Only phase changes reach React, so the page doesn't re-render sixty times a second.
  */
 export default function ElfFlingGame({
@@ -31,7 +45,7 @@ export default function ElfFlingGame({
 	best,
 	onPhaseChange,
 	onFinish,
-	onJump,
+	onJumpsChange,
 	onRestart,
 }: IElfFlingGameProps) {
 	const { ref: frameRef, width } = useElementSize();
@@ -42,12 +56,14 @@ export default function ElfFlingGame({
 	const cameraRef = useRef<ICamera | null>(null);
 	const paletteRef = useRef<IPalette | null>(null);
 	const bestRef = useRef(best);
-	const callbacksRef = useRef({ onPhaseChange, onFinish, onJump, onRestart });
+	const callbacksRef = useRef({ onPhaseChange, onFinish, onJumpsChange, onRestart });
+	// The rocket button shows only while the rocket can fire.
+	const [rocketAvailable, setRocketAvailable] = useState(false);
 
 	// The animation loop and input handlers read the latest props through these.
 	useLayoutEffect(() => {
 		bestRef.current = best;
-		callbacksRef.current = { onPhaseChange, onFinish, onJump, onRestart };
+		callbacksRef.current = { onPhaseChange, onFinish, onJumpsChange, onRestart };
 	});
 
 	const height = Math.round(Math.min(440, Math.max(260, width * 0.6)));
@@ -56,8 +72,14 @@ export default function ElfFlingGame({
 		const previous = stateRef.current;
 		stateRef.current = next;
 
-		if (next.jumpUsed && !previous.jumpUsed) {
-			callbacksRef.current.onJump();
+		const jumpAvailable = canJump(next);
+
+		if (jumpAvailable !== canJump(previous) || next.jumpsLeft !== previous.jumpsLeft) {
+			callbacksRef.current.onJumpsChange({ available: jumpAvailable, left: next.jumpsLeft });
+		}
+
+		if (canRocket(next) !== canRocket(previous)) {
+			setRocketAvailable(canRocket(next));
 		}
 
 		if (next.phase !== previous.phase) {
@@ -77,22 +99,30 @@ export default function ElfFlingGame({
 		}
 	}, [setState]);
 
-	// Space or Enter anywhere on the page, unless someone's typing in a field.
+	const launchRocket = useCallback(() => setState(fireRocket(stateRef.current)), [setState]);
+
+	// Space or Enter (and R for the rocket) anywhere on the page, unless someone's typing in a field.
 	useEffect(() => {
 		function onKeyDown(event: KeyboardEvent) {
 			const target = event.target as HTMLElement | null;
 			const typing = target?.closest("input, textarea, select, button, a, [contenteditable]");
 
-			if ((event.key === " " || event.key === "Enter") && !typing && !event.repeat) {
+			if (typing || event.repeat) {
+				return;
+			}
+
+			if (event.key === " " || event.key === "Enter") {
 				event.preventDefault();
 				handleInput();
+			} else if (event.key === "r" || event.key === "R") {
+				launchRocket();
 			}
 		}
 
 		window.addEventListener("keydown", onKeyDown);
 
 		return () => window.removeEventListener("keydown", onKeyDown);
-	}, [handleInput]);
+	}, [handleInput, launchRocket]);
 
 	// The animation loop.
 	useEffect(() => {
@@ -147,6 +177,21 @@ export default function ElfFlingGame({
 					handleInput();
 				}}
 			/>
+			{rocketAvailable && (
+				<Button
+					className={classes.rocketButton}
+					leftSection={<FontAwesomeIcon icon={faRocket} />}
+					onPointerDown={(event) => {
+						// Fires on press, like the canvas, and keeps the tap from also reaching the game.
+						event.preventDefault();
+						event.stopPropagation();
+						launchRocket();
+					}}
+					onClick={launchRocket}
+				>
+					Rocket
+				</Button>
+			)}
 		</div>
 	);
 }
