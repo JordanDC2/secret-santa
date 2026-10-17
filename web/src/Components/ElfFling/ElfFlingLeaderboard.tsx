@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, Group, SegmentedControl, Stack, Table, Tabs, Text as MantineText } from "@mantine/core";
+import { Alert, Box, Group, SegmentedControl, Stack, Table, Tabs, Text as MantineText } from "@mantine/core";
 import SectionCard from "Components/Common/SectionCard";
 import LoadingText from "Components/Common/LoadingText";
 import ElfFlingLiveUpdates from "Components/ElfFling/ElfFlingLiveUpdates";
@@ -12,10 +12,11 @@ import {
 import { apiErrorMessage } from "Data/Api/Client";
 import classes from "Components/ElfFling/ElfFling.module.less";
 
-const BOARDS: { value: ILeaderboardBoard; label: string }[] = [
-	{ value: "distance", label: "Best distance" },
-	{ value: "coins", label: "Most coins" },
-	{ value: "swings", label: "Most swings" },
+/** Short labels on phones, so the three tabs fit on one row (a Galaxy Z Fold's cover screen is 344px). */
+const BOARDS: { value: ILeaderboardBoard; label: string; short: string }[] = [
+	{ value: "distance", label: "Best distance", short: "Distance" },
+	{ value: "coins", label: "Most coins", short: "Coins" },
+	{ value: "swings", label: "Most swings", short: "Swings" },
 ];
 
 const PERIODS: { value: ILeaderboardPeriod; label: string }[] = [
@@ -79,10 +80,15 @@ export default function ElfFlingLeaderboard() {
 					}
 				}}
 			>
-				<Tabs.List>
+				<Tabs.List grow>
 					{BOARDS.map((option) => (
 						<Tabs.Tab key={option.value} value={option.value}>
-							{option.label}
+							<Box component="span" visibleFrom="xs">
+								{option.label}
+							</Box>
+							<Box component="span" hiddenFrom="xs">
+								{option.short}
+							</Box>
 						</Tabs.Tab>
 					))}
 				</Tabs.List>
