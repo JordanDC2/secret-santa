@@ -4,7 +4,7 @@ import { faCoins } from "@fortawesome/free-solid-svg-icons";
 import SectionCard from "Components/Common/SectionCard";
 import { nextPrice, SHOP_GROUPS, SHOP_ITEMS, type IShopItem, type IUpgradeId } from "Components/ElfFling/upgrades";
 import type { IProgress } from "Components/ElfFling/progress";
-import { SKINS, type ISkin, type ISkinId } from "Components/ElfFling/skins";
+import { BATTERS, SKINS, type IBatterId, type ISkinId } from "Components/ElfFling/skins";
 import classes from "Components/ElfFling/ElfFling.module.less";
 
 type IElfFlingShopProps = {
@@ -12,12 +12,22 @@ type IElfFlingShopProps = {
 	onBuy: (id: IUpgradeId, price: number) => void;
 	onBuySkin: (id: ISkinId, price: number) => void;
 	onWearSkin: (id: ISkinId) => void;
+	onBuyBatter: (id: IBatterId, price: number) => void;
+	onWearBatter: (id: IBatterId) => void;
 	/** On a phone, keyboard shortcuts aren't mentioned. */
 	touchScreen: boolean;
 };
 
 /** Spend coins on upgrades, in sections (the swing, landings, in the air, coins), and on looks. */
-export default function ElfFlingShop({ progress, onBuy, onBuySkin, onWearSkin, touchScreen }: IElfFlingShopProps) {
+export default function ElfFlingShop({
+	progress,
+	onBuy,
+	onBuySkin,
+	onWearSkin,
+	onBuyBatter,
+	onWearBatter,
+	touchScreen,
+}: IElfFlingShopProps) {
 	const { coins, upgrades } = progress;
 
 	return (
@@ -46,16 +56,30 @@ export default function ElfFlingShop({ progress, onBuy, onBuySkin, onWearSkin, t
 					</Stack>
 				))}
 				<Stack gap="sm">
-					<Divider label="Looks" labelPosition="left" />
+					<Divider label="Looks: who gets flung" labelPosition="left" />
 					{SKINS.map((skin) => (
-						<SkinRow
+						<LookRow
 							key={skin.id}
-							skin={skin}
+							look={skin}
 							owned={progress.skins.includes(skin.id)}
 							wearing={progress.skin === skin.id}
 							coins={coins}
-							onBuy={onBuySkin}
-							onWear={onWearSkin}
+							onBuy={() => onBuySkin(skin.id, skin.price)}
+							onWear={() => onWearSkin(skin.id)}
+						/>
+					))}
+				</Stack>
+				<Stack gap="sm">
+					<Divider label="Looks: who swings" labelPosition="left" />
+					{BATTERS.map((batter) => (
+						<LookRow
+							key={batter.id}
+							look={batter}
+							owned={progress.batters.includes(batter.id)}
+							wearing={progress.batter === batter.id}
+							coins={coins}
+							onBuy={() => onBuyBatter(batter.id, batter.price)}
+							onWear={() => onWearBatter(batter.id)}
 						/>
 					))}
 				</Stack>
@@ -117,32 +141,32 @@ function ShopRow({ item, level, coins, onBuy, touchScreen }: IShopRowProps) {
 	);
 }
 
-type ISkinRowProps = {
-	skin: ISkin;
+type ILookRowProps = {
+	look: { name: string; description: string; price: number };
 	owned: boolean;
 	wearing: boolean;
 	coins: number;
-	onBuy: (id: ISkinId, price: number) => void;
-	onWear: (id: ISkinId) => void;
+	onBuy: () => void;
+	onWear: () => void;
 };
 
-/** One look: buy it, put it on, or a badge for the one being worn. Just for looks: no effect on throws. */
-function SkinRow({ skin, owned, wearing, coins, onBuy, onWear }: ISkinRowProps) {
+/** One look (a flyer or a batter): buy it, put it on, or a badge for the one in use. No effect on throws. */
+function LookRow({ look, owned, wearing, coins, onBuy, onWear }: ILookRowProps) {
 	return (
 		<Group justify="space-between" wrap="nowrap" align="flex-start" gap="md">
 			<div>
-				<MantineText fw={700}>{skin.name}</MantineText>
+				<MantineText fw={700}>{look.name}</MantineText>
 				<MantineText size="sm" c="dimmed">
-					{skin.description}
+					{look.description}
 				</MantineText>
 			</div>
 			{wearing ? (
 				<Badge variant="light" color="green" style={{ flex: "none" }}>
-					Wearing
+					In use
 				</Badge>
 			) : owned ? (
-				<Button variant="secondary" size="xs" style={{ flex: "none" }} onClick={() => onWear(skin.id)}>
-					Wear
+				<Button variant="secondary" size="xs" style={{ flex: "none" }} onClick={onWear}>
+					Use
 				</Button>
 			) : (
 				<Button
@@ -150,11 +174,11 @@ function SkinRow({ skin, owned, wearing, coins, onBuy, onWear }: ISkinRowProps) 
 					size="xs"
 					style={{ flex: "none" }}
 					leftSection={<FontAwesomeIcon icon={faCoins} />}
-					disabled={coins < skin.price}
-					aria-label={`Buy ${skin.name} for ${skin.price} coins`}
-					onClick={() => onBuy(skin.id, skin.price)}
+					disabled={coins < look.price}
+					aria-label={`Buy ${look.name} for ${look.price} coins`}
+					onClick={onBuy}
 				>
-					{skin.price}
+					{look.price}
 				</Button>
 			)}
 		</Group>

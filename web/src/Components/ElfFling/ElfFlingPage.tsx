@@ -8,7 +8,7 @@ import ElfFlingShop from "Components/ElfFling/ElfFlingShop";
 import { readBestThrow, saveBestThrow } from "Components/ElfFling/bestThrow";
 import type { IGameState, IPhase } from "Components/ElfFling/physics";
 import { readProgress, saveProgress, type IProgress } from "Components/ElfFling/progress";
-import { capitalised, skinById, type ISkinId } from "Components/ElfFling/skins";
+import { capitalised, skinById, type IBatterId, type ISkinId } from "Components/ElfFling/skins";
 import { coinMultiplier, type IUpgradeId } from "Components/ElfFling/upgrades";
 import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
 import BackToGroups from "Components/Layout/BackToGroups";
@@ -20,8 +20,8 @@ type IResult = { message: string; coins: number; bonus: number; newBest: boolean
 const INTRO =
 	"The elf hops off the presents; swing the candy cane as it falls past. Hit it right on the sweet spot to send it flying, and grab the coins on the way to spend in the shop.";
 
-const PROMPTS: Record<Exclude<IPhase, "done">, string> = {
-	ready: "Click the game (or press Space) to send the elf hopping off the presents.",
+/** Prompts while the throw is under way; the ready one names the flyer, so it's in the component. */
+const PROMPTS: Record<Exclude<IPhase, "done" | "ready">, string> = {
 	dropping: "Now tap to swing!",
 	flying: "Wheee!",
 	sliding: "Wheee!",
@@ -150,6 +150,22 @@ export default function ElfFlingPage() {
 		[updateProgress],
 	);
 
+	const buyBatter = useCallback(
+		(id: IBatterId, price: number) =>
+			updateProgress((current) =>
+				current.coins < price || current.batters.includes(id)
+					? current
+					: { ...current, coins: current.coins - price, batters: [...current.batters, id], batter: id },
+			),
+		[updateProgress],
+	);
+
+	const wearBatter = useCallback(
+		(id: IBatterId) =>
+			updateProgress((current) => (current.batters.includes(id) ? { ...current, batter: id } : current)),
+		[updateProgress],
+	);
+
 	const wearSkin = useCallback(
 		(id: ISkinId) => updateProgress((current) => (current.skins.includes(id) ? { ...current, skin: id } : current)),
 		[updateProgress],
@@ -161,8 +177,10 @@ export default function ElfFlingPage() {
 			: jumps.available
 				? `Tap to give ${skin.subject} a jump! (${jumps.left} left)`
 				: phase === "ready" && touchScreen
-					? "Tap the game to send the elf hopping off the presents."
-					: PROMPTS[phase === "done" ? "ready" : phase];
+					? `Tap the game to send ${skin.subject} hopping off the presents.`
+					: phase === "ready" || phase === "done"
+						? `Click the game (or press Space) to send ${skin.subject} hopping off the presents.`
+						: PROMPTS[phase];
 
 	return (
 		<Page>
@@ -175,6 +193,7 @@ export default function ElfFlingPage() {
 					key={round}
 					upgrades={progress.upgrades}
 					skin={progress.skin}
+					batter={progress.batter}
 					best={best}
 					onPhaseChange={setPhase}
 					onFinish={handleFinish}
@@ -215,6 +234,8 @@ export default function ElfFlingPage() {
 					onBuy={buy}
 					onBuySkin={buySkin}
 					onWearSkin={wearSkin}
+					onBuyBatter={buyBatter}
+					onWearBatter={wearBatter}
 					touchScreen={touchScreen}
 				/>
 			</Stack>

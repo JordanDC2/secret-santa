@@ -1,6 +1,7 @@
 /**
- * Who gets flung: cosmetic skins for the flyer, bought in the shop's "Looks" section. They
- * change only how it looks (and what the result line calls it), never how far it goes.
+ * Cosmetic skins, bought in the shop's "Looks" section: who gets flung (the flyer) and who
+ * swings the candy cane (the batter). They change only how things look (and what the result
+ * line calls the flyer), never how far it goes.
  */
 
 export type ISkinId = "elf" | "santa" | "mrsClaus" | "snowman";
@@ -59,4 +60,54 @@ export function skinById(id: ISkinId): ISkin {
 /** "the elf" at the start of a sentence: "The elf". */
 export function capitalised(subject: string): string {
 	return subject.charAt(0).toUpperCase() + subject.slice(1);
+}
+
+/** Who swings: the reindeer, or one of the flyers' characters, drawn big. */
+export type IBatterId = "reindeer" | ISkinId;
+
+export type IBatter = {
+	id: IBatterId;
+	name: string;
+	description: string;
+	/** 0 for the one everyone starts with. */
+	price: number;
+};
+
+export const BATTERS: IBatter[] = [
+	{
+		id: "reindeer",
+		name: "Reindeer",
+		description: "The original slugger, standing tall on its hind legs.",
+		price: 0,
+	},
+	{
+		id: "elf",
+		name: "Big elf",
+		description: "A great big elf, sleeves rolled up and ready to swing.",
+		price: 120,
+	},
+	{
+		id: "santa",
+		name: "Santa",
+		description: "Santa steps up to the plate in his white gloves.",
+		price: 180,
+	},
+	{
+		id: "mrsClaus",
+		name: "Mrs. Claus",
+		description: "Mrs. Claus takes a swing. She has done this before.",
+		price: 180,
+	},
+	{
+		id: "snowman",
+		name: "Big snowman",
+		description: "One of the big snowmen, on your side for once, swinging with its twig arms.",
+		price: 220,
+	},
+];
+
+export const DEFAULT_BATTER: IBatterId = "reindeer";
+
+export function isBatterId(value: unknown): value is IBatterId {
+	return BATTERS.some((batter) => batter.id === value);
 }

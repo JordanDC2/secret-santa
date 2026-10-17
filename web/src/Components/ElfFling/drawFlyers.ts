@@ -21,6 +21,14 @@ const DRAWINGS: Record<ISkinId, (context: CanvasRenderingContext2D, palette: IPa
 	snowman: drawLittleSnowman,
 };
 
+/**
+ * One of the characters at life size, about its middle (feet at -ELF_RADIUS), facing ahead.
+ * The batters reuse these, drawn big.
+ */
+export function drawCharacter(context: CanvasRenderingContext2D, palette: IPalette, id: ISkinId) {
+	DRAWINGS[id](context, palette);
+}
+
 /** How much bigger than life the flyer is drawn at this zoom. */
 export function flyerEnlargement(pixelsPerMetre: number): number {
 	return Math.max(1, FLYER_MIN_PIXELS / (ELF_RADIUS * 2 * pixelsPerMetre));
@@ -40,7 +48,7 @@ export function drawFlyer(
 	context.translate(x, y + ELF_RADIUS * (enlarge - 1));
 	context.scale(enlarge, enlarge);
 	context.rotate(-spin);
-	DRAWINGS[skin](context, palette);
+	drawCharacter(context, palette, skin);
 	context.restore();
 }
 

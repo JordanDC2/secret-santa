@@ -1,4 +1,11 @@
-import { DEFAULT_SKIN, isSkinId, type ISkinId } from "Components/ElfFling/skins";
+import {
+	DEFAULT_BATTER,
+	DEFAULT_SKIN,
+	isBatterId,
+	isSkinId,
+	type IBatterId,
+	type ISkinId,
+} from "Components/ElfFling/skins";
 import { NO_UPGRADES, type IUpgradeId, type IUpgrades } from "Components/ElfFling/upgrades";
 
 /**
@@ -14,12 +21,23 @@ export type IProgress = {
 	skins: ISkinId[];
 	/** The skin being worn. */
 	skin: ISkinId;
+	/** Batters bought; the reindeer is always owned. */
+	batters: IBatterId[];
+	/** Who's swinging. */
+	batter: IBatterId;
 };
 
 const STORAGE_KEY = "secret-santa-elf-fling-progress";
 
 function freshStart(): IProgress {
-	return { coins: 0, upgrades: { ...NO_UPGRADES }, skins: [DEFAULT_SKIN], skin: DEFAULT_SKIN };
+	return {
+		coins: 0,
+		upgrades: { ...NO_UPGRADES },
+		skins: [DEFAULT_SKIN],
+		skin: DEFAULT_SKIN,
+		batters: [DEFAULT_BATTER],
+		batter: DEFAULT_BATTER,
+	};
 }
 
 export function readProgress(): IProgress {
@@ -33,14 +51,20 @@ export function readProgress(): IProgress {
 			upgrades[id] = Number.isInteger(level) && level > 0 ? level : 0;
 		}
 
-		const skins = [DEFAULT_SKIN, ...(Array.isArray(saved?.skins) ? saved.skins : []).filter(isSkinId)];
-		const owned = [...new Set(skins)];
-		const skin = isSkinId(saved?.skin) && owned.includes(saved.skin) ? saved.skin : DEFAULT_SKIN;
+		const skins = owned(DEFAULT_SKIN, saved?.skins, isSkinId);
+		const skin = isSkinId(saved?.skin) && skins.includes(saved.skin) ? saved.skin : DEFAULT_SKIN;
+		const batters = owned(DEFAULT_BATTER, saved?.batters, isBatterId);
+		const batter = isBatterId(saved?.batter) && batters.includes(saved.batter) ? saved.batter : DEFAULT_BATTER;
 
-		return { coins: Number.isInteger(coins) && coins > 0 ? coins : 0, upgrades, skins: owned, skin };
+		return { coins: Number.isInteger(coins) && coins > 0 ? coins : 0, upgrades, skins, skin, batters, batter };
 	} catch {
 		return freshStart();
 	}
+}
+
+/** The saved list of owned looks, kept to known ones, always including the free default. */
+function owned<T>(free: T, saved: unknown, isKnown: (value: unknown) => value is T): T[] {
+	return [...new Set([free, ...(Array.isArray(saved) ? saved : []).filter(isKnown)])];
 }
 
 export function saveProgress(progress: IProgress) {

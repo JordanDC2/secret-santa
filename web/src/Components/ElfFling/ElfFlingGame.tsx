@@ -14,7 +14,7 @@ import {
 	type IGameState,
 	type IPhase,
 } from "Components/ElfFling/physics";
-import type { ISkinId } from "Components/ElfFling/skins";
+import type { IBatterId, ISkinId } from "Components/ElfFling/skins";
 import type { IUpgrades } from "Components/ElfFling/upgrades";
 import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
 import classes from "Components/ElfFling/ElfFling.module.less";
@@ -23,8 +23,9 @@ import classes from "Components/ElfFling/ElfFling.module.less";
 type IElfFlingGameProps = {
 	/** The shop upgrades for this round (read when the round starts). */
 	upgrades: IUpgrades;
-	/** Who's being flung; changing it shows at once, even mid-throw. */
+	/** Who's being flung, and who's swinging; changing either shows at once, even mid-throw. */
 	skin: ISkinId;
+	batter: IBatterId;
 	best: number | null;
 	onPhaseChange: (phase: IPhase) => void;
 	onFinish: (state: IGameState) => void;
@@ -46,6 +47,7 @@ const MAX_FRAME_TIME = 0.1;
 export default function ElfFlingGame({
 	upgrades,
 	skin,
+	batter,
 	best,
 	onPhaseChange,
 	onFinish,
@@ -61,6 +63,7 @@ export default function ElfFlingGame({
 	const paletteRef = useRef<IPalette | null>(null);
 	const bestRef = useRef(best);
 	const skinRef = useRef(skin);
+	const batterRef = useRef(batter);
 	const callbacksRef = useRef({ onPhaseChange, onFinish, onJumpsChange, onRestart });
 	// The rocket button shows only while the rocket can fire.
 	const [rocketAvailable, setRocketAvailable] = useState(false);
@@ -69,6 +72,7 @@ export default function ElfFlingGame({
 	useLayoutEffect(() => {
 		bestRef.current = best;
 		skinRef.current = skin;
+		batterRef.current = batter;
 		callbacksRef.current = { onPhaseChange, onFinish, onJumpsChange, onRestart };
 	});
 
@@ -171,6 +175,7 @@ export default function ElfFlingGame({
 				{ width, height },
 				bestRef.current,
 				skinRef.current,
+				batterRef.current,
 			);
 			frame = requestAnimationFrame(render);
 		}

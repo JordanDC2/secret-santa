@@ -1,22 +1,17 @@
-import {
-	REINDEER_X,
-	STACK,
-	SWING_CONTACT_TIME,
-	SWING_DURATION,
-	SWEET_SPOT_Y,
-	type IGameState,
-} from "Components/ElfFling/physics";
+import { REINDEER_X, STACK, type IGameState } from "Components/ElfFling/physics";
 import { drawCoinCount, drawCoins } from "Components/ElfFling/drawCoins";
 import { drawCrackers, drawPopLabels } from "Components/ElfFling/drawCrackers";
 import { drawFlyer, flyerEnlargement } from "Components/ElfFling/drawFlyers";
 import { drawOrnaments } from "Components/ElfFling/drawOrnaments";
 import { drawSleigh } from "Components/ElfFling/drawSleigh";
 import { drawSnowmen } from "Components/ElfFling/drawSnowmen";
-import type { ISkinId } from "Components/ElfFling/skins";
+import type { IBatterId, ISkinId } from "Components/ElfFling/skins";
+import { drawBatter } from "Components/ElfFling/drawBatters";
 
 /**
  * Draws one frame of Elf Fling on a canvas: a snowy night, distance flags, the stack of
- * presents, the reindeer swinging its candy cane, and whoever's being flung (drawFlyers.ts). World units are metres
+ * presents, whoever's swinging the candy cane (drawBatters.ts) and whoever's being flung
+ * (drawFlyers.ts). World units are metres
  * (y up); the camera follows the elf and zooms out when it flies high. The crackers, sky
  * ornaments, coins, snowmen and sleigh have their own files (drawCrackers.ts and so on).
  */
@@ -77,7 +72,7 @@ export function nextCamera(previous: ICamera | null, state: IGameState, width: n
 	const viewHeight = Math.max(BASE_VIEW_HEIGHT, state.elf.y + headroom);
 	const targetScale = skyHeight / viewHeight;
 	const viewWidth = width / targetScale;
-	const targetLeft = Math.max(-1.1, state.elf.x - viewWidth * 0.4);
+	const targetLeft = Math.max(-1.4, state.elf.x - viewWidth * 0.4);
 
 	if (!previous) {
 		return { left: targetLeft, pixelsPerMetre: targetScale };
@@ -100,6 +95,7 @@ export function drawFrame(
 	size: { width: number; height: number },
 	best: number | null,
 	skin: ISkinId,
+	batter: IBatterId,
 ) {
 	const { width, height } = size;
 	const groundY = height * (1 - GROUND_SHARE);
@@ -117,7 +113,7 @@ export function drawFrame(
 	context.translate(origin.x, origin.y);
 	context.scale(camera.pixelsPerMetre, -camera.pixelsPerMetre);
 	drawPresents(context, palette);
-	drawReindeer(context, palette, state.swingTime);
+	drawBatter(context, palette, state.swingTime, batter);
 	const visible = { left: camera.left, right: camera.left + width / camera.pixelsPerMetre };
 	drawCrackers(context, palette, state.crackers, state.time, camera.pixelsPerMetre, visible);
 	drawOrnaments(context, palette, state.ornaments, state.time, camera.pixelsPerMetre, visible);
@@ -250,111 +246,6 @@ function drawPresents(context: CanvasRenderingContext2D, palette: IPalette) {
 	}
 }
 
-/** The bat's angle (radians, 0 = pointing ahead) at this point in the swing. */
-function batAngle(swingTime: number | null): number {
-	const raised = 1.9;
-	const followThrough = -1.2;
-
-	if (swingTime === null) {
-		return raised;
-	}
-
-	const progress = Math.min(1, swingTime / SWING_DURATION);
-	const contactShare = SWING_CONTACT_TIME / SWING_DURATION;
-
-	// Fast down to the contact point (level, pointing ahead), then easing into the follow-through.
-	if (progress <= contactShare) {
-		return raised * (1 - progress / contactShare);
-	}
-
-	const after = (progress - contactShare) / (1 - contactShare);
-
-	return followThrough * (1 - (1 - after) ** 2);
-}
-
-/** An upright reindeer, batter's stance, holding a candy cane. */
-function drawReindeer(context: CanvasRenderingContext2D, palette: IPalette, swingTime: number | null) {
-	context.save();
-	context.translate(REINDEER_X, 0);
-
-	// Legs and hooves.
-	context.fillStyle = palette.bark;
-	context.fillRect(-0.32, 0, 0.18, 0.75);
-	context.fillRect(0.06, 0, 0.18, 0.75);
-	context.fillStyle = "#3b2416";
-	context.fillRect(-0.34, 0, 0.22, 0.1);
-	context.fillRect(0.04, 0, 0.22, 0.1);
-
-	// Body, with a pale belly.
-	context.fillStyle = palette.fur;
-	ellipse(context, -0.04, 1.2, 0.42, 0.58);
-	context.fillStyle = palette.gold;
-	ellipse(context, 0.06, 1.12, 0.22, 0.38);
-
-	// Head, snout and ears.
-	context.fillStyle = palette.fur;
-	ellipse(context, 0.02, 1.98, 0.27, 0.27);
-	ellipse(context, 0.24, 1.9, 0.17, 0.12);
-	ellipse(context, -0.22, 2.12, 0.1, 0.05, -0.5);
-	context.fillStyle = "#3b2416";
-	ellipse(context, 0.39, 1.92, 0.06, 0.05);
-	context.fillStyle = palette.white;
-	ellipse(context, 0.1, 2.04, 0.06, 0.06);
-	context.fillStyle = "#1c120b";
-	ellipse(context, 0.12, 2.04, 0.032, 0.032);
-
-	// Antlers.
-	context.strokeStyle = palette.bark;
-	context.lineWidth = 0.06;
-	context.lineCap = "round";
-	context.beginPath();
-	context.moveTo(-0.06, 2.2);
-	context.lineTo(-0.16, 2.6);
-	context.moveTo(-0.13, 2.47);
-	context.lineTo(-0.3, 2.6);
-	context.moveTo(0.08, 2.21);
-	context.lineTo(0.14, 2.62);
-	context.moveTo(0.12, 2.48);
-	context.lineTo(0.28, 2.6);
-	context.stroke();
-
-	// Arms and the candy cane, turning about the shoulder (level with the bat's sweet spot).
-	context.translate(0.05, SWEET_SPOT_Y);
-	context.rotate(batAngle(swingTime));
-	context.strokeStyle = palette.fur;
-	context.lineWidth = 0.13;
-	context.beginPath();
-	context.moveTo(0, 0);
-	context.lineTo(0.38, 0);
-	context.stroke();
-	drawCandyCane(context, palette);
-	context.restore();
-}
-
-/** Held at the straight end; the crook curls at the far end. */
-function drawCandyCane(context: CanvasRenderingContext2D, palette: IPalette) {
-	const path = () => {
-		context.beginPath();
-		context.moveTo(0.3, 0);
-		context.lineTo(1.45, 0);
-		context.arc(1.45, 0.17, 0.17, -Math.PI / 2, Math.PI / 2, false);
-	};
-
-	context.lineCap = "round";
-	context.lineWidth = 0.12;
-	context.strokeStyle = palette.white;
-	path();
-	context.stroke();
-	context.setLineDash([0.08, 0.08]);
-	context.strokeStyle = palette.red;
-	path();
-	context.stroke();
-	context.setLineDash([]);
-
-	context.fillStyle = palette.fur;
-	ellipse(context, 0.36, 0, 0.09, 0.09);
-}
-
 /** While the rocket burns: sparks streaming out behind the elf, flickering red and gold. */
 function drawRocketTrail(
 	context: CanvasRenderingContext2D,
@@ -397,17 +288,4 @@ function drawLiveDistance(context: CanvasRenderingContext2D, palette: IPalette, 
 	context.textAlign = "right";
 	context.fillStyle = palette.gold;
 	context.fillText(`${Math.max(0, metres).toFixed(1)} m`, width - 14, 32);
-}
-
-function ellipse(
-	context: CanvasRenderingContext2D,
-	x: number,
-	y: number,
-	radiusX: number,
-	radiusY: number,
-	rotation = 0,
-) {
-	context.beginPath();
-	context.ellipse(x, y, radiusX, radiusY, rotation, 0, Math.PI * 2);
-	context.fill();
 }
