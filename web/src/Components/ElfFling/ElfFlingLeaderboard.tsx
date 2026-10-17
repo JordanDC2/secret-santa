@@ -67,8 +67,8 @@ export default function ElfFlingLeaderboard() {
 			}
 		>
 			<Tabs
-				// Red: the theme's green underline disappears against the dark-mode card.
-				color="red"
+				// Festive gold: the theme's green underline disappears against the dark-mode card.
+				color="var(--festive-gold-deep)"
 				classNames={{ tab: classes.boardTab }}
 				value={board}
 				onChange={(value) => {
