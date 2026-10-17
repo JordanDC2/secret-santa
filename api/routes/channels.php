@@ -8,5 +8,8 @@ Broadcast::channel('group.{group}', fn (User $user, Group $group) => $user->can(
 
 Broadcast::channel('wishlist.{owner}', fn (User $user, User $owner) => $user->can('receiveWishlistUpdates', $owner));
 
+// The Elf Fling leaderboards are site-wide: anyone signed in can watch (kids and pets never sign in).
+Broadcast::channel('elf-fling', fn (User $user) => ! $user->isManagedProfile());
+
 // Someone's own updates, e.g. their Santa chats. Only they can listen.
 Broadcast::channel('user.{id}', fn (User $user, int $id) => $user->id === $id);

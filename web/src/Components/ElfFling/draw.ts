@@ -1,4 +1,5 @@
 import { REINDEER_X, STACK, type IGameState } from "Components/ElfFling/physics";
+import { drawCelebration } from "Components/ElfFling/drawCelebration";
 import { drawCoinCount, drawCoins } from "Components/ElfFling/drawCoins";
 import { drawCrackers, drawPopLabels } from "Components/ElfFling/drawCrackers";
 import { drawFlyer, flyerEnlargement } from "Components/ElfFling/drawFlyers";
@@ -101,6 +102,8 @@ export function drawFrame(
 	batter: IBatterId,
 	/** Seconds on the page's own clock, for the falling snow. */
 	clock: number,
+	/** Seconds since this round's new best, while it's being celebrated. */
+	celebrationAge: number | null,
 ) {
 	const { width, height } = size;
 	const groundY = height * (1 - GROUND_SHARE);
@@ -130,6 +133,10 @@ export function drawFrame(
 	context.restore();
 	drawPopLabels(context, palette, state.crackers, state.time, toScreen);
 	drawSnowfall(context, palette, camera, size, clock);
+
+	if (celebrationAge !== null) {
+		drawCelebration(context, palette, size, celebrationAge);
+	}
 	drawCoinCount(context, palette, state.coinsCollected);
 
 	if (state.phase === "flying" || state.phase === "sliding") {

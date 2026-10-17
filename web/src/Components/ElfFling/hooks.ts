@@ -31,7 +31,7 @@ type ILeaderboardResponse = {
 };
 
 const PROGRESS_KEY = ["elf-fling", "progress"];
-const LEADERBOARD_KEY = ["elf-fling", "leaderboard"];
+export const LEADERBOARD_KEY = ["elf-fling", "leaderboard"];
 
 function toProgress(response: IProgressResponse): IProgress {
 	return {
@@ -146,7 +146,8 @@ export function useLeaderboardQuery(board: ILeaderboardBoard, period: ILeaderboa
 				you: response.you,
 			};
 		},
-		// Others' throws land in the background; check in now and then while the page is open.
-		refetchInterval: 60_000,
+		// Others' throws arrive live (ElfFlingLiveUpdates); this is only a fallback if the
+		// connection drops.
+		refetchInterval: 5 * 60_000,
 	});
 }

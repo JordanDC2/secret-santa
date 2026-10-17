@@ -18,6 +18,7 @@ import type { IGameState, IPhase } from "Components/ElfFling/physics";
 import { forgetDeviceProgress, readDeviceProgress, type IProgress } from "Components/ElfFling/progress";
 import { capitalised, skinById, type IBatterId, type ISkinId } from "Components/ElfFling/skins";
 import type { IUpgradeId } from "Components/ElfFling/upgrades";
+import { readSoundOn, saveSoundOn, wakeAudio } from "Components/ElfFling/sound";
 import { useFullscreen } from "Components/ElfFling/useFullscreen";
 import { releaseFocus } from "Components/ElfFling/releaseFocus";
 import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
@@ -124,6 +125,7 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 	const touchScreen = useTouchScreen();
 	const stageRef = useRef<HTMLDivElement>(null);
 	const { fullscreen, enter: enterFullscreen, exit: exitFullscreen } = useFullscreen(stageRef);
+	const [soundOn, setSoundOn] = useState(readSoundOn);
 	const skin = skinById(progress.skin);
 	// The result is written when a throw ends, inside a callback; it reads the skin from here.
 	const skinRef = useRef(progress.skin);
@@ -151,6 +153,19 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 		},
 		[recordThrow],
 	);
+
+	// Off until turned on, and remembered per device. Turning it on is a tap, which lets the browser play sound.
+	// The audio wakes inside the tap itself, since browsers only let sound start from one.
+	const toggleSound = useCallback(() => {
+		const on = !soundOn;
+
+		if (on) {
+			wakeAudio();
+		}
+
+		saveSoundOn(on);
+		setSoundOn(on);
+	}, [soundOn]);
 
 	const throwAgain = useCallback(() => {
 		setResult(null);
@@ -212,6 +227,8 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 					overlay={overlay}
 					fullscreen={fullscreen}
 					onToggleFullscreen={fullscreen ? exitFullscreen : enterFullscreen}
+					soundOn={soundOn}
+					onToggleSound={toggleSound}
 				/>
 			</div>
 			<Group justify="space-between" align="flex-start" wrap="nowrap" gap="md">

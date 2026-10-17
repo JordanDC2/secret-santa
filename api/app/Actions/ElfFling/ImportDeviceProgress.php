@@ -2,6 +2,7 @@
 
 namespace App\Actions\ElfFling;
 
+use App\Events\ElfFlingLeaderboardChanged;
 use App\Models\ElfFlingProgress;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -45,6 +46,8 @@ class ImportDeviceProgress
                     'coins' => 0,
                     'from_device' => true,
                 ]);
+                // Sent once the transaction commits, like the throw it adds to the boards.
+                DB::afterCommit(fn () => ElfFlingLeaderboardChanged::dispatch());
             }
 
             return $progress;

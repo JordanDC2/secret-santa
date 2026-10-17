@@ -2,6 +2,7 @@
 
 namespace App\Actions\ElfFling;
 
+use App\Events\ElfFlingLeaderboardChanged;
 use App\Models\ElfFlingProgress;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +18,7 @@ class RecordThrow
      */
     public function __invoke(User $user, float $distance, int $coinsCollected): array
     {
-        return DB::transaction(function () use ($user, $distance, $coinsCollected) {
+        $result = DB::transaction(function () use ($user, $distance, $coinsCollected) {
             $progress = ElfFlingProgress::for($user);
             $bonus = config('elf_fling.lucky_stocking_bonus') * $progress->level('luckyStocking');
             $banked = (int) round($coinsCollected * (1 + $bonus));
@@ -28,5 +29,10 @@ class RecordThrow
 
             return ['progress' => $progress->refresh(), 'banked' => $banked, 'newBest' => $distance > $previousBest];
         });
+
+        // Once it's saved, anyone watching the leaderboards sees it.
+        ElfFlingLeaderboardChanged::dispatch();
+
+        return $result;
     }
 }

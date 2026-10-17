@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Events\ElfFlingLeaderboardChanged;
 use App\Models\ElfFlingProgress;
 use App\Models\User;
 use App\Support\ElfFling\Leaderboard;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Support\Facades\Event;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -234,6 +237,24 @@ class ElfFlingTest extends TestCase
         $this->assertSame('Mary-Kate O.', Leaderboard::displayName('MARY-KATE', "o'neil"));
         $this->assertSame('McKenzie L.', Leaderboard::displayName('McKenzie', 'Lee'));
         $this->assertSame('Ivy', Leaderboard::displayName(' ivy ', null));
+    }
+
+    public function test_a_throw_tells_everyone_watching_that_the_leaderboards_moved(): void
+    {
+        Event::fake([ElfFlingLeaderboardChanged::class]);
+        $this->player();
+
+        $this->postJson(route('elf-fling.throws'), ['distance' => 50, 'coins_collected' => 2])->assertOk();
+
+        Event::assertDispatchedTimes(ElfFlingLeaderboardChanged::class, 1);
+    }
+
+    public function test_anyone_signed_in_can_watch_the_leaderboards_but_not_a_kid_or_pet(): void
+    {
+        $canWatch = Broadcast::driver()->getChannels()->get('elf-fling');
+
+        $this->assertTrue($canWatch(User::factory()->create()));
+        $this->assertFalse($canWatch(User::factory()->create(['managed_kind' => 'child'])));
     }
 
     public function test_deleting_an_account_removes_its_progress_and_throws(): void

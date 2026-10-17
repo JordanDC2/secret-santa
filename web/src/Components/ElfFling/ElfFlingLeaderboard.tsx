@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Alert, Group, SegmentedControl, Stack, Table, Tabs, Text as MantineText } from "@mantine/core";
 import SectionCard from "Components/Common/SectionCard";
 import LoadingText from "Components/Common/LoadingText";
+import ElfFlingLiveUpdates from "Components/ElfFling/ElfFlingLiveUpdates";
 import {
 	useLeaderboardQuery,
 	type ILeaderboard,
@@ -43,7 +44,7 @@ function formatValue(board: ILeaderboardBoard, value: number): string {
 /**
  * Everyone on the site, ranked by best distance, most coins earned or most swings taken, this week (from Monday)
  * or all time. Names are first name and last initial; your own row is highlighted, and your
- * rank shows below even if you're outside the top.
+ * rank shows below even if you're outside the top. Updates live as anyone finishes a throw.
  */
 export default function ElfFlingLeaderboard() {
 	const [board, setBoard] = useState<ILeaderboardBoard>("distance");
@@ -86,6 +87,7 @@ export default function ElfFlingLeaderboard() {
 					))}
 				</Tabs.List>
 			</Tabs>
+			<ElfFlingLiveUpdates />
 			{query.isPending && <LoadingText>Loading the leaderboard...</LoadingText>}
 			{query.isError && <Alert color="red">{apiErrorMessage(query.error)}</Alert>}
 			{query.data && <Standings board={board} period={period} leaderboard={query.data} />}

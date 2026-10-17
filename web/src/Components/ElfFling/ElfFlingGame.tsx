@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { ActionIcon, Tooltip } from "@mantine/core";
 import { useElementSize, useMediaQuery, useViewportSize } from "@mantine/hooks";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCompress, faExpand } from "@fortawesome/free-solid-svg-icons";
+import { faCompress, faExpand, faVolumeHigh, faVolumeXmark } from "@fortawesome/free-solid-svg-icons";
 import RocketIcon from "Components/Common/FestiveIcons/RocketIcon";
 import { drawFrame, nextCamera, readPalette, type ICamera, type IPalette } from "Components/ElfFling/draw";
 import {
@@ -19,6 +19,7 @@ import {
 import type { IBatterId, ISkinId } from "Components/ElfFling/skins";
 import type { IUpgrades } from "Components/ElfFling/upgrades";
 import { releaseFocus } from "Components/ElfFling/releaseFocus";
+import { playFanfare, playStateChanges } from "Components/ElfFling/sound";
 import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
 import classes from "Components/ElfFling/ElfFling.module.less";
 
@@ -41,6 +42,9 @@ type IElfFlingGameProps = {
 	/** Full screen belongs to the page (it outlasts each round's game); this just shows it. */
 	fullscreen: boolean;
 	onToggleFullscreen: () => void;
+	/** Sound belongs to the page too (it outlasts rounds); this plays it and shows the switch. */
+	soundOn: boolean;
+	onToggleSound: () => void;
 };
 
 /** Never simulate more than this much at once, e.g. after the tab was in the background. */
@@ -65,6 +69,8 @@ export default function ElfFlingGame({
 	overlay,
 	fullscreen,
 	onToggleFullscreen,
+	soundOn,
+	onToggleSound,
 }: IElfFlingGameProps) {
 	const { ref: frameRef, width, height: frameHeight } = useElementSize();
 	const { height: viewportHeight } = useViewportSize();
@@ -76,6 +82,11 @@ export default function ElfFlingGame({
 	const cameraRef = useRef<ICamera | null>(null);
 	const paletteRef = useRef<IPalette | null>(null);
 	const bestRef = useRef(best);
+	const soundRef = useRef(soundOn);
+	// The best as this round began: beating it is a new best (the page's copy updates once it's saved).
+	const [bestBefore] = useState(best);
+	// When this round's new-best celebration started (page clock, seconds), if it's had one.
+	const celebrationRef = useRef<number | null>(null);
 	const skinRef = useRef(skin);
 	const batterRef = useRef(batter);
 	const callbacksRef = useRef({ onPhaseChange, onFinish, onJumpsChange, onRestart });
@@ -85,6 +96,7 @@ export default function ElfFlingGame({
 	// The animation loop and input handlers read the latest props through these.
 	useLayoutEffect(() => {
 		bestRef.current = best;
+		soundRef.current = soundOn;
 		skinRef.current = skin;
 		batterRef.current = batter;
 		callbacksRef.current = { onPhaseChange, onFinish, onJumpsChange, onRestart };
@@ -104,28 +116,43 @@ export default function ElfFlingGame({
 			);
 	const touchScreen = useTouchScreen();
 
-	const setState = useCallback((next: IGameState) => {
-		const previous = stateRef.current;
-		stateRef.current = next;
+	const setState = useCallback(
+		(next: IGameState) => {
+			const previous = stateRef.current;
+			stateRef.current = next;
 
-		const jumpAvailable = canJump(next);
-
-		if (jumpAvailable !== canJump(previous) || next.jumpsLeft !== previous.jumpsLeft) {
-			callbacksRef.current.onJumpsChange({ available: jumpAvailable, left: next.jumpsLeft });
-		}
-
-		if (canRocket(next) !== canRocket(previous)) {
-			setRocketAvailable(canRocket(next));
-		}
-
-		if (next.phase !== previous.phase) {
-			callbacksRef.current.onPhaseChange(next.phase);
-
-			if (next.phase === "done") {
-				callbacksRef.current.onFinish(next);
+			if (soundRef.current) {
+				playStateChanges(previous, next);
 			}
-		}
-	}, []);
+
+			const jumpAvailable = canJump(next);
+
+			if (jumpAvailable !== canJump(previous) || next.jumpsLeft !== previous.jumpsLeft) {
+				callbacksRef.current.onJumpsChange({ available: jumpAvailable, left: next.jumpsLeft });
+			}
+
+			if (canRocket(next) !== canRocket(previous)) {
+				setRocketAvailable(canRocket(next));
+			}
+
+			if (next.phase !== previous.phase) {
+				callbacksRef.current.onPhaseChange(next.phase);
+
+				if (next.phase === "done") {
+					callbacksRef.current.onFinish(next);
+
+					if ((next.distance ?? 0) > (bestBefore ?? 0)) {
+						celebrationRef.current = performance.now() / 1000;
+
+						if (soundRef.current) {
+							playFanfare();
+						}
+					}
+				}
+			}
+		},
+		[bestBefore],
+	);
 
 	const handleInput = useCallback(() => {
 		if (stateRef.current.phase === "done") {
@@ -201,6 +228,7 @@ export default function ElfFlingGame({
 				skinRef.current,
 				batterRef.current,
 				now / 1000,
+				celebrationRef.current === null ? null : now / 1000 - celebrationRef.current,
 			);
 			frame = requestAnimationFrame(render);
 		}
@@ -258,6 +286,22 @@ export default function ElfFlingGame({
 					)}
 				</div>
 			)}
+			<Tooltip label={soundOn ? "Turn sound off" : "Turn sound on"} withArrow disabled={touchScreen}>
+				<ActionIcon
+					variant="transparent"
+					radius="xl"
+					size={touchScreen ? 52 : 44}
+					className={`${classes.fullscreenButton} ${classes.soundButton}`}
+					aria-label={soundOn ? "Turn sound off" : "Turn sound on"}
+					aria-pressed={soundOn}
+					onClick={(event) => {
+						onToggleSound();
+						releaseFocus(event);
+					}}
+				>
+					<FontAwesomeIcon icon={soundOn ? faVolumeHigh : faVolumeXmark} />
+				</ActionIcon>
+			</Tooltip>
 			<Tooltip label={fullscreen ? "Leave full screen (Esc)" : "Play full screen"} withArrow disabled={touchScreen}>
 				<ActionIcon
 					variant="transparent"
