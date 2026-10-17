@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { Button, Group, Stack, Text as MantineText } from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faRotateRight } from "@fortawesome/free-solid-svg-icons";
@@ -8,6 +8,7 @@ import ElfFlingShop from "Components/ElfFling/ElfFlingShop";
 import { readBestThrow, saveBestThrow } from "Components/ElfFling/bestThrow";
 import type { IGameState, IPhase } from "Components/ElfFling/physics";
 import { readProgress, saveProgress, type IProgress } from "Components/ElfFling/progress";
+import { capitalised, skinById, type ISkinId } from "Components/ElfFling/skins";
 import { coinMultiplier, type IUpgradeId } from "Components/ElfFling/upgrades";
 import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
 import BackToGroups from "Components/Layout/BackToGroups";
@@ -31,7 +32,9 @@ function count(n: number, one: string, many: string): string {
 	return `${n} ${n === 1 ? one : many}`;
 }
 
-function describe(state: IGameState): string {
+/** The result line. "subject" is who was flung, mid-sentence: "the elf", "Santa". */
+function describe(state: IGameState, subject: string): string {
+	const who = capitalised(subject);
 	const metres = `${(state.distance ?? 0).toFixed(1)} m`;
 	const extras = [
 		state.sleigh?.boardedAt != null ? "caught a ride on a sleigh" : null,
@@ -43,13 +46,13 @@ function describe(state: IGameState): string {
 
 	switch (state.outcome) {
 		case "perfect":
-			return `Perfect swing! The elf flew ${metres}${crackers}.`;
+			return `Perfect swing! ${who} flew ${metres}${crackers}.`;
 		case "hit":
-			return `The elf flew ${metres}${crackers}.`;
+			return `${who} flew ${metres}${crackers}.`;
 		case "miss":
-			return "Swing and a miss! The elf landed in the snow.";
+			return `Swing and a miss! ${who} landed in the snow.`;
 		default:
-			return "Too late! The elf landed in the snow before the swing.";
+			return `Too late! ${who} landed in the snow before the swing.`;
 	}
 }
 
@@ -65,6 +68,12 @@ export default function ElfFlingPage() {
 	const [progress, setProgress] = useState(readProgress);
 	const [jumps, setJumps] = useState({ available: false, left: 0 });
 	const touchScreen = useTouchScreen();
+	const skin = skinById(progress.skin);
+	// The result is written when a throw ends, inside a callback; it reads the skin from here.
+	const skinRef = useRef(progress.skin);
+	useLayoutEffect(() => {
+		skinRef.current = progress.skin;
+	});
 
 	const updateProgress = useCallback((change: (current: IProgress) => IProgress) => {
 		setProgress((current) => {
@@ -94,7 +103,7 @@ export default function ElfFlingPage() {
 			}
 
 			setResult({
-				message: describe(state),
+				message: describe(state, skinById(skinRef.current).subject),
 				coins: banked,
 				bonus: banked - state.coinsCollected,
 				newBest,
@@ -117,6 +126,7 @@ export default function ElfFlingPage() {
 				current.coins < price
 					? current
 					: {
+							...current,
 							coins: current.coins - price,
 							upgrades: { ...current.upgrades, [id]: current.upgrades[id] + 1 },
 						},
@@ -129,11 +139,27 @@ export default function ElfFlingPage() {
 		[phase, updateProgress],
 	);
 
+	// Skins only change looks, so buying one puts it on straight away, even mid-throw.
+	const buySkin = useCallback(
+		(id: ISkinId, price: number) =>
+			updateProgress((current) =>
+				current.coins < price || current.skins.includes(id)
+					? current
+					: { ...current, coins: current.coins - price, skins: [...current.skins, id], skin: id },
+			),
+		[updateProgress],
+	);
+
+	const wearSkin = useCallback(
+		(id: ISkinId) => updateProgress((current) => (current.skins.includes(id) ? { ...current, skin: id } : current)),
+		[updateProgress],
+	);
+
 	const prompt =
 		phase === "done" && result
 			? result.message
 			: jumps.available
-				? `Tap to give the elf a jump! (${jumps.left} left)`
+				? `Tap to give ${skin.subject} a jump! (${jumps.left} left)`
 				: phase === "ready" && touchScreen
 					? "Tap the game to send the elf hopping off the presents."
 					: PROMPTS[phase === "done" ? "ready" : phase];
@@ -148,6 +174,7 @@ export default function ElfFlingPage() {
 				<ElfFlingGame
 					key={round}
 					upgrades={progress.upgrades}
+					skin={progress.skin}
 					best={best}
 					onPhaseChange={setPhase}
 					onFinish={handleFinish}
@@ -183,7 +210,13 @@ export default function ElfFlingPage() {
 					)}
 				</Group>
 				<MantineText hiddenFrom="xs">{INTRO}</MantineText>
-				<ElfFlingShop coins={progress.coins} upgrades={progress.upgrades} onBuy={buy} touchScreen={touchScreen} />
+				<ElfFlingShop
+					progress={progress}
+					onBuy={buy}
+					onBuySkin={buySkin}
+					onWearSkin={wearSkin}
+					touchScreen={touchScreen}
+				/>
 			</Stack>
 		</Page>
 	);

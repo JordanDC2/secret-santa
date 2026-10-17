@@ -1,14 +1,26 @@
+import { DEFAULT_SKIN, isSkinId, type ISkinId } from "Components/ElfFling/skins";
 import { NO_UPGRADES, type IUpgradeId, type IUpgrades } from "Components/ElfFling/upgrades";
 
 /**
- * The player's coins and shop purchases, kept in this browser like the best throw. Storage
- * can be missing or blocked (private windows), so reads fall back to a fresh start and
- * failed writes are ignored: the page still has the values until it's closed.
+ * The player's coins and shop purchases (upgrades and skins), kept in this browser like the
+ * best throw. Storage can be missing or blocked (private windows), so reads fall back to a
+ * fresh start and failed writes are ignored: the page still has the values until it's closed.
  */
 
-export type IProgress = { coins: number; upgrades: IUpgrades };
+export type IProgress = {
+	coins: number;
+	upgrades: IUpgrades;
+	/** Skins bought; the little elf is always owned. */
+	skins: ISkinId[];
+	/** The skin being worn. */
+	skin: ISkinId;
+};
 
 const STORAGE_KEY = "secret-santa-elf-fling-progress";
+
+function freshStart(): IProgress {
+	return { coins: 0, upgrades: { ...NO_UPGRADES }, skins: [DEFAULT_SKIN], skin: DEFAULT_SKIN };
+}
 
 export function readProgress(): IProgress {
 	try {
@@ -21,9 +33,13 @@ export function readProgress(): IProgress {
 			upgrades[id] = Number.isInteger(level) && level > 0 ? level : 0;
 		}
 
-		return { coins: Number.isInteger(coins) && coins > 0 ? coins : 0, upgrades };
+		const skins = [DEFAULT_SKIN, ...(Array.isArray(saved?.skins) ? saved.skins : []).filter(isSkinId)];
+		const owned = [...new Set(skins)];
+		const skin = isSkinId(saved?.skin) && owned.includes(saved.skin) ? saved.skin : DEFAULT_SKIN;
+
+		return { coins: Number.isInteger(coins) && coins > 0 ? coins : 0, upgrades, skins: owned, skin };
 	} catch {
-		return { coins: 0, upgrades: { ...NO_UPGRADES } };
+		return freshStart();
 	}
 }
 

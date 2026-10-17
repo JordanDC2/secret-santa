@@ -14,6 +14,7 @@ import {
 	type IGameState,
 	type IPhase,
 } from "Components/ElfFling/physics";
+import type { ISkinId } from "Components/ElfFling/skins";
 import type { IUpgrades } from "Components/ElfFling/upgrades";
 import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
 import classes from "Components/ElfFling/ElfFling.module.less";
@@ -22,6 +23,8 @@ import classes from "Components/ElfFling/ElfFling.module.less";
 type IElfFlingGameProps = {
 	/** The shop upgrades for this round (read when the round starts). */
 	upgrades: IUpgrades;
+	/** Who's being flung; changing it shows at once, even mid-throw. */
+	skin: ISkinId;
 	best: number | null;
 	onPhaseChange: (phase: IPhase) => void;
 	onFinish: (state: IGameState) => void;
@@ -42,6 +45,7 @@ const MAX_FRAME_TIME = 0.1;
  */
 export default function ElfFlingGame({
 	upgrades,
+	skin,
 	best,
 	onPhaseChange,
 	onFinish,
@@ -56,6 +60,7 @@ export default function ElfFlingGame({
 	const cameraRef = useRef<ICamera | null>(null);
 	const paletteRef = useRef<IPalette | null>(null);
 	const bestRef = useRef(best);
+	const skinRef = useRef(skin);
 	const callbacksRef = useRef({ onPhaseChange, onFinish, onJumpsChange, onRestart });
 	// The rocket button shows only while the rocket can fire.
 	const [rocketAvailable, setRocketAvailable] = useState(false);
@@ -63,6 +68,7 @@ export default function ElfFlingGame({
 	// The animation loop and input handlers read the latest props through these.
 	useLayoutEffect(() => {
 		bestRef.current = best;
+		skinRef.current = skin;
 		callbacksRef.current = { onPhaseChange, onFinish, onJumpsChange, onRestart };
 	});
 
@@ -157,7 +163,15 @@ export default function ElfFlingGame({
 
 			cameraRef.current = nextCamera(cameraRef.current, state, width, height);
 			context!.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-			drawFrame(context!, state, cameraRef.current, paletteRef.current!, { width, height }, bestRef.current);
+			drawFrame(
+				context!,
+				state,
+				cameraRef.current,
+				paletteRef.current!,
+				{ width, height },
+				bestRef.current,
+				skinRef.current,
+			);
 			frame = requestAnimationFrame(render);
 		}
 

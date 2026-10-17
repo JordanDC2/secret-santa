@@ -1,5 +1,4 @@
 import {
-	ELF_RADIUS,
 	REINDEER_X,
 	STACK,
 	SWING_CONTACT_TIME,
@@ -9,13 +8,15 @@ import {
 } from "Components/ElfFling/physics";
 import { drawCoinCount, drawCoins } from "Components/ElfFling/drawCoins";
 import { drawCrackers, drawPopLabels } from "Components/ElfFling/drawCrackers";
+import { drawFlyer, flyerEnlargement } from "Components/ElfFling/drawFlyers";
 import { drawOrnaments } from "Components/ElfFling/drawOrnaments";
 import { drawSleigh } from "Components/ElfFling/drawSleigh";
 import { drawSnowmen } from "Components/ElfFling/drawSnowmen";
+import type { ISkinId } from "Components/ElfFling/skins";
 
 /**
  * Draws one frame of Elf Fling on a canvas: a snowy night, distance flags, the stack of
- * presents, the reindeer swinging its candy cane, and the little elf. World units are metres
+ * presents, the reindeer swinging its candy cane, and whoever's being flung (drawFlyers.ts). World units are metres
  * (y up); the camera follows the elf and zooms out when it flies high. The crackers, sky
  * ornaments, coins, snowmen and sleigh have their own files (drawCrackers.ts and so on).
  */
@@ -98,6 +99,7 @@ export function drawFrame(
 	palette: IPalette,
 	size: { width: number; height: number },
 	best: number | null,
+	skin: ISkinId,
 ) {
 	const { width, height } = size;
 	const groundY = height * (1 - GROUND_SHARE);
@@ -123,7 +125,7 @@ export function drawFrame(
 	drawSleigh(context, palette, state.sleigh, state.time, camera.pixelsPerMetre);
 	drawRocketTrail(context, palette, state, camera.pixelsPerMetre);
 	drawCoins(context, palette, state.coins, state.time, camera.pixelsPerMetre, visible);
-	drawElf(context, palette, state, camera.pixelsPerMetre);
+	drawFlyer(context, palette, state, camera.pixelsPerMetre, skin);
 	context.restore();
 	drawPopLabels(context, palette, state.crackers, state.time, toScreen);
 	drawCoinCount(context, palette, state.coinsCollected);
@@ -368,7 +370,7 @@ function drawRocketTrail(
 	const speed = Math.hypot(vx, vy) || 1;
 	// Behind the elf, along the way it's going.
 	const back = { x: -vx / speed, y: -vy / speed };
-	const enlarge = Math.max(1, ELF_MIN_PIXELS / (ELF_RADIUS * 2 * pixelsPerMetre));
+	const enlarge = flyerEnlargement(pixelsPerMetre);
 	const colors = [palette.goldDeep, palette.gold, palette.redBright, palette.white];
 
 	for (let spark = 0; spark < 14; spark++) {
@@ -388,57 +390,6 @@ function drawRocketTrail(
 	}
 
 	context.globalAlpha = 1;
-}
-
-/** Zoomed far out, the elf is drawn bigger than life so it stays easy to follow. */
-const ELF_MIN_PIXELS = 26;
-
-/** The little elf: green tunic, red pointy hat, tumbling as it flies. */
-function drawElf(context: CanvasRenderingContext2D, palette: IPalette, state: IGameState, pixelsPerMetre: number) {
-	const { x, y, spin } = state.elf;
-	const enlarge = Math.max(1, ELF_MIN_PIXELS / (ELF_RADIUS * 2 * pixelsPerMetre));
-	context.save();
-	// Enlarged elves still rest on the snow, not sunk into it.
-	context.translate(x, y + ELF_RADIUS * (enlarge - 1));
-	context.scale(enlarge, enlarge);
-	context.rotate(-spin);
-
-	// Boots and legs.
-	context.fillStyle = palette.greenDark;
-	context.fillRect(-0.13, -ELF_RADIUS, 0.09, 0.16);
-	context.fillRect(0.04, -ELF_RADIUS, 0.09, 0.16);
-	context.fillStyle = "#3b2416";
-	context.fillRect(-0.16, -ELF_RADIUS, 0.13, 0.05);
-	context.fillRect(0.03, -ELF_RADIUS, 0.13, 0.05);
-
-	// Tunic with a gold belt.
-	context.fillStyle = palette.green;
-	ellipse(context, 0, -0.04, 0.17, 0.15);
-	context.fillStyle = palette.goldDeep;
-	context.fillRect(-0.16, -0.08, 0.32, 0.04);
-
-	// Face.
-	context.fillStyle = palette.skin;
-	ellipse(context, 0, 0.17, 0.12, 0.12);
-	ellipse(context, -0.13, 0.19, 0.04, 0.025, 0.5);
-	ellipse(context, 0.13, 0.19, 0.04, 0.025, -0.5);
-	context.fillStyle = "#1c120b";
-	ellipse(context, -0.04, 0.19, 0.016, 0.016);
-	ellipse(context, 0.04, 0.19, 0.016, 0.016);
-
-	// Hat, flopping over, with its pompom.
-	context.fillStyle = palette.red;
-	context.beginPath();
-	context.moveTo(-0.13, 0.25);
-	context.lineTo(0.13, 0.25);
-	context.quadraticCurveTo(0.08, 0.5, 0.2, 0.52);
-	context.closePath();
-	context.fill();
-	context.fillStyle = palette.white;
-	context.fillRect(-0.14, 0.23, 0.28, 0.05);
-	ellipse(context, 0.21, 0.52, 0.045, 0.045);
-
-	context.restore();
 }
 
 function drawLiveDistance(context: CanvasRenderingContext2D, palette: IPalette, width: number, metres: number) {
