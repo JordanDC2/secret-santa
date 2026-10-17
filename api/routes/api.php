@@ -21,6 +21,11 @@ use App\Http\Controllers\Auth\RegisterHandler;
 use App\Http\Controllers\Auth\ResendVerificationHandler;
 use App\Http\Controllers\Auth\ResetPasswordHandler;
 use App\Http\Controllers\Auth\VerifyEmailHandler;
+use App\Http\Controllers\ElfFling\ImportHandler as ElfFlingImportHandler;
+use App\Http\Controllers\ElfFling\LeaderboardHandler as ElfFlingLeaderboardHandler;
+use App\Http\Controllers\ElfFling\ProgressController as ElfFlingProgressController;
+use App\Http\Controllers\ElfFling\PurchaseHandler as ElfFlingPurchaseHandler;
+use App\Http\Controllers\ElfFling\ThrowHandler as ElfFlingThrowHandler;
 use App\Http\Controllers\Group\DrawDetailsController;
 use App\Http\Controllers\Group\DrawEveryoneHandler;
 use App\Http\Controllers\Group\DrawHandler;
@@ -131,6 +136,21 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('profiles/{profile}/managers/{manager}', [ManagedProfileController::class, 'removeManager'])->name('profiles.managers.destroy');
 
         Route::delete('/', DeleteAccountHandler::class)->name('destroy');
+    });
+
+    // Elf Fling: each player's progress and throws, and the site-wide leaderboards.
+    Route::prefix('elf-fling')->name('elf-fling.')->group(function () {
+        Route::get('progress', [ElfFlingProgressController::class, 'show'])->name('progress');
+
+        Route::patch('progress/looks', [ElfFlingProgressController::class, 'updateLooks'])->name('looks');
+
+        Route::post('progress/import', ElfFlingImportHandler::class)->name('import');
+
+        Route::post('throws', ElfFlingThrowHandler::class)->middleware('throttle:elf-fling-throws')->name('throws');
+
+        Route::post('purchases', ElfFlingPurchaseHandler::class)->name('purchases');
+
+        Route::get('leaderboard', ElfFlingLeaderboardHandler::class)->name('leaderboard');
     });
 
     Route::post('groups/join', JoinHandler::class)->middleware('throttle:join')->name('groups.join');

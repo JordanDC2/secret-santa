@@ -10,10 +10,12 @@ import classes from "Components/ElfFling/ElfFling.module.less";
 
 type IElfFlingShopProps = {
 	progress: IProgress;
-	onBuy: (id: IUpgradeId, price: number) => void;
-	onBuySkin: (id: ISkinId, price: number) => void;
+	/** While a purchase or change is saving, the buttons wait. */
+	busy: boolean;
+	onBuy: (id: IUpgradeId) => void;
+	onBuySkin: (id: ISkinId) => void;
 	onWearSkin: (id: ISkinId) => void;
-	onBuyBatter: (id: IBatterId, price: number) => void;
+	onBuyBatter: (id: IBatterId) => void;
 	onWearBatter: (id: IBatterId) => void;
 	/** On a phone, keyboard shortcuts aren't mentioned. */
 	touchScreen: boolean;
@@ -22,6 +24,7 @@ type IElfFlingShopProps = {
 /** Spend coins on upgrades, in sections (the swing, landings, in the air, coins), and on looks. */
 export default function ElfFlingShop({
 	progress,
+	busy,
 	onBuy,
 	onBuySkin,
 	onWearSkin,
@@ -50,6 +53,7 @@ export default function ElfFlingShop({
 								item={item}
 								level={upgrades[item.id]}
 								coins={coins}
+								busy={busy}
 								onBuy={onBuy}
 								touchScreen={touchScreen}
 							/>
@@ -65,7 +69,8 @@ export default function ElfFlingShop({
 							owned={progress.skins.includes(skin.id)}
 							wearing={progress.skin === skin.id}
 							coins={coins}
-							onBuy={() => onBuySkin(skin.id, skin.price)}
+							busy={busy}
+							onBuy={() => onBuySkin(skin.id)}
 							onWear={() => onWearSkin(skin.id)}
 						/>
 					))}
@@ -79,13 +84,14 @@ export default function ElfFlingShop({
 							owned={progress.batters.includes(batter.id)}
 							wearing={progress.batter === batter.id}
 							coins={coins}
-							onBuy={() => onBuyBatter(batter.id, batter.price)}
+							busy={busy}
+							onBuy={() => onBuyBatter(batter.id)}
 							onWear={() => onWearBatter(batter.id)}
 						/>
 					))}
 				</Stack>
 				<MantineText size="xs" c="dimmed">
-					Coins, upgrades and looks are saved on this device.
+					Coins, upgrades and looks are saved with your account, on every device.
 				</MantineText>
 			</Stack>
 		</SectionCard>
@@ -96,12 +102,13 @@ type IShopRowProps = {
 	item: IShopItem;
 	level: number;
 	coins: number;
-	onBuy: (id: IUpgradeId, price: number) => void;
+	busy: boolean;
+	onBuy: (id: IUpgradeId) => void;
 	touchScreen: boolean;
 };
 
 /** One upgrade: what it does, the level owned, and a buy button with the next price. */
-function ShopRow({ item, level, coins, onBuy, touchScreen }: IShopRowProps) {
+function ShopRow({ item, level, coins, busy, onBuy, touchScreen }: IShopRowProps) {
 	const price = nextPrice(item, level);
 	const hasLevels = item.prices.length > 1;
 
@@ -131,10 +138,10 @@ function ShopRow({ item, level, coins, onBuy, touchScreen }: IShopRowProps) {
 					size="xs"
 					style={{ flex: "none" }}
 					leftSection={<FontAwesomeIcon icon={faCoins} />}
-					disabled={coins < price}
+					disabled={busy || coins < price}
 					aria-label={`Buy ${item.name}${hasLevels ? ` level ${level + 1}` : ""} for ${price} coins`}
 					onClick={(event) => {
-						onBuy(item.id, price);
+						onBuy(item.id);
 						releaseFocus(event);
 					}}
 				>
@@ -150,12 +157,13 @@ type ILookRowProps = {
 	owned: boolean;
 	wearing: boolean;
 	coins: number;
+	busy: boolean;
 	onBuy: () => void;
 	onWear: () => void;
 };
 
 /** One look (a flyer or a batter): buy it, put it on, or a badge for the one in use. No effect on throws. */
-function LookRow({ look, owned, wearing, coins, onBuy, onWear }: ILookRowProps) {
+function LookRow({ look, owned, wearing, coins, busy, onBuy, onWear }: ILookRowProps) {
 	return (
 		<Group justify="space-between" wrap="nowrap" align="flex-start" gap="md">
 			<div>
@@ -173,6 +181,7 @@ function LookRow({ look, owned, wearing, coins, onBuy, onWear }: ILookRowProps) 
 					variant="secondary"
 					size="xs"
 					style={{ flex: "none" }}
+					disabled={busy}
 					onClick={(event) => {
 						onWear();
 						releaseFocus(event);
@@ -186,7 +195,7 @@ function LookRow({ look, owned, wearing, coins, onBuy, onWear }: ILookRowProps) 
 					size="xs"
 					style={{ flex: "none" }}
 					leftSection={<FontAwesomeIcon icon={faCoins} />}
-					disabled={coins < look.price}
+					disabled={busy || coins < look.price}
 					aria-label={`Buy ${look.name} for ${look.price} coins`}
 					onClick={(event) => {
 						onBuy();

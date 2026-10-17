@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Notifications\Notification;
@@ -304,6 +305,22 @@ class User extends Authenticatable implements MustVerifyEmailContract
     public function suggestedItems(): HasMany
     {
         return $this->hasMany(WishlistItem::class)->where('is_suggestion', true)->whereNull('received_at');
+    }
+
+    /**
+     * @return HasOne<ElfFlingProgress, $this>
+     */
+    public function elfFlingProgress(): HasOne
+    {
+        return $this->hasOne(ElfFlingProgress::class);
+    }
+
+    /**
+     * @return HasMany<ElfFlingThrow, $this>
+     */
+    public function elfFlingThrows(): HasMany
+    {
+        return $this->hasMany(ElfFlingThrow::class);
     }
 
     /**

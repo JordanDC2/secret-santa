@@ -1,15 +1,23 @@
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
-import { Button, Group, Stack, Text as MantineText } from "@mantine/core";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Alert, Button, Group, Stack, Text as MantineText } from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faRotateRight } from "@fortawesome/free-solid-svg-icons";
 import GiftBoxIcon from "Components/Common/FestiveIcons/GiftBoxIcon";
+import LoadingText from "Components/Common/LoadingText";
 import ElfFlingGame from "Components/ElfFling/ElfFlingGame";
+import ElfFlingLeaderboard from "Components/ElfFling/ElfFlingLeaderboard";
 import ElfFlingShop from "Components/ElfFling/ElfFlingShop";
-import { readBestThrow, saveBestThrow } from "Components/ElfFling/bestThrow";
+import {
+	useImportMutation,
+	useLooksMutation,
+	useProgressQuery,
+	usePurchaseMutation,
+	useRecordThrowMutation,
+} from "Components/ElfFling/hooks";
 import type { IGameState, IPhase } from "Components/ElfFling/physics";
-import { readProgress, saveProgress, type IProgress } from "Components/ElfFling/progress";
+import { forgetDeviceProgress, readDeviceProgress, type IProgress } from "Components/ElfFling/progress";
 import { capitalised, skinById, type IBatterId, type ISkinId } from "Components/ElfFling/skins";
-import { coinMultiplier, type IUpgradeId } from "Components/ElfFling/upgrades";
+import type { IUpgradeId } from "Components/ElfFling/upgrades";
 import { useFullscreen } from "Components/ElfFling/useFullscreen";
 import { releaseFocus } from "Components/ElfFling/releaseFocus";
 import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
@@ -17,8 +25,14 @@ import classes from "Components/ElfFling/ElfFling.module.less";
 import BackToGroups from "Components/Layout/BackToGroups";
 import Page from "Components/Layout/Page";
 import PageTitle from "Components/Layout/PageTitle";
+import { apiErrorMessage } from "Data/Api/Client";
 
-type IResult = { message: string; coins: number; bonus: number; newBest: boolean };
+/** A finished throw's outcome. Coins are filled in once the server has banked them. */
+type IResult = {
+	message: string;
+	banked: { coins: number; bonus: number; newBest: boolean } | null;
+	saveFailed: boolean;
+};
 
 const INTRO =
 	"The elf hops off the presents; swing the candy cane as it falls past. Hit it right on the sweet spot to send it flying, and grab the coins on the way to spend in the shop.";
@@ -61,15 +75,52 @@ function describe(state: IGameState, subject: string): string {
 
 /**
  * Elf Fling: a reindeer bats a little elf as far as it can, collecting coins to spend in the
- * shop. The best throw, coins and upgrades are kept per device.
+ * shop, with site-wide leaderboards. Progress lives with the player's account; a browser's
+ * own progress from before that is brought over once.
  */
 export default function ElfFlingPage() {
+	const progressQuery = useProgressQuery();
+	const importDevice = useImportMutation();
+	const importStarted = useRef(false);
+
+	// Once per player: bring over what this browser saved before accounts kept it.
+	useEffect(() => {
+		const progress = progressQuery.data;
+
+		if (!progress || progress.imported || importStarted.current) {
+			return;
+		}
+
+		const device = readDeviceProgress();
+
+		if (device) {
+			importStarted.current = true;
+			importDevice.mutate(device, { onSuccess: forgetDeviceProgress });
+		}
+	}, [progressQuery.data, importDevice]);
+
+	return (
+		<Page>
+			<Stack gap="lg">
+				<BackToGroups to="/games" label="Back to games" />
+				<PageTitle icon={<GiftBoxIcon />}>Elf Fling</PageTitle>
+				{progressQuery.isError && <Alert color="red">{apiErrorMessage(progressQuery.error)}</Alert>}
+				{progressQuery.isPending && <LoadingText>Loading Elf Fling...</LoadingText>}
+				{progressQuery.data && <ElfFlingPlay progress={progressQuery.data} />}
+			</Stack>
+		</Page>
+	);
+}
+
+/** The game, what's happening in it, the leaderboards and the shop, once progress has loaded. */
+function ElfFlingPlay({ progress }: { progress: IProgress }) {
 	const [round, setRound] = useState(0);
 	const [phase, setPhase] = useState<IPhase>("ready");
 	const [result, setResult] = useState<IResult | null>(null);
-	const [best, setBest] = useState(readBestThrow);
-	const [progress, setProgress] = useState(readProgress);
 	const [jumps, setJumps] = useState({ available: false, left: 0 });
+	const recordThrow = useRecordThrowMutation();
+	const purchase = usePurchaseMutation();
+	const looks = useLooksMutation();
 	const touchScreen = useTouchScreen();
 	const stageRef = useRef<HTMLDivElement>(null);
 	const { fullscreen, enter: enterFullscreen, exit: exitFullscreen } = useFullscreen(stageRef);
@@ -80,41 +131,25 @@ export default function ElfFlingPage() {
 		skinRef.current = progress.skin;
 	});
 
-	const updateProgress = useCallback((change: (current: IProgress) => IProgress) => {
-		setProgress((current) => {
-			const next = change(current);
-			saveProgress(next);
-
-			return next;
-		});
-	}, []);
-
 	const handleFinish = useCallback(
 		(state: IGameState) => {
 			const distance = state.distance ?? 0;
-			const previousBest = readBestThrow() ?? 0;
-			const newBest = distance > previousBest;
+			setResult({ message: describe(state, skinById(skinRef.current).subject), banked: null, saveFailed: false });
 
-			if (newBest) {
-				saveBestThrow(distance);
-				setBest(distance);
-			}
-
-			// The lucky stocking adds its share on top of what was collected.
-			const banked = Math.round(state.coinsCollected * coinMultiplier(state.upgrades));
-
-			if (banked > 0) {
-				updateProgress((current) => ({ ...current, coins: current.coins + banked }));
-			}
-
-			setResult({
-				message: describe(state, skinById(skinRef.current).subject),
-				coins: banked,
-				bonus: banked - state.coinsCollected,
-				newBest,
-			});
+			// Every throw is saved, misses too: they count on the "most swings" leaderboard.
+			recordThrow.mutate(
+				{ distance, coinsCollected: state.coinsCollected },
+				{
+					onSuccess: ({ banked, newBest }) =>
+						setResult(
+							(current) =>
+								current && { ...current, banked: { coins: banked, bonus: banked - state.coinsCollected, newBest } },
+						),
+					onError: () => setResult((current) => current && { ...current, saveFailed: true }),
+				},
+			);
 		},
-		[updateProgress],
+		[recordThrow],
 	);
 
 	const throwAgain = useCallback(() => {
@@ -125,56 +160,16 @@ export default function ElfFlingPage() {
 	}, []);
 
 	// Upgrades count from the next throw; one bought before the elf has hopped applies straight away.
-	const buy = useCallback(
-		(id: IUpgradeId, price: number) => {
-			updateProgress((current) =>
-				current.coins < price
-					? current
-					: {
-							...current,
-							coins: current.coins - price,
-							upgrades: { ...current.upgrades, [id]: current.upgrades[id] + 1 },
-						},
-			);
-
-			if (phase === "ready") {
-				setRound((current) => current + 1);
-			}
-		},
-		[phase, updateProgress],
-	);
-
-	// Skins only change looks, so buying one puts it on straight away, even mid-throw.
-	const buySkin = useCallback(
-		(id: ISkinId, price: number) =>
-			updateProgress((current) =>
-				current.coins < price || current.skins.includes(id)
-					? current
-					: { ...current, coins: current.coins - price, skins: [...current.skins, id], skin: id },
-			),
-		[updateProgress],
-	);
-
-	const buyBatter = useCallback(
-		(id: IBatterId, price: number) =>
-			updateProgress((current) =>
-				current.coins < price || current.batters.includes(id)
-					? current
-					: { ...current, coins: current.coins - price, batters: [...current.batters, id], batter: id },
-			),
-		[updateProgress],
-	);
-
-	const wearBatter = useCallback(
-		(id: IBatterId) =>
-			updateProgress((current) => (current.batters.includes(id) ? { ...current, batter: id } : current)),
-		[updateProgress],
-	);
-
-	const wearSkin = useCallback(
-		(id: ISkinId) => updateProgress((current) => (current.skins.includes(id) ? { ...current, skin: id } : current)),
-		[updateProgress],
-	);
+	const buy = (id: IUpgradeId) =>
+		purchase.mutate(
+			{ kind: "upgrade", item: id },
+			{ onSuccess: () => phase === "ready" && setRound((current) => current + 1) },
+		);
+	// Looks only change how things look, so buying one puts it to use straight away, even mid-throw.
+	const buySkin = (id: ISkinId) => purchase.mutate({ kind: "skin", item: id });
+	const buyBatter = (id: IBatterId) => purchase.mutate({ kind: "batter", item: id });
+	const wearSkin = (id: ISkinId) => looks.mutate({ skin: id });
+	const wearBatter = (id: IBatterId) => looks.mutate({ batter: id });
 
 	const prompt =
 		phase === "done" && result
@@ -190,79 +185,86 @@ export default function ElfFlingPage() {
 							: PROMPTS[phase];
 	// Over the game in full screen: the same, minus the "Wheee!" (the flight speaks for itself),
 	// and after a throw, the coins and how to go again, since the page's buttons are hidden.
+	const coinsNote = result?.banked && result.banked.coins > 0 ? ` +${result.banked.coins} coins.` : "";
 	const overlay =
 		phase === "done" && result
-			? `${result.message}${result.coins > 0 ? ` +${result.coins} coins.` : ""} ${touchScreen ? "Tap" : "Click or press Space"} to throw again.`
+			? `${result.message}${coinsNote} ${touchScreen ? "Tap" : "Click or press Space"} to throw again.`
 			: prompt === PROMPTS.flying
 				? ""
 				: prompt;
 
 	return (
-		<Page>
-			<Stack gap="lg">
-				<BackToGroups to="/games" label="Back to games" />
-				<PageTitle icon={<GiftBoxIcon />}>Elf Fling</PageTitle>
-				{/* On phones the game comes first, so it's on screen without scrolling; the intro follows it. */}
-				<MantineText visibleFrom="xs">{INTRO}</MantineText>
-				{/* The stage outlasts each round's game, so full screen survives "throw again". */}
-				<div ref={stageRef} className={fullscreen ? `${classes.stage} ${classes.fullscreen}` : classes.stage}>
-					<ElfFlingGame
-						key={round}
-						upgrades={progress.upgrades}
-						skin={progress.skin}
-						batter={progress.batter}
-						best={best}
-						onPhaseChange={setPhase}
-						onFinish={handleFinish}
-						onJumpsChange={setJumps}
-						onRestart={throwAgain}
-						overlay={overlay}
-						fullscreen={fullscreen}
-						onToggleFullscreen={fullscreen ? exitFullscreen : enterFullscreen}
-					/>
-				</div>
-				<Group justify="space-between" align="flex-start" wrap="nowrap" gap="md">
-					<div aria-live="polite" style={{ flex: 1, minWidth: 0 }}>
-						<MantineText fw={700}>{prompt}</MantineText>
-						{phase === "done" && result && result.coins > 0 && (
-							<MantineText size="sm" fw={700} c="var(--festive-gold-text)">
-								+{result.coins} {result.coins === 1 ? "coin" : "coins"}
-								{result.bonus > 0 && ` (${result.bonus} from the lucky stocking)`}
-							</MantineText>
-						)}
-						{phase === "done" && result?.newBest && (
-							<MantineText size="sm" c="green" fw={700}>
-								That&apos;s a new best!
-							</MantineText>
-						)}
-						<MantineText size="sm" c="dimmed">
-							Best on this device: {best ? `${best.toFixed(1)} m` : "none yet"}
-						</MantineText>
-					</div>
-					{phase === "done" && (
-						<Button
-							leftSection={<FontAwesomeIcon icon={faRotateRight} />}
-							onClick={(event) => {
-								throwAgain();
-								releaseFocus(event);
-							}}
-							style={{ flex: "none" }}
-						>
-							Throw again
-						</Button>
-					)}
-				</Group>
-				<MantineText hiddenFrom="xs">{INTRO}</MantineText>
-				<ElfFlingShop
-					progress={progress}
-					onBuy={buy}
-					onBuySkin={buySkin}
-					onWearSkin={wearSkin}
-					onBuyBatter={buyBatter}
-					onWearBatter={wearBatter}
-					touchScreen={touchScreen}
+		<>
+			{/* On phones the game comes first, so it's on screen without scrolling; the intro follows it. */}
+			<MantineText visibleFrom="xs">{INTRO}</MantineText>
+			{/* The stage outlasts each round's game, so full screen survives "throw again". */}
+			<div ref={stageRef} className={fullscreen ? `${classes.stage} ${classes.fullscreen}` : classes.stage}>
+				<ElfFlingGame
+					key={round}
+					upgrades={progress.upgrades}
+					skin={progress.skin}
+					batter={progress.batter}
+					best={progress.bestDistance}
+					onPhaseChange={setPhase}
+					onFinish={handleFinish}
+					onJumpsChange={setJumps}
+					onRestart={throwAgain}
+					overlay={overlay}
+					fullscreen={fullscreen}
+					onToggleFullscreen={fullscreen ? exitFullscreen : enterFullscreen}
 				/>
-			</Stack>
-		</Page>
+			</div>
+			<Group justify="space-between" align="flex-start" wrap="nowrap" gap="md">
+				<div aria-live="polite" style={{ flex: 1, minWidth: 0 }}>
+					<MantineText fw={700}>{prompt}</MantineText>
+					{phase === "done" && result?.banked && result.banked.coins > 0 && (
+						<MantineText size="sm" fw={700} c="var(--festive-gold-text)">
+							+{result.banked.coins} {result.banked.coins === 1 ? "coin" : "coins"}
+							{result.banked.bonus > 0 && ` (${result.banked.bonus} from the lucky stocking)`}
+						</MantineText>
+					)}
+					{phase === "done" && result?.banked?.newBest && (
+						<MantineText size="sm" c="green" fw={700}>
+							That&apos;s a new best!
+						</MantineText>
+					)}
+					{phase === "done" && result?.saveFailed && (
+						<MantineText size="sm" c="red">
+							That throw couldn&apos;t be saved, so its coins weren&apos;t banked. Check your connection.
+						</MantineText>
+					)}
+					<MantineText size="sm" c="dimmed">
+						Your best: {progress.bestDistance ? `${progress.bestDistance.toFixed(1)} m` : "none yet"}
+					</MantineText>
+				</div>
+				{phase === "done" && (
+					<Button
+						leftSection={<FontAwesomeIcon icon={faRotateRight} />}
+						onClick={(event) => {
+							throwAgain();
+							releaseFocus(event);
+						}}
+						style={{ flex: "none" }}
+					>
+						Throw again
+					</Button>
+				)}
+			</Group>
+			<MantineText hiddenFrom="xs">{INTRO}</MantineText>
+			<ElfFlingLeaderboard />
+			{(purchase.isError || looks.isError) && (
+				<Alert color="red">{apiErrorMessage(purchase.error ?? looks.error)}</Alert>
+			)}
+			<ElfFlingShop
+				progress={progress}
+				busy={purchase.isPending || looks.isPending}
+				onBuy={buy}
+				onBuySkin={buySkin}
+				onWearSkin={wearSkin}
+				onBuyBatter={buyBatter}
+				onWearBatter={wearBatter}
+				touchScreen={touchScreen}
+			/>
+		</>
 	);
 }

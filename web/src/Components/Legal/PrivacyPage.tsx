@@ -42,6 +42,10 @@ export default function PrivacyPage() {
 						leaves the server (see server records below).
 					</List.Item>
 					<List.Item>
+						<strong>Games:</strong> if you play Elf Fling, your coins, what you&apos;ve bought in its shop, and each
+						throw&apos;s distance, coins and time, for the leaderboards.
+					</List.Item>
+					<List.Item>
 						<strong>On your device:</strong> only what the app needs to work: a cookie that keeps you logged in (for up
 						to a week), a security cookie that protects your forms, and a couple of preferences such as light or dark
 						mode. No tracking or advertising cookies.
@@ -58,6 +62,10 @@ export default function PrivacyPage() {
 				<BulletList>
 					<List.Item>People in your groups see your name and your wishlist.</List.Item>
 					<List.Item>You never see what&apos;s been claimed on your own list, so your gifts stay a surprise.</List.Item>
+					<List.Item>
+						If you play Elf Fling, everyone on the site can see your first name, the first letter of your last name and
+						your scores on its leaderboards.
+					</List.Item>
 					<List.Item>
 						Your Secret Santa stays anonymous, including in Santa chats. A group&apos;s owner can look up the full draw
 						for their group, but can&apos;t read anyone&apos;s chats.

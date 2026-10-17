@@ -69,6 +69,9 @@ class AppServiceProvider extends ServiceProvider
         // Each first unread message sends an email, so keep a chatty thread from turning into spam.
         RateLimiter::for('santa-chat', fn (Request $request) => Limit::perMinute(10)->by($request->user()?->id ?: $request->ip()));
 
+        // A throw takes several seconds to play, so this is plenty, and stops a script hammering the leaderboards.
+        RateLimiter::for('elf-fling-throws', fn (Request $request) => Limit::perMinute(20)->by($request->user()?->id ?: $request->ip()));
+
         RateLimiter::for('link-preview', fn (Request $request) => Limit::perMinute(20)->by($request->user()?->id ?: $request->ip()));
     }
 }
