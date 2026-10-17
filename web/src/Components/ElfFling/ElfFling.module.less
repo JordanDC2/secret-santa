@@ -70,12 +70,17 @@
 	}
 }
 
-/* Bottom left, opposite the rocket; see-through like it. Clear of the phone's rounded corners
-   and notch in full screen. */
-.fullscreenButton {
+/* Full screen and sound, in a row in the bottom-left corner with room between them (whatever
+   size they are), clear of the phone's rounded corners and notch in full screen. */
+.cornerButtons {
 	position: absolute;
 	left: calc(var(--mantine-spacing-xs) + env(safe-area-inset-left));
 	bottom: calc(var(--mantine-spacing-xs) + env(safe-area-inset-bottom));
+	display: flex;
+	gap: var(--mantine-spacing-sm);
+}
+
+.cornerButton {
 	color: var(--festive-gold);
 	/* It sits over the white snow, so a faint dark disc keeps the gold icon readable. */
 	background-color: rgba(15, 32, 39, 0.5);
@@ -128,9 +133,4 @@
 /* The leaderboard tab in view reads bolder, as well as underlined. */
 .boardTab[data-active] {
 	font-weight: 700;
-}
-
-/* The sound switch sits beside the full-screen button. */
-.soundButton {
-	left: calc(var(--mantine-spacing-xs) + env(safe-area-inset-left) + 52px);
 }

@@ -286,37 +286,40 @@ export default function ElfFlingGame({
 					)}
 				</div>
 			)}
-			<Tooltip label={soundOn ? "Turn sound off" : "Turn sound on"} withArrow disabled={touchScreen}>
-				<ActionIcon
-					variant="transparent"
-					radius="xl"
-					size={touchScreen ? 52 : 44}
-					className={`${classes.fullscreenButton} ${classes.soundButton}`}
-					aria-label={soundOn ? "Turn sound off" : "Turn sound on"}
-					aria-pressed={soundOn}
-					onClick={(event) => {
-						onToggleSound();
-						releaseFocus(event);
-					}}
-				>
-					<FontAwesomeIcon icon={soundOn ? faVolumeHigh : faVolumeXmark} />
-				</ActionIcon>
-			</Tooltip>
-			<Tooltip label={fullscreen ? "Leave full screen (Esc)" : "Play full screen"} withArrow disabled={touchScreen}>
-				<ActionIcon
-					variant="transparent"
-					radius="xl"
-					size={touchScreen ? 52 : 44}
-					className={classes.fullscreenButton}
-					aria-label={fullscreen ? "Leave full screen" : "Play full screen"}
-					onClick={(event) => {
-						onToggleFullscreen();
-						releaseFocus(event);
-					}}
-				>
-					<FontAwesomeIcon icon={fullscreen ? faCompress : faExpand} />
-				</ActionIcon>
-			</Tooltip>
+			{/* Full screen and sound, side by side in the bottom-left corner. */}
+			<div className={classes.cornerButtons}>
+				<Tooltip label={fullscreen ? "Leave full screen (Esc)" : "Play full screen"} withArrow disabled={touchScreen}>
+					<ActionIcon
+						variant="transparent"
+						radius="xl"
+						size={touchScreen ? 48 : 40}
+						className={classes.cornerButton}
+						aria-label={fullscreen ? "Leave full screen" : "Play full screen"}
+						onClick={(event) => {
+							onToggleFullscreen();
+							releaseFocus(event);
+						}}
+					>
+						<FontAwesomeIcon icon={fullscreen ? faCompress : faExpand} />
+					</ActionIcon>
+				</Tooltip>
+				<Tooltip label={soundOn ? "Turn sound off" : "Turn sound on"} withArrow disabled={touchScreen}>
+					<ActionIcon
+						variant="transparent"
+						radius="xl"
+						size={touchScreen ? 48 : 40}
+						className={classes.cornerButton}
+						aria-label={soundOn ? "Turn sound off" : "Turn sound on"}
+						aria-pressed={soundOn}
+						onClick={(event) => {
+							onToggleSound();
+							releaseFocus(event);
+						}}
+					>
+						<FontAwesomeIcon icon={soundOn ? faVolumeHigh : faVolumeXmark} />
+					</ActionIcon>
+				</Tooltip>
+			</div>
 		</div>
 	);
 }
