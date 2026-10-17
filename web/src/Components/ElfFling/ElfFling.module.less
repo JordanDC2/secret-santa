@@ -1,0 +1,17 @@
+.frame {
+	width: 100%;
+	border-radius: var(--mantine-radius-md);
+	overflow: hidden;
+	box-shadow: var(--mantine-shadow-sm);
+}
+
+.canvas {
+	display: block;
+	width: 100%;
+	cursor: pointer;
+	/* Taps are the controls: no double-tap zoom or scrolling from the canvas. */
+	touch-action: none;
+	user-select: none;
+	-webkit-user-select: none;
+	-webkit-tap-highlight-color: transparent;
+}

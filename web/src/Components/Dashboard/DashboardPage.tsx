@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Alert, Button, Group, Modal, SimpleGrid, Stack, Title } from "@mantine/core";
+import { Alert, Button, Group, Modal, SimpleGrid, Stack, Text as MantineText, Title } from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus, faRightToBracket } from "@fortawesome/free-solid-svg-icons";
 import Page from "Components/Layout/Page";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import InstallAppTip from "Components/AppInstall/InstallAppTip";
 import type { IInviteNotice } from "Components/Invites/types";
 import ChristmasTreeIcon from "Components/Common/FestiveIcons/ChristmasTreeIcon";
+import GiftBoxIcon from "Components/Common/FestiveIcons/GiftBoxIcon";
 import HollyIcon from "Components/Common/FestiveIcons/HollyIcon";
 import WreathIcon from "Components/Common/FestiveIcons/WreathIcon";
 import { useAuth } from "Components/Auth/AuthContext";
@@ -77,6 +78,19 @@ export default function DashboardPage() {
 						</SectionCard>
 					</SimpleGrid>
 				)}
+
+				{/* A bit of fun while waiting for the exchange. */}
+				<SectionCard
+					title="Elf Fling"
+					icon={<GiftBoxIcon size="1.5em" />}
+					action={
+						<Button component={Link} to="/elf-fling" variant="secondary" size="xs">
+							Play
+						</Button>
+					}
+				>
+					<MantineText size="sm">Help a reindeer bat a little elf as far as it can fly.</MantineText>
+				</SectionCard>
 			</Stack>
 
 			<Modal opened={openForm === "create"} onClose={() => setOpenForm(null)} title="Create a group" centered>

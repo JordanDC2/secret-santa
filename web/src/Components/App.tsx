@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { localStorageColorSchemeManager, MantineProvider } from "@mantine/core";
@@ -23,8 +24,12 @@ import AuthenticatedLayout from "Components/Layout/AuthenticatedLayout";
 import MemberWishlistPage from "Components/Wishlist/MemberWishlistPage";
 import MyWishlistPage from "Components/Wishlist/MyWishlistPage";
 import { cssVariablesResolver, theme } from "Data/Theme";
+import LoadingText from "Components/Common/LoadingText";
 
 const queryClient = new QueryClient();
+
+/** The game only downloads when someone opens it, so it doesn't slow down the rest of the app. */
+const ElfFlingPage = lazy(() => import("Components/ElfFling/ElfFlingPage"));
 
 /** The devtools' floating button covers page controls on phone-sized screens. */
 function DevtoolsOnLargerScreens() {
@@ -69,6 +74,14 @@ function AppRoutes() {
 				{/* The page was called Account before; older emails still link here. */}
 				<Route path="/account" element={<Navigate to="/settings" replace />} />
 				<Route path="/wishlists/:userId" element={<MemberWishlistPage />} />
+				<Route
+					path="/elf-fling"
+					element={
+						<Suspense fallback={<LoadingText>Loading Elf Fling...</LoadingText>}>
+							<ElfFlingPage />
+						</Suspense>
+					}
+				/>
 			</Route>
 		</Routes>
 	);
