@@ -1,14 +1,19 @@
-import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useElementSize } from "@mantine/hooks";
 import { drawFrame, nextCamera, readPalette, type ICamera, type IPalette } from "Components/ElfFling/draw";
 import { FIXED_STEP, newGame, step, tap, type IGameState, type IPhase } from "Components/ElfFling/physics";
+import type { IUpgrades } from "Components/ElfFling/upgrades";
 import classes from "Components/ElfFling/ElfFling.module.less";
 
 /** The page gives each round a new React key, so a fresh game starts on top of the presents. */
 type IElfFlingGameProps = {
+	/** The shop upgrades for this round (read when the round starts). */
+	upgrades: IUpgrades;
 	best: number | null;
 	onPhaseChange: (phase: IPhase) => void;
 	onFinish: (state: IGameState) => void;
+	/** The elf used its one jump (so the page can stop offering it). */
+	onJump: () => void;
 	/** A tap after the elf has stopped: the page starts the next round. */
 	onRestart: () => void;
 };
@@ -21,19 +26,28 @@ const MAX_FRAME_TIME = 0.1;
  * result. One input does everything: tap or click the canvas, or press Space or Enter.
  * Only phase changes reach React, so the page doesn't re-render sixty times a second.
  */
-export default function ElfFlingGame({ best, onPhaseChange, onFinish, onRestart }: IElfFlingGameProps) {
+export default function ElfFlingGame({
+	upgrades,
+	best,
+	onPhaseChange,
+	onFinish,
+	onJump,
+	onRestart,
+}: IElfFlingGameProps) {
 	const { ref: frameRef, width } = useElementSize();
 	const canvasRef = useRef<HTMLCanvasElement>(null);
-	const stateRef = useRef<IGameState>(newGame());
+	// Built once per round (the page gives each round a new key), not on every render.
+	const [firstState] = useState(() => newGame(upgrades));
+	const stateRef = useRef<IGameState>(firstState);
 	const cameraRef = useRef<ICamera | null>(null);
 	const paletteRef = useRef<IPalette | null>(null);
 	const bestRef = useRef(best);
-	const callbacksRef = useRef({ onPhaseChange, onFinish, onRestart });
+	const callbacksRef = useRef({ onPhaseChange, onFinish, onJump, onRestart });
 
 	// The animation loop and input handlers read the latest props through these.
 	useLayoutEffect(() => {
 		bestRef.current = best;
-		callbacksRef.current = { onPhaseChange, onFinish, onRestart };
+		callbacksRef.current = { onPhaseChange, onFinish, onJump, onRestart };
 	});
 
 	const height = Math.round(Math.min(440, Math.max(260, width * 0.6)));
@@ -41,6 +55,10 @@ export default function ElfFlingGame({ best, onPhaseChange, onFinish, onRestart 
 	const setState = useCallback((next: IGameState) => {
 		const previous = stateRef.current;
 		stateRef.current = next;
+
+		if (next.jumpUsed && !previous.jumpUsed) {
+			callbacksRef.current.onJump();
+		}
 
 		if (next.phase !== previous.phase) {
 			callbacksRef.current.onPhaseChange(next.phase);

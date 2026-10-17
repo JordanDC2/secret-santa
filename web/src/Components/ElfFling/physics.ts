@@ -3,10 +3,14 @@
  * stack of presents, the reindeer swings a candy cane when the player taps, and how close the
  * elf is to the bat's sweet spot at that moment sets how hard and how high it flies. Then it
  * bounces and slides along the snow until it stops, unless it runs into a Christmas cracker,
- * which pops and launches it again. Distance is measured from the reindeer.
+ * which pops and launches it again. Coins along the way are collected. What the player has
+ * bought in the shop (upgrades.ts) changes the swing, the crackers and the elf's jump.
+ * Distance is measured from the reindeer.
  */
 
+import { collectCoins, layCoins, type ICoin } from "Components/ElfFling/coins";
 import { crackerTouching, layCrackers, poppedVelocity, type ICracker } from "Components/ElfFling/crackers";
+import { NO_UPGRADES, swingMultiplier, type IUpgrades } from "Components/ElfFling/upgrades";
 
 export type IPhase = "ready" | "dropping" | "flying" | "sliding" | "done";
 
@@ -30,6 +34,13 @@ export type IGameState = {
 	crackers: ICracker[];
 	/** How many crackers the elf has popped this round. */
 	pops: number;
+	coins: ICoin[];
+	/** What this round's coins are worth so far. */
+	coinsCollected: number;
+	/** The shop upgrades in play this round. */
+	upgrades: IUpgrades;
+	/** Whether the elf has had its one jump this round. */
+	jumpUsed: boolean;
 };
 
 export const GRAVITY = 9.8;
@@ -61,9 +72,11 @@ const BOUNCE_MIN_SPEED = 3;
 const BOUNCE_KEEP_VERTICAL = 0.42;
 const BOUNCE_KEEP_FORWARD = 0.8;
 const SNOW_FRICTION = 4;
+/** The elf's jump (an upgrade): at least this much upward speed, once per round. */
+const JUMP_SPEED = 7;
 
-/** A fresh round. The crackers' layout is random; tests can pass their own randomness. */
-export function newGame(random?: () => number): IGameState {
+/** A fresh round. The coins' and crackers' layouts are random; tests can pass their own randomness. */
+export function newGame(upgrades: IUpgrades = NO_UPGRADES, random?: () => number): IGameState {
 	return {
 		phase: "ready",
 		// Standing at the front edge of the top present.
@@ -73,12 +86,21 @@ export function newGame(random?: () => number): IGameState {
 		outcome: null,
 		distance: null,
 		time: 0,
-		crackers: layCrackers(random),
+		crackers: upgrades.crackers > 0 ? layCrackers(random) : [],
 		pops: 0,
+		coins: layCoins(random),
+		coinsCollected: 0,
+		upgrades,
+		jumpUsed: false,
 	};
 }
 
-/** The one button: hop off the presents, then swing. Does nothing at other times. */
+/** Whether a tap now would make the elf jump (it has the upgrade, it's airborne or sliding, and it hasn't yet). */
+export function canJump(state: IGameState): boolean {
+	return state.upgrades.elfJump > 0 && !state.jumpUsed && (state.phase === "flying" || state.phase === "sliding");
+}
+
+/** The one button: hop off the presents, then swing, then (with the upgrade) jump. */
 export function tap(state: IGameState): IGameState {
 	if (state.phase === "ready") {
 		return { ...state, phase: "dropping", elf: { ...state.elf, vx: HOP.vx, vy: HOP.vy } };
@@ -86,6 +108,17 @@ export function tap(state: IGameState): IGameState {
 
 	if (state.phase === "dropping" && state.swingTime === null) {
 		return { ...state, swingTime: 0 };
+	}
+
+	if (canJump(state)) {
+		const vy = Math.max(state.elf.vy, 0) + JUMP_SPEED;
+
+		return {
+			...state,
+			phase: "flying",
+			jumpUsed: true,
+			elf: { ...state.elf, y: Math.max(state.elf.y, ELF_RADIUS), vy },
+		};
 	}
 
 	return state;
@@ -131,13 +164,14 @@ export function step(state: IGameState, dt: number): IGameState {
 		elf.vx = Math.max(0, elf.vx - SNOW_FRICTION * dt);
 		elf.x += elf.vx * dt;
 		elf.spin += (elf.vx / ELF_RADIUS) * dt * 0.5;
+		next = pickUpCoins(next);
 		const popped = popCracker(next);
 
 		if (popped) {
 			return popped;
 		}
 
-		return elf.vx === 0 ? finish(next, next.outcome ?? "hit") : next;
+		return next.elf.vx === 0 ? finish(next, next.outcome ?? "hit") : next;
 	}
 
 	const speed = Math.hypot(elf.vx, elf.vy);
@@ -149,6 +183,7 @@ export function step(state: IGameState, dt: number): IGameState {
 
 	if (next.phase === "flying") {
 		elf.spin += (elf.vx / ELF_RADIUS) * dt * 0.35;
+		next = pickUpCoins(next);
 		const popped = popCracker(next);
 
 		if (popped) {
@@ -156,7 +191,7 @@ export function step(state: IGameState, dt: number): IGameState {
 		}
 	}
 
-	if (elf.y <= ELF_RADIUS) {
+	if (next.elf.y <= ELF_RADIUS) {
 		return land(next);
 	}
 
@@ -172,14 +207,21 @@ function resolveSwing(state: IGameState): IGameState {
 	}
 
 	const radians = (hit.angle * Math.PI) / 180;
+	const speed = hit.speed * swingMultiplier(state.upgrades);
 
 	return {
 		...state,
 		phase: "flying",
 		swingResolved: true,
 		outcome: hit.quality >= PERFECT_QUALITY ? "perfect" : "hit",
-		elf: { ...state.elf, vx: hit.speed * Math.cos(radians), vy: hit.speed * Math.sin(radians) },
+		elf: { ...state.elf, vx: speed * Math.cos(radians), vy: speed * Math.sin(radians) },
 	};
+}
+
+function pickUpCoins(state: IGameState): IGameState {
+	const { coins, gained } = collectCoins(state.coins, state.elf.x, state.elf.y, state.time);
+
+	return gained === 0 ? state : { ...state, coins, coinsCollected: state.coinsCollected + gained };
 }
 
 /** If the elf is on a cracker, it goes bang and the elf takes off again; otherwise null. */

@@ -1,0 +1,102 @@
+import { BIG_COIN_VALUE, type ICoin } from "Components/ElfFling/coins";
+import type { IPalette } from "Components/ElfFling/draw";
+
+/**
+ * The coins: gold discs turning slowly in place, and a quick sparkle where one was collected.
+ * Also the coin count in the corner. World units (metres, y up) unless a function says so.
+ */
+
+const RADIUS = 0.28;
+const BIG_RADIUS = 0.42;
+/** Zoomed far out, coins are drawn bigger than life, like the elf, so they stay visible. */
+const MIN_PIXELS = 14;
+const SPARKLE_SECONDS = 0.4;
+
+export function drawCoins(
+	context: CanvasRenderingContext2D,
+	palette: IPalette,
+	coins: ICoin[],
+	time: number,
+	pixelsPerMetre: number,
+	visible: { left: number; right: number },
+) {
+	const enlarge = Math.max(1, MIN_PIXELS / (RADIUS * 2 * pixelsPerMetre));
+
+	for (const coin of coins) {
+		if (coin.x < visible.left - 2 || coin.x > visible.right + 2) {
+			continue;
+		}
+
+		const radius = (coin.value === BIG_COIN_VALUE ? BIG_RADIUS : RADIUS) * enlarge;
+
+		if (coin.collectedAt === null) {
+			// Turning: the disc narrows and widens, each coin a little out of step with its neighbours.
+			const turn = Math.max(0.25, Math.abs(Math.cos(time * 2.5 + coin.x * 0.7)));
+			drawDisc(context, palette, coin.x, coin.y, radius, turn, coin.value === BIG_COIN_VALUE);
+		} else if (time - coin.collectedAt < SPARKLE_SECONDS) {
+			drawSparkle(context, palette, coin.x, coin.y, radius, (time - coin.collectedAt) / SPARKLE_SECONDS);
+		}
+	}
+}
+
+function drawDisc(
+	context: CanvasRenderingContext2D,
+	palette: IPalette,
+	x: number,
+	y: number,
+	radius: number,
+	turn: number,
+	big: boolean,
+) {
+	context.fillStyle = big ? palette.red : palette.goldDeep;
+	context.beginPath();
+	context.ellipse(x, y, radius * turn, radius, 0, 0, Math.PI * 2);
+	context.fill();
+	context.fillStyle = palette.gold;
+	context.beginPath();
+	context.ellipse(x, y, radius * 0.72 * turn, radius * 0.72, 0, 0, Math.PI * 2);
+	context.fill();
+	// A glint.
+	context.fillStyle = palette.white;
+	context.globalAlpha = 0.7;
+	context.beginPath();
+	context.ellipse(x - radius * 0.25 * turn, y + radius * 0.3, radius * 0.16 * turn, radius * 0.12, 0, 0, Math.PI * 2);
+	context.fill();
+	context.globalAlpha = 1;
+}
+
+/** A four-pointed star that grows and fades. progress runs 0 to 1. */
+function drawSparkle(
+	context: CanvasRenderingContext2D,
+	palette: IPalette,
+	x: number,
+	y: number,
+	radius: number,
+	progress: number,
+) {
+	const size = radius * (1 + progress * 1.2);
+	context.globalAlpha = 1 - progress;
+	context.fillStyle = palette.gold;
+	context.beginPath();
+	for (let point = 0; point < 8; point++) {
+		const angle = (point * Math.PI) / 4;
+		const reach = point % 2 === 0 ? size : size * 0.3;
+		context.lineTo(x + Math.cos(angle) * reach, y + Math.sin(angle) * reach);
+	}
+	context.closePath();
+	context.fill();
+	context.globalAlpha = 1;
+}
+
+/** This round's coins, top left. Screen units: call outside the world transform. */
+export function drawCoinCount(context: CanvasRenderingContext2D, palette: IPalette, collected: number) {
+	const x = 26;
+	const y = 26;
+	drawDisc(context, palette, x, y, 10, 1, false);
+	context.font = "800 20px Nunito, sans-serif";
+	context.textAlign = "left";
+	context.textBaseline = "middle";
+	context.fillStyle = palette.gold;
+	context.fillText(String(collected), x + 18, y + 1);
+	context.textBaseline = "alphabetic";
+}
