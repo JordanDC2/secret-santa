@@ -2,8 +2,11 @@
  * Elf Fling's rules, in metres and seconds with no drawing or React: a little elf hops off a
  * stack of presents, the reindeer swings a candy cane when the player taps, and how close the
  * elf is to the bat's sweet spot at that moment sets how hard and how high it flies. Then it
- * bounces and slides along the snow until it stops. Distance is measured from the reindeer.
+ * bounces and slides along the snow until it stops, unless it runs into a Christmas cracker,
+ * which pops and launches it again. Distance is measured from the reindeer.
  */
+
+import { crackerTouching, layCrackers, poppedVelocity, type ICracker } from "Components/ElfFling/crackers";
 
 export type IPhase = "ready" | "dropping" | "flying" | "sliding" | "done";
 
@@ -22,6 +25,11 @@ export type IGameState = {
 	outcome: IOutcome | null;
 	/** Metres from the reindeer, once the elf has stopped. */
 	distance: number | null;
+	/** Seconds since the round began moving (for the crackers' confetti). */
+	time: number;
+	crackers: ICracker[];
+	/** How many crackers the elf has popped this round. */
+	pops: number;
 };
 
 export const GRAVITY = 9.8;
@@ -54,7 +62,8 @@ const BOUNCE_KEEP_VERTICAL = 0.42;
 const BOUNCE_KEEP_FORWARD = 0.8;
 const SNOW_FRICTION = 4;
 
-export function newGame(): IGameState {
+/** A fresh round. The crackers' layout is random; tests can pass their own randomness. */
+export function newGame(random?: () => number): IGameState {
 	return {
 		phase: "ready",
 		// Standing at the front edge of the top present.
@@ -63,6 +72,9 @@ export function newGame(): IGameState {
 		swingResolved: false,
 		outcome: null,
 		distance: null,
+		time: 0,
+		crackers: layCrackers(random),
+		pops: 0,
 	};
 }
 
@@ -103,7 +115,7 @@ export function step(state: IGameState, dt: number): IGameState {
 		return state;
 	}
 
-	let next: IGameState = { ...state, elf: { ...state.elf } };
+	let next: IGameState = { ...state, elf: { ...state.elf }, time: state.time + dt };
 
 	if (next.swingTime !== null) {
 		next.swingTime += dt;
@@ -119,6 +131,11 @@ export function step(state: IGameState, dt: number): IGameState {
 		elf.vx = Math.max(0, elf.vx - SNOW_FRICTION * dt);
 		elf.x += elf.vx * dt;
 		elf.spin += (elf.vx / ELF_RADIUS) * dt * 0.5;
+		const popped = popCracker(next);
+
+		if (popped) {
+			return popped;
+		}
 
 		return elf.vx === 0 ? finish(next, next.outcome ?? "hit") : next;
 	}
@@ -132,6 +149,11 @@ export function step(state: IGameState, dt: number): IGameState {
 
 	if (next.phase === "flying") {
 		elf.spin += (elf.vx / ELF_RADIUS) * dt * 0.35;
+		const popped = popCracker(next);
+
+		if (popped) {
+			return popped;
+		}
 	}
 
 	if (elf.y <= ELF_RADIUS) {
@@ -157,6 +179,25 @@ function resolveSwing(state: IGameState): IGameState {
 		swingResolved: true,
 		outcome: hit.quality >= PERFECT_QUALITY ? "perfect" : "hit",
 		elf: { ...state.elf, vx: hit.speed * Math.cos(radians), vy: hit.speed * Math.sin(radians) },
+	};
+}
+
+/** If the elf is on a cracker, it goes bang and the elf takes off again; otherwise null. */
+function popCracker(state: IGameState): IGameState | null {
+	const index = crackerTouching(state.crackers, state.elf.x, state.elf.y);
+
+	if (index === -1) {
+		return null;
+	}
+
+	const crackers = state.crackers.map((cracker, i) => (i === index ? { ...cracker, poppedAt: state.time } : cracker));
+
+	return {
+		...state,
+		phase: "flying",
+		crackers,
+		pops: state.pops + 1,
+		elf: { ...state.elf, y: Math.max(state.elf.y, ELF_RADIUS), ...poppedVelocity(state.elf.vx) },
 	};
 }
 

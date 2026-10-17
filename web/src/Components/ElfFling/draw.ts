@@ -7,11 +7,13 @@ import {
 	SWEET_SPOT_Y,
 	type IGameState,
 } from "Components/ElfFling/physics";
+import { drawCrackers, drawPopLabels } from "Components/ElfFling/drawCrackers";
 
 /**
  * Draws one frame of Elf Fling on a canvas: a snowy night, distance flags, the stack of
  * presents, the reindeer swinging its candy cane, and the little elf. World units are metres
- * (y up); the camera follows the elf and zooms out when it flies high.
+ * (y up); the camera follows the elf and zooms out when it flies high. The crackers have
+ * their own file (drawCrackers.ts).
  */
 
 /** The scene's colours, read once from the app's --festive-* tokens. */
@@ -110,8 +112,13 @@ export function drawFrame(
 	context.scale(camera.pixelsPerMetre, -camera.pixelsPerMetre);
 	drawPresents(context, palette);
 	drawReindeer(context, palette, state.swingTime);
+	drawCrackers(context, palette, state.crackers, state.time, camera.pixelsPerMetre, {
+		left: camera.left,
+		right: camera.left + width / camera.pixelsPerMetre,
+	});
 	drawElf(context, palette, state, camera.pixelsPerMetre);
 	context.restore();
+	drawPopLabels(context, palette, state.crackers, state.time, toScreen);
 
 	if (state.phase === "flying" || state.phase === "sliding") {
 		drawLiveDistance(context, palette, width, state.elf.x - REINDEER_X);

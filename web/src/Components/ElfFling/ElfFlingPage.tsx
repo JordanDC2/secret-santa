@@ -21,12 +21,14 @@ const PROMPTS: Record<Exclude<IPhase, "done">, string> = {
 
 function describe(state: IGameState): string {
 	const metres = `${(state.distance ?? 0).toFixed(1)} m`;
+	const crackers =
+		state.pops === 0 ? "" : ` and popped ${state.pops} ${state.pops === 1 ? "cracker" : "crackers"} on the way`;
 
 	switch (state.outcome) {
 		case "perfect":
-			return `Perfect swing! The elf flew ${metres}.`;
+			return `Perfect swing! The elf flew ${metres}${crackers}.`;
 		case "hit":
-			return `The elf flew ${metres}.`;
+			return `The elf flew ${metres}${crackers}.`;
 		case "miss":
 			return "Swing and a miss! The elf landed in the snow.";
 		default:
@@ -67,7 +69,7 @@ export default function ElfFlingPage() {
 				<PageTitle icon={<GiftBoxIcon />}>Elf Fling</PageTitle>
 				<MantineText>
 					The elf hops off the presents; swing the candy cane as it falls past. Hit it right on the sweet spot to send
-					it flying.
+					it flying, and if it lands on a Christmas cracker, bang! Off it goes again.
 				</MantineText>
 				<ElfFlingGame key={round} best={best} onPhaseChange={setPhase} onFinish={handleFinish} onRestart={throwAgain} />
 				<Group justify="space-between" align="flex-start" wrap="nowrap" gap="md">
