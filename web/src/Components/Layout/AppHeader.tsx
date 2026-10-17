@@ -1,4 +1,6 @@
-import { Anchor, Burger, Button, Collapse, Container, Group, Stack } from "@mantine/core";
+import { Anchor, Burger, Button, Collapse, Container, Group, Stack, UnstyledButton } from "@mantine/core";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faRightFromBracket } from "@fortawesome/free-solid-svg-icons";
 import { useDisclosure } from "@mantine/hooks";
 import { Link, useNavigate } from "react-router-dom";
 import SantaHatIcon from "Components/Common/FestiveIcons/SantaHatIcon";
@@ -82,16 +84,12 @@ export default function AppHeader() {
 									{item.label}
 								</Anchor>
 							))}
-							<Button
-								size="sm"
-								mt="xs"
-								className={classes.accountButton}
-								vars={accountButtonVars}
-								onClick={logOut}
-								fullWidth
-							>
+							<UnstyledButton className={classes.menuLink} onClick={logOut}>
+								<span className={classes.menuIcon} aria-hidden="true">
+									<FontAwesomeIcon icon={faRightFromBracket} />
+								</span>
 								Log out
-							</Button>
+							</UnstyledButton>
 						</Stack>
 					</Container>
 				</Collapse>
