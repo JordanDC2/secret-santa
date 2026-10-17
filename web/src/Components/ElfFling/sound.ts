@@ -126,6 +126,16 @@ function hiss(
 	source.stop(start + length + 0.02);
 }
 
+/**
+ * Hopping off the presents: a quick springy "hup" as the flyer pushes off, then a soft
+ * cartoon falling whistle that slides down as it drops toward the bat (faded out before the
+ * swing, so it never covers the crack).
+ */
+export function playHop() {
+	tone("triangle", 520, 860, 0.07, 0.35);
+	tone("sine", 1100, 520, 0.9, 0.12, 0.08);
+}
+
 /** The candy cane whooshing round. */
 export function playSwing() {
 	hiss("bandpass", 500, 0.16, 0.5, 0, 1600);
@@ -197,10 +207,15 @@ export function playFanfare() {
 }
 
 /**
- * The sounds for whatever just happened in the game, from one moment to the next: the swing,
+ * The sounds for whatever just happened in the game, from one moment to the next: the hop off
+ * the presents, the swing,
  * the hit, coins, crackers, ornaments, snowmen, jumps, the rocket and the sleigh.
  */
 export function playStateChanges(previous: IGameState, next: IGameState) {
+	if (previous.phase === "ready" && next.phase === "dropping") {
+		playHop();
+	}
+
 	if (previous.swingTime === null && next.swingTime !== null) {
 		playSwing();
 	}
