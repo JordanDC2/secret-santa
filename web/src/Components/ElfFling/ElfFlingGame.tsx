@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Button } from "@mantine/core";
+import { ActionIcon, Tooltip } from "@mantine/core";
 import { useElementSize } from "@mantine/hooks";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faRocket } from "@fortawesome/free-solid-svg-icons";
+import RocketIcon from "Components/Common/FestiveIcons/RocketIcon";
 import { drawFrame, nextCamera, readPalette, type ICamera, type IPalette } from "Components/ElfFling/draw";
 import {
 	canJump,
@@ -16,6 +15,7 @@ import {
 	type IPhase,
 } from "Components/ElfFling/physics";
 import type { IUpgrades } from "Components/ElfFling/upgrades";
+import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
 import classes from "Components/ElfFling/ElfFling.module.less";
 
 /** The page gives each round a new React key, so a fresh game starts on top of the presents. */
@@ -37,7 +37,7 @@ const MAX_FRAME_TIME = 0.1;
 /**
  * The game's canvas: runs the physics in fixed steps on every animation frame and draws the
  * result. One input does almost everything: tap or click the canvas, or press Space or Enter.
- * The rocket (an upgrade) has its own button over the canvas, and the R key.
+ * The rocket (an upgrade) has its own button over the canvas (and the R key on a keyboard).
  * Only phase changes reach React, so the page doesn't re-render sixty times a second.
  */
 export default function ElfFlingGame({
@@ -66,7 +66,9 @@ export default function ElfFlingGame({
 		callbacksRef.current = { onPhaseChange, onFinish, onJumpsChange, onRestart };
 	});
 
-	const height = Math.round(Math.min(440, Math.max(260, width * 0.6)));
+	// Taller in proportion on phones, so there's room to see the flight on a narrow screen.
+	const height = Math.round(Math.min(440, Math.max(280, width * (width < 576 ? 0.85 : 0.6))));
+	const touchScreen = useTouchScreen();
 
 	const setState = useCallback((next: IGameState) => {
 		const previous = stateRef.current;
@@ -171,6 +173,8 @@ export default function ElfFlingGame({
 				className={classes.canvas}
 				style={{ height }}
 				role="img"
+				// A long press shouldn't open the phone's copy or save-image menu mid-throw.
+				onContextMenu={(event) => event.preventDefault()}
 				aria-label="Elf Fling: a reindeer with a candy cane bat stands by a stack of presents, with a little elf on top."
 				onPointerDown={(event) => {
 					event.preventDefault();
@@ -178,19 +182,25 @@ export default function ElfFlingGame({
 				}}
 			/>
 			{rocketAvailable && (
-				<Button
-					className={classes.rocketButton}
-					leftSection={<FontAwesomeIcon icon={faRocket} />}
-					onPointerDown={(event) => {
-						// Fires on press, like the canvas, and keeps the tap from also reaching the game.
-						event.preventDefault();
-						event.stopPropagation();
-						launchRocket();
-					}}
-					onClick={launchRocket}
-				>
-					Rocket
-				</Button>
+				<Tooltip label="Fire the rocket (R)" withArrow disabled={touchScreen}>
+					{/* A round, see-through button like a mobile game's: just the rocket, a little faded. */}
+					<ActionIcon
+						variant="transparent"
+						radius="xl"
+						size={touchScreen ? 68 : 56}
+						className={classes.rocketButton}
+						aria-label="Fire the rocket"
+						onPointerDown={(event) => {
+							// Fires on press, like the canvas, and keeps the tap from also reaching the game.
+							event.preventDefault();
+							event.stopPropagation();
+							launchRocket();
+						}}
+						onClick={launchRocket}
+					>
+						<RocketIcon size="78%" />
+					</ActionIcon>
+				</Tooltip>
 			)}
 		</div>
 	);

@@ -9,14 +9,18 @@ import { readBestThrow, saveBestThrow } from "Components/ElfFling/bestThrow";
 import type { IGameState, IPhase } from "Components/ElfFling/physics";
 import { readProgress, saveProgress, type IProgress } from "Components/ElfFling/progress";
 import { coinMultiplier, type IUpgradeId } from "Components/ElfFling/upgrades";
+import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
 import BackToGroups from "Components/Layout/BackToGroups";
 import Page from "Components/Layout/Page";
 import PageTitle from "Components/Layout/PageTitle";
 
 type IResult = { message: string; coins: number; bonus: number; newBest: boolean };
 
+const INTRO =
+	"The elf hops off the presents; swing the candy cane as it falls past. Hit it right on the sweet spot to send it flying, and grab the coins on the way to spend in the shop.";
+
 const PROMPTS: Record<Exclude<IPhase, "done">, string> = {
-	ready: "Tap the game (or press Space) to send the elf hopping off the presents.",
+	ready: "Click the game (or press Space) to send the elf hopping off the presents.",
 	dropping: "Now tap to swing!",
 	flying: "Wheee!",
 	sliding: "Wheee!",
@@ -60,6 +64,7 @@ export default function ElfFlingPage() {
 	const [best, setBest] = useState(readBestThrow);
 	const [progress, setProgress] = useState(readProgress);
 	const [jumps, setJumps] = useState({ available: false, left: 0 });
+	const touchScreen = useTouchScreen();
 
 	const updateProgress = useCallback((change: (current: IProgress) => IProgress) => {
 		setProgress((current) => {
@@ -129,17 +134,17 @@ export default function ElfFlingPage() {
 			? result.message
 			: jumps.available
 				? `Tap to give the elf a jump! (${jumps.left} left)`
-				: PROMPTS[phase === "done" ? "ready" : phase];
+				: phase === "ready" && touchScreen
+					? "Tap the game to send the elf hopping off the presents."
+					: PROMPTS[phase === "done" ? "ready" : phase];
 
 	return (
 		<Page>
 			<Stack gap="lg">
 				<BackToGroups to="/games" label="Back to games" />
 				<PageTitle icon={<GiftBoxIcon />}>Elf Fling</PageTitle>
-				<MantineText>
-					The elf hops off the presents; swing the candy cane as it falls past. Hit it right on the sweet spot to send
-					it flying, and grab the coins on the way to spend in the shop.
-				</MantineText>
+				{/* On phones the game comes first, so it's on screen without scrolling; the intro follows it. */}
+				<MantineText visibleFrom="xs">{INTRO}</MantineText>
 				<ElfFlingGame
 					key={round}
 					upgrades={progress.upgrades}
@@ -177,7 +182,8 @@ export default function ElfFlingPage() {
 						</Button>
 					)}
 				</Group>
-				<ElfFlingShop coins={progress.coins} upgrades={progress.upgrades} onBuy={buy} />
+				<MantineText hiddenFrom="xs">{INTRO}</MantineText>
+				<ElfFlingShop coins={progress.coins} upgrades={progress.upgrades} onBuy={buy} touchScreen={touchScreen} />
 			</Stack>
 		</Page>
 	);

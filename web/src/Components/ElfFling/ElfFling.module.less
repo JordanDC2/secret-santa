@@ -14,6 +14,7 @@
 	touch-action: none;
 	user-select: none;
 	-webkit-user-select: none;
+	-webkit-touch-callout: none;
 	-webkit-tap-highlight-color: transparent;
 }
 
@@ -23,10 +24,27 @@
 	color: var(--festive-gold-text);
 }
 
-/* Over the bottom right of the game, while the rocket can fire. */
+/* Over the bottom right of the game, while the rocket can fire: no background, just the
+   rocket at mild opacity (a shadow keeps it readable over snow or sky), full strength when
+   pressed or hovered. */
 .rocketButton {
 	position: absolute;
 	right: var(--mantine-spacing-sm);
 	bottom: var(--mantine-spacing-sm);
-	touch-action: none;
+	touch-action: manipulation;
+	opacity: 0.72;
+	filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
+	transition:
+		opacity 120ms ease,
+		transform 120ms ease;
+
+	&:hover,
+	&:focus-visible {
+		opacity: 1;
+	}
+
+	&:active {
+		opacity: 1;
+		transform: scale(0.92);
+	}
 }

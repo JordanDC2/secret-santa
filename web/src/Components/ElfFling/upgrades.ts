@@ -30,6 +30,8 @@ export type IShopItem = {
 	description: string;
 	/** The price of each level in turn: one price means a single purchase. */
 	prices: number[];
+	/** Shown after the description where there's a keyboard (not on phones). */
+	keyboardHint?: string;
 };
 
 export const SHOP_ITEMS: IShopItem[] = [
@@ -87,7 +89,9 @@ export const SHOP_ITEMS: IShopItem[] = [
 		id: "rocket",
 		group: "In the air",
 		name: "Firework rocket",
-		description: "Once per throw, press the rocket button (or R) for a fizzing blast forward.",
+		description:
+			"Once per throw, a rocket button appears while the elf is out on the course: tap it for a fizzing blast forward.",
+		keyboardHint: "On a keyboard, R fires it too.",
 		prices: [120],
 	},
 	{

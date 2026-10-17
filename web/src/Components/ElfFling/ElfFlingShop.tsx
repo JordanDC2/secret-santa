@@ -16,10 +16,12 @@ type IElfFlingShopProps = {
 	coins: number;
 	upgrades: IUpgrades;
 	onBuy: (id: IUpgradeId, price: number) => void;
+	/** On a phone, keyboard shortcuts aren't mentioned. */
+	touchScreen: boolean;
 };
 
 /** Spend coins on upgrades, in sections: the swing, landings, in the air, coins. */
-export default function ElfFlingShop({ coins, upgrades, onBuy }: IElfFlingShopProps) {
+export default function ElfFlingShop({ coins, upgrades, onBuy, touchScreen }: IElfFlingShopProps) {
 	return (
 		<SectionCard
 			title="Shop"
@@ -34,7 +36,14 @@ export default function ElfFlingShop({ coins, upgrades, onBuy }: IElfFlingShopPr
 					<Stack key={group} gap="sm">
 						<Divider label={group} labelPosition="left" />
 						{SHOP_ITEMS.filter((item) => item.group === group).map((item) => (
-							<ShopRow key={item.id} item={item} level={upgrades[item.id]} coins={coins} onBuy={onBuy} />
+							<ShopRow
+								key={item.id}
+								item={item}
+								level={upgrades[item.id]}
+								coins={coins}
+								onBuy={onBuy}
+								touchScreen={touchScreen}
+							/>
 						))}
 					</Stack>
 				))}
@@ -51,10 +60,11 @@ type IShopRowProps = {
 	level: number;
 	coins: number;
 	onBuy: (id: IUpgradeId, price: number) => void;
+	touchScreen: boolean;
 };
 
 /** One upgrade: what it does, the level owned, and a buy button with the next price. */
-function ShopRow({ item, level, coins, onBuy }: IShopRowProps) {
+function ShopRow({ item, level, coins, onBuy, touchScreen }: IShopRowProps) {
 	const price = nextPrice(item, level);
 	const hasLevels = item.prices.length > 1;
 
@@ -71,6 +81,7 @@ function ShopRow({ item, level, coins, onBuy }: IShopRowProps) {
 				</Group>
 				<MantineText size="sm" c="dimmed">
 					{item.description}
+					{!touchScreen && item.keyboardHint && ` ${item.keyboardHint}`}
 				</MantineText>
 			</div>
 			{price === null ? (
