@@ -104,6 +104,8 @@ export function drawFrame(
 	clock: number,
 	/** Seconds since this round's new best, while it's being celebrated. */
 	celebrationAge: number | null,
+	/** The player's coin balance, before this throw's coins are banked. */
+	coinBalance: number,
 ) {
 	const { width, height } = size;
 	const groundY = height * (1 - GROUND_SHARE);
@@ -137,7 +139,7 @@ export function drawFrame(
 	if (celebrationAge !== null) {
 		drawCelebration(context, palette, size, celebrationAge);
 	}
-	drawCoinCount(context, palette, state.coinsCollected);
+	drawCoinCount(context, palette, coinBalance + state.coinsCollected, state.coinsCollected);
 
 	if (state.phase === "flying" || state.phase === "sliding") {
 		drawLiveDistance(context, palette, width, state.elf.x - REINDEER_X);

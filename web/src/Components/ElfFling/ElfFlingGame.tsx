@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { ActionIcon, Tooltip } from "@mantine/core";
 import { useElementSize, useMediaQuery, useViewportSize } from "@mantine/hooks";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCompress, faExpand, faVolumeHigh, faVolumeXmark } from "@fortawesome/free-solid-svg-icons";
+import { faCompress, faExpand, faStore, faVolumeHigh, faVolumeXmark } from "@fortawesome/free-solid-svg-icons";
 import RocketIcon from "Components/Common/FestiveIcons/RocketIcon";
 import { drawFrame, nextCamera, readPalette, type ICamera, type IPalette } from "Components/ElfFling/draw";
 import {
@@ -45,6 +45,12 @@ type IElfFlingGameProps = {
 	/** Sound belongs to the page too (it outlasts rounds); this plays it and shows the switch. */
 	soundOn: boolean;
 	onToggleSound: () => void;
+	/** The coin balance, shown with this throw's pickings; and whether this throw is banked yet. */
+	coins: number;
+	throwBanked: boolean;
+	/** The shop opens over the game (even in full screen); while it's open, taps and keys are its. */
+	onOpenShop: () => void;
+	shopOpen: boolean;
 };
 
 /** Never simulate more than this much at once, e.g. after the tab was in the background. */
@@ -71,6 +77,10 @@ export default function ElfFlingGame({
 	onToggleFullscreen,
 	soundOn,
 	onToggleSound,
+	coins,
+	throwBanked,
+	onOpenShop,
+	shopOpen,
 }: IElfFlingGameProps) {
 	const { ref: frameRef, width, height: frameHeight } = useElementSize();
 	const { height: viewportHeight } = useViewportSize();
@@ -83,6 +93,8 @@ export default function ElfFlingGame({
 	const paletteRef = useRef<IPalette | null>(null);
 	const bestRef = useRef(best);
 	const soundRef = useRef(soundOn);
+	const coinsRef = useRef({ balance: coins, banked: throwBanked });
+	const shopOpenRef = useRef(shopOpen);
 	// The best as this round began: beating it is a new best (the page's copy updates once it's saved).
 	const [bestBefore] = useState(best);
 	// When this round's new-best celebration started (page clock, seconds), if it's had one.
@@ -97,6 +109,8 @@ export default function ElfFlingGame({
 	useLayoutEffect(() => {
 		bestRef.current = best;
 		soundRef.current = soundOn;
+		coinsRef.current = { balance: coins, banked: throwBanked };
+		shopOpenRef.current = shopOpen;
 		skinRef.current = skin;
 		batterRef.current = batter;
 		callbacksRef.current = { onPhaseChange, onFinish, onJumpsChange, onRestart };
@@ -155,6 +169,11 @@ export default function ElfFlingGame({
 	);
 
 	const handleInput = useCallback(() => {
+		// The shop is open over the game: taps and keys belong to it.
+		if (shopOpenRef.current) {
+			return;
+		}
+
 		if (stateRef.current.phase === "done") {
 			callbacksRef.current.onRestart();
 		} else {
@@ -162,7 +181,11 @@ export default function ElfFlingGame({
 		}
 	}, [setState]);
 
-	const launchRocket = useCallback(() => setState(fireRocket(stateRef.current)), [setState]);
+	const launchRocket = useCallback(() => {
+		if (!shopOpenRef.current) {
+			setState(fireRocket(stateRef.current));
+		}
+	}, [setState]);
 
 	// Space or Enter (and R for the rocket) anywhere on the page, unless someone's typing in a field.
 	useEffect(() => {
@@ -229,6 +252,8 @@ export default function ElfFlingGame({
 				batterRef.current,
 				now / 1000,
 				celebrationRef.current === null ? null : now / 1000 - celebrationRef.current,
+				// Once this throw is banked the balance already includes its coins (and any bonus).
+				coinsRef.current.banked ? coinsRef.current.balance - state.coinsCollected : coinsRef.current.balance,
 			);
 			frame = requestAnimationFrame(render);
 		}
@@ -286,7 +311,7 @@ export default function ElfFlingGame({
 					)}
 				</div>
 			)}
-			{/* Full screen and sound, side by side in the bottom-left corner. */}
+			{/* Full screen, sound and shop, side by side in the bottom-left corner. */}
 			<div className={classes.cornerButtons}>
 				<Tooltip label={fullscreen ? "Leave full screen (Esc)" : "Play full screen"} withArrow disabled={touchScreen}>
 					<ActionIcon
@@ -317,6 +342,21 @@ export default function ElfFlingGame({
 						}}
 					>
 						<FontAwesomeIcon icon={soundOn ? faVolumeHigh : faVolumeXmark} />
+					</ActionIcon>
+				</Tooltip>
+				<Tooltip label="Shop" withArrow disabled={touchScreen}>
+					<ActionIcon
+						variant="transparent"
+						radius="xl"
+						size={touchScreen ? 48 : 40}
+						className={classes.cornerButton}
+						aria-label="Open the shop"
+						onClick={(event) => {
+							onOpenShop();
+							releaseFocus(event);
+						}}
+					>
+						<FontAwesomeIcon icon={faStore} />
 					</ActionIcon>
 				</Tooltip>
 			</div>

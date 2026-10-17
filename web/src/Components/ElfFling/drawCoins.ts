@@ -105,15 +105,29 @@ function drawSparkle(
 	context.globalAlpha = 1;
 }
 
-/** This round's coins, top left. Screen units: call outside the world transform. */
-export function drawCoinCount(context: CanvasRenderingContext2D, palette: IPalette, collected: number) {
+/**
+ * The player's coins, top left: their whole balance, and beside it what this throw has
+ * picked up so far ("+19"). Screen units: call outside the world transform.
+ */
+export function drawCoinCount(context: CanvasRenderingContext2D, palette: IPalette, total: number, thisThrow: number) {
 	const x = 26;
 	const y = 26;
 	drawDisc(context, palette, x, y, 10, 1, palette.goldDeep);
-	context.font = "800 20px Nunito, sans-serif";
 	context.textAlign = "left";
 	context.textBaseline = "middle";
+	context.font = "800 20px Nunito, sans-serif";
 	context.fillStyle = palette.gold;
-	context.fillText(String(collected), x + 18, y + 1);
+	const totalText = total.toLocaleString();
+	context.fillText(totalText, x + 18, y + 1);
+
+	if (thisThrow > 0) {
+		const after = x + 18 + context.measureText(totalText).width + 8;
+		context.font = "700 14px Nunito, sans-serif";
+		context.fillStyle = palette.white;
+		context.globalAlpha = 0.8;
+		context.fillText(`+${thisThrow.toLocaleString()}`, after, y + 2);
+		context.globalAlpha = 1;
+	}
+
 	context.textBaseline = "alphabetic";
 }

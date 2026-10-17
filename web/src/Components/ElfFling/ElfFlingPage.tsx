@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Alert, Button, Group, Stack, Text as MantineText } from "@mantine/core";
+import { Alert, Button, Drawer, Group, Stack, Text as MantineText } from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faRotateRight } from "@fortawesome/free-solid-svg-icons";
 import GiftBoxIcon from "Components/Common/FestiveIcons/GiftBoxIcon";
@@ -126,6 +126,7 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 	const stageRef = useRef<HTMLDivElement>(null);
 	const { fullscreen, enter: enterFullscreen, exit: exitFullscreen } = useFullscreen(stageRef);
 	const [soundOn, setSoundOn] = useState(readSoundOn);
+	const [shopOpen, setShopOpen] = useState(false);
 	const skin = skinById(progress.skin);
 	// The result is written when a throw ends, inside a callback; it reads the skin from here.
 	const skinRef = useRef(progress.skin);
@@ -208,6 +209,19 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 				? ""
 				: prompt;
 
+	const shop = (
+		<ElfFlingShop
+			progress={progress}
+			busy={purchase.isPending || looks.isPending}
+			onBuy={buy}
+			onBuySkin={buySkin}
+			onWearSkin={wearSkin}
+			onBuyBatter={buyBatter}
+			onWearBatter={wearBatter}
+			touchScreen={touchScreen}
+		/>
+	);
+
 	return (
 		<>
 			{/* On phones the game comes first, so it's on screen without scrolling; the intro follows it. */}
@@ -229,7 +243,30 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 					onToggleFullscreen={fullscreen ? exitFullscreen : enterFullscreen}
 					soundOn={soundOn}
 					onToggleSound={toggleSound}
+					coins={progress.coins}
+					throwBanked={result?.banked != null}
+					onOpenShop={() => setShopOpen(true)}
+					shopOpen={shopOpen}
 				/>
+				{/* The shop over the game, so there's no leaving full screen to buy something. It's
+				    drawn in place inside the stage (no portal): in full screen, nothing outside it shows. Up from the
+				    bottom on phones, in from the side otherwise. */}
+				<Drawer
+					opened={shopOpen}
+					onClose={() => setShopOpen(false)}
+					position={touchScreen ? "bottom" : "right"}
+					size={touchScreen ? "85%" : "md"}
+					withinPortal={false}
+					aria-label="Shop"
+					padding="sm"
+				>
+					{(purchase.isError || looks.isError) && (
+						<Alert color="red" mb="sm">
+							{apiErrorMessage(purchase.error ?? looks.error)}
+						</Alert>
+					)}
+					{shop}
+				</Drawer>
 			</div>
 			<Group justify="space-between" align="flex-start" wrap="nowrap" gap="md">
 				<div aria-live="polite" style={{ flex: 1, minWidth: 0 }}>
@@ -272,16 +309,7 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 			{(purchase.isError || looks.isError) && (
 				<Alert color="red">{apiErrorMessage(purchase.error ?? looks.error)}</Alert>
 			)}
-			<ElfFlingShop
-				progress={progress}
-				busy={purchase.isPending || looks.isPending}
-				onBuy={buy}
-				onBuySkin={buySkin}
-				onWearSkin={wearSkin}
-				onBuyBatter={buyBatter}
-				onWearBatter={wearBatter}
-				touchScreen={touchScreen}
-			/>
+			{shop}
 		</>
 	);
 }

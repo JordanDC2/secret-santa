@@ -70,7 +70,7 @@
 	}
 }
 
-/* Full screen and sound, in a row in the bottom-left corner with room between them (whatever
+/* Full screen, sound and shop, in a row in the bottom-left corner with room between them (whatever
    size they are), clear of the phone's rounded corners and notch in full screen. */
 .cornerButtons {
 	position: absolute;
@@ -100,15 +100,25 @@
 	bottom: calc(var(--mantine-spacing-sm) + env(safe-area-inset-bottom));
 }
 
-/* The prompt or result in full screen: on the snow strip along the bottom, between the two
-   buttons, so it never hides the flyer or the sky. Taps pass through. */
+/* The prompt or result in full screen, placed where it covers neither the buttons nor the
+   flyer. Held upright there's sky to spare and the flyer is low whenever there's text (on the
+   presents, or stopped in the snow), so it goes at the top, under the coin count. Sideways the
+   action keeps to the left (the batter and presents, and the camera holds the flyer left of
+   middle), so it goes top right, under the distance. Taps pass through. */
 .overlay {
 	position: absolute;
-	bottom: calc(var(--mantine-spacing-sm) + env(safe-area-inset-bottom));
+	top: calc(52px + env(safe-area-inset-top));
 	left: 50%;
 	transform: translateX(-50%);
 	width: max-content;
-	max-width: min(calc(100% - 160px), 34rem);
+	max-width: min(calc(100% - 32px), 34rem);
+
+	@media (orientation: landscape) {
+		left: auto;
+		right: calc(var(--mantine-spacing-md) + env(safe-area-inset-right));
+		transform: none;
+		max-width: min(42%, 26rem);
+	}
 	padding: 6px 14px;
 	border-radius: var(--mantine-radius-xl);
 	background-color: rgba(15, 32, 39, 0.72);
