@@ -21,6 +21,7 @@ import { forgetDeviceProgress, readDeviceProgress, type IProgress } from "Compon
 import { capitalised, skinById, type IBatterId, type ISkinId } from "Components/ElfFling/skins";
 import { combinedUpgrades, prestigeGems, type IGemOnlyId, type IUpgradeId } from "Components/ElfFling/upgrades";
 import { playGem, readSoundOn, saveSoundOn, wakeAudio } from "Components/ElfFling/sound";
+import { readThrowsSeen, saveThrowsSeen, TIPS_FOR } from "Components/ElfFling/throwsSeen";
 import { useFullscreen } from "Components/ElfFling/useFullscreen";
 import { releaseFocus } from "Components/ElfFling/releaseFocus";
 import RunSummary, { type IRunStats } from "Components/ElfFling/RunSummary";
@@ -150,6 +151,8 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 	const stageRef = useRef<HTMLDivElement>(null);
 	const { fullscreen, enter: enterFullscreen, exit: exitFullscreen } = useFullscreen(stageRef);
 	const [soundOn, setSoundOn] = useState(readSoundOn);
+	// Throws finished on this device: after a few, the tips over the game stop.
+	const [throwsSeen, setThrowsSeen] = useState(readThrowsSeen);
 	const [shopOpen, setShopOpen] = useState(false);
 	const [wrapUpOpen, setWrapUpOpen] = useState(false);
 	const skin = skinById(progress.skin);
@@ -162,6 +165,8 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 	const handleFinish = useCallback(
 		(state: IGameState) => {
 			const distance = state.distance ?? 0;
+			saveThrowsSeen(readThrowsSeen() + 1);
+			setThrowsSeen(readThrowsSeen());
 			setResult({
 				message: describe(state, skinById(skinRef.current).subject),
 				run: {
@@ -276,9 +281,10 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 						: phase === "dropping" && !touchScreen
 							? "Now swing! (Click or press Space.)"
 							: PROMPTS[phase];
-	// Over the game in full screen: the same, minus the "Wheee!" (the flight speaks for itself).
-	// After a throw the run summary over the game says it all instead.
-	const overlay = phase === "done" || prompt === PROMPTS.flying ? "" : prompt;
+	// Over the game in full screen: the same, minus the "Wheee!" (the flight speaks for itself),
+	// and only for the first few throws, while they're news. After a throw the run summary over
+	// the game says it all instead.
+	const overlay = phase === "done" || prompt === PROMPTS.flying || throwsSeen >= TIPS_FOR ? "" : prompt;
 
 	const shopProps = {
 		progress,

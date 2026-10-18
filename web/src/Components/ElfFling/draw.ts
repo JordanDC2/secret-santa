@@ -1,4 +1,4 @@
-import { REINDEER_X, STACK, type IGameState } from "Components/ElfFling/physics";
+import { canJump, REINDEER_X, STACK, type IGameState } from "Components/ElfFling/physics";
 import { drawCelebration } from "Components/ElfFling/drawCelebration";
 import { drawCoinCount, drawCoins, drawOutlinedText } from "Components/ElfFling/drawCoins";
 import { drawGemCount } from "Components/ElfFling/drawGems";
@@ -188,13 +188,18 @@ export function drawFrame(
 		drawGemCount(context, palette, balance.gems);
 	}
 
-	drawActivePowerUps(
+	const badgeRow = balance.gems !== null ? 86 : 58;
+	const nextBadge = drawActivePowerUps(
 		context,
 		palette,
 		state,
-		balance.gems !== null ? 86 : 58,
+		badgeRow,
 		(kind) => POWER_UP_SECONDS[kind][Math.max(0, state.upgrades[kind] - 1)],
 	);
+
+	if (state.phase === "flying" || state.phase === "sliding") {
+		drawJumpsLeft(context, palette, nextBadge, badgeRow, state.jumpsLeft, canJump(state));
+	}
 
 	if (state.phase === "flying" || state.phase === "sliding") {
 		drawLiveDistance(context, palette, width, state.elf.x - REINDEER_X);
@@ -463,6 +468,45 @@ function drawAltitude(context: CanvasRenderingContext2D, palette: IPalette, widt
 	context.lineTo(left + 10, 58);
 	context.closePath();
 	context.fill();
+}
+
+/**
+ * The jumps the elf has left this throw, after the power-ups' badges: a gold up arrow each,
+ * dimmed while one can't be used (on the snow, say). Screen units (y down).
+ */
+function drawJumpsLeft(
+	context: CanvasRenderingContext2D,
+	palette: IPalette,
+	x: number,
+	y: number,
+	left: number,
+	available: boolean,
+) {
+	if (left === 0) {
+		return;
+	}
+
+	context.globalAlpha = available ? 1 : 0.45;
+	context.fillStyle = "rgba(15, 32, 39, 0.55)";
+	context.beginPath();
+	context.arc(x, y, 14, 0, Math.PI * 2);
+	context.fill();
+	context.fillStyle = palette.gold;
+	context.beginPath();
+	context.moveTo(x, y - 9);
+	context.lineTo(x + 7, y - 1);
+	context.lineTo(x + 3, y - 1);
+	context.lineTo(x + 3, y + 8);
+	context.lineTo(x - 3, y + 8);
+	context.lineTo(x - 3, y - 1);
+	context.lineTo(x - 7, y - 1);
+	context.closePath();
+	context.fill();
+	// How many, beside it.
+	context.font = "800 15px Nunito, sans-serif";
+	context.textAlign = "left";
+	drawOutlinedText(context, `${left}`, x + 18, y + 5);
+	context.globalAlpha = 1;
 }
 
 function drawLiveDistance(context: CanvasRenderingContext2D, palette: IPalette, width: number, metres: number) {

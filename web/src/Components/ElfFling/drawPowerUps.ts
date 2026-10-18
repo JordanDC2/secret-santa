@@ -136,6 +136,7 @@ function elfCentre(state: IGameState, enlarge: number): { x: number; y: number }
 /**
  * The power-ups going right now, under the coin (and gem) count: each icon with a gold ring
  * that runs down as it wears off. Screen units (y down): call outside the world transform.
+ * Returns where the next badge along would go.
  */
 export function drawActivePowerUps(
 	context: CanvasRenderingContext2D,
@@ -143,7 +144,7 @@ export function drawActivePowerUps(
 	state: IGameState,
 	top: number,
 	seconds: (kind: ITimedPowerUpKind) => number,
-) {
+): number {
 	let x = 26;
 
 	for (const kind of TIMED_POWER_UP_KINDS) {
@@ -171,6 +172,8 @@ export function drawActivePowerUps(
 		context.restore();
 		x += 36;
 	}
+
+	return x;
 }
 
 /** Each power-up's picture, centred on the origin, about `size` across each way. y runs up. */
