@@ -42,8 +42,8 @@ export default function PrivacyPage() {
 						leaves the server (see server records below).
 					</List.Item>
 					<List.Item>
-						<strong>Games:</strong> if you play Elf Fling, your coins, what you&apos;ve bought in its shop, and each
-						throw&apos;s distance, coins and time, for the leaderboards.
+						<strong>Games:</strong> if you play Elf Fling, your coins, what you&apos;ve bought in its shop, each
+						throw&apos;s distance, coins and time, and each pinball game&apos;s score and time, for the leaderboards.
 					</List.Item>
 					<List.Item>
 						<strong>On your device:</strong> only what the app needs to work: a cookie that keeps you logged in (for up

@@ -366,6 +366,35 @@ class ElfFlingTest extends TestCase
             ->assertJsonPath('score', 7520);
     }
 
+    public function test_pinball_games_have_their_own_leaderboard_of_best_scores_this_week_and_all_time(): void
+    {
+        Event::fake([ElfFlingLeaderboardChanged::class]);
+        $nick = $this->player(['first_name' => 'Nick', 'last_name' => 'Frost']);
+        ElfFlingProgress::for($nick)->update(['pinball_unlocked_at' => now()]);
+        $this->postJson(route('elf-fling.pinball.scores'), ['score' => 900000])->assertOk();
+        $this->travel(8)->days();
+
+        $holly = $this->player(['first_name' => 'Holly', 'last_name' => 'Berry']);
+        ElfFlingProgress::for($holly)->update(['pinball_unlocked_at' => now()]);
+        $this->postJson(route('elf-fling.pinball.scores'), ['score' => 250000])->assertOk();
+        $this->postJson(route('elf-fling.pinball.scores'), ['score' => 400000])->assertOk();
+        Event::assertDispatchedTimes(ElfFlingLeaderboardChanged::class, 3);
+
+        // Nick's game was last week: only Holly's best this week, both all time.
+        $this->getJson(route('elf-fling.leaderboard', ['board' => 'pinball', 'period' => 'week']))
+            ->assertOk()
+            ->assertJsonCount(1, 'entries')
+            ->assertJsonPath('entries.0.name', 'Holly B.')
+            ->assertJsonPath('entries.0.value', 400000);
+        $this->getJson(route('elf-fling.leaderboard', ['board' => 'pinball', 'period' => 'all']))
+            ->assertJsonPath('entries.0.name', 'Nick F.')
+            ->assertJsonPath('entries.1.value', 400000)
+            ->assertJsonPath('you.rank', 2);
+
+        // Elf Fling's boards don't count pinball games.
+        $this->getJson(route('elf-fling.leaderboard', ['board' => 'score', 'period' => 'all']))->assertJsonCount(0, 'entries');
+    }
+
     public function test_huge_runs_and_hauls_are_welcome_but_nonsense_is_refused(): void
     {
         $this->player();

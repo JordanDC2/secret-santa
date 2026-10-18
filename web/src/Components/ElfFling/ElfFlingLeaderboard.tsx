@@ -13,13 +13,15 @@ import { letGoOfFocus } from "Components/ElfFling/releaseFocus";
 import { apiErrorMessage } from "Data/Api/Client";
 import classes from "Components/ElfFling/ElfFling.module.less";
 
-/** Short labels on phones, so the three tabs fit on one row (a Galaxy Z Fold's cover screen is 344px). */
-const BOARDS: { value: ILeaderboardBoard; label: string; short: string }[] = [
-	{ value: "distance", label: "Best distance", short: "Distance" },
-	{ value: "score", label: "Best score", short: "Score" },
-	{ value: "coins", label: "Most coins", short: "Coins" },
-	{ value: "swings", label: "Most swings", short: "Swings" },
-];
+/** Short labels on phones, so the tabs fit on one row (a Galaxy Z Fold's cover screen is 344px). */
+const BOARDS: Record<ILeaderboardBoard, { label: string; short: string }> = {
+	distance: { label: "Best distance", short: "Distance" },
+	score: { label: "Best score", short: "Score" },
+	coins: { label: "Most coins", short: "Coins" },
+	swings: { label: "Most swings", short: "Swings" },
+	pinball: { label: "Best score", short: "Score" },
+};
+const ELF_FLING_BOARDS: ILeaderboardBoard[] = ["distance", "score", "coins", "swings"];
 
 const PERIODS: { value: ILeaderboardPeriod; label: string }[] = [
 	{ value: "week", label: "This week" },
@@ -31,6 +33,7 @@ function formatValue(board: ILeaderboardBoard, value: number): string {
 		case "distance":
 			return `${value.toFixed(1)} m`;
 		case "score":
+		case "pinball":
 			return value.toLocaleString();
 		case "coins":
 			return `${value.toLocaleString()} ${value === 1 ? "coin" : "coins"}`;
@@ -41,11 +44,12 @@ function formatValue(board: ILeaderboardBoard, value: number): string {
 
 /**
  * Everyone on the site, ranked by best distance, most coins earned or most swings taken, this week (from Monday)
- * or all time. Names are first name and last initial; your own row is highlighted, and your
- * rank shows below even if you're outside the top. Updates live as anyone finishes a throw.
+ * or all time; or, given just the pinball board, by best pinball score. Names are first name and
+ * last initial; your own row is highlighted, and your rank shows below even if you're outside
+ * the top. Updates live as anyone finishes a throw or a game. Tabs only with more than one board.
  */
-export default function ElfFlingLeaderboard() {
-	const [board, setBoard] = useState<ILeaderboardBoard>("distance");
+export default function ElfFlingLeaderboard({ boards = ELF_FLING_BOARDS }: { boards?: ILeaderboardBoard[] }) {
+	const [board, setBoard] = useState<ILeaderboardBoard>(boards[0]);
 	const [period, setPeriod] = useState<ILeaderboardPeriod>("week");
 	const query = useLeaderboardQuery(board, period);
 
@@ -65,31 +69,33 @@ export default function ElfFlingLeaderboard() {
 				/>
 			}
 		>
-			<Tabs
-				// Festive gold: the theme's green underline disappears against the dark-mode card.
-				color="var(--festive-gold-deep)"
-				classNames={{ tab: classes.festiveTab }}
-				value={board}
-				onChange={(value) => {
-					if (value) {
-						setBoard(value as ILeaderboardBoard);
-						letGoOfFocus();
-					}
-				}}
-			>
-				<Tabs.List grow>
-					{BOARDS.map((option) => (
-						<Tabs.Tab key={option.value} value={option.value}>
-							<Box component="span" visibleFrom="xs">
-								{option.label}
-							</Box>
-							<Box component="span" hiddenFrom="xs">
-								{option.short}
-							</Box>
-						</Tabs.Tab>
-					))}
-				</Tabs.List>
-			</Tabs>
+			{boards.length > 1 && (
+				<Tabs
+					// Festive gold: the theme's green underline disappears against the dark-mode card.
+					color="var(--festive-gold-deep)"
+					classNames={{ tab: classes.festiveTab }}
+					value={board}
+					onChange={(value) => {
+						if (value) {
+							setBoard(value as ILeaderboardBoard);
+							letGoOfFocus();
+						}
+					}}
+				>
+					<Tabs.List grow>
+						{boards.map((option) => (
+							<Tabs.Tab key={option} value={option}>
+								<Box component="span" visibleFrom="xs">
+									{BOARDS[option].label}
+								</Box>
+								<Box component="span" hiddenFrom="xs">
+									{BOARDS[option].short}
+								</Box>
+							</Tabs.Tab>
+						))}
+					</Tabs.List>
+				</Tabs>
+			)}
 			<ElfFlingLiveUpdates />
 			{query.isPending && <LoadingText>Loading the leaderboard...</LoadingText>}
 			{query.isError && <Alert color="red">{apiErrorMessage(query.error)}</Alert>}
@@ -110,7 +116,13 @@ function Standings({
 	if (leaderboard.entries.length === 0) {
 		return (
 			<MantineText size="sm" c="dimmed">
-				{period === "week" ? "No throws yet this week. Be the first!" : "No throws yet. Be the first!"}
+				{board === "pinball"
+					? period === "week"
+						? "No games yet this week. Be the first!"
+						: "No games yet. Be the first!"
+					: period === "week"
+						? "No throws yet this week. Be the first!"
+						: "No throws yet. Be the first!"}
 			</MantineText>
 		);
 	}

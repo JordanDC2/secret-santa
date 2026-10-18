@@ -5,6 +5,7 @@ import { faRotateRight, faVolumeHigh, faVolumeXmark } from "@fortawesome/free-so
 import { Link } from "react-router-dom";
 import GiftBoxIcon from "Components/Common/FestiveIcons/GiftBoxIcon";
 import LoadingText from "Components/Common/LoadingText";
+import ElfFlingLeaderboard from "Components/ElfFling/ElfFlingLeaderboard";
 import SectionCard from "Components/Common/SectionCard";
 import { usePinballScoreMutation, useProgressQuery } from "Components/ElfFling/hooks";
 import { readSoundOn, saveSoundOn, wakeAudio } from "Components/ElfFling/sound";
@@ -31,7 +32,10 @@ export default function PinballPage() {
 				{progressQuery.isPending && <LoadingText>Loading pinball...</LoadingText>}
 				{progressQuery.data &&
 					(progressQuery.data.pinballUnlocked ? (
-						<PinballPlay best={progressQuery.data.pinballBest} />
+						<>
+							<PinballPlay best={progressQuery.data.pinballBest} />
+							<ElfFlingLeaderboard boards={["pinball"]} />
+						</>
 					) : (
 						<SectionCard title="Not found yet">
 							<MantineText size="sm">

@@ -28,7 +28,7 @@ type IProgressResponse = {
 	pinball_best: number;
 };
 
-export type ILeaderboardBoard = "distance" | "score" | "coins" | "swings";
+export type ILeaderboardBoard = "distance" | "score" | "coins" | "swings" | "pinball";
 export type ILeaderboardPeriod = "week" | "all";
 
 export type ILeaderboard = {
@@ -150,7 +150,10 @@ export function usePinballScoreMutation() {
 	return useMutation({
 		mutationFn: async (score: number) =>
 			toProgress(await apiClient.post<IProgressResponse>("/elf-fling/pinball/scores", { score })),
-		onSuccess: (progress) => queryClient.setQueryData(PROGRESS_KEY, progress),
+		onSuccess: (progress) => {
+			queryClient.setQueryData(PROGRESS_KEY, progress);
+			queryClient.invalidateQueries({ queryKey: LEADERBOARD_KEY });
+		},
 	});
 }
 

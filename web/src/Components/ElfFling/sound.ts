@@ -7,6 +7,7 @@
  */
 
 import { ROCKET_SECONDS, type IGameState } from "Components/ElfFling/physics";
+import { inGust, inUpdraft } from "Components/ElfFling/weather";
 
 const STORAGE_KEY = "secret-santa-elf-fling-sound";
 const VOLUME = 0.35;
@@ -203,6 +204,18 @@ export function playLanding(speed: number) {
 	tone("sine", 150, 55, 0.18, volume * 0.6);
 }
 
+/** Into a gust of wind: a whoosh sweeping up and away. */
+export function playGust() {
+	hiss("bandpass", 500, 0.9, 0.5, 0, 2200);
+	hiss("bandpass", 1600, 0.6, 0.25, 0.15, 600);
+}
+
+/** Into an updraft: a longer whoosh, rising. */
+export function playUpdraft() {
+	hiss("bandpass", 300, 1.3, 0.55, 0, 3000);
+	tone("sine", 180, 420, 1.1, 0.08);
+}
+
 export function playJump() {
 	tone("sine", 240, 620, 0.16, 0.45);
 }
@@ -273,7 +286,7 @@ export function playFanfare() {
 /**
  * The sounds for whatever just happened in the game, from one moment to the next: the hop off
  * the presents, the swing,
- * the hit, coins, crackers, ornaments, snowmen, landings, power-ups, Yule logs, jumps, the rocket and the sleigh.
+ * the hit, coins, crackers, ornaments, snowmen, landings, gusts and updrafts, power-ups, Yule logs, jumps, the rocket and the sleigh.
  */
 export function playStateChanges(previous: IGameState, next: IGameState) {
 	if (previous.phase === "ready" && next.phase === "dropping") {
@@ -306,6 +319,17 @@ export function playStateChanges(previous: IGameState, next: IGameState) {
 
 	if (next.landings > previous.landings) {
 		playLanding(next.landingSpeed);
+	}
+
+	// Into the wind, or an updraft.
+	const entered = (inside: (state: IGameState) => boolean) => !inside(previous) && inside(next);
+
+	if (entered((state) => inGust(state.gusts, state.elf.x, state.elf.y))) {
+		playGust();
+	}
+
+	if (entered((state) => inUpdraft(state.updrafts, state.elf.x, state.elf.y))) {
+		playUpdraft();
 	}
 
 	if (next.jumpsLeft < previous.jumpsLeft) {

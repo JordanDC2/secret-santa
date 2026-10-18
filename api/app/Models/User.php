@@ -324,6 +324,14 @@ class User extends Authenticatable implements MustVerifyEmailContract
     }
 
     /**
+     * @return HasMany<PinballGame, $this>
+     */
+    public function pinballGames(): HasMany
+    {
+        return $this->hasMany(PinballGame::class);
+    }
+
+    /**
      * @return HasMany<WishlistClaim, $this>
      */
     public function wishlistClaims(): HasMany

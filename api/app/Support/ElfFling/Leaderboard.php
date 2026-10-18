@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * The Elf Fling leaderboards, across everyone on the site: best distance, best score, most coins earned
- * or most swings taken, this week (Monday to Sunday, the organizer's time) or all time. People show as
+ * or most swings taken, and pinball's best score (from games played on their own), this week (Monday to Sunday, the organizer's time) or all time. People show as
  * first name and last initial ("Holly B."), never their full name or anything else.
  */
 class Leaderboard
@@ -17,7 +17,7 @@ class Leaderboard
     /**
      * The top players, and where the viewer stands even if they're further down.
      *
-     * @param  'distance'|'score'|'coins'|'swings'  $board
+     * @param  'distance'|'score'|'coins'|'swings'|'pinball'  $board
      * @param  'week'|'all'  $period
      * @return array{entries: array<int, array{rank: int, name: string, value: float|int, is_you: bool}>, you: array{rank: int, value: float|int}|null}
      */
@@ -72,11 +72,22 @@ class Leaderboard
      * Each player's best distance or coin total for the period, one row per player, with their
      * name. Kids and pets never play, and a device's imported best counts for all time only.
      *
-     * @param  'distance'|'score'|'coins'|'swings'  $board
+     * @param  'distance'|'score'|'coins'|'swings'|'pinball'  $board
      * @param  'week'|'all'  $period
      */
     private static function scores(string $board, string $period): Builder
     {
+        if ($board === 'pinball') {
+            return DB::table('pinball_games')
+                ->join('users', 'users.id', '=', 'pinball_games.user_id')
+                ->whereNull('users.managed_kind')
+                ->when($period === 'week', fn (Builder $query) => $query->where('pinball_games.created_at', '>=', self::weekStart()))
+                ->groupBy('users.id', 'users.first_name', 'users.last_name')
+                ->select('users.id', 'users.first_name', 'users.last_name')
+                ->selectRaw('max(pinball_games.score) as score')
+                ->havingRaw('max(pinball_games.score) > 0');
+        }
+
         $score = match ($board) {
             'distance' => 'max(elf_fling_throws.distance)',
             'score' => 'max(elf_fling_throws.score)',
