@@ -22,6 +22,8 @@ class PurchaseRequest extends FormRequest
         return [
             'kind' => ['required', Rule::in(['upgrade', 'gemUpgrade', 'skin', 'batter'])],
             'item' => ['required', 'string', 'max:40'],
+            // Levels at once (×5, or as many as the coins allow): only the endless upgrades take more than one.
+            'count' => ['sometimes', 'integer', 'min:1', 'max:1000'],
         ];
     }
 }

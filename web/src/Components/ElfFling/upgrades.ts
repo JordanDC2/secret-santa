@@ -19,7 +19,9 @@ export type IUpgradeId =
 	| "skyOrnaments"
 	| "sleigh"
 	| "candyMagnet"
-	| "luckyStocking";
+	| "luckyStocking"
+	| "candyCanePolish"
+	| "workshopOvertime";
 
 /** How many levels of each upgrade the player owns. */
 export type IUpgrades = Record<IUpgradeId, number>;
@@ -190,11 +192,119 @@ export const NO_UPGRADES: IUpgrades = {
 	sleigh: 0,
 	candyMagnet: 0,
 	luckyStocking: 0,
+	candyCanePolish: 0,
+	workshopOvertime: 0,
 };
+
+/**
+ * Endless coin upgrades, from the second Christmas on: a little more per level with no top
+ * level, each level 15% dearer than the last. They go when you wrap up Christmas, like the rest
+ * of the coin shop, and coins spent on them don't become gems, so they're a reason to hold off.
+ */
+export type IEndlessItem<TId extends string = string> = {
+	id: TId;
+	name: string;
+	description: string;
+	/** What each level adds, as a percentage of what it boosts (the effect line). */
+	effectLabel: string;
+	percentPerLevel: number;
+	/** The first level's price, and how much dearer each level gets. */
+	basePrice: number;
+	growth: number;
+};
+
+export const ENDLESS_ITEMS: IEndlessItem<"candyCanePolish" | "workshopOvertime">[] = [
+	{
+		id: "candyCanePolish",
+		name: "Candy cane polish",
+		description: "A shinier candy cane for a cleaner hit.",
+		effectLabel: "Launch speed",
+		percentPerLevel: 1,
+		basePrice: 250,
+		growth: 1.15,
+	},
+	{
+		id: "workshopOvertime",
+		name: "Workshop overtime",
+		description: "The elves work late, and every coin you bank is worth more.",
+		effectLabel: "Extra on banked coins",
+		percentPerLevel: 2,
+		basePrice: 300,
+		growth: 1.15,
+	},
+];
+
+/** The gem shop's endless upgrade: never resets, and always has a next level for spare gems. */
+export const SANTAS_LEDGER: IEndlessItem<"santasLedger"> = {
+	id: "santasLedger",
+	name: "Santa's ledger",
+	description: "Santa keeps the books, and every coin you bank is worth a little more.",
+	effectLabel: "Extra on banked coins",
+	percentPerLevel: 10,
+	basePrice: 5,
+	growth: 1.25,
+};
+
+/**
+ * Every gem-only upgrade's prices, level by level, for a player who's wrapped up this many
+ * Christmases. The Christmas bonus gets one more level for each wrap-up after the first
+ * (3 levels, then 4, 5...), each 2.2 times the last past its listed prices.
+ */
+export function gemOnlyPrices(id: IGemOnlyId, prestiges: number): number[] {
+	const item = [...GEM_ONLY_ITEMS, ...POWER_UP_ITEMS].find((candidate) => candidate.id === id);
+
+	if (!item) {
+		return [];
+	}
+
+	if (id !== "christmasBonus") {
+		return item.prices;
+	}
+
+	const levels = Math.max(item.prices.length, prestiges + 2);
+	const last = item.prices[item.prices.length - 1];
+
+	return Array.from(
+		{ length: levels },
+		(_, level) => item.prices[level] ?? Math.round(last * 2.2 ** (level - item.prices.length + 1)),
+	);
+}
+
+/** How many more levels of an endless upgrade these coins can buy (up to a thousand at once). */
+export function affordableLevels(item: IEndlessItem, level: number, coins: number): number {
+	let count = 0;
+	let total = 0;
+
+	while (count < 1000) {
+		total += endlessPrice(item, level + count);
+
+		if (total > coins) {
+			break;
+		}
+
+		count++;
+	}
+
+	return count;
+}
+
+/** They appear once the player has wrapped up this many Christmases. */
+export const ENDLESS_FROM_PRESTIGE = 1;
+
+/** An endless upgrade's price for the next `count` levels together, each priced on its own. */
+export function endlessPrice(item: IEndlessItem, level: number, count = 1): number {
+	let total = 0;
+
+	for (let next = level; next < level + count; next++) {
+		total += Math.round(item.basePrice * item.growth ** next);
+	}
+
+	return total;
+}
 
 import type { IPowerUpKind } from "Components/ElfFling/powerUps";
 
-export type IGemOnlyId = "christmasBonus" | "offSeasonTraining" | "polarJetStream" | IPowerUpKind;
+export type IGemOnlyId = "christmasBonus" | "offSeasonTraining" | "polarJetStream" | "santasLedger" | IPowerUpKind;
 
 /** Gem levels bought, per upgrade (and the gem-only ones): they never reset. */
 export type IGemUpgrades = IUpgrades & Record<IGemOnlyId, number>;
@@ -248,7 +358,8 @@ export const GEM_ONLY_ITEMS: Array<{ id: IGemOnlyId; name: string; description: 
 	{
 		id: "christmasBonus",
 		name: "Christmas bonus",
-		description: "Santa adds to every coin you bank, more with each level.",
+		description:
+			"Santa adds to every coin you bank, more with each level. Every Christmas you wrap up puts another level on sale.",
 		prices: [10, 25, 50],
 	},
 	{
@@ -314,9 +425,9 @@ function split(level: number, ownLevels: number): { own: number; extra: number }
 	return { own: Math.min(level, ownLevels), extra: Math.max(0, level - ownLevels) };
 }
 
-/** Launch speed: +7% per level of swing strength, then 30% harder with off-season training. */
+/** Launch speed: +7% per level of swing strength and +1% per level of polish, then 30% harder with off-season training. */
 export function swingMultiplier(upgrades: IThrowUpgrades): number {
-	return (1 + 0.07 * upgrades.swingStrength) * (1 + 0.3 * upgrades.offSeasonTraining);
+	return (1 + 0.07 * upgrades.swingStrength + 0.01 * upgrades.candyCanePolish) * (1 + 0.3 * upgrades.offSeasonTraining);
 }
 
 /** How much of the usual air drag the elf feels: half with the polar jet stream. */
@@ -355,7 +466,7 @@ export function magnetRadius(upgrades: IUpgrades): number {
 	return 1 + 0.5 * upgrades.candyMagnet;
 }
 
-/** What each banked coin is worth. */
+/** What each banked coin is worth from the coin shop: the lucky stocking (+25% a level) and workshop overtime (+2% a level). */
 export function coinMultiplier(upgrades: IUpgrades): number {
-	return 1 + 0.25 * upgrades.luckyStocking;
+	return (1 + 0.25 * upgrades.luckyStocking) * (1 + 0.02 * upgrades.workshopOvertime);
 }

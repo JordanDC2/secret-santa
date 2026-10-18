@@ -17,6 +17,11 @@ class PurchaseHandler extends Controller
         /** @var 'upgrade'|'gemUpgrade'|'skin'|'batter' $kind */
         $kind = $request->string('kind')->value();
 
-        return new ElfFlingProgressResource($buyItem($request->user(), $kind, $request->string('item')->value()));
+        return new ElfFlingProgressResource($buyItem(
+            $request->user(),
+            $kind,
+            $request->string('item')->value(),
+            $request->integer('count', 1),
+        ));
     }
 }

@@ -32,6 +32,25 @@ return [
         'luckyStocking' => [100, 220],
     ],
 
+    // Endless coin upgrades, from the second Christmas on (after this many prestiges): no top
+    // level; level n costs round(base * growth ^ n). They reset with the coin shop.
+    'endless_upgrades' => [
+        'candyCanePolish' => ['base' => 250, 'growth' => 1.15],
+        'workshopOvertime' => ['base' => 300, 'growth' => 1.15],
+    ],
+    'endless_from_prestige' => 1,
+
+    // The gem shop's endless upgrade, priced the same way (in gems), and never reset.
+    'endless_gem_upgrades' => [
+        'santasLedger' => ['base' => 5, 'growth' => 1.25],
+    ],
+
+    // Each Santa's ledger level adds this share to a throw's coins.
+    'santas_ledger_bonus' => 0.1,
+
+    // Each workshop overtime level adds this share to a throw's coins.
+    'workshop_overtime_bonus' => 0.02,
+
     // Gems per prestige: the square root of (spare coins / this), rounded down. 5,000 coins
     // make 22 gems; 20,000 make 44. Hoarding pays less and less, so prestiging again pays.
     'coins_per_gem_squared' => 10,
@@ -64,6 +83,10 @@ return [
         'snowAngelWings' => [6, 12, 20],
         'giantSnowball' => [6, 12, 20],
     ],
+    // Every Christmas wrapped up after the first puts another Christmas bonus level on sale,
+    // each this many times the price of the one before.
+    'christmas_bonus_growth' => 2.2,
+
     'gem_extra' => [
         'springyBoots', 'candyMagnet', 'luckyStocking', 'christmasBonus', 'offSeasonTraining', 'polarJetStream',
         'christmasStar', 'gingerbreadMan', 'snowAngelWings', 'giantSnowball',

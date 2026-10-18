@@ -87,8 +87,8 @@ export function usePurchaseMutation() {
 	return useMutation({
 		mutationFn: async (
 			purchase:
-				| { kind: "upgrade"; item: IUpgradeId }
-				| { kind: "gemUpgrade"; item: IUpgradeId | IGemOnlyId }
+				| { kind: "upgrade"; item: IUpgradeId; count?: number }
+				| { kind: "gemUpgrade"; item: IUpgradeId | IGemOnlyId; count?: number }
 				| { kind: "skin"; item: ISkinId }
 				| { kind: "batter"; item: IBatterId },
 		) => toProgress(await apiClient.post<IProgressResponse>("/elf-fling/purchases", purchase)),

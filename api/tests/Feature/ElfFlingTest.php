@@ -231,6 +231,84 @@ class ElfFlingTest extends TestCase
         $this->assertSame(3, ElfFlingProgress::for($user)->gemLevel('christmasStar'));
     }
 
+    public function test_endless_upgrades_open_in_the_second_christmas_and_keep_getting_dearer(): void
+    {
+        $user = $this->player();
+        ElfFlingProgress::for($user)->update(['coins' => 5000]);
+
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'upgrade', 'item' => 'workshopOvertime'])
+            ->assertJsonValidationErrors(['item' => 'That isn\'t in the shop yet.']);
+
+        ElfFlingProgress::for($user)->update(['prestiges' => 1]);
+
+        // 300, then 15% dearer each level: 345, 397.
+        foreach ([1 => 4700, 2 => 4355, 3 => 3958] as $level => $coinsLeft) {
+            $this->postJson(route('elf-fling.purchases'), ['kind' => 'upgrade', 'item' => 'workshopOvertime'])
+                ->assertJsonPath('upgrades.workshopOvertime', $level)
+                ->assertJsonPath('coins', $coinsLeft);
+        }
+
+        // 100 coins, +6% from three levels.
+        $this->postJson(route('elf-fling.throws'), ['distance' => 50, 'coins_collected' => 100])
+            ->assertJsonPath('banked', 106);
+
+        // They go with the rest of the coin shop.
+        $this->postJson(route('elf-fling.prestige'))->assertJsonPath('progress.upgrades.workshopOvertime', 0);
+    }
+
+    public function test_endless_upgrades_come_several_at_once_and_the_christmas_bonus_grows_with_each_christmas(): void
+    {
+        $user = $this->player();
+        ElfFlingProgress::for($user)->update(['coins' => 3000, 'gems' => 1000, 'prestiges' => 1]);
+
+        // 250 + 288 + 331 + 380 + 437, all at once.
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'upgrade', 'item' => 'candyCanePolish', 'count' => 5])
+            ->assertJsonPath('upgrades.candyCanePolish', 5)
+            ->assertJsonPath('coins', 3000 - 1686);
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'upgrade', 'item' => 'swingStrength', 'count' => 5])
+            ->assertJsonValidationErrors(['item' => 'That one comes a level at a time.']);
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'upgrade', 'item' => 'candyCanePolish', 'count' => 0])
+            ->assertJsonValidationErrors(['count']);
+
+        // "Max": as many as the coins allow (503 + 578 = 1081 of the 1314 left), and all or none.
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'upgrade', 'item' => 'candyCanePolish', 'count' => 3])
+            ->assertJsonValidationErrors(['item' => 'Not enough coins for that yet.']);
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'upgrade', 'item' => 'candyCanePolish', 'count' => 2])
+            ->assertJsonPath('upgrades.candyCanePolish', 7)
+            ->assertJsonPath('coins', 1314 - 1081);
+
+        // Three Christmas bonus levels in the second Christmas; a fourth in the third (110 gems).
+        foreach ([10, 25, 50] as $price) {
+            $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'christmasBonus']);
+        }
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'christmasBonus'])
+            ->assertJsonValidationErrors(['item' => 'That\'s already fully upgraded.']);
+
+        ElfFlingProgress::for($user)->update(['prestiges' => 2]);
+
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'christmasBonus'])
+            ->assertJsonPath('gem_upgrades.christmasBonus', 4)
+            ->assertJsonPath('gems', 1000 - 85 - 110);
+    }
+
+    public function test_santas_ledger_is_an_endless_gem_upgrade_that_adds_to_every_throws_coins(): void
+    {
+        $user = $this->player();
+        ElfFlingProgress::for($user)->update(['gems' => 100, 'prestiges' => 1]);
+
+        // 5, 6, 8, 10, 12 gems: five at once.
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'santasLedger', 'count' => 5])
+            ->assertJsonPath('gem_upgrades.santasLedger', 5)
+            ->assertJsonPath('gems', 100 - 41);
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'christmasBonus', 'count' => 5])
+            ->assertJsonValidationErrors(['item' => 'That one comes a level at a time.']);
+
+        // 100 coins, +50% from five ledger levels; and it stays when Christmas is wrapped up.
+        $this->postJson(route('elf-fling.throws'), ['distance' => 50, 'coins_collected' => 100])
+            ->assertJsonPath('banked', 150);
+        $this->postJson(route('elf-fling.prestige'))->assertJsonPath('progress.gem_upgrades.santasLedger', 5);
+    }
+
     public function test_huge_runs_and_hauls_are_welcome_but_nonsense_is_refused(): void
     {
         $this->player();

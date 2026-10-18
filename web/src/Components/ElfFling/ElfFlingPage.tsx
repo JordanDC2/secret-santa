@@ -52,12 +52,18 @@ function count(n: number, one: string, many: string): string {
 	return `${n} ${n === 1 ? one : many}`;
 }
 
-/** Where a throw's extra coins came from: "the lucky stocking", "the Christmas bonus", or both. */
+/** Where a throw's extra coins came from, e.g. "the lucky stocking, workshop overtime and the Christmas bonus". */
 function bonusSources(progress: IProgress): string {
-	const stocking = progress.upgrades.luckyStocking + progress.gemUpgrades.luckyStocking > 0;
-	const christmasBonus = progress.gemUpgrades.christmasBonus > 0;
+	const sources = [
+		progress.upgrades.luckyStocking + progress.gemUpgrades.luckyStocking > 0 && "the lucky stocking",
+		progress.upgrades.workshopOvertime > 0 && "workshop overtime",
+		progress.gemUpgrades.santasLedger > 0 && "Santa's ledger",
+		progress.gemUpgrades.christmasBonus > 0 && "the Christmas bonus",
+	].filter((source): source is string => Boolean(source));
 
-	return [stocking && "the lucky stocking", christmasBonus && "the Christmas bonus"].filter(Boolean).join(" and ");
+	return sources.length > 1
+		? `${sources.slice(0, -1).join(", ")} and ${sources[sources.length - 1]}`
+		: (sources[0] ?? "");
 }
 
 /** The result line. "subject" is who was flung, mid-sentence: "the elf", "Santa". */
@@ -188,14 +194,14 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 	}, []);
 
 	// Upgrades count from the next throw; one bought before the elf has hopped applies straight away.
-	const buy = (id: IUpgradeId) =>
+	const buy = (id: IUpgradeId, levels = 1) =>
 		purchase.mutate(
-			{ kind: "upgrade", item: id },
+			{ kind: "upgrade", item: id, count: levels },
 			{ onSuccess: () => phase === "ready" && setRound((current) => current + 1) },
 		);
-	const buyGemUpgrade = (id: IUpgradeId | IGemOnlyId) =>
+	const buyGemUpgrade = (id: IUpgradeId | IGemOnlyId, levels = 1) =>
 		purchase.mutate(
-			{ kind: "gemUpgrade", item: id },
+			{ kind: "gemUpgrade", item: id, count: levels },
 			{ onSuccess: () => phase === "ready" && setRound((current) => current + 1) },
 		);
 	// Wrapping up Christmas takes the coin upgrades away, so (like buying) it applies to the next

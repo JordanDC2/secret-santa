@@ -83,7 +83,7 @@ class ElfFlingProgress extends Model
     {
         $levels = [];
 
-        foreach (array_keys(config('elf_fling.upgrades')) as $upgrade) {
+        foreach ([...array_keys(config('elf_fling.upgrades')), ...array_keys(config('elf_fling.endless_upgrades'))] as $upgrade) {
             $levels[(string) $upgrade] = $this->level((string) $upgrade);
         }
 
@@ -117,6 +117,32 @@ class ElfFlingProgress extends Model
         return min($this->maxLevel($upgrade), $this->level($upgrade) + $this->gemLevel($upgrade));
     }
 
+    /**
+     * A gem-shop upgrade's prices, level by level. The Christmas bonus gets one more level for
+     * every Christmas wrapped up after the first (3, then 4, 5...), each christmas_bonus_growth
+     * times the last past its listed prices.
+     *
+     * @return array<int, int>
+     */
+    public function gemUpgradePrices(string $upgrade): array
+    {
+        $prices = array_values((array) config("elf_fling.gem_upgrades.{$upgrade}", []));
+
+        if ($upgrade !== 'christmasBonus' || $prices === []) {
+            return $prices;
+        }
+
+        $listed = count($prices);
+        $last = $prices[$listed - 1];
+        $growth = config()->float('elf_fling.christmas_bonus_growth');
+
+        for ($level = $listed; $level < max($listed, $this->prestiges + 2); $level++) {
+            $prices[] = (int) round($last * $growth ** ($level - $listed + 1));
+        }
+
+        return $prices;
+    }
+
     public function gemLevel(string $upgrade): int
     {
         return (int) ($this->gem_upgrades[$upgrade] ?? 0);
@@ -131,7 +157,7 @@ class ElfFlingProgress extends Model
     {
         $levels = [];
 
-        foreach (array_keys(config('elf_fling.gem_upgrades')) as $upgrade) {
+        foreach ([...array_keys(config('elf_fling.gem_upgrades')), ...array_keys(config('elf_fling.endless_gem_upgrades'))] as $upgrade) {
             $levels[(string) $upgrade] = $this->gemLevel((string) $upgrade);
         }
 

@@ -14,9 +14,11 @@ import {
 import {
 	airDragShare,
 	bounceKeep,
-	coinMultiplier,
 	combinedUpgrades,
+	ENDLESS_FROM_PRESTIGE,
+	ENDLESS_ITEMS,
 	GEM_ONLY_ITEMS,
+	gemOnlyPrices,
 	magnetRadius,
 	NO_THROW_UPGRADES,
 	snowFriction,
@@ -27,6 +29,7 @@ import {
 	nextCoinPrice,
 	nextGemPrice,
 	prestigeGems,
+	SANTAS_LEDGER,
 	SHOP_GROUPS,
 	SHOP_ITEMS,
 	type IGemOnlyId,
@@ -38,13 +41,17 @@ import type { IProgress } from "Components/ElfFling/progress";
 import { BATTERS, SKINS, type IBatterId, type ISkinId } from "Components/ElfFling/skins";
 import { letGoOfFocus, releaseFocus } from "Components/ElfFling/releaseFocus";
 import classes from "Components/ElfFling/ElfFling.module.less";
+import EndlessUpgrades from "Components/ElfFling/EndlessUpgrades";
+import ShopRow, { type IShopRowProps } from "Components/ElfFling/ShopRow";
 
 type IElfFlingShopProps = {
 	progress: IProgress;
 	/** While a purchase or change is saving, the buttons wait. */
 	busy: boolean;
-	onBuy: (id: IUpgradeId) => void;
-	onBuyGemUpgrade: (id: IUpgradeId | IGemOnlyId) => void;
+	/** count: how many levels at once (the endless upgrades' ×5). */
+	onBuy: (id: IUpgradeId, count?: number) => void;
+	/** count: how many levels at once (Santa's ledger's ×5 and Max). */
+	onBuyGemUpgrade: (id: IUpgradeId | IGemOnlyId, count?: number) => void;
 	/** Opens the hold-to-confirm over the game (WrapUpHold.tsx). */
 	onWrapUp: () => void;
 	onBuySkin: (id: ISkinId) => void;
@@ -82,10 +89,20 @@ export default function ElfFlingShop({
 	const describe = (item: IShopItem) =>
 		!touchScreen && item.keyboardHint ? `${item.description} ${item.keyboardHint}` : item.description;
 	const [tab, setTab] = useState<IShopTab>("coins");
-
 	const coinShop = (
 		<Stack gap="md">
 			<WrapUpChristmas progress={progress} busy={busy} onWrapUp={onWrapUp} />
+			{prestiges >= ENDLESS_FROM_PRESTIGE && (
+				<EndlessUpgrades
+					label="Endless upgrades"
+					items={ENDLESS_ITEMS}
+					level={(id) => upgrades[id]}
+					currency="coins"
+					balance={coins}
+					busy={busy}
+					onBuy={(id, count) => onBuy(id, count)}
+				/>
+			)}
 			{SHOP_GROUPS.map((group) => (
 				<Stack key={group} gap="sm">
 					<Divider label={group} labelPosition="left" />
@@ -162,6 +179,15 @@ export default function ElfFlingShop({
 			<MantineText size="sm" c="dimmed">
 				Everything here stays when you wrap up a Christmas.
 			</MantineText>
+			<EndlessUpgrades
+				label="Endless"
+				items={[SANTAS_LEDGER]}
+				level={(id) => gemUpgrades[id]}
+				currency="gems"
+				balance={gems}
+				busy={busy}
+				onBuy={(id, count) => onBuyGemUpgrade(id, count)}
+			/>
 			<Stack gap="sm">
 				<Divider label="Gem shop only" labelPosition="left" />
 				{GEM_ONLY_ITEMS.map((item) => (
@@ -171,8 +197,8 @@ export default function ElfFlingShop({
 						description={item.description}
 						effect={gemEffect(item.id, progress)}
 						level={gemUpgrades[item.id]}
-						levels={item.prices.length}
-						price={item.prices[gemUpgrades[item.id]] ?? null}
+						levels={gemOnlyPrices(item.id, prestiges).length}
+						price={gemOnlyPrices(item.id, prestiges)[gemUpgrades[item.id]] ?? null}
 						currency="gems"
 						balance={gems}
 						busy={busy}
@@ -359,7 +385,11 @@ function gemEffect(id: IUpgradeId | IGemOnlyId, progress: IProgress): string | n
 		case "polarJetStream":
 			return `Air drag: −${Math.round((1 - airDragShare({ ...NO_THROW_UPGRADES, polarJetStream: 1 })) * 100)}%`;
 		case "christmasBonus":
-			return describe("Banked coins", 3, (gemLevel) => `×${2 ** gemLevel}`);
+			return describe(
+				"Banked coins",
+				gemOnlyPrices(id, progress.prestiges).length,
+				(gemLevel) => `×${(2 ** gemLevel).toLocaleString()}`,
+			);
 		case "springyBoots":
 			return describe(
 				"Bounces keep",
@@ -369,11 +399,7 @@ function gemEffect(id: IUpgradeId | IGemOnlyId, progress: IProgress): string | n
 		case "candyMagnet":
 			return describe("Reach", 1, (gemLevel) => `${magnetRadius(at(gemLevel))} m`);
 		case "luckyStocking":
-			return describe(
-				"Extra on banked coins",
-				1,
-				(gemLevel) => `+${Math.round((coinMultiplier(at(gemLevel)) - 1) * 100)}%`,
-			);
+			return describe("Extra on banked coins", 1, (gemLevel) => `+${at(gemLevel).luckyStocking * 25}%`);
 		default:
 			return null;
 	}
@@ -412,7 +438,7 @@ function coinEffect(item: IShopItem, progress: IProgress): string | null {
 		case "candyMagnet":
 			return describe("Reach", (n) => `${magnetRadius(at(n))} m`);
 		case "luckyStocking":
-			return describe("Extra on banked coins", (n) => `+${Math.round((coinMultiplier(at(n)) - 1) * 100)}%`);
+			return describe("Extra on banked coins", (n) => `+${at(n).luckyStocking * 25}%`);
 		case "rocket":
 			return "Rockets per throw: 1";
 		default:
@@ -458,95 +484,6 @@ function coinRowLevels(
 		note: gemLevel > 0 && !allKept ? `${gemLevel} kept` : null,
 		doneLabel: allKept ? "Kept" : undefined,
 	};
-}
-
-type IShopRowProps = {
-	name: string;
-	description: string;
-	/** Levels owned, out of how many this shop sells. */
-	level: number;
-	levels: number;
-	/** A gem-shop note beside the name, e.g. "+1 extra" or "2 kept". */
-	note?: string | null;
-	/** What the levels do, in numbers (gemEffect). */
-	effect?: string | null;
-	/** Shown once there's nothing more to buy; "Maxed" or "Owned" unless given. */
-	doneLabel?: string;
-	/** The next level's price, or null if there's nothing more to buy here. */
-	price: number | null;
-	currency: "coins" | "gems";
-	balance: number;
-	busy: boolean;
-	onBuy: () => void;
-};
-
-/** One upgrade: what it does, the levels owned, and a buy button with the next price. */
-function ShopRow({
-	name,
-	description,
-	level,
-	levels,
-	note = null,
-	effect = null,
-	doneLabel,
-	price,
-	currency,
-	balance,
-	busy,
-	onBuy,
-}: IShopRowProps) {
-	const hasLevels = levels > 1;
-	const done = doneLabel ?? (hasLevels ? "Maxed" : "Owned");
-
-	return (
-		<Group justify="space-between" wrap="nowrap" align="flex-start" gap="md">
-			<div>
-				<Group gap="xs">
-					<MantineText fw={700}>{name}</MantineText>
-					{hasLevels && level > 0 && (
-						<Badge size="sm" variant="light" color="gray">
-							Level {level} of {levels}
-						</Badge>
-					)}
-					{note && (
-						<Badge size="sm" variant="light" color="red" leftSection={<FontAwesomeIcon icon={faGem} />}>
-							{note}
-						</Badge>
-					)}
-				</Group>
-				{description && (
-					<MantineText size="sm" c="dimmed">
-						{description}
-					</MantineText>
-				)}
-				{effect && (
-					<MantineText size="xs" fw={700} c="var(--festive-gold-text)">
-						{effect}
-					</MantineText>
-				)}
-			</div>
-			{price === null ? (
-				<Badge variant="light" color={done === "Kept" ? "red" : "green"} style={{ flex: "none" }}>
-					{done}
-				</Badge>
-			) : (
-				<Button
-					variant="secondary"
-					size="xs"
-					style={{ flex: "none" }}
-					leftSection={<FontAwesomeIcon icon={currency === "gems" ? faGem : faCoins} />}
-					disabled={busy || balance < price}
-					aria-label={`Buy ${name}${hasLevels ? ` level ${level + 1}` : ""} for ${price} ${currency}`}
-					onClick={(event) => {
-						onBuy();
-						releaseFocus(event);
-					}}
-				>
-					{price}
-				</Button>
-			)}
-		</Group>
-	);
 }
 
 type ILookRowProps = {
