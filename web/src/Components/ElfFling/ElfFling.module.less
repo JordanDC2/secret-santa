@@ -24,6 +24,12 @@
 	color: var(--festive-gold-text);
 }
 
+/* The gem balance: ruby red with white text. */
+.gems {
+	background-color: var(--festive-red);
+	color: var(--festive-white);
+}
+
 /* Over the bottom right of the game, while the rocket can fire: no background, just the
    rocket at mild opacity (a shadow keeps it readable over snow or sky), full strength when
    pressed or hovered. */
@@ -105,6 +111,7 @@
    the balance pushed over beside the close button. */
 .shopDrawerTitle {
 	flex: 1;
+	margin-right: var(--mantine-spacing-sm);
 	font-weight: 700;
 }
 
@@ -154,6 +161,6 @@
 }
 
 /* The leaderboard tab in view reads bolder, as well as underlined. */
-.boardTab[data-active] {
+.festiveTab[data-active] {
 	font-weight: 700;
 }

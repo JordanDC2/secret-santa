@@ -20,7 +20,7 @@ class PurchaseRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'kind' => ['required', Rule::in(['upgrade', 'skin', 'batter'])],
+            'kind' => ['required', Rule::in(['upgrade', 'gemUpgrade', 'skin', 'batter'])],
             'item' => ['required', 'string', 'max:40'],
         ];
     }

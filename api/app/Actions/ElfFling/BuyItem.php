@@ -10,11 +10,11 @@ use Illuminate\Validation\ValidationException;
 class BuyItem
 {
     /**
-     * Buys the next level of an upgrade, or a look (which is put to use at once), at the price
-     * in config/elf_fling.php. Refused if it's not for sale, already owned or maxed, or the
-     * player can't afford it.
+     * Buys the next level of an upgrade, with coins or (kept through prestige) with gems, or a
+     * look (which is put to use at once), at the price in config/elf_fling.php. Refused if it's
+     * not for sale, already owned or maxed, or the player can't afford it.
      *
-     * @param  'upgrade'|'skin'|'batter'  $kind
+     * @param  'upgrade'|'gemUpgrade'|'skin'|'batter'  $kind
      */
     public function __invoke(User $user, string $kind, string $item): ElfFlingProgress
     {
@@ -23,18 +23,30 @@ class BuyItem
             $progress = ElfFlingProgress::whereKey($progress->id)->lockForUpdate()->firstOrFail();
 
             $price = match ($kind) {
-                'upgrade' => $this->upgradePrice($progress, $item),
+                'upgrade' => $this->coinUpgradePrice($progress, $item),
+                'gemUpgrade' => $this->levelPrice(
+                    (array) config("elf_fling.gem_upgrades.{$item}", []),
+                    $progress->gemLevel($item),
+                ),
                 'skin' => $this->lookPrice('skins', $item, $progress->ownedSkins()),
                 'batter' => $this->lookPrice('batters', $item, $progress->ownedBatters()),
             };
 
-            if ($progress->coins < $price) {
+            if ($kind === 'gemUpgrade') {
+                if ($progress->gems < $price) {
+                    throw ValidationException::withMessages(['item' => 'Not enough gems for that yet.']);
+                }
+
+                $progress->gems -= $price;
+            } elseif ($progress->coins < $price) {
                 throw ValidationException::withMessages(['item' => 'Not enough coins for that yet.']);
+            } else {
+                $progress->coins -= $price;
             }
 
-            $progress->coins -= $price;
-
-            if ($kind === 'upgrade') {
+            if ($kind === 'gemUpgrade') {
+                $progress->gem_upgrades = [...($progress->gem_upgrades ?? []), $item => $progress->gemLevel($item) + 1];
+            } elseif ($kind === 'upgrade') {
                 $progress->upgrades = [...($progress->upgrades ?? []), $item => $progress->level($item) + 1];
             } elseif ($kind === 'skin') {
                 $progress->skins = [...$progress->ownedSkins(), $item];
@@ -50,15 +62,33 @@ class BuyItem
         });
     }
 
-    private function upgradePrice(ElfFlingProgress $progress, string $upgrade): int
+    /**
+     * The next coin level's price. Nothing's left to buy with coins once the coin and gem
+     * levels together reach the top.
+     */
+    private function coinUpgradePrice(ElfFlingProgress $progress, string $upgrade): int
     {
-        $prices = config("elf_fling.upgrades.{$upgrade}");
+        $prices = (array) config("elf_fling.upgrades.{$upgrade}", []);
 
-        if (! is_array($prices)) {
+        if ($prices !== [] && $progress->combinedLevel($upgrade) >= $progress->maxLevel($upgrade)) {
+            throw ValidationException::withMessages(['item' => 'That\'s already fully upgraded.']);
+        }
+
+        return $this->levelPrice($prices, $progress->level($upgrade));
+    }
+
+    /**
+     * The price of the next level, from an upgrade's prices in order.
+     *
+     * @param  array<int, int>  $prices
+     */
+    private function levelPrice(array $prices, int $level): int
+    {
+        if ($prices === []) {
             throw ValidationException::withMessages(['item' => 'That isn\'t in the shop.']);
         }
 
-        return $prices[$progress->level($upgrade)]
+        return $prices[$level]
             ?? throw ValidationException::withMessages(['item' => 'That\'s already fully upgraded.']);
     }
 

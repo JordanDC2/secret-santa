@@ -1,6 +1,7 @@
 import { REINDEER_X, STACK, type IGameState } from "Components/ElfFling/physics";
 import { drawCelebration } from "Components/ElfFling/drawCelebration";
 import { drawCoinCount, drawCoins } from "Components/ElfFling/drawCoins";
+import { drawGemCount } from "Components/ElfFling/drawGems";
 import { drawCrackers, drawPopLabels } from "Components/ElfFling/drawCrackers";
 import { drawFlyer, flyerEnlargement } from "Components/ElfFling/drawFlyers";
 import { drawOrnaments } from "Components/ElfFling/drawOrnaments";
@@ -104,8 +105,8 @@ export function drawFrame(
 	clock: number,
 	/** Seconds since this round's new best, while it's being celebrated. */
 	celebrationAge: number | null,
-	/** The player's coin balance, before this throw's coins are banked. */
-	coinBalance: number,
+	/** The player's coins, before this throw's are banked, and gems (null before they've prestiged). */
+	balance: { coins: number; gems: number | null },
 ) {
 	const { width, height } = size;
 	const groundY = height * (1 - GROUND_SHARE);
@@ -139,7 +140,11 @@ export function drawFrame(
 	if (celebrationAge !== null) {
 		drawCelebration(context, palette, size, celebrationAge);
 	}
-	drawCoinCount(context, palette, coinBalance + state.coinsCollected, state.coinsCollected);
+	drawCoinCount(context, palette, balance.coins + state.coinsCollected, state.coinsCollected);
+
+	if (balance.gems !== null) {
+		drawGemCount(context, palette, balance.gems);
+	}
 
 	if (state.phase === "flying" || state.phase === "sliding") {
 		drawLiveDistance(context, palette, width, state.elf.x - REINDEER_X);

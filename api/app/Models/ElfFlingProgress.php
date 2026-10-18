@@ -8,19 +8,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * One player's Elf Fling progress: coins to spend, upgrade levels, and the looks they own
- * and use. The free looks (the first in config/elf_fling.php) are always owned.
+ * One player's Elf Fling progress: coins and gems to spend, coin and gem upgrade levels, how
+ * many times they've prestiged, and the looks they own and use. The free looks (the first in
+ * config/elf_fling.php) are always owned.
  *
  * @property int $user_id
  * @property int $coins
+ * @property int $gems
+ * @property int $prestiges
  * @property array<string, int>|null $upgrades
+ * @property array<string, int>|null $gem_upgrades
  * @property array<int, string>|null $skins
  * @property string $skin
  * @property array<int, string>|null $batters
  * @property string $batter
  * @property Carbon|null $imported_at
  */
-#[Fillable(['user_id', 'coins', 'upgrades', 'skins', 'skin', 'batters', 'batter', 'imported_at'])]
+#[Fillable(['user_id', 'coins', 'gems', 'prestiges', 'upgrades', 'gem_upgrades', 'skins', 'skin', 'batters', 'batter', 'imported_at'])]
 class ElfFlingProgress extends Model
 {
     protected $table = 'elf_fling_progress';
@@ -29,7 +33,10 @@ class ElfFlingProgress extends Model
     {
         return [
             'coins' => 'integer',
+            'gems' => 'integer',
+            'prestiges' => 'integer',
             'upgrades' => 'array',
+            'gem_upgrades' => 'array',
             'skins' => 'array',
             'batters' => 'array',
             'imported_at' => 'datetime',
@@ -37,12 +44,14 @@ class ElfFlingProgress extends Model
     }
 
     /**
-     * This player's progress, started fresh (no coins, nothing bought) the first time.
+     * This player's progress, started fresh (no coins or gems, nothing bought) the first time.
      */
     public static function for(User $user): self
     {
         $progress = self::firstOrCreate(['user_id' => $user->id], [
             'coins' => 0,
+            'gems' => 0,
+            'prestiges' => 0,
             'skin' => array_key_first(config('elf_fling.skins')),
             'batter' => array_key_first(config('elf_fling.batters')),
         ]);
@@ -79,6 +88,56 @@ class ElfFlingProgress extends Model
         }
 
         return $levels;
+    }
+
+    /**
+     * An upgrade's top level, coin and gem levels together: the coin shop's levels, plus the
+     * gem shop's for upgrades whose gem levels stack.
+     */
+    public function maxLevel(string $upgrade): int
+    {
+        $stacks = in_array($upgrade, config('elf_fling.gem_stacking'), true);
+
+        return count(config("elf_fling.upgrades.{$upgrade}", []))
+            + ($stacks ? count(config("elf_fling.gem_upgrades.{$upgrade}", [])) : 0);
+    }
+
+    /**
+     * Coin and gem levels together, as a throw uses them.
+     */
+    public function combinedLevel(string $upgrade): int
+    {
+        return min($this->maxLevel($upgrade), $this->level($upgrade) + $this->gemLevel($upgrade));
+    }
+
+    public function gemLevel(string $upgrade): int
+    {
+        return (int) ($this->gem_upgrades[$upgrade] ?? 0);
+    }
+
+    /**
+     * Every gem-shop upgrade and its level, e.g. ['swingStrength' => 1, 'rocket' => 0, ...].
+     *
+     * @return array<string, int>
+     */
+    public function gemLevels(): array
+    {
+        $levels = [];
+
+        foreach (array_keys(config('elf_fling.gem_upgrades')) as $upgrade) {
+            $levels[(string) $upgrade] = $this->gemLevel((string) $upgrade);
+        }
+
+        return $levels;
+    }
+
+    /**
+     * The gems prestiging now would give: the square root of (spare coins / coins_per_gem_squared),
+     * rounded down.
+     */
+    public function prestigeGems(): int
+    {
+        return (int) floor(sqrt($this->coins / config('elf_fling.coins_per_gem_squared')));
     }
 
     /**

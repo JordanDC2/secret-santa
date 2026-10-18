@@ -11,8 +11,8 @@ class RecordThrow
 {
     /**
      * A finished throw: kept for the leaderboards, and its coins banked. The game sends the
-     * coins it collected; the lucky stocking's share is added here, from the levels the
-     * server knows the player owns.
+     * coins it collected; the lucky stocking's share is added here, then the Christmas bonus
+     * doubles it once per level, from the levels (coin and gem) the server knows the player owns.
      *
      * @return array{progress: ElfFlingProgress, banked: int, newBest: bool}
      */
@@ -20,8 +20,9 @@ class RecordThrow
     {
         $result = DB::transaction(function () use ($user, $distance, $coinsCollected) {
             $progress = ElfFlingProgress::for($user);
-            $bonus = config('elf_fling.lucky_stocking_bonus') * $progress->level('luckyStocking');
-            $banked = (int) round($coinsCollected * (1 + $bonus));
+            $bonus = config('elf_fling.lucky_stocking_bonus') * $progress->combinedLevel('luckyStocking');
+            $multiplier = 2 ** $progress->gemLevel('christmasBonus');
+            $banked = (int) round($coinsCollected * (1 + $bonus) * $multiplier);
             $previousBest = (float) $user->elfFlingThrows()->max('distance');
 
             $user->elfFlingThrows()->create(['distance' => round($distance, 1), 'coins' => $banked]);

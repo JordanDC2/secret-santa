@@ -6,18 +6,22 @@ import {
 	type IBatterId,
 	type ISkinId,
 } from "Components/ElfFling/skins";
-import { NO_UPGRADES, type IUpgradeId, type IUpgrades } from "Components/ElfFling/upgrades";
+import { NO_UPGRADES, type IGemUpgrades, type IUpgradeId, type IUpgrades } from "Components/ElfFling/upgrades";
 
 /**
  * A player's Elf Fling progress, kept with their account (the API is the source of truth):
- * coins, upgrades, the looks owned and in use, and their best throw.
+ * coins and gems, coin and gem upgrades, how many times they've prestiged, the looks owned and
+ * in use, and their best throw.
  *
  * Before accounts kept it, each browser saved progress itself; readDeviceProgress() finds
  * that so it can be brought over once (useImportMutation), then forgetDeviceProgress() clears it.
  */
 export type IProgress = {
 	coins: number;
+	gems: number;
+	prestiges: number;
 	upgrades: IUpgrades;
+	gemUpgrades: IGemUpgrades;
 	skins: ISkinId[];
 	skin: ISkinId;
 	batters: IBatterId[];

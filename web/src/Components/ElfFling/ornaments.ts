@@ -23,7 +23,7 @@ const MAX_FORWARD = 34;
 const FIRST_AT = { min: 15, max: 25 };
 const GAP = { min: 7, max: 16 };
 const HEIGHT = { min: 5, max: 26 };
-const COURSE_LENGTH = 1500;
+const COURSE_LENGTH = 6000;
 
 export function layOrnaments(random: () => number = Math.random): IOrnament[] {
 	const between = (range: { min: number; max: number }) => range.min + random() * (range.max - range.min);

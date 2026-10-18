@@ -14,7 +14,7 @@ class PurchaseHandler extends Controller
 {
     public function __invoke(BuyItem $buyItem, PurchaseRequest $request): ElfFlingProgressResource
     {
-        /** @var 'upgrade'|'skin'|'batter' $kind */
+        /** @var 'upgrade'|'gemUpgrade'|'skin'|'batter' $kind */
         $kind = $request->string('kind')->value();
 
         return new ElfFlingProgressResource($buyItem($request->user(), $kind, $request->string('item')->value()));

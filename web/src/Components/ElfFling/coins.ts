@@ -54,7 +54,7 @@ const LAYERS: ILayer[] = [
 	},
 ];
 
-const COURSE_LENGTH = 1500;
+const COURSE_LENGTH = 6000;
 
 type IPattern = (count: number, spacing: number) => Array<{ dx: number; dy: number }>;
 
@@ -121,31 +121,31 @@ export function collectCoins(
 	dt: number,
 ): { coins: ICoin[]; gained: number } {
 	let gained = 0;
-	let changed = false;
-	const updated = coins.map((coin) => {
+	// Copied only once a coin is collected or pulled: most steps change nothing, and the course is long.
+	let updated: ICoin[] | null = null;
+
+	coins.forEach((coin, index) => {
 		if (coin.collectedAt !== null || Math.abs(coin.x - x) > magnet) {
-			return coin;
+			return;
 		}
 
 		const distance = Math.hypot(coin.x - x, coin.y - y);
+		let next: ICoin | null = null;
 
 		if (distance <= COLLECT_RADIUS) {
 			gained += coin.value;
-			changed = true;
-
-			return { ...coin, collectedAt: time };
+			next = { ...coin, collectedAt: time };
+		} else if (distance <= magnet) {
+			// Inside the magnet's reach: drift toward the elf.
+			const pull = Math.min(distance, PULL_SPEED * dt) / distance;
+			next = { ...coin, x: coin.x + (x - coin.x) * pull, y: coin.y + (y - coin.y) * pull };
 		}
 
-		if (distance > magnet) {
-			return coin;
+		if (next) {
+			updated ??= [...coins];
+			updated[index] = next;
 		}
-
-		// Inside the magnet's reach: drift toward the elf.
-		const pull = Math.min(distance, PULL_SPEED * dt) / distance;
-		changed = true;
-
-		return { ...coin, x: coin.x + (x - coin.x) * pull, y: coin.y + (y - coin.y) * pull };
 	});
 
-	return { coins: changed ? updated : coins, gained };
+	return { coins: updated ?? coins, gained };
 }

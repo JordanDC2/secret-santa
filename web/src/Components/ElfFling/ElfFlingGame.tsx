@@ -25,7 +25,7 @@ import classes from "Components/ElfFling/ElfFling.module.less";
 
 /** The page gives each round a new React key, so a fresh game starts on top of the presents. */
 type IElfFlingGameProps = {
-	/** The shop upgrades for this round (read when the round starts). */
+	/** The upgrades in play this round, coin and gem levels together (read when the round starts). */
 	upgrades: IUpgrades;
 	/** Who's being flung, and who's swinging; changing either shows at once, even mid-throw. */
 	skin: ISkinId;
@@ -47,6 +47,8 @@ type IElfFlingGameProps = {
 	onToggleSound: () => void;
 	/** The coin balance, shown with this throw's pickings; and whether this throw is banked yet. */
 	coins: number;
+	/** The gem balance, shown once the player has prestiged (null before). */
+	gems: number | null;
 	throwBanked: boolean;
 	/** The shop opens over the game (even in full screen); while it's open, taps and keys are its. */
 	onOpenShop: () => void;
@@ -78,6 +80,7 @@ export default function ElfFlingGame({
 	soundOn,
 	onToggleSound,
 	coins,
+	gems,
 	throwBanked,
 	onOpenShop,
 	shopOpen,
@@ -93,7 +96,7 @@ export default function ElfFlingGame({
 	const paletteRef = useRef<IPalette | null>(null);
 	const bestRef = useRef(best);
 	const soundRef = useRef(soundOn);
-	const coinsRef = useRef({ balance: coins, banked: throwBanked });
+	const balanceRef = useRef({ coins, gems, banked: throwBanked });
 	const shopOpenRef = useRef(shopOpen);
 	// The best as this round began: beating it is a new best (the page's copy updates once it's saved).
 	const [bestBefore] = useState(best);
@@ -109,7 +112,7 @@ export default function ElfFlingGame({
 	useLayoutEffect(() => {
 		bestRef.current = best;
 		soundRef.current = soundOn;
-		coinsRef.current = { balance: coins, banked: throwBanked };
+		balanceRef.current = { coins, gems, banked: throwBanked };
 		shopOpenRef.current = shopOpen;
 		skinRef.current = skin;
 		batterRef.current = batter;
@@ -253,7 +256,10 @@ export default function ElfFlingGame({
 				now / 1000,
 				celebrationRef.current === null ? null : now / 1000 - celebrationRef.current,
 				// Once this throw is banked the balance already includes its coins (and any bonus).
-				coinsRef.current.banked ? coinsRef.current.balance - state.coinsCollected : coinsRef.current.balance,
+				{
+					coins: balanceRef.current.banked ? balanceRef.current.coins - state.coinsCollected : balanceRef.current.coins,
+					gems: balanceRef.current.gems,
+				},
 			);
 			frame = requestAnimationFrame(render);
 		}

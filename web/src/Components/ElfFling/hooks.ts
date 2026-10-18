@@ -1,13 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { IProgress } from "Components/ElfFling/progress";
 import type { IBatterId, ISkinId } from "Components/ElfFling/skins";
-import type { IUpgradeId, IUpgrades } from "Components/ElfFling/upgrades";
+import type { IGemUpgrades, IUpgradeId, IUpgrades } from "Components/ElfFling/upgrades";
 import { apiClient } from "Data/Api/Client";
 
 /** The player's progress as the API sends it. */
 type IProgressResponse = {
 	coins: number;
+	gems: number;
+	prestiges: number;
 	upgrades: IUpgrades;
+	gem_upgrades: IGemUpgrades;
 	skins: ISkinId[];
 	skin: ISkinId;
 	batters: IBatterId[];
@@ -36,7 +39,10 @@ export const LEADERBOARD_KEY = ["elf-fling", "leaderboard"];
 function toProgress(response: IProgressResponse): IProgress {
 	return {
 		coins: response.coins,
+		gems: response.gems,
+		prestiges: response.prestiges,
 		upgrades: response.upgrades,
+		gemUpgrades: response.gem_upgrades,
 		skins: response.skins,
 		skin: response.skin,
 		batters: response.batters,
@@ -74,7 +80,7 @@ export function useRecordThrowMutation() {
 	});
 }
 
-/** Buys the next level of an upgrade, or a look (put to use at once). The server checks the price. */
+/** Buys the next level of a coin or gem upgrade, or a look (put to use at once). The server checks the price. */
 export function usePurchaseMutation() {
 	const queryClient = useQueryClient();
 
@@ -82,10 +88,25 @@ export function usePurchaseMutation() {
 		mutationFn: async (
 			purchase:
 				| { kind: "upgrade"; item: IUpgradeId }
+				| { kind: "gemUpgrade"; item: IUpgradeId | "christmasBonus" }
 				| { kind: "skin"; item: ISkinId }
 				| { kind: "batter"; item: IBatterId },
 		) => toProgress(await apiClient.post<IProgressResponse>("/elf-fling/purchases", purchase)),
 		onSuccess: (progress) => queryClient.setQueryData(PROGRESS_KEY, progress),
+	});
+}
+
+/** Wraps up this Christmas: spare coins become gems, and the coin shop starts over. */
+export function usePrestigeMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async () => {
+			const response = await apiClient.post<{ progress: IProgressResponse; gems: number }>("/elf-fling/prestige");
+
+			return { progress: toProgress(response.progress), gems: response.gems };
+		},
+		onSuccess: ({ progress }) => queryClient.setQueryData(PROGRESS_KEY, progress),
 	});
 }
 

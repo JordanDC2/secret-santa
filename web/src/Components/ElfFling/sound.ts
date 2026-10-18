@@ -159,6 +159,12 @@ export function playCoin(value: number) {
 	tone("triangle", base * 1.5, base * 1.5, value >= 3 ? 0.22 : 0.12, 0.25, 0.06);
 }
 
+/** Gems: a quick, high, glassy run of four notes with a shimmer. */
+export function playGem() {
+	[1568, 1976, 2349, 3136].forEach((pitch, i) => tone("sine", pitch, pitch, 0.3, 0.22, i * 0.05));
+	hiss("highpass", 6000, 0.35, 0.12, 0.05);
+}
+
 /** A Christmas cracker going bang. */
 export function playPop() {
 	hiss("lowpass", 2400, 0.09, 1);

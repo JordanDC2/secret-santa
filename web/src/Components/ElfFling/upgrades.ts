@@ -1,7 +1,10 @@
 /**
- * The Elf Fling shop: what coins can buy, what each costs, and what owning it changes in a
- * throw. Levels start at 0 (not bought); an item's last price is its top level. The helpers
- * at the bottom turn levels into the numbers the physics uses.
+ * The Elf Fling shops: what each upgrade costs and what owning it changes in a throw. Levels
+ * start at 0 (not bought). Every upgrade is sold twice: for coins, which prestige takes away,
+ * and for gems, kept for good. Gem levels stack on top of coin levels for the levelled
+ * upgrades; for the rest, owning it with gems means it's owned. The helpers at the bottom turn
+ * levels into the numbers the physics uses. The server charges the same prices
+ * (api/config/elf_fling.php).
  */
 
 export type IUpgradeId =
@@ -28,8 +31,12 @@ export type IShopItem = {
 	group: IShopGroup;
 	name: string;
 	description: string;
-	/** The price of each level in turn: one price means a single purchase. */
+	/** The price of each level in turn, in coins: one price means a single purchase. */
 	prices: number[];
+	/** The same in gems, for levels kept through prestige. */
+	gemPrices: number[];
+	/** Whether gem levels go on top of the coin levels (levelled upgrades) or stand in for them. */
+	gemStacks: boolean;
 	/** Shown after the description where there's a keyboard (not on phones). */
 	keyboardHint?: string;
 };
@@ -41,6 +48,8 @@ export const SHOP_ITEMS: IShopItem[] = [
 		name: "Swing strength",
 		description: "The reindeer swings harder, so every hit sends the elf further.",
 		prices: [25, 50, 80, 120, 175],
+		gemPrices: [3, 8, 15],
+		gemStacks: true,
 	},
 	{
 		id: "goldenCane",
@@ -48,6 +57,8 @@ export const SHOP_ITEMS: IShopItem[] = [
 		name: "Golden candy cane",
 		description: "A bigger sweet spot: easier to connect, and near misses still fly well.",
 		prices: [50, 110],
+		gemPrices: [3, 8, 15],
+		gemStacks: true,
 	},
 	{
 		id: "sledRunners",
@@ -55,6 +66,8 @@ export const SHOP_ITEMS: IShopItem[] = [
 		name: "Sled runners",
 		description: "Slicker snow under the elf, so slides go much further.",
 		prices: [40, 80, 130],
+		gemPrices: [3, 8, 15],
+		gemStacks: true,
 	},
 	{
 		id: "springyBoots",
@@ -62,6 +75,8 @@ export const SHOP_ITEMS: IShopItem[] = [
 		name: "Springy boots",
 		description: "Bouncier landings that keep more of the elf's speed.",
 		prices: [45, 90, 140],
+		gemPrices: [3, 8, 15],
+		gemStacks: true,
 	},
 	{
 		id: "crackers",
@@ -69,6 +84,8 @@ export const SHOP_ITEMS: IShopItem[] = [
 		name: "Christmas crackers",
 		description: "Crackers appear in the snow. Land on one and bang! The elf flies off again.",
 		prices: [40],
+		gemPrices: [3],
+		gemStacks: false,
 	},
 	{
 		id: "paddedSuit",
@@ -77,6 +94,8 @@ export const SHOP_ITEMS: IShopItem[] = [
 		description:
 			"Snowmen stop the elf dead. Padded, it keeps half its speed and ploughs on; extra padded, three quarters.",
 		prices: [90, 260],
+		gemPrices: [4, 10],
+		gemStacks: false,
 	},
 	{
 		id: "elfJump",
@@ -84,6 +103,8 @@ export const SHOP_ITEMS: IShopItem[] = [
 		name: "Elf jump",
 		description: "Tap while the elf is flying or sliding to give it a hop upward. One jump per level, each throw.",
 		prices: [60, 120, 200],
+		gemPrices: [3, 8, 15],
+		gemStacks: true,
 	},
 	{
 		id: "rocket",
@@ -93,6 +114,8 @@ export const SHOP_ITEMS: IShopItem[] = [
 			"Once per throw, a rocket button appears while the elf is out on the course: tap it for a fizzing blast forward.",
 		keyboardHint: "On a keyboard, R fires it too.",
 		prices: [120],
+		gemPrices: [5],
+		gemStacks: false,
 	},
 	{
 		id: "skyOrnaments",
@@ -101,6 +124,8 @@ export const SHOP_ITEMS: IShopItem[] = [
 		description:
 			"Glass ornaments hang in the sky. Fly into one and it shatters, kicking the elf higher, toward the sky coins.",
 		prices: [150],
+		gemPrices: [5],
+		gemStacks: false,
 	},
 	{
 		id: "sleigh",
@@ -108,6 +133,8 @@ export const SHOP_ITEMS: IShopItem[] = [
 		name: "Sleigh sighting",
 		description: "Now and then a sleigh crosses the sky. Catch it and the elf gets a long ride.",
 		prices: [250],
+		gemPrices: [8],
+		gemStacks: false,
 	},
 	{
 		id: "candyMagnet",
@@ -115,6 +142,8 @@ export const SHOP_ITEMS: IShopItem[] = [
 		name: "Candy magnet",
 		description: "Coins drift toward the elf from further away.",
 		prices: [35, 75, 130],
+		gemPrices: [3, 8, 15],
+		gemStacks: true,
 	},
 	{
 		id: "luckyStocking",
@@ -122,6 +151,8 @@ export const SHOP_ITEMS: IShopItem[] = [
 		name: "Lucky stocking",
 		description: "Every coin you bank is worth more: a quarter extra per level.",
 		prices: [100, 220],
+		gemPrices: [3, 8, 15],
+		gemStacks: true,
 	},
 ];
 
@@ -142,9 +173,50 @@ export const NO_UPGRADES: IUpgrades = {
 	luckyStocking: 0,
 };
 
-/** The price of the next level, or null once it's fully upgraded. */
-export function nextPrice(item: IShopItem, level: number): number | null {
-	return item.prices[level] ?? null;
+/** Gem levels bought, per upgrade (plus the gem-only Christmas bonus): kept through prestige. */
+export type IGemUpgrades = IUpgrades & { christmasBonus: number };
+
+/** Sold only for gems: banked coins double with each level (×2, ×4, ×8). */
+export const CHRISTMAS_BONUS = {
+	name: "Christmas bonus",
+	description: "Santa doubles every coin you bank, and doubles it again with each level: ×2, ×4, then ×8.",
+	gemPrices: [10, 25, 50],
+};
+
+/** An upgrade's top level, counting coin and gem levels together. */
+export function maxLevel(item: IShopItem): number {
+	return item.prices.length + (item.gemStacks ? item.gemPrices.length : 0);
+}
+
+/** The coin and gem levels together, as the throw uses them. */
+export function combinedUpgrades(upgrades: IUpgrades, gemUpgrades: IGemUpgrades): IUpgrades {
+	const combined = { ...upgrades };
+
+	for (const item of SHOP_ITEMS) {
+		combined[item.id] = Math.min(maxLevel(item), upgrades[item.id] + gemUpgrades[item.id]);
+	}
+
+	return combined;
+}
+
+/** The coin price of the next level, or null if there's none to buy (all bought, or owned with gems). */
+export function nextCoinPrice(item: IShopItem, coinLevel: number, gemLevel: number): number | null {
+	return coinLevel + gemLevel >= maxLevel(item) ? null : (item.prices[coinLevel] ?? null);
+}
+
+/** The gem price of the next gem level, or null once they're all bought. */
+export function nextGemPrice(item: IShopItem, gemLevel: number): number | null {
+	return item.gemPrices[gemLevel] ?? null;
+}
+
+/** The gems prestiging would give for these spare coins: √(coins ÷ 10), rounded down. */
+export function prestigeGems(coins: number): number {
+	return Math.floor(Math.sqrt(coins / 10));
+}
+
+/** Levels up to the coin shop's top level, and those past it (from gem levels on top). */
+function split(level: number, ownLevels: number): { own: number; extra: number } {
+	return { own: Math.min(level, ownLevels), extra: Math.max(0, level - ownLevels) };
 }
 
 /** Launch speed: +7% per level of swing strength. */
@@ -154,17 +226,23 @@ export function swingMultiplier(upgrades: IUpgrades): number {
 
 /** How far either side of the sweet spot the bat still connects, in metres. */
 export function swingReach(upgrades: IUpgrades): number {
-	return 0.85 + 0.2 * upgrades.goldenCane;
+	const { own, extra } = split(upgrades.goldenCane, 2);
+
+	return 0.85 + 0.2 * own + 0.1 * extra;
 }
 
-/** How quickly a slide slows, in m/s per second. */
+/** How quickly a slide slows, in m/s per second. Each level past the third takes a share off. */
 export function snowFriction(upgrades: IUpgrades): number {
-	return 4 * (1 - 0.12 * upgrades.sledRunners);
+	const { own, extra } = split(upgrades.sledRunners, 3);
+
+	return 4 * (1 - 0.12 * own) * 0.85 ** extra;
 }
 
-/** How much speed a bounce keeps, up and forward. */
+/** How much speed a bounce keeps, up and forward (never all of it, so bounces die down). */
 export function bounceKeep(upgrades: IUpgrades): { vertical: number; forward: number } {
-	return { vertical: 0.42 + 0.08 * upgrades.springyBoots, forward: 0.8 + 0.04 * upgrades.springyBoots };
+	const { own, extra } = split(upgrades.springyBoots, 3);
+
+	return { vertical: 0.42 + 0.08 * own + 0.04 * extra, forward: 0.8 + 0.04 * own + 0.015 * extra };
 }
 
 /** How much speed the elf keeps after running into a snowman: none, a half, three quarters. */

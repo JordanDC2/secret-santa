@@ -24,7 +24,7 @@ const MAX_FORWARD = 32;
 /** Where they lie: the first a little way out, then irregular gaps, far past any real throw. */
 const FIRST_AT = { min: 18, max: 40 };
 const GAP = { min: 16, max: 42 };
-const COURSE_LENGTH = 1500;
+const COURSE_LENGTH = 6000;
 
 export function layCrackers(random: () => number = Math.random): ICracker[] {
 	const between = (range: { min: number; max: number }) => range.min + random() * (range.max - range.min);

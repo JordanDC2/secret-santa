@@ -113,6 +113,21 @@ export function drawCoinCount(context: CanvasRenderingContext2D, palette: IPalet
 	const x = 26;
 	const y = 26;
 	drawDisc(context, palette, x, y, 10, 1, palette.goldDeep);
+	drawTally(context, palette, x, y, total, thisThrow);
+}
+
+/**
+ * A balance beside its icon (centred at x, y), and what this throw has added in smaller,
+ * fainter type after it. Screen units.
+ */
+export function drawTally(
+	context: CanvasRenderingContext2D,
+	palette: IPalette,
+	x: number,
+	y: number,
+	total: number,
+	thisThrow: number,
+) {
 	context.textAlign = "left";
 	context.textBaseline = "middle";
 	context.font = "800 20px Nunito, sans-serif";

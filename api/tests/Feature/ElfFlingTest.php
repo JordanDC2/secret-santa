@@ -35,7 +35,10 @@ class ElfFlingTest extends TestCase
         $this->getJson(route('elf-fling.progress'))
             ->assertOk()
             ->assertJsonPath('coins', 0)
+            ->assertJsonPath('gems', 0)
+            ->assertJsonPath('prestiges', 0)
             ->assertJsonPath('upgrades.swingStrength', 0)
+            ->assertJsonPath('gem_upgrades.swingStrength', 0)
             ->assertJsonPath('skins', ['elf'])
             ->assertJsonPath('skin', 'elf')
             ->assertJsonPath('batters', ['reindeer'])
@@ -60,6 +63,114 @@ class ElfFlingTest extends TestCase
             ->assertJsonPath('new_best', false)
             ->assertJsonPath('progress.coins', 21)
             ->assertJsonPath('progress.best_distance', 123.5);
+    }
+
+    public function test_wrapping_up_christmas_turns_spare_coins_into_gems_and_starts_the_coin_shop_over(): void
+    {
+        $user = $this->player();
+        ElfFlingProgress::for($user)->update([
+            'coins' => 5000,
+            'upgrades' => ['swingStrength' => 5, 'rocket' => 1],
+            'skins' => ['santa'],
+            'skin' => 'santa',
+        ]);
+        $user->elfFlingThrows()->create(['distance' => 400, 'coins' => 90]);
+
+        $this->postJson(route('elf-fling.prestige'))
+            ->assertOk()
+            ->assertJsonPath('gems', 22)
+            ->assertJsonPath('progress.gems', 22)
+            ->assertJsonPath('progress.prestiges', 1)
+            ->assertJsonPath('progress.coins', 0)
+            ->assertJsonPath('progress.upgrades.swingStrength', 0)
+            ->assertJsonPath('progress.upgrades.rocket', 0)
+            ->assertJsonPath('progress.skin', 'santa')
+            ->assertJsonPath('progress.best_distance', 400);
+
+        // Gems stack up over later Christmases.
+        ElfFlingProgress::for($user)->update(['coins' => 1000]);
+
+        $this->postJson(route('elf-fling.prestige'))->assertJsonPath('progress.gems', 32);
+
+        ElfFlingProgress::for($user)->update(['coins' => 9]);
+
+        $this->postJson(route('elf-fling.prestige'))->assertJsonValidationErrors(['coins']);
+        $this->assertSame(2, ElfFlingProgress::for($user)->prestiges);
+    }
+
+    public function test_gem_levels_are_kept_through_prestige_and_stack_on_the_coin_levels(): void
+    {
+        $user = $this->player();
+        ElfFlingProgress::for($user)->update(['coins' => 5000, 'gems' => 20, 'upgrades' => ['swingStrength' => 5]]);
+
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'swingStrength'])
+            ->assertOk()
+            ->assertJsonPath('gem_upgrades.swingStrength', 1)
+            ->assertJsonPath('gems', 17)
+            ->assertJsonPath('coins', 5000);
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'rocket'])
+            ->assertJsonPath('gem_upgrades.rocket', 1)
+            ->assertJsonPath('gems', 12);
+
+        $this->postJson(route('elf-fling.prestige'))
+            ->assertJsonPath('progress.upgrades.swingStrength', 0)
+            ->assertJsonPath('progress.gem_upgrades.swingStrength', 1)
+            ->assertJsonPath('progress.gem_upgrades.rocket', 1);
+
+        $progress = ElfFlingProgress::for($user);
+        $this->assertSame(1, $progress->combinedLevel('swingStrength'));
+        $this->assertSame(8, $progress->maxLevel('swingStrength'));
+
+        // The rocket is owned with gems, so there's nothing to buy with coins.
+        $progress->update(['coins' => 1000]);
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'upgrade', 'item' => 'rocket'])
+            ->assertJsonValidationErrors(['item' => 'That\'s already fully upgraded.']);
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'rocket'])
+            ->assertJsonValidationErrors(['item' => 'That\'s already fully upgraded.']);
+    }
+
+    public function test_gem_upgrades_cost_gems_and_kept_stocking_levels_add_to_every_throws_coins(): void
+    {
+        $user = $this->player();
+        ElfFlingProgress::for($user)->update(['coins' => 500, 'gems' => 4, 'upgrades' => ['luckyStocking' => 2]]);
+
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'luckyStocking'])
+            ->assertOk()
+            ->assertJsonPath('gem_upgrades.luckyStocking', 1)
+            ->assertJsonPath('gems', 1)
+            ->assertJsonPath('coins', 500);
+
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'luckyStocking'])
+            ->assertJsonValidationErrors(['item' => 'Not enough gems for that yet.']);
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'santa'])
+            ->assertJsonValidationErrors(['item' => 'That isn\'t in the shop.']);
+
+        // Three stocking levels between the shops: +75%.
+        $this->postJson(route('elf-fling.throws'), ['distance' => 100, 'coins_collected' => 20])
+            ->assertJsonPath('banked', 35)
+            ->assertJsonPath('progress.coins', 535);
+    }
+
+    public function test_the_christmas_bonus_multiplies_every_throws_coins_and_is_only_sold_for_gems(): void
+    {
+        $user = $this->player();
+        ElfFlingProgress::for($user)->update(['coins' => 5000, 'gems' => 35, 'upgrades' => ['luckyStocking' => 2]]);
+
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'upgrade', 'item' => 'christmasBonus'])
+            ->assertJsonValidationErrors(['item' => 'That isn\'t in the shop.']);
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'christmasBonus'])
+            ->assertJsonPath('gem_upgrades.christmasBonus', 1);
+
+        // 10 coins, +50% from the stocking, doubled.
+        $this->postJson(route('elf-fling.throws'), ['distance' => 100, 'coins_collected' => 10])
+            ->assertJsonPath('banked', 30);
+
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'christmasBonus'])
+            ->assertJsonPath('gem_upgrades.christmasBonus', 2)
+            ->assertJsonPath('gems', 0);
+        // Doubled again.
+        $this->postJson(route('elf-fling.throws'), ['distance' => 100, 'coins_collected' => 10])
+            ->assertJsonPath('banked', 60);
     }
 
     public function test_huge_runs_and_hauls_are_welcome_but_nonsense_is_refused(): void

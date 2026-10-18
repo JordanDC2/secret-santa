@@ -6,10 +6,11 @@ import GiftBoxIcon from "Components/Common/FestiveIcons/GiftBoxIcon";
 import LoadingText from "Components/Common/LoadingText";
 import ElfFlingGame from "Components/ElfFling/ElfFlingGame";
 import ElfFlingLeaderboard from "Components/ElfFling/ElfFlingLeaderboard";
-import ElfFlingShop, { CoinBalance } from "Components/ElfFling/ElfFlingShop";
+import ElfFlingShop, { Balances } from "Components/ElfFling/ElfFlingShop";
 import {
 	useImportMutation,
 	useLooksMutation,
+	usePrestigeMutation,
 	useProgressQuery,
 	usePurchaseMutation,
 	useRecordThrowMutation,
@@ -17,8 +18,8 @@ import {
 import type { IGameState, IPhase } from "Components/ElfFling/physics";
 import { forgetDeviceProgress, readDeviceProgress, type IProgress } from "Components/ElfFling/progress";
 import { capitalised, skinById, type IBatterId, type ISkinId } from "Components/ElfFling/skins";
-import type { IUpgradeId } from "Components/ElfFling/upgrades";
-import { readSoundOn, saveSoundOn, wakeAudio } from "Components/ElfFling/sound";
+import { combinedUpgrades, type IUpgradeId } from "Components/ElfFling/upgrades";
+import { playGem, readSoundOn, saveSoundOn, wakeAudio } from "Components/ElfFling/sound";
 import { useFullscreen } from "Components/ElfFling/useFullscreen";
 import { releaseFocus } from "Components/ElfFling/releaseFocus";
 import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
@@ -48,6 +49,14 @@ const PROMPTS: Record<Exclude<IPhase, "done" | "ready">, string> = {
 /** "1 cracker", "3 crackers". */
 function count(n: number, one: string, many: string): string {
 	return `${n} ${n === 1 ? one : many}`;
+}
+
+/** Where a throw's extra coins came from: "the lucky stocking", "the Christmas bonus", or both. */
+function bonusSources(progress: IProgress): string {
+	const stocking = progress.upgrades.luckyStocking + progress.gemUpgrades.luckyStocking > 0;
+	const christmasBonus = progress.gemUpgrades.christmasBonus > 0;
+
+	return [stocking && "the lucky stocking", christmasBonus && "the Christmas bonus"].filter(Boolean).join(" and ");
 }
 
 /** The result line. "subject" is who was flung, mid-sentence: "the elf", "Santa". */
@@ -122,6 +131,7 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 	const recordThrow = useRecordThrowMutation();
 	const purchase = usePurchaseMutation();
 	const looks = useLooksMutation();
+	const prestige = usePrestigeMutation();
 	const touchScreen = useTouchScreen();
 	const stageRef = useRef<HTMLDivElement>(null);
 	const { fullscreen, enter: enterFullscreen, exit: exitFullscreen } = useFullscreen(stageRef);
@@ -181,6 +191,25 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 			{ kind: "upgrade", item: id },
 			{ onSuccess: () => phase === "ready" && setRound((current) => current + 1) },
 		);
+	const buyGemUpgrade = (id: IUpgradeId | "christmasBonus") =>
+		purchase.mutate(
+			{ kind: "gemUpgrade", item: id },
+			{ onSuccess: () => phase === "ready" && setRound((current) => current + 1) },
+		);
+	// Wrapping up Christmas takes the coin upgrades away, so (like buying) it applies to the next
+	// throw, or straight away before the elf has hopped.
+	const wrapUpChristmas = () =>
+		prestige.mutate(undefined, {
+			onSuccess: () => {
+				if (soundOn) {
+					playGem();
+				}
+
+				if (phase === "ready") {
+					setRound((current) => current + 1);
+				}
+			},
+		});
 	// Looks only change how things look, so buying one puts it to use straight away, even mid-throw.
 	const buySkin = (id: ISkinId) => purchase.mutate({ kind: "skin", item: id });
 	const buyBatter = (id: IBatterId) => purchase.mutate({ kind: "batter", item: id });
@@ -211,8 +240,10 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 
 	const shopProps = {
 		progress,
-		busy: purchase.isPending || looks.isPending,
+		busy: purchase.isPending || looks.isPending || prestige.isPending,
 		onBuy: buy,
+		onBuyGemUpgrade: buyGemUpgrade,
+		onPrestige: wrapUpChristmas,
 		onBuySkin: buySkin,
 		onWearSkin: wearSkin,
 		onBuyBatter: buyBatter,
@@ -228,7 +259,7 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 			<div ref={stageRef} className={fullscreen ? `${classes.stage} ${classes.fullscreen}` : classes.stage}>
 				<ElfFlingGame
 					key={round}
-					upgrades={progress.upgrades}
+					upgrades={combinedUpgrades(progress.upgrades, progress.gemUpgrades)}
 					skin={progress.skin}
 					batter={progress.batter}
 					best={progress.bestDistance}
@@ -242,6 +273,7 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 					soundOn={soundOn}
 					onToggleSound={toggleSound}
 					coins={progress.coins}
+					gems={progress.prestiges > 0 ? progress.gems : null}
 					throwBanked={result?.banked != null}
 					onOpenShop={() => setShopOpen(true)}
 					shopOpen={shopOpen}
@@ -258,15 +290,15 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 					title={
 						<Group justify="space-between" wrap="nowrap" gap="sm">
 							Shop
-							<CoinBalance coins={progress.coins} />
+							<Balances progress={progress} compact />
 						</Group>
 					}
 					classNames={{ inner: classes.shopDrawer, title: classes.shopDrawerTitle }}
 					padding="sm"
 				>
-					{(purchase.isError || looks.isError) && (
+					{(purchase.isError || looks.isError || prestige.isError) && (
 						<Alert color="red" mb="sm">
-							{apiErrorMessage(purchase.error ?? looks.error)}
+							{apiErrorMessage(purchase.error ?? looks.error ?? prestige.error)}
 						</Alert>
 					)}
 					<ElfFlingShop {...shopProps} inDrawer />
@@ -278,7 +310,7 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 					{phase === "done" && result?.banked && result.banked.coins > 0 && (
 						<MantineText size="sm" fw={700} c="var(--festive-gold-text)">
 							+{result.banked.coins} {result.banked.coins === 1 ? "coin" : "coins"}
-							{result.banked.bonus > 0 && ` (${result.banked.bonus} from the lucky stocking)`}
+							{result.banked.bonus > 0 && ` (${result.banked.bonus} from ${bonusSources(progress)})`}
 						</MantineText>
 					)}
 					{phase === "done" && result?.banked?.newBest && (
@@ -310,8 +342,8 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 			</Group>
 			<MantineText hiddenFrom="xs">{INTRO}</MantineText>
 			<ElfFlingLeaderboard />
-			{(purchase.isError || looks.isError) && (
-				<Alert color="red">{apiErrorMessage(purchase.error ?? looks.error)}</Alert>
+			{(purchase.isError || looks.isError || prestige.isError) && (
+				<Alert color="red">{apiErrorMessage(purchase.error ?? looks.error ?? prestige.error)}</Alert>
 			)}
 			<ElfFlingShop {...shopProps} />
 		</>

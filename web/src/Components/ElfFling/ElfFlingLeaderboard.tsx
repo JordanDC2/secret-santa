@@ -9,6 +9,7 @@ import {
 	type ILeaderboardBoard,
 	type ILeaderboardPeriod,
 } from "Components/ElfFling/hooks";
+import { letGoOfFocus } from "Components/ElfFling/releaseFocus";
 import { apiErrorMessage } from "Data/Api/Client";
 import classes from "Components/ElfFling/ElfFling.module.less";
 
@@ -23,13 +24,6 @@ const PERIODS: { value: ILeaderboardPeriod; label: string }[] = [
 	{ value: "week", label: "This week" },
 	{ value: "all", label: "All time" },
 ];
-
-/** After switching, Space and Enter go back to the game, not to this switch (see releaseFocus.ts). */
-function letGoOfFocus() {
-	if (document.activeElement instanceof HTMLElement) {
-		document.activeElement.blur();
-	}
-}
 
 function formatValue(board: ILeaderboardBoard, value: number): string {
 	switch (board) {
@@ -71,7 +65,7 @@ export default function ElfFlingLeaderboard() {
 			<Tabs
 				// Festive gold: the theme's green underline disappears against the dark-mode card.
 				color="var(--festive-gold-deep)"
-				classNames={{ tab: classes.boardTab }}
+				classNames={{ tab: classes.festiveTab }}
 				value={board}
 				onChange={(value) => {
 					if (value) {

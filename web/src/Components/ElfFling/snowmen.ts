@@ -17,7 +17,7 @@ const HIT_HALF_WIDTH = 0.55;
 /** Far apart on purpose: most throws meet none, a long one maybe one or two. */
 const FIRST_AT = { min: 120, max: 220 };
 const GAP = { min: 260, max: 460 };
-const COURSE_LENGTH = 1500;
+const COURSE_LENGTH = 6000;
 
 export function laySnowmen(random: () => number = Math.random): ISnowman[] {
 	const between = (range: { min: number; max: number }) => range.min + random() * (range.max - range.min);

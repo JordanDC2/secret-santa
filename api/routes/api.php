@@ -23,6 +23,7 @@ use App\Http\Controllers\Auth\ResetPasswordHandler;
 use App\Http\Controllers\Auth\VerifyEmailHandler;
 use App\Http\Controllers\ElfFling\ImportHandler as ElfFlingImportHandler;
 use App\Http\Controllers\ElfFling\LeaderboardHandler as ElfFlingLeaderboardHandler;
+use App\Http\Controllers\ElfFling\PrestigeHandler as ElfFlingPrestigeHandler;
 use App\Http\Controllers\ElfFling\ProgressController as ElfFlingProgressController;
 use App\Http\Controllers\ElfFling\PurchaseHandler as ElfFlingPurchaseHandler;
 use App\Http\Controllers\ElfFling\ThrowHandler as ElfFlingThrowHandler;
@@ -149,6 +150,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('throws', ElfFlingThrowHandler::class)->middleware('throttle:elf-fling-throws')->name('throws');
 
         Route::post('purchases', ElfFlingPurchaseHandler::class)->name('purchases');
+
+        Route::post('prestige', ElfFlingPrestigeHandler::class)->name('prestige');
 
         Route::get('leaderboard', ElfFlingLeaderboardHandler::class)->name('leaderboard');
     });

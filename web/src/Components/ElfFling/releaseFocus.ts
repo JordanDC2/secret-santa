@@ -9,3 +9,10 @@ import type { MouseEvent } from "react";
 export function releaseFocus(event: MouseEvent<HTMLElement>) {
 	event.currentTarget.blur();
 }
+
+/** The same, for controls whose change handlers don't get the click (tabs, segmented controls). */
+export function letGoOfFocus() {
+	if (document.activeElement instanceof HTMLElement) {
+		document.activeElement.blur();
+	}
+}
