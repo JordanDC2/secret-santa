@@ -116,6 +116,9 @@ export type IGameState = {
 	snowmen: ISnowman[];
 	/** How many snowmen the elf has run into this round. */
 	bonks: number;
+	/** Each time the elf has come down on the snow, and how fast the last time (metres a second), for the sound. */
+	landings: number;
+	landingSpeed: number;
 	powerUps: IPowerUp[];
 	/** Which power-ups are going, and until when. */
 	active: IActivePowerUps;
@@ -216,6 +219,8 @@ export function newGame(
 		smashes: 0,
 		snowmen: [],
 		bonks: 0,
+		landings: 0,
+		landingSpeed: 0,
 		powerUps: [],
 		active: NO_ACTIVE_POWER_UPS,
 		grabs: 0,
@@ -703,7 +708,8 @@ function popCracker(state: IGameState): IGameState | null {
 	};
 }
 
-function land(state: IGameState): IGameState {
+function land(previous: IGameState): IGameState {
+	const state = { ...previous, landings: previous.landings + 1, landingSpeed: -previous.elf.vy };
 	const elf = { ...state.elf, y: ELF_RADIUS };
 
 	// Never hit: it just plops down by the reindeer's feet.

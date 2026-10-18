@@ -196,6 +196,13 @@ export function playThud() {
 }
 
 /** The elf's jump: a springy boing. */
+/** Coming down on the snow: a soft whump, louder the harder the landing. */
+export function playLanding(speed: number) {
+	const volume = Math.min(1, 0.25 + speed / 30);
+	hiss("lowpass", 900, 0.2, volume * 0.7, 0, 250);
+	tone("sine", 150, 55, 0.18, volume * 0.6);
+}
+
 export function playJump() {
 	tone("sine", 240, 620, 0.16, 0.45);
 }
@@ -266,7 +273,7 @@ export function playFanfare() {
 /**
  * The sounds for whatever just happened in the game, from one moment to the next: the hop off
  * the presents, the swing,
- * the hit, coins, crackers, ornaments, snowmen, power-ups, Yule logs, jumps, the rocket and the sleigh.
+ * the hit, coins, crackers, ornaments, snowmen, landings, power-ups, Yule logs, jumps, the rocket and the sleigh.
  */
 export function playStateChanges(previous: IGameState, next: IGameState) {
 	if (previous.phase === "ready" && next.phase === "dropping") {
@@ -295,6 +302,10 @@ export function playStateChanges(previous: IGameState, next: IGameState) {
 
 	if (next.bonks > previous.bonks) {
 		playThud();
+	}
+
+	if (next.landings > previous.landings) {
+		playLanding(next.landingSpeed);
 	}
 
 	if (next.jumpsLeft < previous.jumpsLeft) {
