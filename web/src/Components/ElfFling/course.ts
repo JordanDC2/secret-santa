@@ -9,6 +9,7 @@
  */
 
 import { addCoins, type ICoin } from "Components/ElfFling/coins";
+import { scarcity } from "Components/ElfFling/dayNight";
 import type { ICracker } from "Components/ElfFling/crackers";
 import type { IOrnament } from "Components/ElfFling/ornaments";
 import type { IPowerUp } from "Components/ElfFling/powerUps";
@@ -24,6 +25,8 @@ export type ILayout<T> = {
 	gap: IRange;
 	/** What goes at x: usually one thing, sometimes a little pattern. */
 	place: (x: number, random: () => number) => T[];
+	/** Whether it turns up less often in the day (dayNight.ts): the course's goodies do. */
+	scarcerByDay?: boolean;
 };
 
 export type ICourseItems = {
@@ -86,7 +89,7 @@ function layOut<T>(
 	const items: T[] = [];
 	let x = cursor;
 
-	for (; x < to; x += between(layout.gap, random)) {
+	for (; x < to; x += between(layout.gap, random) * (layout.scarcerByDay ? scarcity(x) : 1)) {
 		items.push(...layout.place(x, random));
 	}
 

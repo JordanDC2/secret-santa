@@ -6,11 +6,12 @@
  * shop upgrades, see upgrades.ts) crackers, sky ornaments and a sleigh that launch it on,
  * jumps and a rocket the player sets off, power-ups to grab (powerUps.ts), Yule log cannons to
  * slide into (yuleLogs.ts), winds and updrafts (weather.ts), and the odd snowman that gets in
- * the way. The course
+ * the way. Long runs go from night into day, which is warmer and harder (dayNight.ts). The course
  * never ends: it's laid out as the elf goes (course.ts). Distance is measured from the reindeer.
  */
 
 import { COIN_LAYOUTS, collectCoins, type ICoin } from "Components/ElfFling/coins";
+import { MELT_FRICTION, warmth } from "Components/ElfFling/dayNight";
 import { keepCourseAhead, seededRandom, startCourse, type ICourse } from "Components/ElfFling/course";
 import { CRACKER_LAYOUT, crackerTouching, poppedVelocity, type ICracker } from "Components/ElfFling/crackers";
 import { kickedVelocity, ORNAMENT_LAYOUT, ornamentHit, type IOrnament } from "Components/ElfFling/ornaments";
@@ -401,9 +402,11 @@ function fly(state: IGameState, dt: number): IGameState {
 /** Along the snow, slowing until it stops. */
 function slide(state: IGameState, dt: number): IGameState {
 	const elf = state.elf;
-	// A giant snowball barely slows.
+	// A giant snowball barely slows; melting snow by day slows things sooner.
 	const friction =
-		snowFriction(state.upgrades) * (isActive(state.active, "giantSnowball", state.time) ? SNOWBALL_FRICTION : 1);
+		snowFriction(state.upgrades) *
+		(isActive(state.active, "giantSnowball", state.time) ? SNOWBALL_FRICTION : 1) *
+		(1 + MELT_FRICTION * warmth(elf.x));
 	elf.vx = Math.max(0, elf.vx - friction * dt);
 	elf.x += elf.vx * dt;
 	elf.spin += (elf.vx / ELF_RADIUS) * dt * 0.5;

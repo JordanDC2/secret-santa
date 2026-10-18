@@ -94,6 +94,7 @@ export function powerUpLayout(kinds: IPowerUpKind[]): ILayout<IPowerUp> | null {
 		// The first close enough that even a short throw can reach it.
 		firstAt: { min: 25, max: 50 },
 		gap: { min: 70, max: 150 },
+		scarcerByDay: true,
 		place: (x, random) => [
 			{
 				x,

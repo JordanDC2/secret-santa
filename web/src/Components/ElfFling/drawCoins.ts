@@ -117,6 +117,20 @@ export function drawCoinCount(context: CanvasRenderingContext2D, palette: IPalet
 }
 
 /**
+ * Text over the game with a dark outline, so it reads on the night sky and the pale day sky
+ * alike. Uses the context's current font, alignment and fill.
+ */
+export function drawOutlinedText(context: CanvasRenderingContext2D, text: string, x: number, y: number) {
+	context.save();
+	context.lineJoin = "round";
+	context.lineWidth = 4;
+	context.strokeStyle = "rgba(15, 32, 39, 0.8)";
+	context.strokeText(text, x, y);
+	context.restore();
+	context.fillText(text, x, y);
+}
+
+/**
  * A balance beside its icon (centred at x, y), and what this throw has added in smaller,
  * fainter type after it. Screen units.
  */
@@ -133,15 +147,13 @@ export function drawTally(
 	context.font = "800 20px Nunito, sans-serif";
 	context.fillStyle = palette.gold;
 	const totalText = total.toLocaleString();
-	context.fillText(totalText, x + 18, y + 1);
+	drawOutlinedText(context, totalText, x + 18, y + 1);
 
 	if (thisThrow > 0) {
 		const after = x + 18 + context.measureText(totalText).width + 8;
 		context.font = "700 14px Nunito, sans-serif";
 		context.fillStyle = palette.white;
-		context.globalAlpha = 0.8;
-		context.fillText(`+${thisThrow.toLocaleString()}`, after, y + 2);
-		context.globalAlpha = 1;
+		drawOutlinedText(context, `+${thisThrow.toLocaleString()}`, after, y + 2);
 	}
 
 	context.textBaseline = "alphabetic";

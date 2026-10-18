@@ -1,16 +1,17 @@
 import { REINDEER_X, STACK, type IGameState } from "Components/ElfFling/physics";
 import { drawCelebration } from "Components/ElfFling/drawCelebration";
-import { drawCoinCount, drawCoins } from "Components/ElfFling/drawCoins";
+import { drawCoinCount, drawCoins, drawOutlinedText } from "Components/ElfFling/drawCoins";
 import { drawGemCount } from "Components/ElfFling/drawGems";
 import { drawActivePowerUps, drawElfPowerUps, drawPowerUps, drawShine } from "Components/ElfFling/drawPowerUps";
 import { POWER_UP_SECONDS } from "Components/ElfFling/powerUps";
+import { sunAt, warmth } from "Components/ElfFling/dayNight";
 import { drawWeather } from "Components/ElfFling/drawWeather";
 import { drawYuleLogs } from "Components/ElfFling/drawYuleLogs";
 import { drawCrackers, drawPopLabels } from "Components/ElfFling/drawCrackers";
 import { drawFlyer, flyerEnlargement } from "Components/ElfFling/drawFlyers";
 import { drawOrnaments } from "Components/ElfFling/drawOrnaments";
 import { drawSleigh } from "Components/ElfFling/drawSleigh";
-import { drawSnowfall } from "Components/ElfFling/drawSnowfall";
+import { BACKGROUND_PIXELS_PER_METRE, drawSnowfall } from "Components/ElfFling/drawSnowfall";
 import { drawSnowmen } from "Components/ElfFling/drawSnowmen";
 import type { IBatterId, ISkinId } from "Components/ElfFling/skins";
 import { drawBatter } from "Components/ElfFling/drawBatters";
@@ -119,8 +120,11 @@ export function drawFrame(
 		y: groundY - y * camera.pixelsPerMetre,
 	});
 
-	drawSky(context, palette, width, groundY, camera);
-	drawGround(context, palette, width, height, groundY);
+	// How far into the day the middle of the view is (dayNight.ts).
+	const viewMiddle = camera.left + width / camera.pixelsPerMetre / 2;
+	const day = warmth(viewMiddle);
+	drawSky(context, palette, width, groundY, camera, day, sunAt(viewMiddle));
+	drawGround(context, palette, width, height, groundY, camera, day);
 	drawDistanceFlags(context, palette, camera, width, groundY, best);
 
 	context.save();
@@ -145,7 +149,7 @@ export function drawFrame(
 	drawYuleLogs(context, palette, state.yuleLogs, state.inLog?.x ?? null, state.time, camera.pixelsPerMetre, visible);
 	context.restore();
 	drawPopLabels(context, palette, state.crackers, state.time, toScreen);
-	drawSnowfall(context, palette, camera, size, clock);
+	drawSnowfall(context, palette, camera, size, clock, 1 - day * 0.8);
 
 	if (celebrationAge !== null) {
 		drawCelebration(context, palette, size, celebrationAge);
@@ -169,27 +173,52 @@ export function drawFrame(
 	}
 }
 
+/** The winter day: a pale blue sky, low sun and greener hills, blended in as it warms. */
+const DAY = { skyTop: "#5e9fd6", skyBottom: "#cfe6f3", hills: "#4f8a5b", slush: "#c9d2cd", grass: "#5c8f4e" };
+
+/**
+ * The sky: night blue-green, warming to a winter blue by day (day: 0 to 1), with stars that fade
+ * out by day, the sun (sun: 0 rising to 1 setting, null at night) and distant hills.
+ */
 function drawSky(
 	context: CanvasRenderingContext2D,
 	palette: IPalette,
 	width: number,
 	groundY: number,
 	camera: ICamera,
+	day: number,
+	sun: number | null,
 ) {
 	const sky = context.createLinearGradient(0, 0, 0, groundY);
-	sky.addColorStop(0, palette.skyTop);
-	sky.addColorStop(1, palette.skyBottom);
+	sky.addColorStop(0, mix(palette.skyTop, DAY.skyTop, day));
+	sky.addColorStop(1, mix(palette.skyBottom, DAY.skyBottom, day));
 	context.fillStyle = sky;
 	context.fillRect(0, 0, width, groundY);
 
-	// Stars, scrolling slowly so the flight feels fast without being dizzy.
+	if (sun !== null) {
+		// Low across the sky, as a winter sun is. The elf heads east (right), so the sun comes up
+		// on the right, is highest at noon, and sets on the left in the west.
+		const x = width * (0.9 - 0.8 * sun);
+		const y = groundY - Math.sin(sun * Math.PI) * groundY * 0.55 - 10;
+		const glow = context.createRadialGradient(x, y, 0, x, y, 70);
+		glow.addColorStop(0, "rgba(255, 236, 170, 0.55)");
+		glow.addColorStop(1, "rgba(255, 236, 170, 0)");
+		context.fillStyle = glow;
+		context.fillRect(x - 70, y - 70, 140, 140);
+		context.fillStyle = "#fff3c4";
+		context.beginPath();
+		context.arc(x, y, 20, 0, Math.PI * 2);
+		context.fill();
+	}
+
+	// Stars, scrolling slowly so the flight feels fast without being dizzy; gone by day.
 	context.fillStyle = palette.gold;
-	const drift = camera.left * camera.pixelsPerMetre * 0.1;
+	const drift = camera.left * BACKGROUND_PIXELS_PER_METRE * 0.1;
 	for (let index = 0; index < 40; index++) {
 		const x = (((index * 137.5 - drift) % width) + width) % width;
 		const y = (((index * 97) % 100) / 100) * groundY * 0.75;
 		const radius = index % 5 === 0 ? 1.6 : 1;
-		context.globalAlpha = 0.35 + (index % 3) * 0.2;
+		context.globalAlpha = (0.35 + (index % 3) * 0.2) * (1 - day);
 		context.beginPath();
 		context.arc(x, y, radius, 0, Math.PI * 2);
 		context.fill();
@@ -197,11 +226,11 @@ function drawSky(
 	context.globalAlpha = 1;
 
 	// Distant hills, slower still.
-	context.fillStyle = palette.greenDark;
+	context.fillStyle = mix(palette.greenDark, DAY.hills, day);
 	context.globalAlpha = 0.55;
 	context.beginPath();
 	context.moveTo(0, groundY);
-	const hillDrift = camera.left * camera.pixelsPerMetre * 0.3;
+	const hillDrift = camera.left * BACKGROUND_PIXELS_PER_METRE * 0.3;
 	for (let x = 0; x <= width; x += 8) {
 		const worldX = (x + hillDrift) / 90;
 		context.lineTo(x, groundY - 28 - Math.sin(worldX) * 16 - Math.sin(worldX * 2.7) * 8);
@@ -211,17 +240,77 @@ function drawSky(
 	context.globalAlpha = 1;
 }
 
+/** The snow, going grey and slushy by day (day: 0 to 1), with patches of grass showing through. */
 function drawGround(
 	context: CanvasRenderingContext2D,
 	palette: IPalette,
 	width: number,
 	height: number,
 	groundY: number,
+	camera: ICamera,
+	day: number,
 ) {
-	context.fillStyle = palette.snow;
+	context.fillStyle = mix(palette.snow, DAY.slush, day * 0.7);
 	context.fillRect(0, groundY, width, height - groundY);
+
+	if (day > 0) {
+		// Patches fixed to the course every few metres and sized in metres, so they slide past
+		// steadily with it whatever the zoom.
+		const first = Math.floor(camera.left / PATCH_SPACING) * PATCH_SPACING - PATCH_SPACING;
+		context.fillStyle = DAY.grass;
+		context.globalAlpha = day * 0.55;
+
+		for (let metre = first; metre < camera.left + width / camera.pixelsPerMetre; metre += PATCH_SPACING) {
+			const chance = patch(metre);
+
+			if (chance < 0.35) {
+				const x = (metre - camera.left) * camera.pixelsPerMetre;
+				const halfWidth = Math.max(1, (1 + chance * 6) * camera.pixelsPerMetre);
+				context.beginPath();
+				context.ellipse(x, groundY + 6 + chance * 20, halfWidth, 3 + chance * 6, 0, 0, Math.PI * 2);
+				context.fill();
+			}
+		}
+
+		context.globalAlpha = 1;
+	}
+
 	context.fillStyle = palette.snowShade;
 	context.fillRect(0, groundY, width, 3);
+}
+
+/** Grass patches can show every this many metres along the course. */
+const PATCH_SPACING = 6;
+
+/** A repeatable "random" number in [0, 1) for a spot on the course. */
+function patch(metre: number): number {
+	const value = Math.sin(metre * 12.9898) * 43758.5453;
+
+	return value - Math.floor(value);
+}
+
+/** Two #rrggbb colours mixed: t of the way from a to b. */
+function mix(a: string, b: string, t: number): string {
+	if (t <= 0) {
+		return a;
+	}
+
+	const from = parseHex(a);
+	const to = parseHex(b);
+
+	if (!from || !to) {
+		return t < 0.5 ? a : b;
+	}
+
+	const channel = (i: number) => Math.round(from[i] + (to[i] - from[i]) * Math.min(1, t));
+
+	return `rgb(${channel(0)}, ${channel(1)}, ${channel(2)})`;
+}
+
+function parseHex(color: string): [number, number, number] | null {
+	const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color.trim());
+
+	return match ? [parseInt(match[1], 16), parseInt(match[2], 16), parseInt(match[3], 16)] : null;
 }
 
 /** A peppermint pole every 10 m, and a gold "Best" flag at this device's best throw. */
@@ -325,5 +414,5 @@ function drawLiveDistance(context: CanvasRenderingContext2D, palette: IPalette, 
 	context.font = "800 22px Nunito, sans-serif";
 	context.textAlign = "right";
 	context.fillStyle = palette.gold;
-	context.fillText(`${Math.max(0, metres).toFixed(1)} m`, width - 14, 32);
+	drawOutlinedText(context, `${Math.max(0, metres).toFixed(1)} m`, width - 14, 32);
 }

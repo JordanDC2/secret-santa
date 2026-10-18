@@ -29,6 +29,7 @@ const HEIGHT = { min: 5, max: 26 };
 export const ORNAMENT_LAYOUT: ILayout<IOrnament> = {
 	firstAt: { min: 15, max: 25 },
 	gap: { min: 7, max: 16 },
+	scarcerByDay: true,
 	place: (x, random) => [{ x, y: between(HEIGHT, random), shatteredAt: null, look: random() }],
 };
 

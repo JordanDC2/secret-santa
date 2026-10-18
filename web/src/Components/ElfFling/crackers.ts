@@ -32,6 +32,7 @@ const MAX_FORWARD = 32;
 export const CRACKER_LAYOUT: ILayout<ICracker> = {
 	firstAt: { min: 12, max: 45 },
 	gap: { min: 12, max: 48 },
+	scarcerByDay: true,
 	place: (x, random) => {
 		const count = random() < 0.25 ? 2 + Math.floor(random() * 2) : 1;
 		const crackers: ICracker[] = [];

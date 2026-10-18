@@ -7,6 +7,13 @@ import type { ICamera, IPalette } from "Components/ElfFling/draw";
  * asked their device for less motion.
  */
 
+/**
+ * How far the background (stars, hills, falling snow) scrolls per metre travelled, in pixels,
+ * before parallax. Fixed rather than taken from the camera's zoom: on a long run the distance is
+ * thousands of metres, so tying it to the zoom made the background lurch whenever it zoomed.
+ */
+export const BACKGROUND_PIXELS_PER_METRE = 20;
+
 const FLAKES = 60;
 /** Each flake's fixed character, from its number: where it starts, how big, fast and near it is. */
 const flakes = Array.from({ length: FLAKES }, (_, index) => ({
@@ -29,6 +36,8 @@ export function drawSnowfall(
 	camera: ICamera,
 	size: { width: number; height: number },
 	clock: number,
+	/** How much snow is falling, 0 to 1: less by day. */
+	amount = 1,
 ) {
 	if (reducedMotion) {
 		return;
@@ -38,11 +47,11 @@ export function drawSnowfall(
 	context.fillStyle = palette.white;
 
 	for (const flake of flakes) {
-		const pan = camera.left * camera.pixelsPerMetre * flake.depth;
+		const pan = camera.left * BACKGROUND_PIXELS_PER_METRE * flake.depth;
 		const x = wrap(flake.x * width - pan + Math.sin(clock * 0.8 + flake.x * 20) * flake.sway, width);
 		const y = wrap(flake.y * height + clock * flake.fallSpeed, height);
 
-		context.globalAlpha = flake.alpha;
+		context.globalAlpha = flake.alpha * amount;
 		context.beginPath();
 		context.arc(x, y, flake.radius, 0, Math.PI * 2);
 		context.fill();

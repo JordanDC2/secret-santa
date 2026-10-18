@@ -27,6 +27,7 @@ export const YULE_LOG_LAYOUT: ILayout<IYuleLog> = {
 	// Rare, so one is a treat: a few hundred metres apart.
 	firstAt: { min: 120, max: 260 },
 	gap: { min: 300, max: 600 },
+	scarcerByDay: true,
 	place: (x) => [{ x, firedAt: null }],
 };
 
