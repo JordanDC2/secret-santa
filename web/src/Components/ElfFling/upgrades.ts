@@ -224,7 +224,8 @@ export const POWER_UP_ITEMS: Array<{ id: IPowerUpKind; name: string; description
 	{
 		id: "gingerbreadMan",
 		name: "Gingerbread man",
-		description: "Catch a gingerbread man on the course and every coin counts for more.",
+		description:
+			"Catch a gingerbread man on the course and run, run, as fast as you can: a burst of speed, and the air doesn't slow you.",
 		prices: [6, 12, 20],
 	},
 	{

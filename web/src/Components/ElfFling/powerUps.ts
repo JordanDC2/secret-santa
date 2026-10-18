@@ -3,7 +3,7 @@
  * some mid-air. Grabbing one sets it going for a few seconds (longer with more levels):
  *
  * - Christmas star: nothing slows the elf: snowmen go flying, and bounces keep all its speed.
- * - Gingerbread man: coins count double.
+ * - Gingerbread man: as fast as he can: a burst of forward speed, and no air drag.
  * - Snow angel wings: a fall turns into a gentle glide.
  * - Giant snowball: the elf rolls up inside one, reaching further for everything it can grab.
  *   It rolls instead of bouncing, barely slowing, and pops the elf back up when it wears off.
@@ -45,6 +45,8 @@ export const POWER_UP_SECONDS: Record<IPowerUpKind, number[]> = {
 
 /** Generous, like coins: they're drawn bigger than life when zoomed out. */
 const GRAB_RADIUS = 1.8;
+/** The gingerbread man's burst of forward speed when grabbed, in m/s (and no air drag while he lasts). */
+export const GINGERBREAD_BURST = 8;
 /** Gliding with wings: the elf falls no faster than this, in m/s. */
 export const GLIDE_SINK = 2.2;
 /** Rolling as a snowball: this share of the usual snow friction, and this much further reach

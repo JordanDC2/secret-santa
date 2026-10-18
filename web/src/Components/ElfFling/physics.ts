@@ -14,6 +14,7 @@ import { keepCourseAhead, seededRandom, startCourse, type ICourse } from "Compon
 import { CRACKER_LAYOUT, crackerTouching, poppedVelocity, type ICracker } from "Components/ElfFling/crackers";
 import { kickedVelocity, ORNAMENT_LAYOUT, ornamentHit, type IOrnament } from "Components/ElfFling/ornaments";
 import {
+	GINGERBREAD_BURST,
 	GLIDE_SINK,
 	isActive,
 	NO_ACTIVE_POWER_UPS,
@@ -300,7 +301,8 @@ function fly(state: IGameState, dt: number): IGameState {
 	const speed = Math.hypot(elf.vx, elf.vy);
 	const gravity = next.phase === "dropping" ? DROP_GRAVITY : GRAVITY;
 	const rocket = next.rocketUntil !== null && next.time < next.rocketUntil;
-	const drag = AIR_DRAG * airDragShare(next.upgrades);
+	// No air drag at all while the gingerbread man lasts.
+	const drag = isActive(next.active, "gingerbreadMan", next.time) ? 0 : AIR_DRAG * airDragShare(next.upgrades);
 
 	elf.vx += ((rocket ? ROCKET_PUSH.forward : 0) - drag * elf.vx * speed) * dt;
 	elf.vy += ((rocket ? ROCKET_PUSH.up : 0) - gravity - drag * elf.vy * speed) * dt;
@@ -404,10 +406,7 @@ function pickUpCoins(state: IGameState, dt: number): IGameState {
 		dt,
 		extraReach(state),
 	);
-	// The gingerbread man doubles coins while he lasts.
-	const worth = isActive(state.active, "gingerbreadMan", state.time) ? 2 : 1;
-
-	return coins === state.coins ? state : { ...state, coins, coinsCollected: state.coinsCollected + gained * worth };
+	return coins === state.coins ? state : { ...state, coins, coinsCollected: state.coinsCollected + gained };
 }
 
 /** The giant snowball running out: it's gone, and if it was rolling, it pops the elf back up. */
@@ -442,6 +441,8 @@ function grabPowerUp(state: IGameState): IGameState {
 		...state,
 		powerUps: state.powerUps.map((powerUp, i) => (i === index ? { ...powerUp, collectedAt: state.time } : powerUp)),
 		active: { ...state.active, [kind]: state.time + seconds },
+		// The gingerbread man sets off at once.
+		elf: kind === "gingerbreadMan" ? { ...state.elf, vx: state.elf.vx + GINGERBREAD_BURST } : state.elf,
 	};
 }
 

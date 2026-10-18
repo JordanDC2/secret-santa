@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCoins, faGem, faSnowflake } from "@fortawesome/free-solid-svg-icons";
 import SectionCard from "Components/Common/SectionCard";
 import {
+	GINGERBREAD_BURST,
 	GLIDE_SINK,
 	POWER_UP_SECONDS,
 	SNOWBALL_FRICTION,
@@ -329,7 +330,7 @@ function WrapUpChristmas({ progress, busy, onWrapUp }: IWrapUpChristmasProps) {
 /** What each power-up does, in numbers (powerUps.ts and the physics apply them). */
 const POWER_UP_EFFECTS: Record<IPowerUpKind, string> = {
 	christmasStar: "Bounces keep: 100% of their speed",
-	gingerbreadMan: "Coins: ×2",
+	gingerbreadMan: `Burst: +${GINGERBREAD_BURST} m/s · Air drag: none`,
 	snowAngelWings: `Fastest fall: ${GLIDE_SINK} m/s`,
 	giantSnowball: `Reach: +${SNOWBALL_REACH} m · Slide friction: −${Math.round((1 - SNOWBALL_FRICTION) * 100)}%`,
 };
