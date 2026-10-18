@@ -207,6 +207,28 @@ export function playSleighBells() {
 	}
 }
 
+/**
+ * Soft sleigh bells for as long as the player holds "wrap up Christmas": quiet, scattered
+ * jingles that come quicker and a little louder as the hold goes on. Returns a function that
+ * stops them.
+ */
+export function startSleighBellAmbience(seconds: number): () => void {
+	const started = performance.now();
+	let timer = 0;
+
+	const jingle = () => {
+		const progress = Math.min(1, (performance.now() - started) / (seconds * 1000));
+		const pitch = 2000 + Math.random() * 900;
+		tone("sine", pitch, pitch, 0.14, 0.05 + 0.06 * progress);
+		tone("sine", pitch * 2.4, pitch * 2.4, 0.07, 0.02 + 0.02 * progress);
+		timer = window.setTimeout(jingle, 240 - 150 * progress + Math.random() * 60);
+	};
+
+	jingle();
+
+	return () => window.clearTimeout(timer);
+}
+
 /** A new best: a little rising fanfare. */
 export function playFanfare() {
 	[523, 659, 784, 1047].forEach((pitch, i) => tone("triangle", pitch, pitch, i === 3 ? 0.6 : 0.16, 0.4, i * 0.12));

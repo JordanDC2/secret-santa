@@ -1,9 +1,9 @@
 /**
  * The Elf Fling shops: what each upgrade costs and what owning it changes in a throw. Levels
- * start at 0 (not bought). Every upgrade is sold twice: for coins, which prestige takes away,
- * and for gems, kept for good. Gem levels stack on top of coin levels for the levelled
- * upgrades; for the rest, owning it with gems means it's owned. The helpers at the bottom turn
- * levels into the numbers the physics uses. The server charges the same prices
+ * start at 0 (not bought). Coin levels go when you wrap up Christmas (prestige); gem levels
+ * stay. In the gem shop, a few upgrades sell extra levels on top of the coin shop's; the rest
+ * sell keeping the coin shop's levels through prestige. The helpers at the bottom turn levels
+ * into the numbers the physics uses. The server charges the same prices
  * (api/config/elf_fling.php).
  */
 
@@ -33,13 +33,33 @@ export type IShopItem = {
 	description: string;
 	/** The price of each level in turn, in coins: one price means a single purchase. */
 	prices: number[];
-	/** The same in gems, for levels kept through prestige. */
-	gemPrices: number[];
-	/** Whether gem levels go on top of the coin levels (levelled upgrades) or stand in for them. */
-	gemStacks: boolean;
+	/** How the gem shop sells it. */
+	gem: IGemOffer;
 	/** Shown after the description where there's a keyboard (not on phones). */
 	keyboardHint?: string;
 };
+
+/**
+ * "extra": levels on top of the coin shop's. "keep": the coin shop's own levels, kept when you
+ * wrap up Christmas, so there's no buying them again. Either way, gem levels never reset.
+ */
+export type IGemOffer = {
+	kind: "extra" | "keep";
+	name: string;
+	description: string;
+	/** In gems, one per level. */
+	prices: number[];
+};
+
+const keep = (name: string, prices: number[]): IGemOffer => ({
+	kind: "keep",
+	name: `Keep ${name}`,
+	description:
+		prices.length > 1
+			? "Each level bought here stays when you wrap up Christmas, so it never needs buying again."
+			: "Stays when you wrap up Christmas, so it never needs buying again.",
+	prices,
+});
 
 export const SHOP_ITEMS: IShopItem[] = [
 	{
@@ -48,8 +68,12 @@ export const SHOP_ITEMS: IShopItem[] = [
 		name: "Swing strength",
 		description: "The reindeer swings harder, so every hit sends the elf further.",
 		prices: [25, 50, 80, 120, 175],
-		gemPrices: [3, 8, 15],
-		gemStacks: true,
+		gem: {
+			kind: "extra",
+			name: "Extra swing strength",
+			description: "Up to three levels on top of the coin shop's five, each sending the elf further still.",
+			prices: [3, 8, 15],
+		},
 	},
 	{
 		id: "goldenCane",
@@ -57,8 +81,7 @@ export const SHOP_ITEMS: IShopItem[] = [
 		name: "Golden candy cane",
 		description: "A bigger sweet spot: easier to connect, and near misses still fly well.",
 		prices: [50, 110],
-		gemPrices: [3, 8, 15],
-		gemStacks: true,
+		gem: keep("the golden candy cane", [2, 5]),
 	},
 	{
 		id: "sledRunners",
@@ -66,8 +89,7 @@ export const SHOP_ITEMS: IShopItem[] = [
 		name: "Sled runners",
 		description: "Slicker snow under the elf, so slides go much further.",
 		prices: [40, 80, 130],
-		gemPrices: [3, 8, 15],
-		gemStacks: true,
+		gem: keep("the sled runners", [2, 4, 7]),
 	},
 	{
 		id: "springyBoots",
@@ -75,8 +97,12 @@ export const SHOP_ITEMS: IShopItem[] = [
 		name: "Springy boots",
 		description: "Bouncier landings that keep more of the elf's speed.",
 		prices: [45, 90, 140],
-		gemPrices: [3, 8, 15],
-		gemStacks: true,
+		gem: {
+			kind: "extra",
+			name: "Extra springy boots",
+			description: "One level on top of the coin shop's three: bouncier landings still.",
+			prices: [8],
+		},
 	},
 	{
 		id: "crackers",
@@ -84,8 +110,7 @@ export const SHOP_ITEMS: IShopItem[] = [
 		name: "Christmas crackers",
 		description: "Crackers appear in the snow. Land on one and bang! The elf flies off again.",
 		prices: [40],
-		gemPrices: [3],
-		gemStacks: false,
+		gem: keep("Christmas crackers", [3]),
 	},
 	{
 		id: "paddedSuit",
@@ -94,8 +119,7 @@ export const SHOP_ITEMS: IShopItem[] = [
 		description:
 			"Snowmen stop the elf dead. Padded, it keeps half its speed and ploughs on; extra padded, three quarters.",
 		prices: [90, 260],
-		gemPrices: [4, 10],
-		gemStacks: false,
+		gem: keep("the padded snowsuit", [3, 6]),
 	},
 	{
 		id: "elfJump",
@@ -103,8 +127,7 @@ export const SHOP_ITEMS: IShopItem[] = [
 		name: "Elf jump",
 		description: "Tap while the elf is flying or sliding to give it a hop upward. One jump per level, each throw.",
 		prices: [60, 120, 200],
-		gemPrices: [3, 8, 15],
-		gemStacks: true,
+		gem: keep("elf jumps", [2, 4, 7]),
 	},
 	{
 		id: "rocket",
@@ -114,8 +137,7 @@ export const SHOP_ITEMS: IShopItem[] = [
 			"Once per throw, a rocket button appears while the elf is out on the course: tap it for a fizzing blast forward.",
 		keyboardHint: "On a keyboard, R fires it too.",
 		prices: [120],
-		gemPrices: [5],
-		gemStacks: false,
+		gem: keep("the firework rocket", [4]),
 	},
 	{
 		id: "skyOrnaments",
@@ -124,8 +146,7 @@ export const SHOP_ITEMS: IShopItem[] = [
 		description:
 			"Glass ornaments hang in the sky. Fly into one and it shatters, kicking the elf higher, toward the sky coins.",
 		prices: [150],
-		gemPrices: [5],
-		gemStacks: false,
+		gem: keep("sky ornaments", [4]),
 	},
 	{
 		id: "sleigh",
@@ -133,8 +154,7 @@ export const SHOP_ITEMS: IShopItem[] = [
 		name: "Sleigh sighting",
 		description: "Now and then a sleigh crosses the sky. Catch it and the elf gets a long ride.",
 		prices: [250],
-		gemPrices: [8],
-		gemStacks: false,
+		gem: keep("sleigh sightings", [6]),
 	},
 	{
 		id: "candyMagnet",
@@ -142,8 +162,12 @@ export const SHOP_ITEMS: IShopItem[] = [
 		name: "Candy magnet",
 		description: "Coins drift toward the elf from further away.",
 		prices: [35, 75, 130],
-		gemPrices: [3, 8, 15],
-		gemStacks: true,
+		gem: {
+			kind: "extra",
+			name: "Extra candy magnet",
+			description: "One level on top of the coin shop's three: coins drift in from further away still.",
+			prices: [6],
+		},
 	},
 	{
 		id: "luckyStocking",
@@ -151,8 +175,12 @@ export const SHOP_ITEMS: IShopItem[] = [
 		name: "Lucky stocking",
 		description: "Every coin you bank is worth more: a quarter extra per level.",
 		prices: [100, 220],
-		gemPrices: [3, 8, 15],
-		gemStacks: true,
+		gem: {
+			kind: "extra",
+			name: "Extra lucky stocking",
+			description: "One level on top of the coin shop's two: another quarter on every coin you bank.",
+			prices: [10],
+		},
 	},
 ];
 
@@ -173,19 +201,19 @@ export const NO_UPGRADES: IUpgrades = {
 	luckyStocking: 0,
 };
 
-/** Gem levels bought, per upgrade (plus the gem-only Christmas bonus): kept through prestige. */
+/** Gem levels bought, per upgrade (plus the gem-only Christmas bonus): they never reset. */
 export type IGemUpgrades = IUpgrades & { christmasBonus: number };
 
 /** Sold only for gems: banked coins double with each level (×2, ×4, ×8). */
 export const CHRISTMAS_BONUS = {
 	name: "Christmas bonus",
 	description: "Santa doubles every coin you bank, and doubles it again with each level: ×2, ×4, then ×8.",
-	gemPrices: [10, 25, 50],
+	prices: [10, 25, 50],
 };
 
 /** An upgrade's top level, counting coin and gem levels together. */
 export function maxLevel(item: IShopItem): number {
-	return item.prices.length + (item.gemStacks ? item.gemPrices.length : 0);
+	return item.prices.length + (item.gem.kind === "extra" ? item.gem.prices.length : 0);
 }
 
 /** The coin and gem levels together, as the throw uses them. */
@@ -199,14 +227,19 @@ export function combinedUpgrades(upgrades: IUpgrades, gemUpgrades: IGemUpgrades)
 	return combined;
 }
 
-/** The coin price of the next level, or null if there's none to buy (all bought, or owned with gems). */
+/**
+ * The coin price of the next level, or null if there's none to buy (all bought, or kept with
+ * gems). Kept levels count as bought, so the next one is priced as the level after them.
+ */
 export function nextCoinPrice(item: IShopItem, coinLevel: number, gemLevel: number): number | null {
-	return coinLevel + gemLevel >= maxLevel(item) ? null : (item.prices[coinLevel] ?? null);
+	const level = item.gem.kind === "keep" ? coinLevel + gemLevel : coinLevel;
+
+	return coinLevel + gemLevel >= maxLevel(item) ? null : (item.prices[level] ?? null);
 }
 
 /** The gem price of the next gem level, or null once they're all bought. */
 export function nextGemPrice(item: IShopItem, gemLevel: number): number | null {
-	return item.gemPrices[gemLevel] ?? null;
+	return item.gem.prices[gemLevel] ?? null;
 }
 
 /** The gems prestiging would give for these spare coins: √(coins ÷ 10), rounded down. */

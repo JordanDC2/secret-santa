@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Badge, Button, Divider, Group, Stack, Tabs, Text as MantineText } from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCoins, faGem, faSnowflake } from "@fortawesome/free-solid-svg-icons";
-import ConfirmButtons from "Components/Common/ConfirmButtons";
 import SectionCard from "Components/Common/SectionCard";
 import {
 	CHRISTMAS_BONUS,
@@ -25,7 +24,8 @@ type IElfFlingShopProps = {
 	busy: boolean;
 	onBuy: (id: IUpgradeId) => void;
 	onBuyGemUpgrade: (id: IUpgradeId | "christmasBonus") => void;
-	onPrestige: () => void;
+	/** Opens the hold-to-confirm over the game (WrapUpHold.tsx). */
+	onWrapUp: () => void;
 	onBuySkin: (id: ISkinId) => void;
 	onWearSkin: (id: ISkinId) => void;
 	onBuyBatter: (id: IBatterId) => void;
@@ -49,7 +49,7 @@ export default function ElfFlingShop({
 	busy,
 	onBuy,
 	onBuyGemUpgrade,
-	onPrestige,
+	onWrapUp,
 	onBuySkin,
 	onWearSkin,
 	onBuyBatter,
@@ -64,6 +64,7 @@ export default function ElfFlingShop({
 
 	const coinShop = (
 		<Stack gap="md">
+			<WrapUpChristmas progress={progress} busy={busy} onWrapUp={onWrapUp} />
 			{SHOP_GROUPS.map((group) => (
 				<Stack key={group} gap="sm">
 					<Divider label={group} labelPosition="left" />
@@ -72,10 +73,7 @@ export default function ElfFlingShop({
 							key={item.id}
 							name={item.name}
 							description={describe(item)}
-							level={upgrades[item.id]}
-							levels={item.prices.length}
-							keptLevels={gemUpgrades[item.id]}
-							stacks={item.gemStacks}
+							{...coinRowLevels(item, upgrades[item.id], gemUpgrades[item.id])}
 							price={nextCoinPrice(item, upgrades[item.id], gemUpgrades[item.id])}
 							currency="coins"
 							balance={coins}
@@ -85,7 +83,6 @@ export default function ElfFlingShop({
 					))}
 				</Stack>
 			))}
-			<WrapUpChristmas progress={progress} busy={busy} onPrestige={onPrestige} />
 			<Stack gap="sm">
 				<Divider label="Looks: who gets flung" labelPosition="left" />
 				{SKINS.map((skin) => (
@@ -122,11 +119,25 @@ export default function ElfFlingShop({
 		</Stack>
 	);
 
+	const gemRow = (item: IShopItem) => (
+		<ShopRow
+			key={item.id}
+			name={item.gem.name}
+			description={item.gem.description}
+			level={gemUpgrades[item.id]}
+			levels={item.gem.prices.length}
+			doneLabel={item.gem.kind === "keep" ? "Kept" : undefined}
+			price={nextGemPrice(item, gemUpgrades[item.id])}
+			currency="gems"
+			balance={gems}
+			busy={busy}
+			onBuy={() => onBuyGemUpgrade(item.id)}
+		/>
+	);
 	const gemShop = (
 		<Stack gap="md">
 			<MantineText size="sm" c="dimmed">
-				The same upgrades, kept for good: wrapping up a Christmas never takes these away. Levels bought here go on top
-				of the coin shop&apos;s.
+				Everything here stays when you wrap up a Christmas.
 			</MantineText>
 			<Stack gap="sm">
 				<Divider label="Gem shop only" labelPosition="left" />
@@ -134,33 +145,22 @@ export default function ElfFlingShop({
 					name={CHRISTMAS_BONUS.name}
 					description={CHRISTMAS_BONUS.description}
 					level={gemUpgrades.christmasBonus}
-					levels={CHRISTMAS_BONUS.gemPrices.length}
-					price={CHRISTMAS_BONUS.gemPrices[gemUpgrades.christmasBonus] ?? null}
+					levels={CHRISTMAS_BONUS.prices.length}
+					price={CHRISTMAS_BONUS.prices[gemUpgrades.christmasBonus] ?? null}
 					currency="gems"
 					balance={gems}
 					busy={busy}
 					onBuy={() => onBuyGemUpgrade("christmasBonus")}
 				/>
 			</Stack>
-			{SHOP_GROUPS.map((group) => (
-				<Stack key={group} gap="sm">
-					<Divider label={group} labelPosition="left" />
-					{SHOP_ITEMS.filter((item) => item.group === group).map((item) => (
-						<ShopRow
-							key={item.id}
-							name={item.name}
-							description={describe(item)}
-							level={gemUpgrades[item.id]}
-							levels={item.gemPrices.length}
-							price={nextGemPrice(item, gemUpgrades[item.id])}
-							currency="gems"
-							balance={gems}
-							busy={busy}
-							onBuy={() => onBuyGemUpgrade(item.id)}
-						/>
-					))}
-				</Stack>
-			))}
+			<Stack gap="sm">
+				<Divider label="Extra levels" labelPosition="left" />
+				{SHOP_ITEMS.filter((item) => item.gem.kind === "extra").map(gemRow)}
+			</Stack>
+			<Stack gap="sm">
+				<Divider label="Keep through Christmas" labelPosition="left" />
+				{SHOP_ITEMS.filter((item) => item.gem.kind === "keep").map(gemRow)}
+			</Stack>
 		</Stack>
 	);
 
@@ -239,15 +239,14 @@ export function Balances({ progress, compact = false }: { progress: IProgress; c
 type IWrapUpChristmasProps = {
 	progress: IProgress;
 	busy: boolean;
-	onPrestige: () => void;
+	onWrapUp: () => void;
 };
 
 /**
- * Prestige: spare coins become gems, and the coin shop starts over. Asks first, since it takes
- * every coin upgrade away.
+ * Prestige: spare coins become gems, and the coin shop starts over. The button only opens the
+ * hold-to-confirm over the game, since it takes every coin upgrade away.
  */
-function WrapUpChristmas({ progress, busy, onPrestige }: IWrapUpChristmasProps) {
-	const [confirming, setConfirming] = useState(false);
+function WrapUpChristmas({ progress, busy, onWrapUp }: IWrapUpChristmasProps) {
 	const gems = prestigeGems(progress.coins);
 	const nextChristmas = progress.prestiges + 2;
 
@@ -258,55 +257,64 @@ function WrapUpChristmas({ progress, busy, onPrestige }: IWrapUpChristmasProps) 
 				Turn your spare coins into gems and start Christmas {nextChristmas}. Gems buy upgrades you keep for good. Your
 				coins and coin-shop upgrades go back to nothing; gems, gem-shop upgrades and looks stay.
 			</MantineText>
-			{confirming ? (
-				<Group gap="sm" wrap="wrap">
-					<MantineText size="sm" fw={700}>
-						Swap {progress.coins} coins for {gems} {gems === 1 ? "gem" : "gems"} and start over?
-					</MantineText>
-					<ConfirmButtons
-						size="xs"
-						confirmLabel="Wrap it up"
-						isPending={busy}
-						onCancel={() => setConfirming(false)}
-						onConfirm={() => {
-							onPrestige();
-							setConfirming(false);
-						}}
-					/>
-				</Group>
-			) : (
-				<Group justify="space-between" wrap="nowrap" gap="md">
-					<MantineText size="sm" fw={700}>
-						{gems > 0 ? `Worth ${gems} ${gems === 1 ? "gem" : "gems"} now` : "Save up at least 10 coins to make a gem"}
-					</MantineText>
-					<Button
-						variant="secondary"
-						size="xs"
-						style={{ flex: "none" }}
-						leftSection={<FontAwesomeIcon icon={faSnowflake} />}
-						disabled={busy || gems < 1}
-						onClick={(event) => {
-							setConfirming(true);
-							releaseFocus(event);
-						}}
-					>
-						Wrap up this Christmas
-					</Button>
-				</Group>
-			)}
+			<Group justify="space-between" wrap="nowrap" gap="md">
+				<MantineText size="sm" fw={700}>
+					{gems > 0 ? `Worth ${gems} ${gems === 1 ? "gem" : "gems"} now` : "Save up at least 10 coins to make a gem"}
+				</MantineText>
+				<Button
+					variant="secondary"
+					size="xs"
+					style={{ flex: "none" }}
+					leftSection={<FontAwesomeIcon icon={faSnowflake} />}
+					disabled={busy || gems < 1}
+					onClick={(event) => {
+						onWrapUp();
+						releaseFocus(event);
+					}}
+				>
+					Wrap up this Christmas
+				</Button>
+			</Group>
 		</Stack>
 	);
+}
+
+/**
+ * How a coin-shop row shows its levels alongside the gem shop's. Extra gem levels show as a note
+ * ("+1 extra") beside the coin levels; kept levels count as bought, and once all are kept
+ * there's nothing to buy with coins ("Kept").
+ */
+function coinRowLevels(
+	item: IShopItem,
+	coinLevel: number,
+	gemLevel: number,
+): Pick<IShopRowProps, "level" | "levels" | "note" | "doneLabel"> {
+	const levels = item.prices.length;
+
+	if (item.gem.kind === "extra") {
+		return { level: coinLevel, levels, note: gemLevel > 0 ? `+${gemLevel} extra` : null };
+	}
+
+	const allKept = gemLevel >= levels;
+
+	return {
+		level: Math.min(levels, coinLevel + gemLevel),
+		levels,
+		note: gemLevel > 0 && !allKept ? `${gemLevel} kept` : null,
+		doneLabel: allKept ? "Kept" : undefined,
+	};
 }
 
 type IShopRowProps = {
 	name: string;
 	description: string;
-	/** Levels bought in this shop, out of how many it sells. */
+	/** Levels owned, out of how many this shop sells. */
 	level: number;
 	levels: number;
-	/** In the coin shop: levels kept from the gem shop, and whether they go on top or stand in. */
-	keptLevels?: number;
-	stacks?: boolean;
+	/** A gem-shop note beside the name, e.g. "+1 extra" or "2 kept". */
+	note?: string | null;
+	/** Shown once there's nothing more to buy; "Maxed" or "Owned" unless given. */
+	doneLabel?: string;
 	/** The next level's price, or null if there's nothing more to buy here. */
 	price: number | null;
 	currency: "coins" | "gems";
@@ -321,8 +329,8 @@ function ShopRow({
 	description,
 	level,
 	levels,
-	keptLevels = 0,
-	stacks = false,
+	note = null,
+	doneLabel,
 	price,
 	currency,
 	balance,
@@ -330,8 +338,7 @@ function ShopRow({
 	onBuy,
 }: IShopRowProps) {
 	const hasLevels = levels > 1;
-	// Owned through the gem shop: nothing to buy here, and it outlasts prestige.
-	const keptInstead = !stacks && keptLevels > 0 && price === null;
+	const done = doneLabel ?? (hasLevels ? "Maxed" : "Owned");
 
 	return (
 		<Group justify="space-between" wrap="nowrap" align="flex-start" gap="md">
@@ -343,9 +350,9 @@ function ShopRow({
 							Level {level} of {levels}
 						</Badge>
 					)}
-					{stacks && keptLevels > 0 && (
+					{note && (
 						<Badge size="sm" variant="light" color="red" leftSection={<FontAwesomeIcon icon={faGem} />}>
-							+{keptLevels} kept
+							{note}
 						</Badge>
 					)}
 				</Group>
@@ -354,8 +361,8 @@ function ShopRow({
 				</MantineText>
 			</div>
 			{price === null ? (
-				<Badge variant="light" color={keptInstead ? "red" : "green"} style={{ flex: "none" }}>
-					{keptInstead ? "Kept" : hasLevels ? "Maxed" : "Owned"}
+				<Badge variant="light" color={done === "Kept" ? "red" : "green"} style={{ flex: "none" }}>
+					{done}
 				</Badge>
 			) : (
 				<Button

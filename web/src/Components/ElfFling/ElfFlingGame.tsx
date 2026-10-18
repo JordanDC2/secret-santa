@@ -50,9 +50,10 @@ type IElfFlingGameProps = {
 	/** The gem balance, shown once the player has prestiged (null before). */
 	gems: number | null;
 	throwBanked: boolean;
-	/** The shop opens over the game (even in full screen); while it's open, taps and keys are its. */
+	/** The shop opens over the game (even in full screen). */
 	onOpenShop: () => void;
-	shopOpen: boolean;
+	/** While the shop or the wrap-up is open over the game, taps and keys are theirs. */
+	inputBlocked: boolean;
 };
 
 /** Never simulate more than this much at once, e.g. after the tab was in the background. */
@@ -83,7 +84,7 @@ export default function ElfFlingGame({
 	gems,
 	throwBanked,
 	onOpenShop,
-	shopOpen,
+	inputBlocked,
 }: IElfFlingGameProps) {
 	const { ref: frameRef, width, height: frameHeight } = useElementSize();
 	const { height: viewportHeight } = useViewportSize();
@@ -97,7 +98,7 @@ export default function ElfFlingGame({
 	const bestRef = useRef(best);
 	const soundRef = useRef(soundOn);
 	const balanceRef = useRef({ coins, gems, banked: throwBanked });
-	const shopOpenRef = useRef(shopOpen);
+	const inputBlockedRef = useRef(inputBlocked);
 	// The best as this round began: beating it is a new best (the page's copy updates once it's saved).
 	const [bestBefore] = useState(best);
 	// When this round's new-best celebration started (page clock, seconds), if it's had one.
@@ -113,7 +114,7 @@ export default function ElfFlingGame({
 		bestRef.current = best;
 		soundRef.current = soundOn;
 		balanceRef.current = { coins, gems, banked: throwBanked };
-		shopOpenRef.current = shopOpen;
+		inputBlockedRef.current = inputBlocked;
 		skinRef.current = skin;
 		batterRef.current = batter;
 		callbacksRef.current = { onPhaseChange, onFinish, onJumpsChange, onRestart };
@@ -172,8 +173,8 @@ export default function ElfFlingGame({
 	);
 
 	const handleInput = useCallback(() => {
-		// The shop is open over the game: taps and keys belong to it.
-		if (shopOpenRef.current) {
+		// Something's open over the game: taps and keys belong to it.
+		if (inputBlockedRef.current) {
 			return;
 		}
 
@@ -185,7 +186,7 @@ export default function ElfFlingGame({
 	}, [setState]);
 
 	const launchRocket = useCallback(() => {
-		if (!shopOpenRef.current) {
+		if (!inputBlockedRef.current) {
 			setState(fireRocket(stateRef.current));
 		}
 	}, [setState]);

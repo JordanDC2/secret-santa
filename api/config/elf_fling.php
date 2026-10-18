@@ -11,7 +11,7 @@
 | them. One price per level; an item with one price is a single purchase.
 |
 | Prestige ("wrapping up Christmas") turns spare coins into gems and starts the coin shop
-| over. Gems buy the same upgrades again, kept for good.
+| over. Gems buy extra levels for a few upgrades, and keeping the rest through prestige.
 |
 */
 
@@ -36,31 +36,26 @@ return [
     // make 22 gems; 20,000 make 44. Hoarding pays less and less, so prestiging again pays.
     'coins_per_gem_squared' => 10,
 
-    // The gem shop: the same upgrades, priced in gems and kept through prestige. One price per
-    // level.
+    // The gem shop, priced in gems, one price per level; gem levels never reset. Upgrades in
+    // gem_extra sell extra levels on top of the coin shop's. The rest sell keeping the coin
+    // shop's own levels through prestige, so they never need buying again.
     'gem_upgrades' => [
         'swingStrength' => [3, 8, 15],
-        'goldenCane' => [3, 8, 15],
-        'sledRunners' => [3, 8, 15],
-        'springyBoots' => [3, 8, 15],
+        'goldenCane' => [2, 5],
+        'sledRunners' => [2, 4, 7],
+        'springyBoots' => [8],
         'crackers' => [3],
-        'paddedSuit' => [4, 10],
-        'elfJump' => [3, 8, 15],
-        'rocket' => [5],
-        'skyOrnaments' => [5],
-        'sleigh' => [8],
-        'candyMagnet' => [3, 8, 15],
-        'luckyStocking' => [3, 8, 15],
+        'paddedSuit' => [3, 6],
+        'elfJump' => [2, 4, 7],
+        'rocket' => [4],
+        'skyOrnaments' => [4],
+        'sleigh' => [6],
+        'candyMagnet' => [6],
+        'luckyStocking' => [10],
         // Gem shop only: banked coins double with each level (×2, ×4, ×8).
         'christmasBonus' => [10, 25, 50],
     ],
-
-    // Upgrades whose gem levels go on top of the coin levels. For the rest, gem levels stand in
-    // for coin ones (a single purchase owned with gems is owned).
-    'gem_stacking' => [
-        'swingStrength', 'goldenCane', 'sledRunners', 'springyBoots', 'elfJump', 'candyMagnet', 'luckyStocking',
-        'christmasBonus',
-    ],
+    'gem_extra' => ['swingStrength', 'springyBoots', 'candyMagnet', 'luckyStocking', 'christmasBonus'],
 
     // Who gets flung. The first is free and everyone has it.
     'skins' => [

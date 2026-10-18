@@ -92,14 +92,21 @@ class ElfFlingProgress extends Model
 
     /**
      * An upgrade's top level, coin and gem levels together: the coin shop's levels, plus the
-     * gem shop's for upgrades whose gem levels stack.
+     * gem shop's extra levels for the upgrades that have them.
      */
     public function maxLevel(string $upgrade): int
     {
-        $stacks = in_array($upgrade, config('elf_fling.gem_stacking'), true);
-
         return count(config("elf_fling.upgrades.{$upgrade}", []))
-            + ($stacks ? count(config("elf_fling.gem_upgrades.{$upgrade}", [])) : 0);
+            + ($this->gemLevelsAreExtra($upgrade) ? count(config("elf_fling.gem_upgrades.{$upgrade}", [])) : 0);
+    }
+
+    /**
+     * Whether the gem shop sells extra levels of this upgrade, rather than keeping the coin
+     * shop's levels through prestige.
+     */
+    public function gemLevelsAreExtra(string $upgrade): bool
+    {
+        return in_array($upgrade, config('elf_fling.gem_extra'), true);
     }
 
     /**

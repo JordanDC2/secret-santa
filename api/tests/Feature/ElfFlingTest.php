@@ -98,7 +98,7 @@ class ElfFlingTest extends TestCase
         $this->assertSame(2, ElfFlingProgress::for($user)->prestiges);
     }
 
-    public function test_gem_levels_are_kept_through_prestige_and_stack_on_the_coin_levels(): void
+    public function test_gem_levels_survive_prestige_as_extra_levels_or_kept_coin_levels(): void
     {
         $user = $this->player();
         ElfFlingProgress::for($user)->update(['coins' => 5000, 'gems' => 20, 'upgrades' => ['swingStrength' => 5]]);
@@ -110,7 +110,7 @@ class ElfFlingTest extends TestCase
             ->assertJsonPath('coins', 5000);
         $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'rocket'])
             ->assertJsonPath('gem_upgrades.rocket', 1)
-            ->assertJsonPath('gems', 12);
+            ->assertJsonPath('gems', 13);
 
         $this->postJson(route('elf-fling.prestige'))
             ->assertJsonPath('progress.upgrades.swingStrength', 0)
@@ -127,12 +127,25 @@ class ElfFlingTest extends TestCase
             ->assertJsonValidationErrors(['item' => 'That\'s already fully upgraded.']);
         $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'rocket'])
             ->assertJsonValidationErrors(['item' => 'That\'s already fully upgraded.']);
+
+        // Kept sled runners count as bought (and never go past the coin shop's three): the next
+        // with coins is priced as level 3.
+        $progress->update(['gems' => 6, 'coins' => 500]);
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'sledRunners']);
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'sledRunners'])
+            ->assertJsonPath('gem_upgrades.sledRunners', 2);
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'upgrade', 'item' => 'sledRunners'])
+            ->assertJsonPath('upgrades.sledRunners', 1)
+            ->assertJsonPath('coins', 500 - 130);
+        $this->assertSame(3, $progress->fresh()->combinedLevel('sledRunners'));
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'upgrade', 'item' => 'sledRunners'])
+            ->assertJsonValidationErrors(['item' => 'That\'s already fully upgraded.']);
     }
 
     public function test_gem_upgrades_cost_gems_and_kept_stocking_levels_add_to_every_throws_coins(): void
     {
         $user = $this->player();
-        ElfFlingProgress::for($user)->update(['coins' => 500, 'gems' => 4, 'upgrades' => ['luckyStocking' => 2]]);
+        ElfFlingProgress::for($user)->update(['coins' => 500, 'gems' => 11, 'upgrades' => ['luckyStocking' => 2]]);
 
         $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'luckyStocking'])
             ->assertOk()
@@ -141,6 +154,8 @@ class ElfFlingTest extends TestCase
             ->assertJsonPath('coins', 500);
 
         $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'luckyStocking'])
+            ->assertJsonValidationErrors(['item' => 'That\'s already fully upgraded.']);
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'christmasBonus'])
             ->assertJsonValidationErrors(['item' => 'Not enough gems for that yet.']);
         $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'santa'])
             ->assertJsonValidationErrors(['item' => 'That isn\'t in the shop.']);

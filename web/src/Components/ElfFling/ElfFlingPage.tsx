@@ -18,11 +18,12 @@ import {
 import type { IGameState, IPhase } from "Components/ElfFling/physics";
 import { forgetDeviceProgress, readDeviceProgress, type IProgress } from "Components/ElfFling/progress";
 import { capitalised, skinById, type IBatterId, type ISkinId } from "Components/ElfFling/skins";
-import { combinedUpgrades, type IUpgradeId } from "Components/ElfFling/upgrades";
+import { combinedUpgrades, prestigeGems, type IUpgradeId } from "Components/ElfFling/upgrades";
 import { playGem, readSoundOn, saveSoundOn, wakeAudio } from "Components/ElfFling/sound";
 import { useFullscreen } from "Components/ElfFling/useFullscreen";
 import { releaseFocus } from "Components/ElfFling/releaseFocus";
 import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
+import WrapUpHold from "Components/ElfFling/WrapUpHold";
 import classes from "Components/ElfFling/ElfFling.module.less";
 import BackToGroups from "Components/Layout/BackToGroups";
 import Page from "Components/Layout/Page";
@@ -137,6 +138,7 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 	const { fullscreen, enter: enterFullscreen, exit: exitFullscreen } = useFullscreen(stageRef);
 	const [soundOn, setSoundOn] = useState(readSoundOn);
 	const [shopOpen, setShopOpen] = useState(false);
+	const [wrapUpOpen, setWrapUpOpen] = useState(false);
 	const skin = skinById(progress.skin);
 	// The result is written when a throw ends, inside a callback; it reads the skin from here.
 	const skinRef = useRef(progress.skin);
@@ -208,8 +210,21 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 				if (phase === "ready") {
 					setRound((current) => current + 1);
 				}
+
+				setWrapUpOpen(false);
 			},
 		});
+	// The shop's button asks over the game (hold to confirm), so the shop steps aside, and the
+	// game comes into view if the button was in the shop under it.
+	const openWrapUp = () => {
+		prestige.reset();
+		setShopOpen(false);
+		setWrapUpOpen(true);
+
+		if (!fullscreen) {
+			stageRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+		}
+	};
 	// Looks only change how things look, so buying one puts it to use straight away, even mid-throw.
 	const buySkin = (id: ISkinId) => purchase.mutate({ kind: "skin", item: id });
 	const buyBatter = (id: IBatterId) => purchase.mutate({ kind: "batter", item: id });
@@ -243,7 +258,7 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 		busy: purchase.isPending || looks.isPending || prestige.isPending,
 		onBuy: buy,
 		onBuyGemUpgrade: buyGemUpgrade,
-		onPrestige: wrapUpChristmas,
+		onWrapUp: openWrapUp,
 		onBuySkin: buySkin,
 		onWearSkin: wearSkin,
 		onBuyBatter: buyBatter,
@@ -276,7 +291,7 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 					gems={progress.prestiges > 0 ? progress.gems : null}
 					throwBanked={result?.banked != null}
 					onOpenShop={() => setShopOpen(true)}
-					shopOpen={shopOpen}
+					inputBlocked={shopOpen || wrapUpOpen}
 				/>
 				{/* The shop over the game, so there's no leaving full screen to buy something. It's
 				    drawn in place inside the stage (no portal): in full screen, nothing outside it shows. Up from the
@@ -296,13 +311,25 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 					classNames={{ inner: classes.shopDrawer, title: classes.shopDrawerTitle }}
 					padding="sm"
 				>
-					{(purchase.isError || looks.isError || prestige.isError) && (
+					{(purchase.isError || looks.isError) && (
 						<Alert color="red" mb="sm">
-							{apiErrorMessage(purchase.error ?? looks.error ?? prestige.error)}
+							{apiErrorMessage(purchase.error ?? looks.error)}
 						</Alert>
 					)}
 					<ElfFlingShop {...shopProps} inDrawer />
 				</Drawer>
+				{wrapUpOpen && (
+					<WrapUpHold
+						coins={progress.coins}
+						gems={prestigeGems(progress.coins)}
+						nextChristmas={progress.prestiges + 2}
+						soundOn={soundOn}
+						busy={prestige.isPending}
+						error={prestige.isError ? apiErrorMessage(prestige.error) : null}
+						onConfirm={wrapUpChristmas}
+						onCancel={() => setWrapUpOpen(false)}
+					/>
+				)}
 			</div>
 			<Group justify="space-between" align="flex-start" wrap="nowrap" gap="md">
 				<div aria-live="polite" style={{ flex: 1, minWidth: 0 }}>
@@ -342,8 +369,8 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 			</Group>
 			<MantineText hiddenFrom="xs">{INTRO}</MantineText>
 			<ElfFlingLeaderboard />
-			{(purchase.isError || looks.isError || prestige.isError) && (
-				<Alert color="red">{apiErrorMessage(purchase.error ?? looks.error ?? prestige.error)}</Alert>
+			{(purchase.isError || looks.isError) && (
+				<Alert color="red">{apiErrorMessage(purchase.error ?? looks.error)}</Alert>
 			)}
 			<ElfFlingShop {...shopProps} />
 		</>
