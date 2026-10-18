@@ -3,8 +3,10 @@
  * slope) of random sizes at random heights. The elf collects any it flies or slides through.
  * Two layers: plenty of low coins worth 1 (now and then a big one worth 5), and fewer sky
  * coins high up worth 3 (now and then 10), which only well-upgraded throws can reach.
- * A fresh layout each round.
+ * Laid out as the elf goes (course.ts), and kept in order along the course.
  */
+
+import { between, type ILayout, type IRange } from "Components/ElfFling/course";
 
 export type ICoin = {
 	x: number;
@@ -16,8 +18,6 @@ export type ICoin = {
 
 /** Generous on purpose: the elf and coins are drawn bigger than life when zoomed out. */
 export const COLLECT_RADIUS = 1;
-
-type IRange = { min: number; max: number };
 
 type ILayer = {
 	firstAt: IRange;
@@ -54,8 +54,6 @@ const LAYERS: ILayer[] = [
 	},
 ];
 
-const COURSE_LENGTH = 6000;
-
 type IPattern = (count: number, spacing: number) => Array<{ dx: number; dy: number }>;
 
 const PATTERNS: Array<{ shape: IPattern; count: { min: number; max: number } }> = [
@@ -85,24 +83,55 @@ const PATTERNS: Array<{ shape: IPattern; count: { min: number; max: number } }> 
 	},
 ];
 
-export function layCoins(random: () => number = Math.random): ICoin[] {
-	const between = (range: IRange) => range.min + random() * (range.max - range.min);
-	const coins: ICoin[] = [];
+/** Each layer as a course layout: a random pattern of coins at each spot. */
+export const COIN_LAYOUTS: ILayout<ICoin>[] = LAYERS.map((layer) => ({
+	firstAt: layer.firstAt,
+	gap: layer.gap,
+	place: (x, random) => {
+		const pattern = PATTERNS[Math.floor(random() * PATTERNS.length)];
+		const count = Math.round(between(pattern.count, random));
+		const height = layer.height(random());
+		const big = random() < layer.bigChance ? Math.floor(random() * count) : -1;
 
-	for (const layer of LAYERS) {
-		for (let x = between(layer.firstAt); x < COURSE_LENGTH; x += between(layer.gap)) {
-			const pattern = PATTERNS[Math.floor(random() * PATTERNS.length)];
-			const count = Math.round(between(pattern.count));
-			const height = layer.height(random());
-			const big = random() < layer.bigChance ? Math.floor(random() * count) : -1;
+		return pattern.shape(count, layer.spacing).map(({ dx, dy }, i) => ({
+			x: x + dx,
+			y: height + dy,
+			value: i === big ? layer.bigValue : layer.value,
+			collectedAt: null,
+		}));
+	},
+}));
 
-			pattern.shape(count, layer.spacing).forEach(({ dx, dy }, i) => {
-				coins.push({ x: x + dx, y: height + dy, value: i === big ? layer.bigValue : layer.value, collectedAt: null });
-			});
+/** The first coin at or past x, by binary search (coins are kept in order along the course). */
+function firstFrom(coins: ICoin[], x: number): number {
+	let low = 0;
+	let high = coins.length;
+
+	while (low < high) {
+		const middle = (low + high) >> 1;
+
+		if (coins[middle].x < x) {
+			low = middle + 1;
+		} else {
+			high = middle;
 		}
 	}
 
-	return coins;
+	return low;
+}
+
+/**
+ * The coins with more added, each slotted into place: coins are kept in order along the
+ * course, so collecting can look only near the elf.
+ */
+export function addCoins(coins: ICoin[], more: ICoin[]): ICoin[] {
+	const merged = [...coins];
+
+	for (const coin of more) {
+		merged.splice(firstFrom(merged, coin.x), 0, coin);
+	}
+
+	return merged;
 }
 
 /** How fast a magnet pulls coins toward the elf, in m/s. */
@@ -121,12 +150,17 @@ export function collectCoins(
 	dt: number,
 ): { coins: ICoin[]; gained: number } {
 	let gained = 0;
-	// Copied only once a coin is collected or pulled: most steps change nothing, and the course is long.
+	// Copied only once a coin is collected or pulled: most steps change nothing.
 	let updated: ICoin[] | null = null;
+	// Only coins near the elf can change. A pulled coin drifts a little out of order, toward the
+	// elf, so look a metre wider than the magnet's reach either side.
+	const reach = magnet + 1;
 
-	coins.forEach((coin, index) => {
+	for (let index = firstFrom(coins, x - reach); index < coins.length && coins[index].x <= x + reach; index++) {
+		const coin = coins[index];
+
 		if (coin.collectedAt !== null || Math.abs(coin.x - x) > magnet) {
-			return;
+			continue;
 		}
 
 		const distance = Math.hypot(coin.x - x, coin.y - y);
@@ -145,7 +179,7 @@ export function collectCoins(
 			updated ??= [...coins];
 			updated[index] = next;
 		}
-	});
+	}
 
 	return { coins: updated ?? coins, gained };
 }

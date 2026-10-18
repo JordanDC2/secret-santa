@@ -1,7 +1,9 @@
 /**
  * Christmas crackers lying in the snow along the course. An elf that bounces or slides into
- * one pops it, which launches the elf up and forward again. A fresh, random layout each round.
+ * one pops it, which launches the elf up and forward again. Laid out as the elf goes (course.ts).
  */
+
+import type { ILayout } from "Components/ElfFling/course";
 
 export type ICracker = {
 	/** Metres from the start (the same scale as the elf's x). */
@@ -21,21 +23,12 @@ const POP_UP = 10;
 const POP_FORWARD = 6;
 const MAX_FORWARD = 32;
 
-/** Where they lie: the first a little way out, then irregular gaps, far past any real throw. */
-const FIRST_AT = { min: 18, max: 40 };
-const GAP = { min: 16, max: 42 };
-const COURSE_LENGTH = 6000;
-
-export function layCrackers(random: () => number = Math.random): ICracker[] {
-	const between = (range: { min: number; max: number }) => range.min + random() * (range.max - range.min);
-	const crackers: ICracker[] = [];
-
-	for (let x = between(FIRST_AT); x < COURSE_LENGTH; x += between(GAP)) {
-		crackers.push({ x, poppedAt: null });
-	}
-
-	return crackers;
-}
+/** Where they lie: the first a little way out, then irregular gaps. */
+export const CRACKER_LAYOUT: ILayout<ICracker> = {
+	firstAt: { min: 18, max: 40 },
+	gap: { min: 16, max: 42 },
+	place: (x) => [{ x, poppedAt: null }],
+};
 
 /** The unpopped cracker an elf at (x, y) is touching, as its index, or -1. */
 export function crackerTouching(crackers: ICracker[], x: number, y: number): number {

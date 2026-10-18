@@ -1,8 +1,10 @@
 /**
  * Glass Christmas ornaments hanging in the sky (a shop upgrade). An elf that flies into one
- * shatters it and gets a kick up and forward, like a cracker in mid-air. A fresh, random
- * layout each round.
+ * shatters it and gets a kick up and forward, like a cracker in mid-air. Laid out as the elf
+ * goes (course.ts).
  */
+
+import { between, type ILayout } from "Components/ElfFling/course";
 
 export type IOrnament = {
 	x: number;
@@ -20,21 +22,13 @@ const KICK_UP = 9;
 const KICK_FORWARD = 4;
 const MAX_FORWARD = 34;
 
-const FIRST_AT = { min: 15, max: 25 };
-const GAP = { min: 7, max: 16 };
 const HEIGHT = { min: 5, max: 26 };
-const COURSE_LENGTH = 6000;
 
-export function layOrnaments(random: () => number = Math.random): IOrnament[] {
-	const between = (range: { min: number; max: number }) => range.min + random() * (range.max - range.min);
-	const ornaments: IOrnament[] = [];
-
-	for (let x = between(FIRST_AT); x < COURSE_LENGTH; x += between(GAP)) {
-		ornaments.push({ x, y: between(HEIGHT), shatteredAt: null });
-	}
-
-	return ornaments;
-}
+export const ORNAMENT_LAYOUT: ILayout<IOrnament> = {
+	firstAt: { min: 15, max: 25 },
+	gap: { min: 7, max: 16 },
+	place: (x, random) => [{ x, y: between(HEIGHT, random), shatteredAt: null }],
+};
 
 /** The whole ornament an elf at (x, y) is hitting, as its index, or -1. */
 export function ornamentHit(ornaments: IOrnament[], x: number, y: number): number {

@@ -4,13 +4,14 @@
  * elf is to the bat's sweet spot at that moment sets how hard and how high it flies. Then it
  * bounces and slides along the snow until it stops. On the way: coins to collect, and (with
  * shop upgrades, see upgrades.ts) crackers, sky ornaments and a sleigh that launch it on,
- * jumps and a rocket the player sets off, and the odd snowman that gets in the way.
- * Distance is measured from the reindeer.
+ * jumps and a rocket the player sets off, and the odd snowman that gets in the way. The course
+ * never ends: it's laid out as the elf goes (course.ts). Distance is measured from the reindeer.
  */
 
-import { collectCoins, layCoins, type ICoin } from "Components/ElfFling/coins";
-import { crackerTouching, layCrackers, poppedVelocity, type ICracker } from "Components/ElfFling/crackers";
-import { kickedVelocity, layOrnaments, ornamentHit, type IOrnament } from "Components/ElfFling/ornaments";
+import { COIN_LAYOUTS, collectCoins, type ICoin } from "Components/ElfFling/coins";
+import { keepCourseAhead, seededRandom, startCourse, type ICourse } from "Components/ElfFling/course";
+import { CRACKER_LAYOUT, crackerTouching, poppedVelocity, type ICracker } from "Components/ElfFling/crackers";
+import { kickedVelocity, ORNAMENT_LAYOUT, ornamentHit, type IOrnament } from "Components/ElfFling/ornaments";
 import {
 	canBoard,
 	maybeSleigh,
@@ -20,7 +21,7 @@ import {
 	RIDE_SPEED,
 	type ISleigh,
 } from "Components/ElfFling/sleigh";
-import { laySnowmen, snowmanHit, type ISnowman } from "Components/ElfFling/snowmen";
+import { SNOWMAN_LAYOUT, snowmanHit, type ISnowman } from "Components/ElfFling/snowmen";
 import {
 	bounceKeep,
 	magnetRadius,
@@ -53,6 +54,9 @@ export type IGameState = {
 	time: number;
 	/** The shop upgrades in play this round. */
 	upgrades: IUpgrades;
+	/** How far the course is laid out, and how to lay more (course.ts). */
+	course: ICourse;
+	/** What's on the course near the elf: ahead of it, and not too far behind. */
 	coins: ICoin[];
 	/** What this round's coins are worth so far (before the lucky stocking). */
 	coinsCollected: number;
@@ -105,9 +109,23 @@ const JUMP_SPEED = 7;
 export const ROCKET_SECONDS = 1.3;
 const ROCKET_PUSH = { forward: 22, up: 9 };
 
-/** A fresh round. The course's layout is random; tests can pass their own randomness. */
-export function newGame(upgrades: IUpgrades = NO_UPGRADES, random?: () => number): IGameState {
+/** Which things this round's course has: crackers and ornaments only once they're bought. */
+function layoutsFor(upgrades: IUpgrades) {
 	return {
+		coins: COIN_LAYOUTS,
+		crackers: upgrades.crackers > 0 ? CRACKER_LAYOUT : null,
+		ornaments: upgrades.skyOrnaments > 0 ? ORNAMENT_LAYOUT : null,
+		snowmen: SNOWMAN_LAYOUT,
+	};
+}
+
+/** A fresh round. The course is random; pass a seed to get the same one again (for tests). */
+export function newGame(
+	upgrades: IUpgrades = NO_UPGRADES,
+	seed: number = Math.floor(Math.random() * 2 ** 32),
+): IGameState {
+	const layouts = layoutsFor(upgrades);
+	const state: IGameState = {
 		phase: "ready",
 		// Standing at the front edge of the top present.
 		elf: { x: STACK.left + 0.1, y: STACK.top + ELF_RADIUS, vx: 0, vy: 0, spin: 0 },
@@ -117,19 +135,22 @@ export function newGame(upgrades: IUpgrades = NO_UPGRADES, random?: () => number
 		distance: null,
 		time: 0,
 		upgrades,
-		coins: layCoins(random),
+		course: startCourse(layouts, seed),
+		coins: [],
 		coinsCollected: 0,
-		crackers: upgrades.crackers > 0 ? layCrackers(random) : [],
+		crackers: [],
 		pops: 0,
-		ornaments: upgrades.skyOrnaments > 0 ? layOrnaments(random) : [],
+		ornaments: [],
 		smashes: 0,
-		snowmen: laySnowmen(random),
+		snowmen: [],
 		bonks: 0,
-		sleigh: upgrades.sleigh > 0 ? maybeSleigh(random) : null,
+		sleigh: upgrades.sleigh > 0 ? maybeSleigh(seededRandom(seed)) : null,
 		jumpsLeft: upgrades.elfJump,
 		rocketReady: upgrades.rocket > 0,
 		rocketUntil: null,
 	};
+
+	return keepCourseAhead(state, layouts, state.elf.x);
 }
 
 /** Whether the elf is out on the course: flying or sliding, not riding the sleigh. */
@@ -214,7 +235,11 @@ export function step(state: IGameState, dt: number): IGameState {
 		return state;
 	}
 
-	let next: IGameState = { ...state, elf: { ...state.elf }, time: state.time + dt };
+	let next: IGameState = keepCourseAhead(
+		{ ...state, elf: { ...state.elf }, time: state.time + dt },
+		layoutsFor(state.upgrades),
+		state.elf.x,
+	);
 
 	if (next.sleigh) {
 		next.sleigh = moveSleigh(next.sleigh, dt, next.elf);
