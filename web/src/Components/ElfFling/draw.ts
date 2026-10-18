@@ -66,12 +66,23 @@ export function readPalette(element: Element): IPalette {
 }
 
 /** Where the camera is: the world's left edge on screen, and how many pixels make a metre. */
-export type ICamera = { left: number; pixelsPerMetre: number };
+/**
+ * Where the camera is: the world's left edge on screen, how many pixels make a metre, and how
+ * far up the world it has panned (0 with the snow in view; more while following a high elf).
+ */
+export type ICamera = { left: number; pixelsPerMetre: number; bottom: number };
 
 /** The snow line sits this far up from the bottom of the canvas. */
 const GROUND_SHARE = 0.18;
-/** At rest the view is this tall; it grows to keep a high-flying elf in shot. */
+/** At rest the view is this tall; it grows to keep a high-flying elf in shot, up to MAX_VIEW_HEIGHT. */
 const BASE_VIEW_HEIGHT = 5.2;
+/**
+ * The camera zooms out no further than this, so everything stays near its real size. Above it
+ * the camera pans up with the elf instead, holding it a little above the middle, and the snow
+ * drops out of the bottom of the shot.
+ */
+const MAX_VIEW_HEIGHT = 30;
+const ELF_HEIGHT_IN_VIEW = 0.55;
 /** At least this much of the course is always in view across, so a tall, narrow screen (a phone held upright) still shows the batter and the presents. */
 const MIN_VIEW_WIDTH = 6.6;
 
@@ -80,21 +91,27 @@ export function nextCamera(previous: ICamera | null, state: IGameState, width: n
 	const skyHeight = height * (1 - GROUND_SHARE);
 	// In the air, leave room above the elf so it sits in the middle of the sky, not at the top.
 	const headroom = state.phase === "flying" ? state.elf.y * 0.6 + 1.5 : 1.2;
-	const viewHeight = Math.max(BASE_VIEW_HEIGHT, state.elf.y + headroom);
+	const wanted = Math.max(BASE_VIEW_HEIGHT, state.elf.y + headroom);
+	const viewHeight = Math.min(MAX_VIEW_HEIGHT, wanted);
 	const targetScale = Math.min(skyHeight / viewHeight, width / MIN_VIEW_WIDTH);
 	const viewWidth = width / targetScale;
 	const targetLeft = Math.max(-1.4, state.elf.x - viewWidth * 0.4);
+	// Too high to zoom out to: pan up with the elf instead.
+	const targetBottom = wanted > MAX_VIEW_HEIGHT ? Math.max(0, state.elf.y - viewHeight * ELF_HEIGHT_IN_VIEW) : 0;
 
 	if (!previous) {
-		return { left: targetLeft, pixelsPerMetre: targetScale };
+		return { left: targetLeft, pixelsPerMetre: targetScale, bottom: targetBottom };
 	}
 
 	// Zoom out quickly, so a rising elf never leaves the top of the shot; settle back in gently.
+	// Panning follows quickly up, and back down more gently.
 	const zoomEase = targetScale < previous.pixelsPerMetre ? 0.35 : 0.06;
+	const panEase = targetBottom > previous.bottom ? 0.3 : 0.12;
 
 	return {
 		left: previous.left + (targetLeft - previous.left) * 0.2,
 		pixelsPerMetre: previous.pixelsPerMetre + (targetScale - previous.pixelsPerMetre) * zoomEase,
+		bottom: previous.bottom + (targetBottom - previous.bottom) * panEase,
 	};
 }
 
@@ -116,17 +133,22 @@ export function drawFrame(
 ) {
 	const { width, height } = size;
 	const groundY = height * (1 - GROUND_SHARE);
+	// Where the snow is on screen: below groundY (maybe off the bottom) while the camera's panned up.
+	const floorY = groundY + camera.bottom * camera.pixelsPerMetre;
 	const toScreen = (x: number, y: number) => ({
 		x: (x - camera.left) * camera.pixelsPerMetre,
-		y: groundY - y * camera.pixelsPerMetre,
+		y: floorY - y * camera.pixelsPerMetre,
 	});
 
 	// How far into the day the middle of the view is (dayNight.ts).
 	const viewMiddle = camera.left + width / camera.pixelsPerMetre / 2;
 	const day = warmth(viewMiddle);
-	drawSky(context, palette, width, groundY, camera, day, sunAt(viewMiddle));
-	drawGround(context, palette, width, height, groundY, camera, day);
-	drawDistanceFlags(context, palette, camera, width, groundY, best);
+	drawSky(context, palette, width, height, groundY, floorY, camera, day, sunAt(viewMiddle));
+
+	if (floorY < height) {
+		drawGround(context, palette, width, height, floorY, camera, day);
+		drawDistanceFlags(context, palette, camera, width, floorY, best);
+	}
 
 	context.save();
 	const origin = toScreen(0, 0);
@@ -173,6 +195,11 @@ export function drawFrame(
 	if (state.phase === "flying" || state.phase === "sliding") {
 		drawLiveDistance(context, palette, width, state.elf.x - REINDEER_X);
 	}
+
+	// Panned up with a high elf, the snow's out of shot: say how high it is instead.
+	if (camera.bottom > 0.5) {
+		drawAltitude(context, palette, width, state.elf.y);
+	}
 }
 
 /** The winter day: a pale blue sky, low sun and greener hills, blended in as it warms. */
@@ -180,22 +207,27 @@ const DAY = { skyTop: "#5e9fd6", skyBottom: "#cfe6f3", hills: "#4f8a5b", slush: 
 
 /**
  * The sky: night blue-green, warming to a winter blue by day (day: 0 to 1), with stars that fade
- * out by day, the sun (sun: 0 rising to 1 setting, null at night) and distant hills.
+ * out by day, the sun (sun: 0 rising to 1 setting, null at night) and distant hills on the
+ * horizon at floorY (which drops away as the camera pans up). The sun and stars keep to groundY.
  */
 function drawSky(
 	context: CanvasRenderingContext2D,
 	palette: IPalette,
 	width: number,
+	height: number,
 	groundY: number,
+	floorY: number,
 	camera: ICamera,
 	day: number,
 	sun: number | null,
 ) {
-	const sky = context.createLinearGradient(0, 0, 0, groundY);
+	// Down to the snow, or the whole canvas while the camera's panned up above it.
+	const horizon = Math.min(height, floorY);
+	const sky = context.createLinearGradient(0, 0, 0, horizon);
 	sky.addColorStop(0, mix(palette.skyTop, DAY.skyTop, day));
 	sky.addColorStop(1, mix(palette.skyBottom, DAY.skyBottom, day));
 	context.fillStyle = sky;
-	context.fillRect(0, 0, width, groundY);
+	context.fillRect(0, 0, width, horizon);
 
 	if (sun !== null) {
 		// Low across the sky, as a winter sun is. The elf heads east (right), so the sun comes up
@@ -231,13 +263,13 @@ function drawSky(
 	context.fillStyle = mix(palette.greenDark, DAY.hills, day);
 	context.globalAlpha = 0.55;
 	context.beginPath();
-	context.moveTo(0, groundY);
+	context.moveTo(0, floorY);
 	const hillDrift = camera.left * BACKGROUND_PIXELS_PER_METRE * 0.3;
 	for (let x = 0; x <= width; x += 8) {
 		const worldX = (x + hillDrift) / 90;
-		context.lineTo(x, groundY - 28 - Math.sin(worldX) * 16 - Math.sin(worldX * 2.7) * 8);
+		context.lineTo(x, floorY - 28 - Math.sin(worldX) * 16 - Math.sin(worldX * 2.7) * 8);
 	}
-	context.lineTo(width, groundY);
+	context.lineTo(width, floorY);
 	context.fill();
 	context.globalAlpha = 1;
 }
@@ -410,6 +442,23 @@ function drawRocketTrail(
 	}
 
 	context.globalAlpha = 1;
+}
+
+/** How high the elf is, under the distance: a small up-pointing triangle and "74 m up". */
+function drawAltitude(context: CanvasRenderingContext2D, palette: IPalette, width: number, metres: number) {
+	const text = `${Math.round(metres)} m up`;
+	context.font = "700 15px Nunito, sans-serif";
+	context.textAlign = "right";
+	context.fillStyle = palette.white;
+	drawOutlinedText(context, text, width - 14, 56);
+	const left = width - 14 - context.measureText(text).width - 14;
+	context.fillStyle = palette.gold;
+	context.beginPath();
+	context.moveTo(left, 58);
+	context.lineTo(left + 5, 48);
+	context.lineTo(left + 10, 58);
+	context.closePath();
+	context.fill();
 }
 
 function drawLiveDistance(context: CanvasRenderingContext2D, palette: IPalette, width: number, metres: number) {
