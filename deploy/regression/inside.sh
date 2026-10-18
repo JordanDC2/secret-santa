@@ -52,6 +52,7 @@ boots=$(as ivy POST /wishlist/items '{"name":"Hiking boots","rating":5,"url":"ht
 as nick POST /wishlist/items '{"name":"Grill set","rating":3}' >/dev/null
 check "old: holly claims lamp" 200 "$(as holly POST /wishlist/items/$lamp/claim '{"quantity":1}' | code)"
 check "old: nick claims 1 sock" 200 "$(as nick POST /wishlist/items/$socks/claim '{"quantity":1}' | code)"
+check "old: nick throws in Elf Fling" 200 "$(as nick POST /elf-fling/throws '{"distance":120.4,"coins_collected":30}' | code)"
 before_items=$(db "select count(*) from wishlist_items"); before_claims=$(db "select count(*) from wishlist_claims"); before_users=$(db "select count(*) from users"); before_members=$(db "select count(*) from group_user")
 echo "before upgrade: users=$before_users members=$before_members items=$before_items claims=$before_claims"
 stop_serve
@@ -73,6 +74,8 @@ check "item foreign keys after rebuild" "users,users" "$(db "select group_concat
 check "claims still point at items" 0 "$(db 'select count(*) from wishlist_claims c left join wishlist_items i on i.id = c.wishlist_item_id where i.id is null')"
 check "foreign key check clean" "" "$(db 'pragma foreign_key_check')"
 check "names split into first and last" "Holly|Elf" "$(db "select first_name || '|' || last_name from users where email = 'holly@example.test'")"
+check "elf fling throw kept" 1 "$(db 'select count(*) from elf_fling_throws')"
+check "old throw's score backfilled" 150 "$(db 'select score from elf_fling_throws')"
 serve
 
 step "4. New features over HTTP on the upgraded data"
@@ -117,6 +120,12 @@ check "holly adds to lily's list" 201 "$(as holly POST /wishlist/items "{\"name\
 check "lily's list shows" Kite "$(as holly GET "/wishlist/items?owner=$lily" | body | jq -r '.[0].name')"
 check "others can't see lily's list as hers" 403 "$(as nick GET "/wishlist/items?owner=$lily" | code)"
 check "lily can't join a drawn group" 422 "$(as holly POST /groups/$gid/profiles "{\"profile_id\":$lily}" | code)"
+check "a chimney's points add to a throw's score" 7520 "$(as nick POST /elf-fling/throws '{"distance":500,"coins_collected":20,"bonus_points":7000}' | body | jq -r '.score')"
+check "best score board" 7520 "$(as nick GET '/elf-fling/leaderboard?board=score&period=all' | body | jq -r '.entries[0].value')"
+check "pinball refused before the chimney" 422 "$(as nick POST /elf-fling/pinball/scores '{"score":1500000}' | code)"
+check "finding the chimney unlocks pinball" true "$(as nick POST /elf-fling/pinball/unlock | body | jq -r '.pinball_unlocked')"
+check "a pinball game is saved" 1500000 "$(as nick POST /elf-fling/pinball/scores '{"score":1500000}' | body | jq -r '.pinball_best')"
+check "pinball leaderboard" "Nick E.|1500000" "$(as nick GET '/elf-fling/leaderboard?board=pinball&period=week' | body | jq -r '.entries[0] | "\(.name)|\(.value)"')"
 check "deploy announcement runs" 0 "$(php artisan app:announce-deploy test-version >/dev/null 2>&1; echo $?)"
 echo "--- queued mail jobs: $(db 'select count(*) from jobs')"
 php artisan queue:work --once --queue=default --stop-when-empty -q >/dev/null 2>&1 || true
