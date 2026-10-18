@@ -4,7 +4,7 @@ import type { IPoint, ISegment } from "Components/Pinball/table";
 
 export type IMovingBall = { x: number; y: number; vx: number; vy: number };
 
-export function closestPoint(p: IPoint, a: IPoint, b: IPoint): IPoint {
+function closestPoint(p: IPoint, a: IPoint, b: IPoint): IPoint {
 	const abx = b.x - a.x;
 	const aby = b.y - a.y;
 	const t = Math.max(0, Math.min(1, ((p.x - a.x) * abx + (p.y - a.y) * aby) / (abx * abx + aby * aby)));

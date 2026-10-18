@@ -91,7 +91,7 @@ const MULTIBALL_BALLS = 3;
 const MAX_MULTIPLIER = 5;
 const MISSION_SECONDS = 45;
 /** An extra ball every this many points. */
-export const EXTRA_BALL_EVERY = 50000;
+const EXTRA_BALL_EVERY = 50000;
 
 /** Everything that happens on the table, for the sounds (and the missions). */
 export type IPinballEvent =
@@ -310,10 +310,7 @@ export function step(state: IPinballState, random: () => number = Math.random): 
 	const s: IPinballState = {
 		...state,
 		time: state.time + dt,
-		balls: state.balls.map((ball) => ({
-			...ball,
-			rail: ball.rail && { ...ball.rail },
-		})),
+		balls: state.balls.map((ball) => ({ ...ball, rail: ball.rail && { ...ball.rail } })),
 		flippers: moveFlippers(state, dt),
 		lanes: [...state.lanes],
 		drops: [...state.drops],
@@ -471,13 +468,7 @@ function moveBall(s: IPinballState, ball: IBall, dt: number, random: () => numbe
 
 	// Back down the plunger lane (a weak launch): onto the plunger again.
 	if (ball.x > PLUNGER.left && ball.y >= PLUNGER.y - 4 && Math.abs(ball.vy) < 80) {
-		Object.assign(ball, {
-			x: PLUNGER.x,
-			y: PLUNGER.y,
-			vx: 0,
-			vy: 0,
-			at: "plunger",
-		});
+		Object.assign(ball, { x: PLUNGER.x, y: PLUNGER.y, vx: 0, vy: 0, at: "plunger" });
 
 		return;
 	}
@@ -618,14 +609,7 @@ function rollover(s: IPinballState, ball: IBall, lane: number) {
  * (the third lock starts multiball); otherwise it starts the next mission.
  */
 function sinkInChimney(s: IPinballState, ball: IBall, random: () => number) {
-	Object.assign(ball, {
-		x: SAUCER.x,
-		y: SAUCER.y,
-		vx: 0,
-		vy: 0,
-		at: "saucer",
-		saucerUntil: s.time + SAUCER_HOLD,
-	});
+	Object.assign(ball, { x: SAUCER.x, y: SAUCER.y, vx: 0, vy: 0, at: "saucer", saucerUntil: s.time + SAUCER_HOLD });
 	fire(s, "saucer");
 
 	if (s.lockLit && !s.multiball) {
@@ -639,10 +623,7 @@ function sinkInChimney(s: IPinballState, ball: IBall, random: () => number) {
 			s.ballSaveUntil = s.time + MULTIBALL_SAVE;
 
 			for (let extra = 1; extra < MULTIBALL_BALLS; extra++) {
-				s.balls.push({
-					...ball,
-					saucerUntil: s.time + SAUCER_HOLD + extra * 0.8,
-				});
+				s.balls.push({ ...ball, saucerUntil: s.time + SAUCER_HOLD + extra * 0.8 });
 			}
 
 			fire(s, "multiball");
@@ -724,25 +705,9 @@ function drain(s: IPinballState, drained: IBall[]) {
 			say(s, "Ball saved!", 1.5);
 
 			if (s.multiball) {
-				s.balls.push({
-					...ball,
-					x: SAUCER.x,
-					y: SAUCER.y,
-					vx: 0,
-					vy: 0,
-					at: "saucer",
-					saucerUntil: s.time + 0.6,
-				});
+				s.balls.push({ ...ball, x: SAUCER.x, y: SAUCER.y, vx: 0, vy: 0, at: "saucer", saucerUntil: s.time + 0.6 });
 			} else {
-				s.balls.push({
-					...ball,
-					x: PLUNGER.x,
-					y: PLUNGER.y,
-					vx: 0,
-					vy: 0,
-					at: "plunger",
-					stillFor: 0,
-				});
+				s.balls.push({ ...ball, x: PLUNGER.x, y: PLUNGER.y, vx: 0, vy: 0, at: "plunger", stillFor: 0 });
 			}
 		}
 

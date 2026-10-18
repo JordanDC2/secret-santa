@@ -12,11 +12,10 @@ import {
 	flipperTip,
 	GATE,
 	KICKBACK,
-	LANE_BOTTOM,
 	LANE_TRIGGER_Y,
 	LANE_LETTERS,
-	LANE_POSTS,
 	LANES,
+	OUTLANE_PEGS,
 	PLUNGER,
 	RAIL_IDS,
 	RAILS,
@@ -77,6 +76,54 @@ function project(x: number, y: number, z = 0): IProjected {
 	};
 }
 
+/** Ramps slope up from the table over this much of their start, and back down over their end. */
+const RAIL_SLOPE = 70;
+
+/** How high a rail is `along` it. */
+function railHeight(id: IRailId, along: number): number {
+	const { length, height } = RAILS[id];
+	const t = Math.max(0, Math.min(1, along / RAIL_SLOPE, (length - along) / RAIL_SLOPE));
+
+	return height * t * t * (3 - 2 * t);
+}
+
+/** Points every few units along a rail, with its height there and the way across it. */
+type IRailSample = { x: number; y: number; z: number; acrossX: number; acrossY: number };
+
+function sampleRail(id: IRailId): IRailSample[] {
+	const { length } = RAILS[id];
+	const count = Math.ceil(length / 6);
+
+	return Array.from({ length: count + 1 }, (_, index) => {
+		const along = (index / count) * length;
+		const point = railPoint(id, along);
+		const ahead = railPoint(id, Math.min(length, along + 6));
+		const behind = railPoint(id, Math.max(0, along - 6));
+		const distance = Math.hypot(ahead.x - behind.x, ahead.y - behind.y);
+
+		return {
+			...point,
+			z: railHeight(id, along),
+			acrossX: -(ahead.y - behind.y) / distance,
+			acrossY: (ahead.x - behind.x) / distance,
+		};
+	});
+}
+
+const RAIL_SAMPLES: Record<IRailId, IRailSample[]> = { sleigh: sampleRail("sleigh"), reindeer: sampleRail("reindeer") };
+
+/** The point `offset` to one side of a rail sample (negative for the other side). */
+function sideOf(sample: IRailSample, offset: number, z = sample.z): IProjected {
+	return project(sample.x + sample.acrossX * offset, sample.y + sample.acrossY * offset, z);
+}
+
+/** Shadows fall down and to the right, further the higher the thing casting them. */
+function shadowOf(x: number, y: number, z: number): IProjected {
+	const ground = project(x, y);
+
+	return { ...ground, x: ground.x + 3 + z * 0.25, y: ground.y + 2 + z * 0.12 };
+}
+
 export function drawPinball(context: CanvasRenderingContext2D, palette: IPalette, state: IPinballState) {
 	const blink = Math.floor(state.time * 4) % 2 === 0;
 	context.fillStyle = CABINET;
@@ -86,8 +133,8 @@ export function drawPinball(context: CanvasRenderingContext2D, palette: IPalette
 	drawSaucer(context, palette, state, blink);
 	drawPlunger(context, palette, state.pull);
 	drawLanes(context, palette, state, blink);
-	drawDropTargets(context, palette, state.drops);
 	drawWalls(context, palette);
+	drawDropTargets(context, palette, state.drops);
 	drawBells(context, palette, state);
 	drawSlingshots(context, palette, state);
 	drawBumpers(context, palette, state);
@@ -98,7 +145,7 @@ export function drawPinball(context: CanvasRenderingContext2D, palette: IPalette
 	RAIL_IDS.forEach((id) => drawRail(context, palette, id));
 	state.balls
 		.filter(onRail)
-		.forEach((ball) => drawBall(context, palette, ball, RAILS[ball.rail!.id].height + BALL_RADIUS));
+		.forEach((ball) => drawBall(context, palette, ball, railHeight(ball.rail!.id, ball.rail!.along) + BALL_RADIUS));
 
 	drawDisplay(context, state, blink);
 
@@ -136,13 +183,7 @@ function drawPlayfield(context: CanvasRenderingContext2D, palette: IPalette) {
 	polygon(context, outline);
 	context.fill();
 
-	context.fillStyle = palette.skyTop;
-	context.globalAlpha = 0.35;
-	polygon(context, [project(200, 340), project(268, 470), project(132, 470)]);
-	context.fill();
-	polygon(context, [project(200, 390), project(290, 560), project(110, 560)]);
-	context.fill();
-	context.globalAlpha = 1;
+	drawTree(context, palette);
 
 	// A starburst around the chimney.
 	context.strokeStyle = INSERT_DIM;
@@ -157,6 +198,60 @@ function drawPlayfield(context: CanvasRenderingContext2D, palette: IPalette) {
 		context.lineTo(to.x, to.y);
 		context.stroke();
 	}
+}
+
+/** The tree painted on the playfield: three tiers, a star on top and a few baubles. */
+const TREE_TIERS = [
+	{ top: 352, bottom: 430, half: 48 },
+	{ top: 392, bottom: 500, half: 70 },
+	{ top: 442, bottom: 580, half: 92 },
+];
+const TREE_BAUBLES = [
+	{ x: 182, y: 418 },
+	{ x: 222, y: 410 },
+	{ x: 156, y: 488 },
+	{ x: 244, y: 492 },
+	{ x: 130, y: 566 },
+	{ x: 270, y: 562 },
+	{ x: 200, y: 540 },
+];
+
+function drawTree(context: CanvasRenderingContext2D, palette: IPalette) {
+	context.globalAlpha = 0.5;
+	for (const { top, bottom, half } of TREE_TIERS) {
+		context.fillStyle = palette.greenDark;
+		polygon(context, [project(200, top), project(200 + half, bottom), project(200 - half, bottom)]);
+		context.fill();
+		// A garland across each tier.
+		context.strokeStyle = palette.goldDeep;
+		context.lineWidth = 1.5;
+		const from = project(200 - half * 0.7, bottom - (bottom - top) * 0.3);
+		const to = project(200 + half * 0.7, bottom - (bottom - top) * 0.3);
+		const dip = project(200, bottom - (bottom - top) * 0.12);
+		context.beginPath();
+		context.moveTo(from.x, from.y);
+		context.quadraticCurveTo(dip.x, dip.y, to.x, to.y);
+		context.stroke();
+	}
+
+	TREE_BAUBLES.forEach((bauble, index) =>
+		circleAt(context, bauble, 5, [palette.red, palette.gold, palette.snow][index % 3]),
+	);
+
+	// The star on top, a five-pointed one.
+	const centre = project(200, 344);
+	context.fillStyle = palette.goldDeep;
+	context.beginPath();
+
+	for (let point = 0; point < 10; point++) {
+		const angle = -Math.PI / 2 + (point * Math.PI) / 5;
+		const reach = (point % 2 === 0 ? 13 : 5.5) * centre.scale;
+		context.lineTo(centre.x + Math.cos(angle) * reach, centre.y + Math.sin(angle) * reach);
+	}
+
+	context.closePath();
+	context.fill();
+	context.globalAlpha = 1;
 }
 
 /** A lit (or unlit) arrow on the table, pointing along `angle`. */
@@ -195,8 +290,11 @@ function drawInserts(context: CanvasRenderingContext2D, palette: IPalette, state
 	// The bonus multiplier, 2x to 5x, between the slingshots.
 	[2, 3, 4, 5].forEach((times, index) => {
 		const at = { x: 152 + index * 32, y: 470 };
-		circleAt(context, at, 11, state.multiplier >= times ? palette.goldDeep : INSERT_DIM);
-		label(`${times}x`, at, state.multiplier < times);
+		const lit = state.multiplier >= times;
+		circleAt(context, at, 11, lit ? palette.goldDeep : INSERT_DIM);
+		const p = project(at.x, at.y);
+		context.fillStyle = lit ? palette.skyTop : palette.gold;
+		context.fillText(`${times}x`, p.x, p.y);
 	});
 
 	// Lock lights under the chimney, and the lock itself flashing when it's lit.
@@ -205,12 +303,13 @@ function drawInserts(context: CanvasRenderingContext2D, palette: IPalette, state
 	);
 	label("LOCK", { x: 200, y: 328 }, state.lockLit && blink);
 
-	// The kickback at the bottom of the left outlane, and the ball save between the flippers.
-	circleAt(
+	// The kickback's arrow up the left outlane, and the ball save between the flippers.
+	drawArrow(
 		context,
-		{ x: (KICKBACK.left + KICKBACK.right) / 2, y: KICKBACK.y - 30 },
-		7,
-		state.kickback ? palette.gold : INSERT_DIM,
+		{ x: (KICKBACK.left + KICKBACK.right) / 2, y: KICKBACK.y - 40 },
+		-Math.PI / 2,
+		state.kickback,
+		palette.gold,
 	);
 	label("SAVE", { x: 200, y: 690 }, state.time < state.ballSaveUntil && blink);
 }
@@ -282,10 +381,6 @@ function drawLanes(context: CanvasRenderingContext2D, palette: IPalette, state: 
 		context.fillStyle = lit ? palette.skyTop : palette.gold;
 		context.fillText(LANE_LETTERS[index], at.x, at.y + 1);
 	});
-
-	for (const x of LANE_POSTS) {
-		circleAt(context, { x, y: LANE_BOTTOM }, 4, palette.goldDeep);
-	}
 }
 
 /** A wall as a raised strip: its side face, then its top edge. */
@@ -317,25 +412,50 @@ function drawWalls(context: CanvasRenderingContext2D, palette: IPalette) {
 	}
 
 	drawRaisedSegment(context, GATE, WALL_HEIGHT * 0.6, WALL_SIDE, palette.snowShade, 2);
+	OUTLANE_PEGS.forEach((peg) => drawPeg(context, palette, peg));
 }
 
-/** The reindeer bank: the block, and each target standing up from it, red, or down flat. */
+/** A post with a rubber ring round it, standing a little above the walls. */
+function drawPeg(context: CanvasRenderingContext2D, palette: IPalette, at: IPoint) {
+	const radius = 7;
+	const foot = project(at.x, at.y);
+	const head = project(at.x, at.y, WALL_HEIGHT + 4);
+	const across = radius * foot.scale;
+	context.fillStyle = WALL_SIDE;
+	context.fillRect(foot.x - across, head.y, across * 2, foot.y - head.y);
+	context.fillStyle = palette.white;
+	context.beginPath();
+	context.ellipse(head.x, head.y, across, across * 0.6, 0, 0, Math.PI * 2);
+	context.fill();
+	context.fillStyle = palette.redBright;
+	context.beginPath();
+	context.ellipse(head.x, head.y, across * 0.45, across * 0.27, 0, 0, Math.PI * 2);
+	context.fill();
+}
+
+/**
+ * The reindeer bank: a block level with the walls, and each target standing up from its front,
+ * red, or down in its slot.
+ */
 function drawDropTargets(context: CanvasRenderingContext2D, palette: IPalette, down: boolean[]) {
 	const { front, back } = DROP_BANK;
 	context.fillStyle = WALL_SIDE;
 	polygon(context, [
-		project(front.a.x, front.a.y, 6),
-		project(front.b.x, front.b.y, 6),
-		project(back.b.x, back.b.y, 6),
-		project(back.a.x, back.a.y, 6),
+		project(front.a.x, front.a.y, WALL_HEIGHT),
+		project(front.b.x, front.b.y, WALL_HEIGHT),
+		project(back.b.x, back.b.y, WALL_HEIGHT),
+		project(back.a.x, back.a.y, WALL_HEIGHT),
 	]);
 	context.fill();
+	context.strokeStyle = palette.goldDeep;
+	context.lineWidth = 1.5;
+	context.stroke();
 
 	DROP_TARGETS.forEach((target, index) => {
 		if (down[index]) {
-			drawRaisedSegment(context, target, 2, "rgba(0, 0, 0, 0.4)", palette.snowShade, 2);
+			drawRaisedSegment(context, target, 2, "rgba(0, 0, 0, 0.5)", palette.goldDeep, 2);
 		} else {
-			drawRaisedSegment(context, target, TARGET_HEIGHT, palette.red, palette.white, 4);
+			drawRaisedSegment(context, target, TARGET_HEIGHT + 6, palette.red, palette.white, 4);
 		}
 	});
 }
@@ -368,14 +488,8 @@ function drawSlingshots(context: CanvasRenderingContext2D, palette: IPalette, st
 		const stripes = 8;
 
 		for (let stripe = 0; stripe < stripes; stripe++) {
-			const from = {
-				x: a.x + ((b.x - a.x) * stripe) / stripes,
-				y: a.y + ((b.y - a.y) * stripe) / stripes,
-			};
-			const to = {
-				x: a.x + ((b.x - a.x) * (stripe + 1)) / stripes,
-				y: a.y + ((b.y - a.y) * (stripe + 1)) / stripes,
-			};
+			const from = { x: a.x + ((b.x - a.x) * stripe) / stripes, y: a.y + ((b.y - a.y) * stripe) / stripes };
+			const to = { x: a.x + ((b.x - a.x) * (stripe + 1)) / stripes, y: a.y + ((b.y - a.y) * (stripe + 1)) / stripes };
 			const colour = stripe % 2 === 0 ? palette.redBright : palette.white;
 			drawRaisedSegment(
 				context,
@@ -474,86 +588,99 @@ function drawFlipper(context: CanvasRenderingContext2D, palette: IPalette, id: I
 	}
 }
 
+/** A line through the points. */
+function polyline(context: CanvasRenderingContext2D, points: IProjected[]) {
+	context.beginPath();
+	points.forEach((point, index) => (index === 0 ? context.moveTo(point.x, point.y) : context.lineTo(point.x, point.y)));
+	context.stroke();
+}
+
 /**
- * A ramp on posts, its shadow on the table below and an arch over its mouth. The sleigh track
- * is a pair of gold wires; the reindeer ramp clear red plastic with white edges.
+ * A ramp rising from the table at its mouth (a gold lip across the way in), up on posts, and
+ * back down at its end, its shadow on the table below. The sleigh track is a pair of gold wires
+ * on ties; the reindeer ramp clear red plastic with white edges.
  */
 function drawRail(context: CanvasRenderingContext2D, palette: IPalette, id: IRailId) {
-	const { path, length, mouth, height } = RAILS[id];
+	const samples = RAIL_SAMPLES[id];
 	const sleigh = id === "sleigh";
-	const trace = (z: number, offset: number) => {
-		context.beginPath();
-		path.forEach((point, index) => {
-			const p = project(point.x + offset, point.y, z);
-
-			if (index === 0) {
-				context.moveTo(p.x, p.y);
-			} else {
-				context.lineTo(p.x, p.y);
-			}
-		});
-		context.stroke();
-	};
-
 	context.lineJoin = "round";
 	context.lineCap = "round";
 	context.strokeStyle = SHADOW;
-	context.lineWidth = sleigh ? 6 : 12;
-	trace(0, 4);
+	context.lineWidth = sleigh ? 5 : 11;
+	polyline(
+		context,
+		samples.map((sample) => shadowOf(sample.x, sample.y, sample.z)),
+	);
 
-	// The mouth's arch.
-	const left = project(mouth.left, mouth.bottom);
-	const right = project(mouth.right, mouth.bottom);
-	const top = project((mouth.left + mouth.right) / 2, mouth.bottom, height * 0.6);
-	context.strokeStyle = palette.gold;
-	context.lineWidth = 3;
-	context.beginPath();
-	context.moveTo(left.x, left.y);
-	context.quadraticCurveTo(left.x, top.y, top.x, top.y);
-	context.quadraticCurveTo(right.x, top.y, right.x, right.y);
-	context.stroke();
+	// Posts every so often where it's up off the table: the wire track's capped in gold; under
+	// the clear ramp they're dark, so they don't show through it as stray lines.
+	for (let index = 8; index < samples.length - 4; index += 9) {
+		const sample = samples[index];
 
-	// Posts every so often, down to the table.
-	context.strokeStyle = WALL_SIDE;
-	context.lineWidth = 2;
+		if (sample.z < 12) {
+			continue;
+		}
 
-	for (let post = 1; post <= 8; post++) {
-		const point = railPoint(id, (post / 8) * length);
-		const foot = project(point.x, point.y);
-		const head = project(point.x, point.y, height);
-		context.beginPath();
-		context.moveTo(foot.x, foot.y);
-		context.lineTo(head.x, head.y);
-		context.stroke();
+		const foot = project(sample.x, sample.y);
+		const head = project(sample.x, sample.y, sample.z);
+		context.strokeStyle = sleigh ? WALL_SIDE : SHADOW;
+		context.lineWidth = 3 * foot.scale;
+		polyline(context, [foot, head]);
+
+		if (sleigh) {
+			context.fillStyle = palette.goldDeep;
+			context.beginPath();
+			context.arc(head.x, head.y, 2 * head.scale, 0, Math.PI * 2);
+			context.fill();
+		}
 	}
 
 	if (sleigh) {
+		context.strokeStyle = WALL_SIDE;
+		context.lineWidth = 2;
+
+		for (let index = 0; index < samples.length; index += 2) {
+			polyline(context, [sideOf(samples[index], -7), sideOf(samples[index], 7)]);
+		}
+
 		context.strokeStyle = palette.gold;
-		context.lineWidth = 2.5;
-		trace(height, -6);
-		trace(height, 6);
+		context.lineWidth = 2;
+		polyline(
+			context,
+			samples.map((sample) => sideOf(sample, -6)),
+		);
+		polyline(
+			context,
+			samples.map((sample) => sideOf(sample, 6)),
+		);
 	} else {
-		// Clear red plastic, so what's under it shows through, with white edges.
+		const left = samples.map((sample) => sideOf(sample, -8));
+		const right = samples.map((sample) => sideOf(sample, 8));
 		context.globalAlpha = 0.45;
-		context.strokeStyle = palette.red;
-		context.lineWidth = 14;
-		trace(height, 0);
+		context.fillStyle = palette.red;
+		// Along one edge and back along the other.
+		polygon(context, [...left, ...right.map((_, index) => right[right.length - 1 - index])]);
+		context.fill();
 		context.globalAlpha = 1;
 		context.strokeStyle = palette.white;
 		context.lineWidth = 1.5;
-		trace(height, -7);
-		trace(height, 7);
+		polyline(context, left);
+		polyline(context, right);
 	}
+
+	context.strokeStyle = palette.gold;
+	context.lineWidth = 3;
+	polyline(context, [sideOf(samples[0], -11), sideOf(samples[0], 11)]);
 }
 
 /** A snowball: a soft shadow on the table under it, and a shaded sphere `z` above. */
 function drawBall(context: CanvasRenderingContext2D, palette: IPalette, ball: IBall, z: number) {
-	const ground = project(ball.x, ball.y);
+	const ground = shadowOf(ball.x, ball.y, z - BALL_RADIUS);
 	const centre = project(ball.x, ball.y, z);
 	const radius = BALL_RADIUS * ground.scale;
 	context.fillStyle = SHADOW;
 	context.beginPath();
-	context.ellipse(ground.x + 3, ground.y + 2, radius, radius * 0.5, 0, 0, Math.PI * 2);
+	context.ellipse(ground.x, ground.y, radius, radius * 0.5, 0, 0, Math.PI * 2);
 	context.fill();
 	const shine = context.createRadialGradient(
 		centre.x - radius * 0.4,
