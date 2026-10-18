@@ -131,8 +131,9 @@ export type IGameState = {
 	chimneys: IChimney[];
 	/** While the elf is down a chimney playing pinball: which chimney. The run waits. */
 	inChimney: { x: number } | null;
-	/** Points scored down chimneys this round, for the throw's score. */
+	/** Points scored down chimneys this round, for the throw's score, and how many chimneys. */
 	pinballPoints: number;
+	chimneyVisits: number;
 	sleigh: ISleigh | null;
 	/** How far along the elf must be for this round's sleigh to fly in, or null (none coming, or here). */
 	sleighDueAt: number | null;
@@ -226,6 +227,7 @@ export function newGame(
 		chimneys: [],
 		inChimney: null,
 		pinballPoints: 0,
+		chimneyVisits: 0,
 		sleigh: null,
 		sleighDueAt: upgrades.sleigh > 0 ? planSleigh(seededRandom(seed)) : null,
 		jumpsLeft: upgrades.elfJump,
@@ -613,6 +615,7 @@ export function leaveChimney(state: IGameState, points: number): IGameState {
 		phase: "flying",
 		inChimney: null,
 		pinballPoints: state.pinballPoints + points,
+		chimneyVisits: state.chimneyVisits + 1,
 		elf: {
 			...state.elf,
 			y: CHIMNEY_HEIGHT + ELF_RADIUS + 0.3,

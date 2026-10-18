@@ -23,6 +23,7 @@ import { combinedUpgrades, prestigeGems, type IGemOnlyId, type IUpgradeId } from
 import { playGem, readSoundOn, saveSoundOn, wakeAudio } from "Components/ElfFling/sound";
 import { useFullscreen } from "Components/ElfFling/useFullscreen";
 import { releaseFocus } from "Components/ElfFling/releaseFocus";
+import RunSummary, { type IRunStats } from "Components/ElfFling/RunSummary";
 import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
 import WrapUpHold from "Components/ElfFling/WrapUpHold";
 import classes from "Components/ElfFling/ElfFling.module.less";
@@ -34,6 +35,8 @@ import { apiErrorMessage } from "Data/Api/Client";
 /** A finished throw's outcome. Coins are filled in once the server has banked them. */
 type IResult = {
 	message: string;
+	/** What the run did, for the summary over the game. */
+	run: IRunStats;
 	banked: { coins: number; bonus: number; newBest: boolean; score: number } | null;
 	saveFailed: boolean;
 };
@@ -159,7 +162,24 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 	const handleFinish = useCallback(
 		(state: IGameState) => {
 			const distance = state.distance ?? 0;
-			setResult({ message: describe(state, skinById(skinRef.current).subject), banked: null, saveFailed: false });
+			setResult({
+				message: describe(state, skinById(skinRef.current).subject),
+				run: {
+					outcome: state.outcome ?? "late",
+					distance,
+					coins: state.coinsCollected,
+					pinballPoints: state.pinballPoints,
+					pops: state.pops,
+					smashes: state.smashes,
+					grabs: state.grabs,
+					logFires: state.logFires,
+					chimneys: state.chimneyVisits,
+					bonks: state.bonks,
+					sleighRide: state.sleigh?.boardedAt != null,
+				},
+				banked: null,
+				saveFailed: false,
+			});
 
 			// Every throw is saved, misses too: they count on the "most swings" leaderboard.
 			recordThrow.mutate(
@@ -256,17 +276,9 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 						: phase === "dropping" && !touchScreen
 							? "Now swing! (Click or press Space.)"
 							: PROMPTS[phase];
-	// Over the game in full screen: the same, minus the "Wheee!" (the flight speaks for itself),
-	// and after a throw, the coins and how to go again, since the page's buttons are hidden.
-	const coinsNote = result?.banked
-		? `${result.banked.coins > 0 ? ` +${result.banked.coins} coins.` : ""} Score ${result.banked.score.toLocaleString()}.`
-		: "";
-	const overlay =
-		phase === "done" && result
-			? `${result.message}${coinsNote} ${touchScreen ? "Tap" : "Click or press Space"} to throw again.`
-			: prompt === PROMPTS.flying
-				? ""
-				: prompt;
+	// Over the game in full screen: the same, minus the "Wheee!" (the flight speaks for itself).
+	// After a throw the run summary over the game says it all instead.
+	const overlay = phase === "done" || prompt === PROMPTS.flying ? "" : prompt;
 
 	const shopProps = {
 		progress,
@@ -310,6 +322,14 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 					onOpenShop={() => setShopOpen(true)}
 					inputBlocked={shopOpen || wrapUpOpen}
 				/>
+				{phase === "done" && result && (
+					<RunSummary
+						run={result.run}
+						banked={result.banked}
+						saveFailed={result.saveFailed}
+						touchScreen={touchScreen}
+					/>
+				)}
 				{/* The shop over the game, so there's no leaving full screen to buy something. It's
 				    drawn in place inside the stage (no portal): in full screen, nothing outside it shows. Up from the
 				    bottom on phones, in from the side otherwise. */}
@@ -353,8 +373,8 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 					<MantineText fw={700}>{prompt}</MantineText>
 					{phase === "done" && result?.banked && result.banked.coins > 0 && (
 						<MantineText size="sm" fw={700} c="var(--festive-gold-text)">
-							+{result.banked.coins} {result.banked.coins === 1 ? "coin" : "coins"}
-							{result.banked.bonus > 0 && ` (${result.banked.bonus} from ${bonusSources(progress)})`}
+							+{result.banked.coins.toLocaleString()} {result.banked.coins === 1 ? "coin" : "coins"}
+							{result.banked.bonus > 0 && ` (${result.banked.bonus.toLocaleString()} from ${bonusSources(progress)})`}
 						</MantineText>
 					)}
 					{phase === "done" && result?.banked && (

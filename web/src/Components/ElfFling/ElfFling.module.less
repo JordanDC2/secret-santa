@@ -118,6 +118,102 @@
 	font-weight: 700;
 }
 
+/* The end of a run, over the top of the game (RunSummary.tsx): compact, so it fits a short game
+   on a phone; taps pass through to throw again. */
+.runSummary {
+	position: absolute;
+	top: calc(var(--mantine-spacing-xs) + env(safe-area-inset-top));
+	left: 50%;
+	z-index: 5;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	width: min(calc(100% - 24px), 21rem);
+	padding: 8px 12px;
+	transform: translateX(-50%);
+	border-radius: var(--mantine-radius-md);
+	background-color: rgba(15, 32, 39, 0.82);
+	color: var(--festive-white);
+	font-size: var(--mantine-font-size-xs);
+	pointer-events: none;
+}
+
+.runHeadline {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: var(--mantine-spacing-sm);
+	color: var(--festive-gold);
+	font-size: var(--mantine-font-size-sm);
+	font-weight: 800;
+}
+
+.runDistance {
+	font-size: var(--mantine-font-size-lg);
+}
+
+.runScore {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	margin: 0;
+	row-gap: 1px;
+
+	dt,
+	dd {
+		margin: 0;
+	}
+
+	dd {
+		text-align: right;
+		font-variant-numeric: tabular-nums;
+	}
+}
+
+.runTotal {
+	padding-top: 2px;
+	border-top: 1px solid rgba(255, 255, 255, 0.25);
+	color: var(--festive-gold);
+	font-size: var(--mantine-font-size-sm);
+	font-weight: 800;
+}
+
+.runBanked {
+	color: var(--festive-gold);
+	font-weight: 700;
+}
+
+.runBest {
+	margin-left: 6px;
+	padding: 0 6px;
+	border-radius: var(--mantine-radius-xl);
+	background-color: var(--festive-green);
+	color: var(--festive-white);
+}
+
+.runFailed {
+	color: var(--festive-red-bright);
+	font-weight: 700;
+}
+
+.runStats {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+
+	li {
+		padding: 0 6px;
+		border-radius: var(--mantine-radius-xl);
+		background-color: rgba(255, 255, 255, 0.12);
+	}
+}
+
+.runHint {
+	opacity: 0.8;
+}
+
 /* Down the chimney: the pinball table takes over the whole screen, on a dark backdrop, with a
    title and how to flip above it. */
 .chimneyLevel {
