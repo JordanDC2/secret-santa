@@ -30,13 +30,15 @@ export const ORNAMENT_LAYOUT: ILayout<IOrnament> = {
 	place: (x, random) => [{ x, y: between(HEIGHT, random), shatteredAt: null }],
 };
 
-/** The whole ornament an elf at (x, y) is hitting, as its index, or -1. */
-export function ornamentHit(ornaments: IOrnament[], x: number, y: number): number {
+/** The whole ornament an elf at (x, y) is hitting (extraReach further, as a giant snowball), as its index, or -1. */
+export function ornamentHit(ornaments: IOrnament[], x: number, y: number, extraReach = 0): number {
+	const radius = HIT_RADIUS + extraReach;
+
 	return ornaments.findIndex(
 		(ornament) =>
 			ornament.shatteredAt === null &&
-			Math.abs(ornament.x - x) <= HIT_RADIUS &&
-			Math.hypot(ornament.x - x, ornament.y - y) <= HIT_RADIUS,
+			Math.abs(ornament.x - x) <= radius &&
+			Math.hypot(ornament.x - x, ornament.y - y) <= radius,
 	);
 }
 

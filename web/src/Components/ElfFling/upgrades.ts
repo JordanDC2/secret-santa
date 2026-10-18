@@ -51,13 +51,11 @@ export type IGemOffer = {
 	prices: number[];
 };
 
+/** Keeping needs no description: the gem shop says once what keeping means. */
 const keep = (name: string, prices: number[]): IGemOffer => ({
 	kind: "keep",
 	name: `Keep ${name}`,
-	description:
-		prices.length > 1
-			? "Each level bought here stays when you wrap up Christmas, so it never needs buying again."
-			: "Stays when you wrap up Christmas, so it never needs buying again.",
+	description: "",
 	prices,
 });
 
@@ -95,7 +93,7 @@ export const SHOP_ITEMS: IShopItem[] = [
 		gem: {
 			kind: "extra",
 			name: "Extra springy boots",
-			description: "One level on top of the coin shop's three: bouncier landings still.",
+			description: "Bouncier landings still.",
 			prices: [8],
 		},
 	},
@@ -111,8 +109,7 @@ export const SHOP_ITEMS: IShopItem[] = [
 		id: "paddedSuit",
 		group: "Landings",
 		name: "Padded snowsuit",
-		description:
-			"Snowmen stop the elf dead. Padded, it keeps half its speed and ploughs on; extra padded, three quarters.",
+		description: "Snowmen stop the elf dead, unless it's padded: then it ploughs on.",
 		prices: [90, 260],
 		gem: keep("the padded snowsuit", [3, 6]),
 	},
@@ -120,7 +117,7 @@ export const SHOP_ITEMS: IShopItem[] = [
 		id: "elfJump",
 		group: "In the air",
 		name: "Elf jump",
-		description: "Tap while the elf is flying or sliding to give it a hop upward. One jump per level, each throw.",
+		description: "Tap while the elf is flying or sliding to give it a hop upward.",
 		prices: [60, 120, 200],
 		gem: keep("elf jumps", [2, 4, 7]),
 	},
@@ -128,8 +125,7 @@ export const SHOP_ITEMS: IShopItem[] = [
 		id: "rocket",
 		group: "In the air",
 		name: "Firework rocket",
-		description:
-			"Once per throw, a rocket button appears while the elf is out on the course: tap it for a fizzing blast forward.",
+		description: "A rocket button appears while the elf is out on the course: tap it for a fizzing blast forward.",
 		keyboardHint: "On a keyboard, R fires it too.",
 		prices: [120],
 		gem: keep("the firework rocket", [4]),
@@ -160,7 +156,7 @@ export const SHOP_ITEMS: IShopItem[] = [
 		gem: {
 			kind: "extra",
 			name: "Extra candy magnet",
-			description: "One level on top of the coin shop's three: coins drift in from further away still.",
+			description: "Coins drift in from further away still.",
 			prices: [6],
 		},
 	},
@@ -168,12 +164,12 @@ export const SHOP_ITEMS: IShopItem[] = [
 		id: "luckyStocking",
 		group: "Coins",
 		name: "Lucky stocking",
-		description: "Every coin you bank is worth more: a quarter extra per level.",
+		description: "Every coin you bank is worth more.",
 		prices: [100, 220],
 		gem: {
 			kind: "extra",
 			name: "Extra lucky stocking",
-			description: "One level on top of the coin shop's two: another quarter on every coin you bank.",
+			description: "More for every coin you bank.",
 			prices: [10],
 		},
 	},
@@ -196,34 +192,74 @@ export const NO_UPGRADES: IUpgrades = {
 	luckyStocking: 0,
 };
 
-export type IGemOnlyId = "christmasBonus" | "offSeasonTraining" | "polarJetStream";
+import type { IPowerUpKind } from "Components/ElfFling/powerUps";
+
+export type IGemOnlyId = "christmasBonus" | "offSeasonTraining" | "polarJetStream" | IPowerUpKind;
 
 /** Gem levels bought, per upgrade (and the gem-only ones): they never reset. */
 export type IGemUpgrades = IUpgrades & Record<IGemOnlyId, number>;
 
-/** What a throw uses: the coin and gem levels together, plus the gem-only boosts to the flight. */
-export type IThrowUpgrades = IUpgrades & { offSeasonTraining: number; polarJetStream: number };
+/** What a throw uses: the coin and gem levels together, plus the gem-only boosts and power-ups. */
+export type IThrowUpgrades = IUpgrades &
+	Record<IPowerUpKind, number> & { offSeasonTraining: number; polarJetStream: number };
 
-export const NO_THROW_UPGRADES: IThrowUpgrades = { ...NO_UPGRADES, offSeasonTraining: 0, polarJetStream: 0 };
+export const NO_THROW_UPGRADES: IThrowUpgrades = {
+	...NO_UPGRADES,
+	offSeasonTraining: 0,
+	polarJetStream: 0,
+	christmasStar: 0,
+	gingerbreadMan: 0,
+	snowAngelWings: 0,
+	giantSnowball: 0,
+};
+
+/** Power-ups, sold only for gems: level 1 puts them on the course, levels 2 and 3 make them last longer. */
+export const POWER_UP_ITEMS: Array<{ id: IPowerUpKind; name: string; description: string; prices: number[] }> = [
+	{
+		id: "christmasStar",
+		name: "Christmas star",
+		description: "Grab a star on the course and nothing slows you down: snowmen go flying and bounces lose no speed.",
+		prices: [6, 12, 20],
+	},
+	{
+		id: "gingerbreadMan",
+		name: "Gingerbread man",
+		description: "Catch a gingerbread man on the course and every coin counts for more.",
+		prices: [6, 12, 20],
+	},
+	{
+		id: "snowAngelWings",
+		name: "Snow angel wings",
+		description: "Grab wings on the course and a fall becomes a long, gentle glide.",
+		prices: [6, 12, 20],
+	},
+	{
+		id: "giantSnowball",
+		name: "Giant snowball",
+		description:
+			"Grab a snowball on the course and roll up inside it: you grab things from further away, and roll along the snow instead of bouncing. When it wears off, it pops you back up.",
+		prices: [6, 12, 20],
+	},
+];
 
 /** Sold only for gems. */
 export const GEM_ONLY_ITEMS: Array<{ id: IGemOnlyId; name: string; description: string; prices: number[] }> = [
 	{
 		id: "christmasBonus",
 		name: "Christmas bonus",
-		description: "Santa doubles every coin you bank, and doubles it again with each level: ×2, ×4, then ×8.",
+		description: "Santa adds to every coin you bank, more with each level.",
 		prices: [10, 25, 50],
 	},
 	{
 		id: "offSeasonTraining",
 		name: "Off-season training",
-		description: "The reindeer trained hard between Christmases: every hit launches 30% harder.",
+		description: "The reindeer trained hard between Christmases: every hit launches harder.",
 		prices: [20],
 	},
 	{
 		id: "polarJetStream",
 		name: "Polar jet stream",
-		description: "A polar jet stream sweeps along the course: half the air drag, so fast flights carry much further.",
+		description: "Sweeping along the course: less air drag, so fast flights carry much further.",
 		prices: [35],
 	},
 ];
@@ -239,6 +275,10 @@ export function combinedUpgrades(upgrades: IUpgrades, gemUpgrades: IGemUpgrades)
 		...upgrades,
 		offSeasonTraining: gemUpgrades.offSeasonTraining,
 		polarJetStream: gemUpgrades.polarJetStream,
+		christmasStar: gemUpgrades.christmasStar,
+		gingerbreadMan: gemUpgrades.gingerbreadMan,
+		snowAngelWings: gemUpgrades.snowAngelWings,
+		giantSnowball: gemUpgrades.giantSnowball,
 	};
 
 	for (const item of SHOP_ITEMS) {

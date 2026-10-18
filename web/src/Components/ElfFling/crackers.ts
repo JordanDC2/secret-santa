@@ -30,13 +30,13 @@ export const CRACKER_LAYOUT: ILayout<ICracker> = {
 	place: (x) => [{ x, poppedAt: null }],
 };
 
-/** The unpopped cracker an elf at (x, y) is touching, as its index, or -1. */
-export function crackerTouching(crackers: ICracker[], x: number, y: number): number {
-	if (y > REACH_Y) {
+/** The unpopped cracker an elf at (x, y) is touching (extraReach further, as a giant snowball), as its index, or -1. */
+export function crackerTouching(crackers: ICracker[], x: number, y: number, extraReach = 0): number {
+	if (y > REACH_Y + extraReach) {
 		return -1;
 	}
 
-	return crackers.findIndex((cracker) => cracker.poppedAt === null && Math.abs(cracker.x - x) <= REACH_X);
+	return crackers.findIndex((cracker) => cracker.poppedAt === null && Math.abs(cracker.x - x) <= REACH_X + extraReach);
 }
 
 /** The elf's speed just after a cracker goes off under it. */

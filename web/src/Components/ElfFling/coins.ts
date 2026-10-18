@@ -138,8 +138,9 @@ export function addCoins(coins: ICoin[], more: ICoin[]): ICoin[] {
 const PULL_SPEED = 22;
 
 /**
- * Collects every coin within reach of the elf at (x, y), and with the candy magnet, draws
- * nearby coins toward it first. Returns the coins and what was collected this step.
+ * Collects every coin within reach of the elf at (x, y) (extraReach further, as a giant
+ * snowball), and with the candy magnet, draws nearby coins toward it first. Returns the coins
+ * and what was collected this step.
  */
 export function collectCoins(
 	coins: ICoin[],
@@ -148,25 +149,28 @@ export function collectCoins(
 	time: number,
 	magnet: number,
 	dt: number,
+	extraReach = 0,
 ): { coins: ICoin[]; gained: number } {
 	let gained = 0;
 	// Copied only once a coin is collected or pulled: most steps change nothing.
 	let updated: ICoin[] | null = null;
+	const collectRadius = COLLECT_RADIUS + extraReach;
+	const furthest = Math.max(magnet, collectRadius);
 	// Only coins near the elf can change. A pulled coin drifts a little out of order, toward the
-	// elf, so look a metre wider than the magnet's reach either side.
-	const reach = magnet + 1;
+	// elf, so look a metre wider either side.
+	const reach = furthest + 1;
 
 	for (let index = firstFrom(coins, x - reach); index < coins.length && coins[index].x <= x + reach; index++) {
 		const coin = coins[index];
 
-		if (coin.collectedAt !== null || Math.abs(coin.x - x) > magnet) {
+		if (coin.collectedAt !== null || Math.abs(coin.x - x) > furthest) {
 			continue;
 		}
 
 		const distance = Math.hypot(coin.x - x, coin.y - y);
 		let next: ICoin | null = null;
 
-		if (distance <= COLLECT_RADIUS) {
+		if (distance <= collectRadius) {
 			gained += coin.value;
 			next = { ...coin, collectedAt: time };
 		} else if (distance <= magnet) {

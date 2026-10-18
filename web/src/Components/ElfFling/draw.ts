@@ -2,6 +2,8 @@ import { REINDEER_X, STACK, type IGameState } from "Components/ElfFling/physics"
 import { drawCelebration } from "Components/ElfFling/drawCelebration";
 import { drawCoinCount, drawCoins } from "Components/ElfFling/drawCoins";
 import { drawGemCount } from "Components/ElfFling/drawGems";
+import { drawActivePowerUps, drawElfPowerUps, drawPowerUps, drawShine } from "Components/ElfFling/drawPowerUps";
+import { POWER_UP_SECONDS } from "Components/ElfFling/powerUps";
 import { drawCrackers, drawPopLabels } from "Components/ElfFling/drawCrackers";
 import { drawFlyer, flyerEnlargement } from "Components/ElfFling/drawFlyers";
 import { drawOrnaments } from "Components/ElfFling/drawOrnaments";
@@ -16,7 +18,7 @@ import { drawBatter } from "Components/ElfFling/drawBatters";
  * presents, whoever's swinging the candy cane (drawBatters.ts) and whoever's being flung
  * (drawFlyers.ts). World units are metres
  * (y up); the camera follows the elf and zooms out when it flies high. The crackers, sky
- * ornaments, coins, snowmen and sleigh have their own files (drawCrackers.ts and so on).
+ * ornaments, coins, power-ups, snowmen and sleigh have their own files (drawCrackers.ts and so on).
  */
 
 /** The scene's colours, read once from the app's --festive-* tokens. */
@@ -132,7 +134,10 @@ export function drawFrame(
 	drawSleigh(context, palette, state.sleigh, state.time, camera.pixelsPerMetre);
 	drawRocketTrail(context, palette, state, camera.pixelsPerMetre);
 	drawCoins(context, palette, state.coins, state.time, camera.pixelsPerMetre, visible);
+	drawPowerUps(context, palette, state.powerUps, state.time, camera.pixelsPerMetre, visible);
+	drawShine(context, palette, state, camera.pixelsPerMetre);
 	drawFlyer(context, palette, state, camera.pixelsPerMetre, skin);
+	drawElfPowerUps(context, palette, state, camera.pixelsPerMetre);
 	context.restore();
 	drawPopLabels(context, palette, state.crackers, state.time, toScreen);
 	drawSnowfall(context, palette, camera, size, clock);
@@ -145,6 +150,14 @@ export function drawFrame(
 	if (balance.gems !== null) {
 		drawGemCount(context, palette, balance.gems);
 	}
+
+	drawActivePowerUps(
+		context,
+		palette,
+		state,
+		balance.gems !== null ? 86 : 58,
+		(kind) => POWER_UP_SECONDS[kind][Math.max(0, state.upgrades[kind] - 1)],
+	);
 
 	if (state.phase === "flying" || state.phase === "sliding") {
 		drawLiveDistance(context, palette, width, state.elf.x - REINDEER_X);

@@ -4,7 +4,8 @@
  * elf is to the bat's sweet spot at that moment sets how hard and how high it flies. Then it
  * bounces and slides along the snow until it stops. On the way: coins to collect, and (with
  * shop upgrades, see upgrades.ts) crackers, sky ornaments and a sleigh that launch it on,
- * jumps and a rocket the player sets off, and the odd snowman that gets in the way. The course
+ * jumps and a rocket the player sets off, power-ups to grab (powerUps.ts), and the odd snowman
+ * that gets in the way. The course
  * never ends: it's laid out as the elf goes (course.ts). Distance is measured from the reindeer.
  */
 
@@ -12,6 +13,20 @@ import { COIN_LAYOUTS, collectCoins, type ICoin } from "Components/ElfFling/coin
 import { keepCourseAhead, seededRandom, startCourse, type ICourse } from "Components/ElfFling/course";
 import { CRACKER_LAYOUT, crackerTouching, poppedVelocity, type ICracker } from "Components/ElfFling/crackers";
 import { kickedVelocity, ORNAMENT_LAYOUT, ornamentHit, type IOrnament } from "Components/ElfFling/ornaments";
+import {
+	GLIDE_SINK,
+	isActive,
+	NO_ACTIVE_POWER_UPS,
+	POWER_UP_KINDS,
+	POWER_UP_SECONDS,
+	powerUpGrabbed,
+	powerUpLayout,
+	SNOWBALL_FRICTION,
+	SNOWBALL_POP_UP,
+	SNOWBALL_REACH,
+	type IActivePowerUps,
+	type IPowerUp,
+} from "Components/ElfFling/powerUps";
 import {
 	canBoard,
 	moveSleigh,
@@ -71,6 +86,9 @@ export type IGameState = {
 	snowmen: ISnowman[];
 	/** How many snowmen the elf has run into this round. */
 	bonks: number;
+	powerUps: IPowerUp[];
+	/** Which power-ups are going, and until when. */
+	active: IActivePowerUps;
 	sleigh: ISleigh | null;
 	/** How far along the elf must be for this round's sleigh to fly in, or null (none coming, or here). */
 	sleighDueAt: number | null;
@@ -120,6 +138,7 @@ function layoutsFor(upgrades: IThrowUpgrades) {
 		crackers: upgrades.crackers > 0 ? CRACKER_LAYOUT : null,
 		ornaments: upgrades.skyOrnaments > 0 ? ORNAMENT_LAYOUT : null,
 		snowmen: SNOWMAN_LAYOUT,
+		powerUps: powerUpLayout(POWER_UP_KINDS.filter((kind) => upgrades[kind] > 0)),
 	};
 }
 
@@ -148,6 +167,8 @@ export function newGame(
 		smashes: 0,
 		snowmen: [],
 		bonks: 0,
+		powerUps: [],
+		active: NO_ACTIVE_POWER_UPS,
 		sleigh: null,
 		sleighDueAt: upgrades.sleigh > 0 ? planSleigh(seededRandom(seed)) : null,
 		jumpsLeft: upgrades.elfJump,
@@ -246,6 +267,8 @@ export function step(state: IGameState, dt: number): IGameState {
 		state.elf.x,
 	);
 
+	next = snowballWearsOff(next);
+
 	if (next.sleighDueAt !== null && next.elf.x >= next.sleighDueAt && isLoose(next)) {
 		next.sleigh = sleighArrives(next.elf, seededRandom(next.course.seed + 1));
 		next.sleighDueAt = null;
@@ -281,12 +304,18 @@ function fly(state: IGameState, dt: number): IGameState {
 
 	elf.vx += ((rocket ? ROCKET_PUSH.forward : 0) - drag * elf.vx * speed) * dt;
 	elf.vy += ((rocket ? ROCKET_PUSH.up : 0) - gravity - drag * elf.vy * speed) * dt;
+
+	// Snow angel wings: a fall becomes a glide.
+	if (next.phase === "flying" && isActive(next.active, "snowAngelWings", next.time)) {
+		elf.vy = Math.max(elf.vy, -GLIDE_SINK);
+	}
+
 	elf.x += elf.vx * dt;
 	elf.y += elf.vy * dt;
 
 	if (next.phase === "flying") {
 		elf.spin += (elf.vx / ELF_RADIUS) * dt * 0.35;
-		next = bumpSnowman(smashOrnament(pickUpCoins(next, dt)));
+		next = bumpSnowman(smashOrnament(grabPowerUp(pickUpCoins(next, dt))));
 
 		if (canBoard(next.sleigh, next.elf.x, next.elf.y)) {
 			return { ...next, sleigh: { ...next.sleigh!, boardedAt: next.time, vx: RIDE_SPEED } };
@@ -305,11 +334,14 @@ function fly(state: IGameState, dt: number): IGameState {
 /** Along the snow, slowing until it stops. */
 function slide(state: IGameState, dt: number): IGameState {
 	const elf = state.elf;
-	elf.vx = Math.max(0, elf.vx - snowFriction(state.upgrades) * dt);
+	// A giant snowball barely slows.
+	const friction =
+		snowFriction(state.upgrades) * (isActive(state.active, "giantSnowball", state.time) ? SNOWBALL_FRICTION : 1);
+	elf.vx = Math.max(0, elf.vx - friction * dt);
 	elf.x += elf.vx * dt;
 	elf.spin += (elf.vx / ELF_RADIUS) * dt * 0.5;
 
-	const next = bumpSnowman(pickUpCoins(state, dt));
+	const next = bumpSnowman(grabPowerUp(pickUpCoins(state, dt)));
 	const popped = popCracker(next);
 
 	if (popped) {
@@ -356,16 +388,66 @@ function resolveSwing(state: IGameState): IGameState {
 	};
 }
 
+/** How much further the elf reaches for things to grab: further as a giant snowball. */
+function extraReach(state: IGameState): number {
+	return isActive(state.active, "giantSnowball", state.time) ? SNOWBALL_REACH : 0;
+}
+
 function pickUpCoins(state: IGameState, dt: number): IGameState {
 	const magnet = magnetRadius(state.upgrades);
-	const { coins, gained } = collectCoins(state.coins, state.elf.x, state.elf.y, state.time, magnet, dt);
+	const { coins, gained } = collectCoins(
+		state.coins,
+		state.elf.x,
+		state.elf.y,
+		state.time,
+		magnet,
+		dt,
+		extraReach(state),
+	);
+	// The gingerbread man doubles coins while he lasts.
+	const worth = isActive(state.active, "gingerbreadMan", state.time) ? 2 : 1;
 
-	return coins === state.coins ? state : { ...state, coins, coinsCollected: state.coinsCollected + gained };
+	return coins === state.coins ? state : { ...state, coins, coinsCollected: state.coinsCollected + gained * worth };
+}
+
+/** The giant snowball running out: it's gone, and if it was rolling, it pops the elf back up. */
+function snowballWearsOff(state: IGameState): IGameState {
+	const until = state.active.giantSnowball;
+
+	if (until === null || state.time < until) {
+		return state;
+	}
+
+	const active = { ...state.active, giantSnowball: null };
+
+	if (state.phase !== "sliding" || state.elf.vx === 0) {
+		return { ...state, active };
+	}
+
+	return { ...state, active, phase: "flying", elf: { ...state.elf, y: ELF_RADIUS, vy: SNOWBALL_POP_UP } };
+}
+
+/** Grabbing a power-up sets it going for as long as its level allows (starting over if it already was). */
+function grabPowerUp(state: IGameState): IGameState {
+	const index = powerUpGrabbed(state.powerUps, state.elf.x, state.elf.y, extraReach(state));
+
+	if (index === -1) {
+		return state;
+	}
+
+	const { kind } = state.powerUps[index];
+	const seconds = POWER_UP_SECONDS[kind][Math.max(0, state.upgrades[kind] - 1)];
+
+	return {
+		...state,
+		powerUps: state.powerUps.map((powerUp, i) => (i === index ? { ...powerUp, collectedAt: state.time } : powerUp)),
+		active: { ...state.active, [kind]: state.time + seconds },
+	};
 }
 
 /** An elf flying into a sky ornament shatters it and gets kicked up and forward. */
 function smashOrnament(state: IGameState): IGameState {
-	const index = ornamentHit(state.ornaments, state.elf.x, state.elf.y);
+	const index = ornamentHit(state.ornaments, state.elf.x, state.elf.y, extraReach(state));
 
 	if (index === -1) {
 		return state;
@@ -381,7 +463,10 @@ function smashOrnament(state: IGameState): IGameState {
 	};
 }
 
-/** Running into a snowman knocks it over and costs the elf its speed (some of it, padded). */
+/**
+ * Running into a snowman knocks it over and costs the elf its speed (some of it, padded; none
+ * of it while the Christmas star shines).
+ */
 function bumpSnowman(state: IGameState): IGameState {
 	const index = snowmanHit(state.snowmen, state.elf.x, state.elf.y);
 
@@ -389,19 +474,20 @@ function bumpSnowman(state: IGameState): IGameState {
 		return state;
 	}
 
+	const shining = isActive(state.active, "christmasStar", state.time);
 	const keep = snowmanKeep(state.upgrades);
 
 	return {
 		...state,
 		snowmen: state.snowmen.map((snowman, i) => (i === index ? { ...snowman, toppledAt: state.time } : snowman)),
 		bonks: state.bonks + 1,
-		elf: { ...state.elf, vx: state.elf.vx * keep, vy: Math.min(state.elf.vy, 0) },
+		elf: shining ? state.elf : { ...state.elf, vx: state.elf.vx * keep, vy: Math.min(state.elf.vy, 0) },
 	};
 }
 
 /** If the elf is on a cracker, it goes bang and the elf takes off again; otherwise null. */
 function popCracker(state: IGameState): IGameState | null {
-	const index = crackerTouching(state.crackers, state.elf.x, state.elf.y);
+	const index = crackerTouching(state.crackers, state.elf.x, state.elf.y, extraReach(state));
 
 	if (index === -1) {
 		return null;
@@ -424,10 +510,17 @@ function land(state: IGameState): IGameState {
 		return finish({ ...state, elf: { ...elf, vx: 0, vy: 0 } }, state.outcome ?? "late");
 	}
 
+	// A giant snowball doesn't bounce: it lands rolling, keeping its speed.
+	if (isActive(state.active, "giantSnowball", state.time)) {
+		return { ...state, phase: "sliding", elf: { ...elf, vy: 0 } };
+	}
+
 	if (-elf.vy > BOUNCE_MIN_SPEED) {
 		const keep = bounceKeep(state.upgrades);
+		// While the Christmas star shines, a bounce keeps all the elf's forward speed.
+		const forward = isActive(state.active, "christmasStar", state.time) ? 1 : keep.forward;
 
-		return { ...state, elf: { ...elf, vy: -elf.vy * keep.vertical, vx: elf.vx * keep.forward } };
+		return { ...state, elf: { ...elf, vy: -elf.vy * keep.vertical, vx: elf.vx * forward } };
 	}
 
 	return { ...state, phase: "sliding", elf: { ...elf, vy: 0 } };

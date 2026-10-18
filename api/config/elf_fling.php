@@ -58,9 +58,15 @@ return [
         'offSeasonTraining' => [20],
         // Gem shop only: half the air drag (the game applies it).
         'polarJetStream' => [35],
+        // Power-ups (the game runs them): level 1 puts each on the course, the next make it last longer.
+        'christmasStar' => [6, 12, 20],
+        'gingerbreadMan' => [6, 12, 20],
+        'snowAngelWings' => [6, 12, 20],
+        'giantSnowball' => [6, 12, 20],
     ],
     'gem_extra' => [
         'springyBoots', 'candyMagnet', 'luckyStocking', 'christmasBonus', 'offSeasonTraining', 'polarJetStream',
+        'christmasStar', 'gingerbreadMan', 'snowAngelWings', 'giantSnowball',
     ],
 
     // Who gets flung. The first is free and everyone has it.

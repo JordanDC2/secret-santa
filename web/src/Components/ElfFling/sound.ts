@@ -7,6 +7,7 @@
  */
 
 import { ROCKET_SECONDS, type IGameState } from "Components/ElfFling/physics";
+import { POWER_UP_KINDS } from "Components/ElfFling/powerUps";
 
 const STORAGE_KEY = "secret-santa-elf-fling-sound";
 const VOLUME = 0.35;
@@ -229,6 +230,12 @@ export function startSleighBellAmbience(seconds: number): () => void {
 	return () => window.clearTimeout(timer);
 }
 
+/** Grabbing a power-up: a quick rising sweep and a bright twinkle on top. */
+export function playPowerUp() {
+	tone("triangle", 520, 1560, 0.28, 0.35);
+	[1568, 2093].forEach((pitch, i) => tone("sine", pitch, pitch, 0.25, 0.18, 0.18 + i * 0.07));
+}
+
 /** The sleigh flying in: a few soft, distant bells, so you look for it. */
 export function playSleighArrives() {
 	for (let i = 0; i < 5; i++) {
@@ -245,7 +252,7 @@ export function playFanfare() {
 /**
  * The sounds for whatever just happened in the game, from one moment to the next: the hop off
  * the presents, the swing,
- * the hit, coins, crackers, ornaments, snowmen, jumps, the rocket and the sleigh.
+ * the hit, coins, crackers, ornaments, snowmen, power-ups, jumps, the rocket and the sleigh.
  */
 export function playStateChanges(previous: IGameState, next: IGameState) {
 	if (previous.phase === "ready" && next.phase === "dropping") {
@@ -282,6 +289,20 @@ export function playStateChanges(previous: IGameState, next: IGameState) {
 
 	if (previous.rocketUntil === null && next.rocketUntil !== null) {
 		playRocket(ROCKET_SECONDS);
+	}
+
+	if (POWER_UP_KINDS.some((kind) => next.active[kind] !== previous.active[kind] && next.active[kind] !== null)) {
+		playPowerUp();
+	}
+
+	// The snowball popping the elf back up.
+	if (
+		previous.phase === "sliding" &&
+		next.phase === "flying" &&
+		next.active.giantSnowball === null &&
+		previous.active.giantSnowball !== null
+	) {
+		playJump();
 	}
 
 	if (previous.sleigh === null && next.sleigh !== null) {

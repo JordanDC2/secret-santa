@@ -4,13 +4,32 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCoins, faGem, faSnowflake } from "@fortawesome/free-solid-svg-icons";
 import SectionCard from "Components/Common/SectionCard";
 import {
+	GLIDE_SINK,
+	POWER_UP_SECONDS,
+	SNOWBALL_FRICTION,
+	SNOWBALL_REACH,
+	type IPowerUpKind,
+} from "Components/ElfFling/powerUps";
+import {
+	airDragShare,
+	bounceKeep,
+	coinMultiplier,
+	combinedUpgrades,
 	GEM_ONLY_ITEMS,
+	magnetRadius,
+	NO_THROW_UPGRADES,
+	snowFriction,
+	snowmanKeep,
+	swingMultiplier,
+	swingReach,
+	POWER_UP_ITEMS,
 	nextCoinPrice,
 	nextGemPrice,
 	prestigeGems,
 	SHOP_GROUPS,
 	SHOP_ITEMS,
 	type IGemOnlyId,
+	type IGemUpgrades,
 	type IShopItem,
 	type IUpgradeId,
 } from "Components/ElfFling/upgrades";
@@ -75,6 +94,7 @@ export default function ElfFlingShop({
 							name={item.name}
 							description={describe(item)}
 							{...coinRowLevels(item, upgrades[item.id], gemUpgrades[item.id])}
+							effect={coinEffect(item, progress)}
 							price={nextCoinPrice(item, upgrades[item.id], gemUpgrades[item.id])}
 							currency="coins"
 							balance={coins}
@@ -128,6 +148,7 @@ export default function ElfFlingShop({
 			level={gemUpgrades[item.id]}
 			levels={item.gem.prices.length}
 			doneLabel={item.gem.kind === "keep" ? "Kept" : undefined}
+			effect={gemEffect(item.id, progress)}
 			price={nextGemPrice(item, gemUpgrades[item.id])}
 			currency="gems"
 			balance={gems}
@@ -147,6 +168,25 @@ export default function ElfFlingShop({
 						key={item.id}
 						name={item.name}
 						description={item.description}
+						effect={gemEffect(item.id, progress)}
+						level={gemUpgrades[item.id]}
+						levels={item.prices.length}
+						price={item.prices[gemUpgrades[item.id]] ?? null}
+						currency="gems"
+						balance={gems}
+						busy={busy}
+						onBuy={() => onBuyGemUpgrade(item.id)}
+					/>
+				))}
+			</Stack>
+			<Stack gap="sm">
+				<Divider label="Power-ups" labelPosition="left" />
+				{POWER_UP_ITEMS.map((item) => (
+					<ShopRow
+						key={item.id}
+						name={item.name}
+						description={item.description}
+						effect={gemEffect(item.id, progress)}
 						level={gemUpgrades[item.id]}
 						levels={item.prices.length}
 						price={item.prices[gemUpgrades[item.id]] ?? null}
@@ -163,6 +203,9 @@ export default function ElfFlingShop({
 			</Stack>
 			<Stack gap="sm">
 				<Divider label="Keep through Christmas" labelPosition="left" />
+				<MantineText size="sm" c="dimmed">
+					The coin shop&apos;s own levels, kept when you wrap up Christmas so they never need buying again.
+				</MantineText>
 				{SHOP_ITEMS.filter((item) => item.gem.kind === "keep").map(gemRow)}
 			</Stack>
 		</Stack>
@@ -283,6 +326,113 @@ function WrapUpChristmas({ progress, busy, onWrapUp }: IWrapUpChristmasProps) {
 	);
 }
 
+/** What each power-up does, in numbers (powerUps.ts and the physics apply them). */
+const POWER_UP_EFFECTS: Record<IPowerUpKind, string> = {
+	christmasStar: "Bounces keep: 100% of their speed",
+	gingerbreadMan: "Coins: ×2",
+	snowAngelWings: `Fastest fall: ${GLIDE_SINK} m/s`,
+	giantSnowball: `Reach: +${SNOWBALL_REACH} m · Slide friction: −${Math.round((1 - SNOWBALL_FRICTION) * 100)}%`,
+};
+
+/**
+ * A gem-shop upgrade's effect in numbers, from the player's own levels (coin shop included):
+ * "Lasts: 5 s at level 1" before buying, "Lasts: 5 s now, 7.5 s at level 2" part way, and just
+ * "Lasts: 10 s" when maxed. Null where there's no number to show (the keep items).
+ */
+function gemEffect(id: IUpgradeId | IGemOnlyId, progress: IProgress): string | null {
+	const level = progress.gemUpgrades[id];
+	// The throw's numbers if this one were at `at` levels.
+	const at = (gemLevel: number) =>
+		combinedUpgrades(progress.upgrades, { ...progress.gemUpgrades, [id]: gemLevel } as IGemUpgrades);
+	const describe = (label: string, levels: number, value: (gemLevel: number) => string) =>
+		effectLine(label, level, levels, value);
+
+	switch (id) {
+		case "christmasStar":
+		case "gingerbreadMan":
+		case "snowAngelWings":
+		case "giantSnowball":
+			return `${POWER_UP_EFFECTS[id]} · ${describe("Lasts", POWER_UP_SECONDS[id].length, (gemLevel) => `${POWER_UP_SECONDS[id][gemLevel - 1]} s`)}`;
+		case "offSeasonTraining":
+			return `Launch speed: +${Math.round((swingMultiplier({ ...NO_THROW_UPGRADES, offSeasonTraining: 1 }) - 1) * 100)}%`;
+		case "polarJetStream":
+			return `Air drag: −${Math.round((1 - airDragShare({ ...NO_THROW_UPGRADES, polarJetStream: 1 })) * 100)}%`;
+		case "christmasBonus":
+			return describe("Banked coins", 3, (gemLevel) => `×${2 ** gemLevel}`);
+		case "springyBoots":
+			return describe(
+				"Bounces keep",
+				1,
+				(gemLevel) => `${Math.round(bounceKeep(at(gemLevel)).vertical * 100)}% of their height`,
+			);
+		case "candyMagnet":
+			return describe("Reach", 1, (gemLevel) => `${magnetRadius(at(gemLevel))} m`);
+		case "luckyStocking":
+			return describe(
+				"Extra on banked coins",
+				1,
+				(gemLevel) => `+${Math.round((coinMultiplier(at(gemLevel)) - 1) * 100)}%`,
+			);
+		default:
+			return null;
+	}
+}
+
+/**
+ * A coin-shop upgrade's effect in numbers, the same way as gemEffect, counting any gem levels
+ * the player has (extra levels on top, kept levels as bought). Null where there's no number
+ * to show (most single purchases).
+ */
+function coinEffect(item: IShopItem, progress: IProgress): string | null {
+	const { id } = item;
+	const { level } = coinRowLevels(item, progress.upgrades[id], progress.gemUpgrades[id]);
+	// The throw's numbers with the row at `rowLevel`: kept levels are already counted in it.
+	const at = (rowLevel: number) =>
+		combinedUpgrades(
+			{ ...progress.upgrades, [id]: rowLevel },
+			item.gem.kind === "keep" ? { ...progress.gemUpgrades, [id]: 0 } : progress.gemUpgrades,
+		);
+	const describe = (label: string, value: (rowLevel: number) => string) =>
+		effectLine(label, level, item.prices.length, value);
+
+	switch (id) {
+		case "swingStrength":
+			return describe("Launch speed", (n) => `+${at(n).swingStrength * 7}%`);
+		case "goldenCane":
+			return describe("Sweet spot", (n) => `±${swingReach(at(n)).toFixed(2)} m`);
+		case "sledRunners":
+			return describe("Slide friction", (n) => `−${Math.round((1 - snowFriction(at(n)) / 4) * 100)}%`);
+		case "springyBoots":
+			return describe("Bounces keep", (n) => `${Math.round(bounceKeep(at(n)).vertical * 100)}% of their height`);
+		case "paddedSuit":
+			return describe("Speed kept after a snowman", (n) => `${Math.round(snowmanKeep(at(n)) * 100)}%`);
+		case "elfJump":
+			return describe("Jumps per throw", (n) => `${at(n).elfJump}`);
+		case "candyMagnet":
+			return describe("Reach", (n) => `${magnetRadius(at(n))} m`);
+		case "luckyStocking":
+			return describe("Extra on banked coins", (n) => `+${Math.round((coinMultiplier(at(n)) - 1) * 100)}%`);
+		case "rocket":
+			return "Rockets per throw: 1";
+		default:
+			return null;
+	}
+}
+
+/**
+ * "Label: X at level 1" before buying, "Label: X now, Y at level 2" part way, and just
+ * "Label: X" when maxed. value(n) is the effect at level n.
+ */
+function effectLine(label: string, level: number, levels: number, value: (level: number) => string): string {
+	if (level === 0) {
+		return `${label}: ${value(1)} at level 1`;
+	}
+
+	return level >= levels
+		? `${label}: ${value(level)}`
+		: `${label}: ${value(level)} now, ${value(level + 1)} at level ${level + 1}`;
+}
+
 /**
  * How a coin-shop row shows its levels alongside the gem shop's. Extra gem levels show as a note
  * ("+1 extra") beside the coin levels; kept levels count as bought, and once all are kept
@@ -317,6 +467,8 @@ type IShopRowProps = {
 	levels: number;
 	/** A gem-shop note beside the name, e.g. "+1 extra" or "2 kept". */
 	note?: string | null;
+	/** What the levels do, in numbers (gemEffect). */
+	effect?: string | null;
 	/** Shown once there's nothing more to buy; "Maxed" or "Owned" unless given. */
 	doneLabel?: string;
 	/** The next level's price, or null if there's nothing more to buy here. */
@@ -334,6 +486,7 @@ function ShopRow({
 	level,
 	levels,
 	note = null,
+	effect = null,
 	doneLabel,
 	price,
 	currency,
@@ -360,9 +513,16 @@ function ShopRow({
 						</Badge>
 					)}
 				</Group>
-				<MantineText size="sm" c="dimmed">
-					{description}
-				</MantineText>
+				{description && (
+					<MantineText size="sm" c="dimmed">
+						{description}
+					</MantineText>
+				)}
+				{effect && (
+					<MantineText size="xs" fw={700} c="var(--festive-gold-text)">
+						{effect}
+					</MantineText>
+				)}
 			</div>
 			{price === null ? (
 				<Badge variant="light" color={done === "Kept" ? "red" : "green"} style={{ flex: "none" }}>

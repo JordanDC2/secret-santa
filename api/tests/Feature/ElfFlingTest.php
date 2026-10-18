@@ -214,6 +214,23 @@ class ElfFlingTest extends TestCase
             ->assertJsonValidationErrors(['item' => 'That isn\'t in the shop.']);
     }
 
+    public function test_power_ups_are_unlocked_and_levelled_with_gems(): void
+    {
+        $user = $this->player();
+        ElfFlingProgress::for($user)->update(['gems' => 40]);
+
+        foreach ([1 => 34, 2 => 22, 3 => 2] as $level => $gemsLeft) {
+            $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'christmasStar'])
+                ->assertJsonPath('gem_upgrades.christmasStar', $level)
+                ->assertJsonPath('gems', $gemsLeft);
+        }
+
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'christmasStar'])
+            ->assertJsonValidationErrors(['item' => 'That\'s already fully upgraded.']);
+        $this->postJson(route('elf-fling.prestige'))->assertJsonValidationErrors(['coins']);
+        $this->assertSame(3, ElfFlingProgress::for($user)->gemLevel('christmasStar'));
+    }
+
     public function test_huge_runs_and_hauls_are_welcome_but_nonsense_is_refused(): void
     {
         $this->player();
