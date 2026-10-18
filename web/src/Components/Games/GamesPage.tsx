@@ -9,7 +9,7 @@ import PageTitle from "Components/Layout/PageTitle";
 
 /** Little festive games, for a bit of fun while waiting for the exchange. */
 export default function GamesPage() {
-	// Pinball's found down a chimney in Elf Fling before it can be played here.
+	// Pinball is found down a chimney in Elf Fling before it can be played (or even named) here.
 	const pinballUnlocked = useProgressQuery().data?.pinballUnlocked ?? false;
 
 	return (
@@ -30,20 +30,32 @@ export default function GamesPage() {
 							Help a reindeer bat a little elf as far as it can fly. Time the swing for the sweet spot.
 						</MantineText>
 					</SectionCard>
-					<SectionCard
-						title="Christmas pinball"
-						action={
-							<Button component={Link} to="/games/pinball" variant="secondary" size="xs">
-								{pinballUnlocked ? "Play" : "Locked"}
-							</Button>
-						}
-					>
-						<MantineText size="sm">
-							{pinballUnlocked
-								? "Elf Fling's secret level: candy-cane flippers, ornament bumpers and gifts to light up."
-								: "A secret, hidden down a chimney somewhere in Elf Fling. Find it to play it here."}
-						</MantineText>
-					</SectionCard>
+					{/* Kept a mystery until it's found down a chimney in Elf Fling. */}
+					{pinballUnlocked ? (
+						<SectionCard
+							title="Christmas pinball"
+							action={
+								<Button component={Link} to="/games/pinball" variant="secondary" size="xs">
+									Play
+								</Button>
+							}
+						>
+							<MantineText size="sm">
+								Elf Fling&apos;s secret level: candy-cane flippers, ornament bumpers and gifts to light up.
+							</MantineText>
+						</SectionCard>
+					) : (
+						<SectionCard
+							title="?"
+							action={
+								<Button component={Link} to="/games/elf-fling" variant="secondary" size="xs">
+									Play Elf Fling
+								</Button>
+							}
+						>
+							<MantineText size="sm">Play Elf Fling to unlock.</MantineText>
+						</SectionCard>
+					)}
 				</SimpleGrid>
 			</Stack>
 		</Page>
