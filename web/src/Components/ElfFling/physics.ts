@@ -14,11 +14,12 @@ import { CRACKER_LAYOUT, crackerTouching, poppedVelocity, type ICracker } from "
 import { kickedVelocity, ORNAMENT_LAYOUT, ornamentHit, type IOrnament } from "Components/ElfFling/ornaments";
 import {
 	canBoard,
-	maybeSleigh,
 	moveSleigh,
+	planSleigh,
 	RELEASE_UP,
 	RIDE_SECONDS,
 	RIDE_SPEED,
+	sleighArrives,
 	type ISleigh,
 } from "Components/ElfFling/sleigh";
 import { SNOWMAN_LAYOUT, snowmanHit, type ISnowman } from "Components/ElfFling/snowmen";
@@ -71,6 +72,8 @@ export type IGameState = {
 	/** How many snowmen the elf has run into this round. */
 	bonks: number;
 	sleigh: ISleigh | null;
+	/** How far along the elf must be for this round's sleigh to fly in, or null (none coming, or here). */
+	sleighDueAt: number | null;
 	/** Jumps the elf still has this round. */
 	jumpsLeft: number;
 	/** Whether the rocket is still unused this round. */
@@ -145,7 +148,8 @@ export function newGame(
 		smashes: 0,
 		snowmen: [],
 		bonks: 0,
-		sleigh: upgrades.sleigh > 0 ? maybeSleigh(seededRandom(seed)) : null,
+		sleigh: null,
+		sleighDueAt: upgrades.sleigh > 0 ? planSleigh(seededRandom(seed)) : null,
 		jumpsLeft: upgrades.elfJump,
 		rocketReady: upgrades.rocket > 0,
 		rocketUntil: null,
@@ -241,6 +245,11 @@ export function step(state: IGameState, dt: number): IGameState {
 		layoutsFor(state.upgrades),
 		state.elf.x,
 	);
+
+	if (next.sleighDueAt !== null && next.elf.x >= next.sleighDueAt && isLoose(next)) {
+		next.sleigh = sleighArrives(next.elf, seededRandom(next.course.seed + 1));
+		next.sleighDueAt = null;
+	}
 
 	if (next.sleigh) {
 		next.sleigh = moveSleigh(next.sleigh, dt, next.elf);

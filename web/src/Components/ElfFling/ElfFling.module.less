@@ -30,13 +30,14 @@
 	color: var(--festive-white);
 }
 
-/* Over the bottom right of the game, while the rocket can fire: no background, just the
-   rocket at mild opacity (a shadow keeps it readable over snow or sky), full strength when
-   pressed or hovered. */
+/* Bottom right, while the rocket can fire: level with the corner buttons, with a gold ring and
+   no fill (it's the one action button), the rocket at mild opacity, full strength when pressed
+   or hovered. */
 .rocketButton {
 	position: absolute;
-	right: var(--mantine-spacing-sm);
-	bottom: var(--mantine-spacing-sm);
+	right: calc(var(--mantine-spacing-xs) + env(safe-area-inset-right));
+	bottom: calc(var(--mantine-spacing-xs) + env(safe-area-inset-bottom));
+	border: 2px solid var(--festive-gold);
 	touch-action: manipulation;
 	opacity: 0.72;
 	filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
@@ -115,9 +116,33 @@
 	font-weight: 700;
 }
 
-.fullscreen .rocketButton {
-	right: calc(var(--mantine-spacing-sm) + env(safe-area-inset-right));
-	bottom: calc(var(--mantine-spacing-sm) + env(safe-area-inset-bottom));
+/* Restart, armed by a first tap: red, so the second tap is clearly a choice. */
+.cornerButton[data-armed] {
+	opacity: 1;
+	color: var(--festive-white);
+	background-color: var(--festive-red);
+
+	&:hover,
+	&:focus-visible,
+	&:active {
+		background-color: var(--festive-red-bright);
+	}
+}
+
+/* Above the button row rather than in it, so the row never grows or shifts on a narrow phone. */
+.restartConfirm {
+	position: absolute;
+	left: 0;
+	bottom: calc(100% + var(--mantine-spacing-xs));
+	width: max-content;
+	max-width: 18rem;
+	padding: 4px 10px;
+	border-radius: var(--mantine-radius-xl);
+	background-color: rgba(15, 32, 39, 0.72);
+	color: var(--festive-gold);
+	font-size: var(--mantine-font-size-xs);
+	font-weight: 700;
+	line-height: 1.25;
 }
 
 /* The prompt or result in full screen, placed where it covers neither the buttons nor the

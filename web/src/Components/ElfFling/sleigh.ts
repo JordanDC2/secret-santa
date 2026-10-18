@@ -1,8 +1,10 @@
 /**
- * The sleigh sighting (a shop upgrade): in some rounds a sleigh crosses the sky ahead, flying
- * forward more slowly than a good throw. An elf that catches it rides along at speed for a
- * few seconds, then is let go with a big forward fling.
+ * The sleigh sighting (a shop upgrade): in some rounds a sleigh flies in at a random point of
+ * the run, just ahead of the elf, flying forward more slowly than a good throw. An elf that
+ * catches it rides along at speed for a few seconds, then is let go with a big forward fling.
  */
+
+import { between } from "Components/ElfFling/course";
 
 export type ISleigh = {
 	x: number;
@@ -14,10 +16,15 @@ export type ISleigh = {
 	finished: boolean;
 };
 
-/** How often a round has a sleigh, once the upgrade's bought. */
-const CHANCE = 0.45;
-const START_X = { min: 40, max: 140 };
-const HEIGHT = { min: 4, max: 11 };
+/** How often a round has a sleigh, once the upgrade's bought, and how far along the elf will be
+    when it comes: anywhere up to 3 km, though more often early on, so short runs see it too. */
+const CHANCE = 0.6;
+const ARRIVES_AT = { min: 30, max: 3000 };
+/** It flies in this far ahead of the elf (further when the elf is high, so the zoomed-out view
+    doesn't see it appear), around the elf's height. */
+const AHEAD = { min: 50, max: 70 };
+const ABOVE = { min: -2, max: 6 };
+const HIGHEST = 40;
 const CRUISE_SPEED = 11;
 /** Carrying the elf, it speeds up to this, for this long. */
 export const RIDE_SPEED = 30;
@@ -27,14 +34,25 @@ export const RELEASE_UP = 6;
 /** How close the elf must come to climb aboard: a sleigh is a big target. */
 const CATCH_RADIUS = 3;
 
-export function maybeSleigh(random: () => number = Math.random): ISleigh | null {
+/** How far along the elf must be for this round's sleigh to come, or null if it won't. */
+export function planSleigh(random: () => number): number | null {
 	if (random() >= CHANCE) {
 		return null;
 	}
 
-	const between = (range: { min: number; max: number }) => range.min + random() * (range.max - range.min);
+	// Squaring leans it early: about a third within 300 m, over half within 1 km.
+	return ARRIVES_AT.min + random() ** 2 * (ARRIVES_AT.max - ARRIVES_AT.min);
+}
 
-	return { x: between(START_X), y: between(HEIGHT), vx: CRUISE_SPEED, boardedAt: null, finished: false };
+/** The sleigh flying in, just ahead of the elf at (x, y). */
+export function sleighArrives(elf: { x: number; y: number }, random: () => number): ISleigh {
+	return {
+		x: elf.x + between(AHEAD, random) + elf.y * 2,
+		y: Math.min(HIGHEST, Math.max(LOWEST + 2, elf.y + between(ABOVE, random))),
+		vx: CRUISE_SPEED,
+		boardedAt: null,
+		finished: false,
+	};
 }
 
 /** When the elf is coming up behind within this distance, the sleigh swoops toward its height. */

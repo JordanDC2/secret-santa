@@ -229,6 +229,14 @@ export function startSleighBellAmbience(seconds: number): () => void {
 	return () => window.clearTimeout(timer);
 }
 
+/** The sleigh flying in: a few soft, distant bells, so you look for it. */
+export function playSleighArrives() {
+	for (let i = 0; i < 5; i++) {
+		const pitch = 2400 + (i % 2) * 300;
+		tone("sine", pitch, pitch, 0.16, 0.07, i * 0.11);
+	}
+}
+
 /** A new best: a little rising fanfare. */
 export function playFanfare() {
 	[523, 659, 784, 1047].forEach((pitch, i) => tone("triangle", pitch, pitch, i === 3 ? 0.6 : 0.16, 0.4, i * 0.12));
@@ -274,6 +282,10 @@ export function playStateChanges(previous: IGameState, next: IGameState) {
 
 	if (previous.rocketUntil === null && next.rocketUntil !== null) {
 		playRocket(ROCKET_SECONDS);
+	}
+
+	if (previous.sleigh === null && next.sleigh !== null) {
+		playSleighArrives();
 	}
 
 	if (previous.sleigh?.boardedAt == null && next.sleigh?.boardedAt != null) {

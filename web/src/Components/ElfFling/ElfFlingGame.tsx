@@ -2,7 +2,14 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { ActionIcon, Tooltip } from "@mantine/core";
 import { useElementSize, useMediaQuery, useViewportSize } from "@mantine/hooks";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCompress, faExpand, faStore, faVolumeHigh, faVolumeXmark } from "@fortawesome/free-solid-svg-icons";
+import {
+	faCompress,
+	faExpand,
+	faRotateRight,
+	faStore,
+	faVolumeHigh,
+	faVolumeXmark,
+} from "@fortawesome/free-solid-svg-icons";
 import RocketIcon from "Components/Common/FestiveIcons/RocketIcon";
 import { drawFrame, nextCamera, readPalette, type ICamera, type IPalette } from "Components/ElfFling/draw";
 import {
@@ -108,6 +115,9 @@ export default function ElfFlingGame({
 	const callbacksRef = useRef({ onPhaseChange, onFinish, onJumpsChange, onRestart });
 	// The rocket button shows only while the rocket can fire.
 	const [rocketAvailable, setRocketAvailable] = useState(false);
+	// The restart button shows while a run is under way; the first tap arms it, a second confirms.
+	const [running, setRunning] = useState(false);
+	const [restartArmed, setRestartArmed] = useState(false);
 
 	// The animation loop and input handlers read the latest props through these.
 	useLayoutEffect(() => {
@@ -155,6 +165,7 @@ export default function ElfFlingGame({
 
 			if (next.phase !== previous.phase) {
 				callbacksRef.current.onPhaseChange(next.phase);
+				setRunning(next.phase === "dropping" || next.phase === "flying" || next.phase === "sliding");
 
 				if (next.phase === "done") {
 					callbacksRef.current.onFinish(next);
@@ -291,7 +302,7 @@ export default function ElfFlingGame({
 					<ActionIcon
 						variant="transparent"
 						radius="xl"
-						size={touchScreen ? 68 : 56}
+						size={touchScreen ? 48 : 40}
 						className={classes.rocketButton}
 						aria-label="Fire the rocket"
 						onPointerDown={(event) => {
@@ -305,7 +316,9 @@ export default function ElfFlingGame({
 							releaseFocus(event);
 						}}
 					>
-						<RocketIcon size="78%" />
+						{/* The tilted rocket fills only the middle of its square, so the square is drawn
+						    larger than the button to make the rocket itself fill the ring. */}
+						<RocketIcon size="120%" />
 					</ActionIcon>
 				</Tooltip>
 			)}
@@ -318,7 +331,8 @@ export default function ElfFlingGame({
 					)}
 				</div>
 			)}
-			{/* Full screen, sound and shop, side by side in the bottom-left corner. */}
+			{/* Full screen, sound and shop, side by side in the bottom-left corner; during a run,
+			    restart too (last, so the others don't shift as it comes and goes). */}
 			<div className={classes.cornerButtons}>
 				<Tooltip label={fullscreen ? "Leave full screen (Esc)" : "Play full screen"} withArrow disabled={touchScreen}>
 					<ActionIcon
@@ -366,7 +380,74 @@ export default function ElfFlingGame({
 						<FontAwesomeIcon icon={faStore} />
 					</ActionIcon>
 				</Tooltip>
+				{running && (
+					<RestartButton
+						armed={restartArmed}
+						touchScreen={touchScreen}
+						onArm={setRestartArmed}
+						onRestart={() => callbacksRef.current.onRestart()}
+					/>
+				)}
 			</div>
 		</div>
+	);
+}
+
+type IRestartButtonProps = {
+	armed: boolean;
+	touchScreen: boolean;
+	onArm: (armed: boolean) => void;
+	onRestart: () => void;
+};
+
+/** How long an armed restart waits for its second tap, in milliseconds. */
+const RESTART_CONFIRM_MS = 3000;
+
+/**
+ * Abandons the run and starts a fresh one; nothing from it is saved. Two taps, so a stray one
+ * can't throw away a good run: the first arms it (it turns red and says so) and it settles back
+ * on its own if the second doesn't come.
+ */
+function RestartButton({ armed, touchScreen, onArm, onRestart }: IRestartButtonProps) {
+	useEffect(() => {
+		if (!armed) {
+			return;
+		}
+
+		const timer = window.setTimeout(() => onArm(false), RESTART_CONFIRM_MS);
+
+		return () => window.clearTimeout(timer);
+	}, [armed, onArm]);
+
+	return (
+		<>
+			<Tooltip label="Restart this run" withArrow disabled={touchScreen || armed}>
+				<ActionIcon
+					variant="transparent"
+					radius="xl"
+					size={touchScreen ? 48 : 40}
+					className={classes.cornerButton}
+					data-armed={armed || undefined}
+					aria-label={armed ? "Restart now, losing this run" : "Restart this run"}
+					onClick={(event) => {
+						if (armed) {
+							onArm(false);
+							onRestart();
+						} else {
+							onArm(true);
+						}
+
+						releaseFocus(event);
+					}}
+				>
+					<FontAwesomeIcon icon={faRotateRight} />
+				</ActionIcon>
+			</Tooltip>
+			{armed && (
+				<span className={classes.restartConfirm} aria-live="polite">
+					{touchScreen ? "Tap" : "Click"} again to restart: this run&apos;s coins are lost
+				</span>
+			)}
+		</>
 	);
 }
