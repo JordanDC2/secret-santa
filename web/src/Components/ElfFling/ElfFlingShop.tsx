@@ -19,6 +19,9 @@ type IElfFlingShopProps = {
 	onWearBatter: (id: IBatterId) => void;
 	/** On a phone, keyboard shortcuts aren't mentioned. */
 	touchScreen: boolean;
+	/** In the drawer over the game, whose own header shows the title and balance (pinned while
+	    the list scrolls), so the shop goes without its card. */
+	inDrawer?: boolean;
 };
 
 /** Spend coins on upgrades, in sections (the swing, landings, in the air, coins), and on looks. */
@@ -31,70 +34,80 @@ export default function ElfFlingShop({
 	onBuyBatter,
 	onWearBatter,
 	touchScreen,
+	inDrawer = false,
 }: IElfFlingShopProps) {
 	const { coins, upgrades } = progress;
 
-	return (
-		<SectionCard
-			title="Shop"
-			action={
-				<Badge size="lg" className={classes.coins} leftSection={<FontAwesomeIcon icon={faCoins} />}>
-					{coins} {coins === 1 ? "coin" : "coins"}
-				</Badge>
-			}
-		>
-			<Stack gap="md">
-				{SHOP_GROUPS.map((group) => (
-					<Stack key={group} gap="sm">
-						<Divider label={group} labelPosition="left" />
-						{SHOP_ITEMS.filter((item) => item.group === group).map((item) => (
-							<ShopRow
-								key={item.id}
-								item={item}
-								level={upgrades[item.id]}
-								coins={coins}
-								busy={busy}
-								onBuy={onBuy}
-								touchScreen={touchScreen}
-							/>
-						))}
-					</Stack>
+	const items = (
+		<Stack gap="md">
+			{SHOP_GROUPS.map((group) => (
+				<Stack key={group} gap="sm">
+					<Divider label={group} labelPosition="left" />
+					{SHOP_ITEMS.filter((item) => item.group === group).map((item) => (
+						<ShopRow
+							key={item.id}
+							item={item}
+							level={upgrades[item.id]}
+							coins={coins}
+							busy={busy}
+							onBuy={onBuy}
+							touchScreen={touchScreen}
+						/>
+					))}
+				</Stack>
+			))}
+			<Stack gap="sm">
+				<Divider label="Looks: who gets flung" labelPosition="left" />
+				{SKINS.map((skin) => (
+					<LookRow
+						key={skin.id}
+						look={skin}
+						owned={progress.skins.includes(skin.id)}
+						wearing={progress.skin === skin.id}
+						coins={coins}
+						busy={busy}
+						onBuy={() => onBuySkin(skin.id)}
+						onWear={() => onWearSkin(skin.id)}
+					/>
 				))}
-				<Stack gap="sm">
-					<Divider label="Looks: who gets flung" labelPosition="left" />
-					{SKINS.map((skin) => (
-						<LookRow
-							key={skin.id}
-							look={skin}
-							owned={progress.skins.includes(skin.id)}
-							wearing={progress.skin === skin.id}
-							coins={coins}
-							busy={busy}
-							onBuy={() => onBuySkin(skin.id)}
-							onWear={() => onWearSkin(skin.id)}
-						/>
-					))}
-				</Stack>
-				<Stack gap="sm">
-					<Divider label="Looks: who swings" labelPosition="left" />
-					{BATTERS.map((batter) => (
-						<LookRow
-							key={batter.id}
-							look={batter}
-							owned={progress.batters.includes(batter.id)}
-							wearing={progress.batter === batter.id}
-							coins={coins}
-							busy={busy}
-							onBuy={() => onBuyBatter(batter.id)}
-							onWear={() => onWearBatter(batter.id)}
-						/>
-					))}
-				</Stack>
-				<MantineText size="xs" c="dimmed">
-					Coins, upgrades and looks are saved with your account, on every device.
-				</MantineText>
 			</Stack>
+			<Stack gap="sm">
+				<Divider label="Looks: who swings" labelPosition="left" />
+				{BATTERS.map((batter) => (
+					<LookRow
+						key={batter.id}
+						look={batter}
+						owned={progress.batters.includes(batter.id)}
+						wearing={progress.batter === batter.id}
+						coins={coins}
+						busy={busy}
+						onBuy={() => onBuyBatter(batter.id)}
+						onWear={() => onWearBatter(batter.id)}
+					/>
+				))}
+			</Stack>
+			<MantineText size="xs" c="dimmed">
+				Coins, upgrades and looks are saved with your account, on every device.
+			</MantineText>
+		</Stack>
+	);
+
+	if (inDrawer) {
+		return items;
+	}
+
+	return (
+		<SectionCard title="Shop" action={<CoinBalance coins={coins} />}>
+			{items}
 		</SectionCard>
+	);
+}
+
+export function CoinBalance({ coins }: { coins: number }) {
+	return (
+		<Badge size="lg" className={classes.coins} leftSection={<FontAwesomeIcon icon={faCoins} />}>
+			{coins} {coins === 1 ? "coin" : "coins"}
+		</Badge>
 	);
 }
 

@@ -6,7 +6,7 @@ import GiftBoxIcon from "Components/Common/FestiveIcons/GiftBoxIcon";
 import LoadingText from "Components/Common/LoadingText";
 import ElfFlingGame from "Components/ElfFling/ElfFlingGame";
 import ElfFlingLeaderboard from "Components/ElfFling/ElfFlingLeaderboard";
-import ElfFlingShop from "Components/ElfFling/ElfFlingShop";
+import ElfFlingShop, { CoinBalance } from "Components/ElfFling/ElfFlingShop";
 import {
 	useImportMutation,
 	useLooksMutation,
@@ -209,18 +209,16 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 				? ""
 				: prompt;
 
-	const shop = (
-		<ElfFlingShop
-			progress={progress}
-			busy={purchase.isPending || looks.isPending}
-			onBuy={buy}
-			onBuySkin={buySkin}
-			onWearSkin={wearSkin}
-			onBuyBatter={buyBatter}
-			onWearBatter={wearBatter}
-			touchScreen={touchScreen}
-		/>
-	);
+	const shopProps = {
+		progress,
+		busy: purchase.isPending || looks.isPending,
+		onBuy: buy,
+		onBuySkin: buySkin,
+		onWearSkin: wearSkin,
+		onBuyBatter: buyBatter,
+		onWearBatter: wearBatter,
+		touchScreen,
+	};
 
 	return (
 		<>
@@ -257,8 +255,13 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 					position={touchScreen ? "bottom" : "right"}
 					size={touchScreen ? "100%" : "md"}
 					withinPortal={false}
-					classNames={{ inner: classes.shopDrawer }}
-					aria-label="Shop"
+					title={
+						<Group justify="space-between" wrap="nowrap" gap="sm">
+							Shop
+							<CoinBalance coins={progress.coins} />
+						</Group>
+					}
+					classNames={{ inner: classes.shopDrawer, title: classes.shopDrawerTitle }}
 					padding="sm"
 				>
 					{(purchase.isError || looks.isError) && (
@@ -266,7 +269,7 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 							{apiErrorMessage(purchase.error ?? looks.error)}
 						</Alert>
 					)}
-					{shop}
+					<ElfFlingShop {...shopProps} inDrawer />
 				</Drawer>
 			</div>
 			<Group justify="space-between" align="flex-start" wrap="nowrap" gap="md">
@@ -310,7 +313,7 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 			{(purchase.isError || looks.isError) && (
 				<Alert color="red">{apiErrorMessage(purchase.error ?? looks.error)}</Alert>
 			)}
-			{shop}
+			<ElfFlingShop {...shopProps} />
 		</>
 	);
 }
