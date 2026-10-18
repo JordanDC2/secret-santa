@@ -37,9 +37,9 @@ export function sunAt(x: number): number | null {
 }
 
 /** In full day, goodies are this many times further apart. */
-export const DAY_SCARCITY = 2;
+export const DAY_SCARCITY = 1.3;
 /** In full day, slush adds this share to the snow's friction. */
-export const MELT_FRICTION = 0.6;
+export const MELT_FRICTION = 0.2;
 
 /** How much further apart goodies are at x: 1 at night, up to DAY_SCARCITY in full day. */
 export function scarcity(x: number): number {
