@@ -1,7 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { IProgress } from "Components/ElfFling/progress";
 import type { IBatterId, ISkinId } from "Components/ElfFling/skins";
-import type { IGemOnlyId, IGemUpgrades, IUpgradeId, IUpgrades } from "Components/ElfFling/upgrades";
+import {
+	NO_GEM_UPGRADES,
+	NO_UPGRADES,
+	type IGemOnlyId,
+	type IGemUpgrades,
+	type IUpgradeId,
+	type IUpgrades,
+} from "Components/ElfFling/upgrades";
 import { apiClient } from "Data/Api/Client";
 
 /** The player's progress as the API sends it. */
@@ -41,8 +48,9 @@ function toProgress(response: IProgressResponse): IProgress {
 		coins: response.coins,
 		gems: response.gems,
 		prestiges: response.prestiges,
-		upgrades: response.upgrades,
-		gemUpgrades: response.gem_upgrades,
+		// Any level the server doesn't list (an upgrade newer than it, say) counts as not bought.
+		upgrades: { ...NO_UPGRADES, ...response.upgrades },
+		gemUpgrades: { ...NO_GEM_UPGRADES, ...response.gem_upgrades },
 		skins: response.skins,
 		skin: response.skin,
 		batters: response.batters,

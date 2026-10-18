@@ -309,6 +309,18 @@ export type IGemOnlyId = "christmasBonus" | "offSeasonTraining" | "polarJetStrea
 /** Gem levels bought, per upgrade (and the gem-only ones): they never reset. */
 export type IGemUpgrades = IUpgrades & Record<IGemOnlyId, number>;
 
+export const NO_GEM_UPGRADES: IGemUpgrades = {
+	...NO_UPGRADES,
+	christmasBonus: 0,
+	offSeasonTraining: 0,
+	polarJetStream: 0,
+	santasLedger: 0,
+	christmasStar: 0,
+	gingerbreadMan: 0,
+	snowAngelWings: 0,
+	giantSnowball: 0,
+};
+
 /** What a throw uses: the coin and gem levels together, plus the gem-only boosts and power-ups. */
 export type IThrowUpgrades = IUpgrades &
 	Record<IPowerUpKind, number> & { offSeasonTraining: number; polarJetStream: number };
