@@ -6,10 +6,18 @@
  * shop upgrades, see upgrades.ts) crackers, sky ornaments and a sleigh that launch it on,
  * jumps and a rocket the player sets off, power-ups to grab (powerUps.ts), Yule log cannons to
  * slide into (yuleLogs.ts), winds and updrafts (weather.ts), and the odd snowman that gets in
- * the way. Long runs go from night into day, which is warmer and harder (dayNight.ts). The course
+ * the way. Long runs go from night into day, which is warmer and harder (dayNight.ts). A rare
+ * chimney leads down to a secret level of pinball (chimneys.ts). The course
  * never ends: it's laid out as the elf goes (course.ts). Distance is measured from the reindeer.
  */
 
+import {
+	CHIMNEY_HEIGHT,
+	CHIMNEY_LAUNCH,
+	CHIMNEY_LAYOUT,
+	chimneyEntered,
+	type IChimney,
+} from "Components/ElfFling/chimneys";
 import { COIN_LAYOUTS, collectCoins, type ICoin } from "Components/ElfFling/coins";
 import { MELT_FRICTION, warmth } from "Components/ElfFling/dayNight";
 import { keepCourseAhead, seededRandom, startCourse, type ICourse } from "Components/ElfFling/course";
@@ -120,6 +128,11 @@ export type IGameState = {
 	logFires: number;
 	gusts: IGust[];
 	updrafts: IUpdraft[];
+	chimneys: IChimney[];
+	/** While the elf is down a chimney playing pinball: which chimney. The run waits. */
+	inChimney: { x: number } | null;
+	/** Points scored down chimneys this round, for the throw's score. */
+	pinballPoints: number;
 	sleigh: ISleigh | null;
 	/** How far along the elf must be for this round's sleigh to fly in, or null (none coming, or here). */
 	sleighDueAt: number | null;
@@ -173,6 +186,7 @@ function layoutsFor(upgrades: IThrowUpgrades) {
 		yuleLogs: upgrades.yuleLog > 0 ? YULE_LOG_LAYOUT : null,
 		gusts: upgrades.highWinds > 0 ? GUST_LAYOUT : null,
 		updrafts: upgrades.updrafts > 0 ? UPDRAFT_LAYOUT : null,
+		chimneys: upgrades.chimney > 0 ? CHIMNEY_LAYOUT : null,
 	};
 }
 
@@ -209,6 +223,9 @@ export function newGame(
 		logFires: 0,
 		gusts: [],
 		updrafts: [],
+		chimneys: [],
+		inChimney: null,
+		pinballPoints: 0,
 		sleigh: null,
 		sleighDueAt: upgrades.sleigh > 0 ? planSleigh(seededRandom(seed)) : null,
 		jumpsLeft: upgrades.elfJump,
@@ -221,7 +238,12 @@ export function newGame(
 
 /** Whether the elf is out on the course: flying or sliding, not riding the sleigh or in a Yule log. */
 function isLoose(state: IGameState): boolean {
-	return (state.phase === "flying" || state.phase === "sliding") && !isRiding(state) && state.inLog === null;
+	return (
+		(state.phase === "flying" || state.phase === "sliding") &&
+		!isRiding(state) &&
+		state.inLog === null &&
+		state.inChimney === null
+	);
 }
 
 function isRiding(state: IGameState): boolean {
@@ -297,7 +319,8 @@ export function hitAt(elfY: number, reach: number): { speed: number; angle: numb
 
 /** Moves the game on by dt seconds. Call with small steps (see FIXED_STEP). */
 export function step(state: IGameState, dt: number): IGameState {
-	if (state.phase === "ready" || state.phase === "done") {
+	// Down a chimney, the run waits (timers too) until the pinball's over: see leaveChimney.
+	if (state.phase === "ready" || state.phase === "done" || state.inChimney) {
 		return state;
 	}
 
@@ -393,6 +416,12 @@ function fly(state: IGameState, dt: number): IGameState {
 
 		if (caught) {
 			return caught;
+		}
+
+		const chimney = chimneyEntered(next.chimneys, next.elf.x, next.elf.y, next.elf.vy);
+
+		if (chimney !== -1) {
+			return goDownChimney(next, chimney);
 		}
 	}
 
@@ -554,6 +583,42 @@ function catchInLog(state: IGameState): IGameState | null {
 		...state,
 		inLog: { x, firesAt: state.time + LOG_HOLD_SECONDS },
 		elf: { ...state.elf, x, y: ELF_RADIUS, vx: 0, vy: 0 },
+	};
+}
+
+/** Dropping into a chimney: the elf goes down it, and the run waits for the pinball. */
+function goDownChimney(state: IGameState, index: number): IGameState {
+	const { x } = state.chimneys[index];
+
+	return {
+		...state,
+		inChimney: { x },
+		chimneys: state.chimneys.map((chimney, i) => (i === index ? { ...chimney, enteredAt: state.time } : chimney)),
+		// Inside, below the rim, so the chimney hides it.
+		elf: { ...state.elf, x, y: CHIMNEY_HEIGHT - 1, vx: 0, vy: 0 },
+	};
+}
+
+/**
+ * The pinball's over: the chimney shoots the elf back out, up and forward, and the points
+ * count towards the throw's score.
+ */
+export function leaveChimney(state: IGameState, points: number): IGameState {
+	if (!state.inChimney) {
+		return state;
+	}
+
+	return {
+		...state,
+		phase: "flying",
+		inChimney: null,
+		pinballPoints: state.pinballPoints + points,
+		elf: {
+			...state.elf,
+			y: CHIMNEY_HEIGHT + ELF_RADIUS + 0.3,
+			vx: CHIMNEY_LAUNCH.forward,
+			vy: CHIMNEY_LAUNCH.up,
+		},
 	};
 }
 

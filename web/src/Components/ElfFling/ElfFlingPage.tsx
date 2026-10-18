@@ -11,6 +11,7 @@ import {
 	useImportMutation,
 	useLooksMutation,
 	usePrestigeMutation,
+	useUnlockPinballMutation,
 	useProgressQuery,
 	usePurchaseMutation,
 	useRecordThrowMutation,
@@ -75,6 +76,7 @@ function describe(state: IGameState, subject: string): string {
 		state.pops > 0 ? `popped ${count(state.pops, "cracker", "crackers")}` : null,
 		state.smashes > 0 ? `smashed ${count(state.smashes, "ornament", "ornaments")}` : null,
 		state.logFires > 0 ? `got fired from ${count(state.logFires, "Yule log", "Yule logs")}` : null,
+		state.pinballPoints > 0 ? `went down a chimney for ${state.pinballPoints.toLocaleString()} points` : null,
 		state.bonks > 0 ? `bumped into ${count(state.bonks, "snowman", "snowmen")}` : null,
 	].filter(Boolean);
 	const crackers = extras.length === 0 ? "" : `, ${extras.join(", ")}`;
@@ -140,6 +142,7 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 	const purchase = usePurchaseMutation();
 	const looks = useLooksMutation();
 	const prestige = usePrestigeMutation();
+	const unlockPinball = useUnlockPinballMutation();
 	const touchScreen = useTouchScreen();
 	const stageRef = useRef<HTMLDivElement>(null);
 	const { fullscreen, enter: enterFullscreen, exit: exitFullscreen } = useFullscreen(stageRef);
@@ -160,7 +163,7 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 
 			// Every throw is saved, misses too: they count on the "most swings" leaderboard.
 			recordThrow.mutate(
-				{ distance, coinsCollected: state.coinsCollected },
+				{ distance, coinsCollected: state.coinsCollected, bonusPoints: state.pinballPoints },
 				{
 					onSuccess: ({ banked, newBest, score }) =>
 						setResult(
@@ -294,6 +297,8 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 					onFinish={handleFinish}
 					onJumpsChange={setJumps}
 					onRestart={throwAgain}
+					// The first chimney found unlocks pinball as a game of its own.
+					onChimneyFound={() => !progress.pinballUnlocked && unlockPinball.mutate()}
 					overlay={overlay}
 					fullscreen={fullscreen}
 					onToggleFullscreen={fullscreen ? exitFullscreen : enterFullscreen}

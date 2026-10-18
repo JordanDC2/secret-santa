@@ -1,6 +1,6 @@
 /**
  * The course, laid out as the elf goes: there's no end to it. Coins, crackers, ornaments,
- * snowmen, power-ups, Yule logs and the weather are each laid out by a layout (where the first goes, the gap after each, and what to
+ * snowmen, power-ups, Yule logs, chimneys and the weather are each laid out by a layout (where the first goes, the gap after each, and what to
  * put there), a chunk at a time, always well ahead of the elf; things far behind are dropped,
  * so only a short stretch is ever kept.
  *
@@ -8,6 +8,7 @@
  * number, so a round's course is the same however it's played (and the physics stays pure).
  */
 
+import type { IChimney } from "Components/ElfFling/chimneys";
 import { addCoins, type ICoin } from "Components/ElfFling/coins";
 import { scarcity } from "Components/ElfFling/dayNight";
 import type { ICracker } from "Components/ElfFling/crackers";
@@ -38,6 +39,7 @@ export type ICourseItems = {
 	yuleLogs: IYuleLog[];
 	gusts: IGust[];
 	updrafts: IUpdraft[];
+	chimneys: IChimney[];
 };
 
 export type ICourse = {
@@ -105,6 +107,7 @@ type ILayouts = {
 	yuleLogs: ILayout<IYuleLog> | null;
 	gusts: ILayout<IGust> | null;
 	updrafts: ILayout<IUpdraft> | null;
+	chimneys: ILayout<IChimney> | null;
 };
 
 /** Every layout in a fixed order, so each keeps its own cursor. Missing ones (not bought) lay nothing. */
@@ -118,6 +121,7 @@ function allLayouts(layouts: ILayouts): Array<ILayout<unknown> | null> {
 		layouts.yuleLogs,
 		layouts.gusts,
 		layouts.updrafts,
+		layouts.chimneys,
 	];
 }
 
@@ -145,7 +149,7 @@ export function keepCourseAhead<T extends ICourseItems & { course: ICourse }>(
 		return state;
 	}
 
-	let { coins, crackers, ornaments, snowmen, powerUps, yuleLogs, gusts, updrafts } = state;
+	let { coins, crackers, ornaments, snowmen, powerUps, yuleLogs, gusts, updrafts, chimneys } = state;
 	const cursors = [...state.course.cursors];
 	let laidTo = state.course.laidTo;
 	const keep = <I extends { x: number }>(items: I[]) => items.filter((item) => item.x >= x - BEHIND);
@@ -157,6 +161,7 @@ export function keepCourseAhead<T extends ICourseItems & { course: ICourse }>(
 	yuleLogs = keep(yuleLogs);
 	gusts = keep(gusts);
 	updrafts = keep(updrafts);
+	chimneys = keep(chimneys);
 
 	while (laidTo < x + AHEAD) {
 		const to = laidTo + CHUNK;
@@ -182,6 +187,7 @@ export function keepCourseAhead<T extends ICourseItems & { course: ICourse }>(
 		yuleLogs = [...yuleLogs, ...lay(layouts.yuleLogs, base + 4)];
 		gusts = [...gusts, ...lay(layouts.gusts, base + 5)];
 		updrafts = [...updrafts, ...lay(layouts.updrafts, base + 6)];
+		chimneys = [...chimneys, ...lay(layouts.chimneys, base + 7)];
 		laidTo = to;
 	}
 
@@ -195,6 +201,7 @@ export function keepCourseAhead<T extends ICourseItems & { course: ICourse }>(
 		yuleLogs,
 		gusts,
 		updrafts,
+		chimneys,
 		course: { ...state.course, laidTo, cursors },
 	};
 }

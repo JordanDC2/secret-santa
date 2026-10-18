@@ -344,6 +344,28 @@ class ElfFlingTest extends TestCase
             ->assertJsonPath('you.rank', 1);
     }
 
+    public function test_finding_the_chimney_unlocks_pinball_whose_best_score_is_kept(): void
+    {
+        $user = $this->player();
+
+        $this->getJson(route('elf-fling.progress'))->assertJsonPath('pinball_unlocked', false);
+        $this->postJson(route('elf-fling.pinball.scores'), ['score' => 5000])
+            ->assertJsonValidationErrors(['score' => 'Find the chimney in Elf Fling first.']);
+
+        $this->postJson(route('elf-fling.pinball.unlock'))->assertOk()->assertJsonPath('pinball_unlocked', true);
+        $unlockedAt = ElfFlingProgress::for($user)->pinball_unlocked_at;
+        $this->travel(1)->days();
+        $this->postJson(route('elf-fling.pinball.unlock'));
+        $this->assertTrue(ElfFlingProgress::for($user)->pinball_unlocked_at->equalTo($unlockedAt));
+
+        $this->postJson(route('elf-fling.pinball.scores'), ['score' => 5000])->assertJsonPath('pinball_best', 5000);
+        $this->postJson(route('elf-fling.pinball.scores'), ['score' => 3000])->assertJsonPath('pinball_best', 5000);
+
+        // Pinball points from a chimney add to a throw's score.
+        $this->postJson(route('elf-fling.throws'), ['distance' => 500, 'coins_collected' => 20, 'bonus_points' => 7000])
+            ->assertJsonPath('score', 7520);
+    }
+
     public function test_huge_runs_and_hauls_are_welcome_but_nonsense_is_refused(): void
     {
         $this->player();

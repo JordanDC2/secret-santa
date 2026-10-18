@@ -24,6 +24,8 @@ type IProgressResponse = {
 	batter: IBatterId;
 	best_distance: number | null;
 	imported: boolean;
+	pinball_unlocked: boolean;
+	pinball_best: number;
 };
 
 export type ILeaderboardBoard = "distance" | "score" | "coins" | "swings";
@@ -57,6 +59,8 @@ function toProgress(response: IProgressResponse): IProgress {
 		batter: response.batter,
 		bestDistance: response.best_distance,
 		imported: response.imported,
+		pinballUnlocked: response.pinball_unlocked,
+		pinballBest: response.pinball_best,
 	};
 }
 
@@ -72,13 +76,17 @@ export function useRecordThrowMutation() {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: async (details: { distance: number; coinsCollected: number }) => {
+		mutationFn: async (details: { distance: number; coinsCollected: number; bonusPoints: number }) => {
 			const response = await apiClient.post<{
 				progress: IProgressResponse;
 				banked: number;
 				new_best: boolean;
 				score: number;
-			}>("/elf-fling/throws", { distance: details.distance, coins_collected: details.coinsCollected });
+			}>("/elf-fling/throws", {
+				distance: details.distance,
+				coins_collected: details.coinsCollected,
+				bonus_points: details.bonusPoints,
+			});
 
 			return {
 				progress: toProgress(response.progress),
@@ -122,6 +130,27 @@ export function usePrestigeMutation() {
 			return { progress: toProgress(response.progress), gems: response.gems };
 		},
 		onSuccess: ({ progress }) => queryClient.setQueryData(PROGRESS_KEY, progress),
+	});
+}
+
+/** The player found a chimney: Christmas pinball is unlocked as a game of its own. */
+export function useUnlockPinballMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async () => toProgress(await apiClient.post<IProgressResponse>("/elf-fling/pinball/unlock")),
+		onSuccess: (progress) => queryClient.setQueryData(PROGRESS_KEY, progress),
+	});
+}
+
+/** A finished game of pinball played on its own: the server keeps the best. */
+export function usePinballScoreMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: async (score: number) =>
+			toProgress(await apiClient.post<IProgressResponse>("/elf-fling/pinball/scores", { score })),
+		onSuccess: (progress) => queryClient.setQueryData(PROGRESS_KEY, progress),
 	});
 }
 

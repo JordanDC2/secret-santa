@@ -12,13 +12,15 @@ class RecordThrow
     /**
      * A finished throw: kept for the leaderboards, and its coins banked. The game sends the
      * coins it collected; the lucky stocking's, workshop overtime's and Santa's ledger's shares
-     * are added here, then the Christmas bonus doubles it once per level, from the levels (coin and gem) the server knows the player owns.
+     * are added here, then the Christmas bonus doubles it once per level, from the levels (coin
+     * and gem) the server knows the player owns. Pinball points from a chimney add to the
+     * throw's score.
      *
      * @return array{progress: ElfFlingProgress, banked: int, newBest: bool, score: int}
      */
-    public function __invoke(User $user, float $distance, int $coinsCollected): array
+    public function __invoke(User $user, float $distance, int $coinsCollected, int $bonusPoints = 0): array
     {
-        $result = DB::transaction(function () use ($user, $distance, $coinsCollected) {
+        $result = DB::transaction(function () use ($user, $distance, $coinsCollected, $bonusPoints) {
             $progress = ElfFlingProgress::for($user);
             $bonus = config('elf_fling.lucky_stocking_bonus') * $progress->combinedLevel('luckyStocking');
             $overtime = config('elf_fling.workshop_overtime_bonus') * $progress->level('workshopOvertime');
@@ -30,7 +32,7 @@ class RecordThrow
             $user->elfFlingThrows()->create([
                 'distance' => round($distance, 1),
                 'coins' => $banked,
-                'score' => self::score($distance, $coinsCollected),
+                'score' => self::score($distance, $coinsCollected) + $bonusPoints,
             ]);
             $progress->increment('coins', $banked);
 
@@ -38,7 +40,7 @@ class RecordThrow
                 'progress' => $progress->refresh(),
                 'banked' => $banked,
                 'newBest' => $distance > $previousBest,
-                'score' => self::score($distance, $coinsCollected),
+                'score' => self::score($distance, $coinsCollected) + $bonusPoints,
             ];
         });
 

@@ -90,6 +90,8 @@ return [
         // Weather on the course (the game runs it): high winds and updrafts.
         'highWinds' => [15],
         'updrafts' => [10],
+        // The chimney to Christmas pinball, Elf Fling's secret level.
+        'chimney' => [20],
     ],
     // Every Christmas wrapped up after the first puts another Christmas bonus level on sale,
     // each this many times the price of the one before.
@@ -98,7 +100,7 @@ return [
     'gem_extra' => [
         'springyBoots', 'candyMagnet', 'luckyStocking', 'christmasBonus', 'offSeasonTraining', 'polarJetStream',
         'christmasStar', 'gingerbreadMan', 'snowAngelWings', 'giantSnowball', 'northWind', 'hotCocoa',
-        'spareFirework', 'yuleLog', 'highWinds', 'updrafts',
+        'spareFirework', 'yuleLog', 'highWinds', 'updrafts', 'chimney',
     ],
 
     // Who gets flung. The first is free and everyone has it.

@@ -13,6 +13,7 @@ import {
 	TAILWIND,
 	type ITimedPowerUpKind,
 } from "Components/ElfFling/powerUps";
+import { CHIMNEY_LAUNCH } from "Components/ElfFling/chimneys";
 import { GUST_PUSH, UPDRAFT_LIFT } from "Components/ElfFling/weather";
 import { LOG_SPEEDS } from "Components/ElfFling/yuleLogs";
 import {
@@ -392,6 +393,8 @@ function gemEffect(id: IUpgradeId | IGemOnlyId, progress: IProgress): string | n
 			return "Rockets: +1 for every firework you grab";
 		case "yuleLog":
 			return describe("Fires you out at", LOG_SPEEDS.length, (gemLevel) => `${LOG_SPEEDS[gemLevel - 1]} m/s`);
+		case "chimney":
+			return `Out at: ${CHIMNEY_LAUNCH.forward} m/s forward, ${CHIMNEY_LAUNCH.up} m/s up`;
 		case "highWinds":
 			return `Push: +${GUST_PUSH} m/s² forward`;
 		case "updrafts":

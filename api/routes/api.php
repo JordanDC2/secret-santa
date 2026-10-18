@@ -23,6 +23,8 @@ use App\Http\Controllers\Auth\ResetPasswordHandler;
 use App\Http\Controllers\Auth\VerifyEmailHandler;
 use App\Http\Controllers\ElfFling\ImportHandler as ElfFlingImportHandler;
 use App\Http\Controllers\ElfFling\LeaderboardHandler as ElfFlingLeaderboardHandler;
+use App\Http\Controllers\ElfFling\PinballScoreHandler as ElfFlingPinballScoreHandler;
+use App\Http\Controllers\ElfFling\PinballUnlockHandler as ElfFlingPinballUnlockHandler;
 use App\Http\Controllers\ElfFling\PrestigeHandler as ElfFlingPrestigeHandler;
 use App\Http\Controllers\ElfFling\ProgressController as ElfFlingProgressController;
 use App\Http\Controllers\ElfFling\PurchaseHandler as ElfFlingPurchaseHandler;
@@ -152,6 +154,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('purchases', ElfFlingPurchaseHandler::class)->name('purchases');
 
         Route::post('prestige', ElfFlingPrestigeHandler::class)->name('prestige');
+
+        Route::post('pinball/unlock', ElfFlingPinballUnlockHandler::class)->name('pinball.unlock');
+
+        Route::post('pinball/scores', ElfFlingPinballScoreHandler::class)->name('pinball.scores');
 
         Route::get('leaderboard', ElfFlingLeaderboardHandler::class)->name('leaderboard');
     });

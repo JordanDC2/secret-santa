@@ -34,6 +34,9 @@ class ElfFlingProgressResource extends JsonResource
             'best_distance' => $best === null ? null : round((float) $best, 1),
             // Whether a device's own saved progress has been brought over (it happens once).
             'imported' => $this->imported_at !== null,
+            // Christmas pinball: found behind the chimney, then playable on its own.
+            'pinball_unlocked' => $this->pinball_unlocked_at !== null,
+            'pinball_best' => $this->pinball_best,
         ];
     }
 }

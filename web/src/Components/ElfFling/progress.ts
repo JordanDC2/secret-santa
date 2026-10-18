@@ -29,6 +29,9 @@ export type IProgress = {
 	bestDistance: number | null;
 	/** Whether a browser's own saved progress has already been brought over (it happens once). */
 	imported: boolean;
+	/** Christmas pinball: unlocked by finding a chimney, and the best score playing it on its own. */
+	pinballUnlocked: boolean;
+	pinballBest: number;
 };
 
 const DEVICE_PROGRESS_KEY = "secret-santa-elf-fling-progress";

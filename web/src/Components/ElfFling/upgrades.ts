@@ -305,12 +305,12 @@ export function endlessPrice(item: IEndlessItem, level: number, count = 1): numb
 import { POWER_UP_KINDS, type IPowerUpKind } from "Components/ElfFling/powerUps";
 
 /** The power-ups section of the gem shop: the pickups, Yule log cannons, and the weather. */
-export type IPowerUpItemId = IPowerUpKind | "yuleLog" | "highWinds" | "updrafts";
+export type IPowerUpItemId = IPowerUpKind | "yuleLog" | "highWinds" | "updrafts" | "chimney";
 
 export type IGemOnlyId = "christmasBonus" | "offSeasonTraining" | "polarJetStream" | "santasLedger" | IPowerUpItemId;
 
 const NO_POWER_UPS = Object.fromEntries(
-	[...POWER_UP_KINDS, "yuleLog", "highWinds", "updrafts"].map((id) => [id, 0]),
+	[...POWER_UP_KINDS, "yuleLog", "highWinds", "updrafts", "chimney"].map((id) => [id, 0]),
 ) as Record<IPowerUpItemId, number>;
 
 /** Gem levels bought, per upgrade (and the gem-only ones): they never reset. */
@@ -402,6 +402,13 @@ export const POWER_UP_ITEMS: Array<{ id: IPowerUpItemId; name: string; descripti
 		name: "Updrafts",
 		description: "Now and then a column of rising air lifts you high. Fly or slide through it.",
 		prices: [10],
+	},
+	{
+		id: "chimney",
+		name: "Chimneys",
+		description:
+			"Now and then a chimney stands in the snow. Drop in the top and you're off down it to a secret level, and back out with a bang.",
+		prices: [20],
 	},
 ];
 

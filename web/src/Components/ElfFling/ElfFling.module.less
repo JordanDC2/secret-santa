@@ -118,6 +118,42 @@
 	font-weight: 700;
 }
 
+/* Down the chimney: the pinball table takes over the whole screen, on a dark backdrop, with a
+   title and how to flip above it. */
+.chimneyLevel {
+	position: fixed;
+	inset: 0;
+	z-index: 400;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	padding: calc(var(--mantine-spacing-sm) + env(safe-area-inset-top)) var(--mantine-spacing-sm)
+		calc(var(--mantine-spacing-sm) + env(safe-area-inset-bottom));
+	background-color: rgba(15, 32, 39, 0.94);
+}
+
+.chimneyTitle {
+	margin: 0;
+	color: var(--festive-gold);
+	font-family: "Mountains of Christmas", Nunito, serif;
+	font-size: 28px;
+	font-weight: 700;
+}
+
+.chimneyHint {
+	margin: 0;
+	color: var(--festive-gold);
+	font-size: var(--mantine-font-size-xs);
+	opacity: 0.85;
+}
+
+.chimneyTable {
+	flex: 1;
+	width: 100%;
+	min-height: 0;
+}
+
 /* Restart, armed by a first tap: red, so the second tap is clearly a choice. */
 .cornerButton[data-armed] {
 	opacity: 1;

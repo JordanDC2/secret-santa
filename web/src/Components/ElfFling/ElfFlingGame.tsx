@@ -15,8 +15,9 @@ import { drawFrame, nextCamera, readPalette, type ICamera, type IPalette } from 
 import {
 	canJump,
 	canRocket,
-	FIXED_STEP,
 	fireRocket,
+	FIXED_STEP,
+	leaveChimney,
 	newGame,
 	step,
 	tap,
@@ -29,6 +30,7 @@ import { releaseFocus } from "Components/ElfFling/releaseFocus";
 import { playFanfare, playStateChanges } from "Components/ElfFling/sound";
 import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
 import classes from "Components/ElfFling/ElfFling.module.less";
+import PinballGame from "Components/Pinball/PinballGame";
 
 /** The page gives each round a new React key, so a fresh game starts on top of the presents. */
 type IElfFlingGameProps = {
@@ -44,6 +46,8 @@ type IElfFlingGameProps = {
 	onJumpsChange: (jumps: { available: boolean; left: number }) => void;
 	/** A tap after the elf has stopped: the page starts the next round. */
 	onRestart: () => void;
+	/** The elf went down a chimney (the page unlocks pinball as a game of its own). */
+	onChimneyFound: () => void;
 	/** What to tell the player over the game in full screen, where the page's text is hidden. */
 	overlay: string;
 	/** Full screen belongs to the page (it outlasts each round's game); this just shows it. */
@@ -82,6 +86,7 @@ export default function ElfFlingGame({
 	onFinish,
 	onJumpsChange,
 	onRestart,
+	onChimneyFound,
 	overlay,
 	fullscreen,
 	onToggleFullscreen,
@@ -112,7 +117,9 @@ export default function ElfFlingGame({
 	const celebrationRef = useRef<number | null>(null);
 	const skinRef = useRef(skin);
 	const batterRef = useRef(batter);
-	const callbacksRef = useRef({ onPhaseChange, onFinish, onJumpsChange, onRestart });
+	const callbacksRef = useRef({ onPhaseChange, onFinish, onJumpsChange, onRestart, onChimneyFound });
+	// Down a chimney, the pinball takes over the screen until its last ball drains.
+	const [inChimney, setInChimney] = useState(false);
 	// The rocket button shows only while the rocket can fire.
 	const [rocketAvailable, setRocketAvailable] = useState(false);
 	// The restart button shows while a run is under way; the first tap arms it, a second confirms.
@@ -127,7 +134,7 @@ export default function ElfFlingGame({
 		inputBlockedRef.current = inputBlocked;
 		skinRef.current = skin;
 		batterRef.current = batter;
-		callbacksRef.current = { onPhaseChange, onFinish, onJumpsChange, onRestart };
+		callbacksRef.current = { onPhaseChange, onFinish, onJumpsChange, onRestart, onChimneyFound };
 	});
 
 	// Full screen: all of it. Otherwise taller in proportion on phones, so there's room to see
@@ -163,6 +170,11 @@ export default function ElfFlingGame({
 				setRocketAvailable(canRocket(next));
 			}
 
+			if (!previous.inChimney && next.inChimney) {
+				setInChimney(true);
+				callbacksRef.current.onChimneyFound();
+			}
+
 			if (next.phase !== previous.phase) {
 				callbacksRef.current.onPhaseChange(next.phase);
 				setRunning(next.phase === "dropping" || next.phase === "flying" || next.phase === "sliding");
@@ -184,8 +196,8 @@ export default function ElfFlingGame({
 	);
 
 	const handleInput = useCallback(() => {
-		// Something's open over the game: taps and keys belong to it.
-		if (inputBlockedRef.current) {
+		// Something's open over the game (the shop, the wrap-up, the chimney's pinball): taps and keys belong to it.
+		if (inputBlockedRef.current || stateRef.current.inChimney) {
 			return;
 		}
 
@@ -197,7 +209,7 @@ export default function ElfFlingGame({
 	}, [setState]);
 
 	const launchRocket = useCallback(() => {
-		if (!inputBlockedRef.current) {
+		if (!inputBlockedRef.current && !stateRef.current.inChimney) {
 			setState(fireRocket(stateRef.current));
 		}
 	}, [setState]);
@@ -321,6 +333,25 @@ export default function ElfFlingGame({
 						<RocketIcon size="120%" />
 					</ActionIcon>
 				</Tooltip>
+			)}
+			{inChimney && (
+				<div className={classes.chimneyLevel} role="dialog" aria-modal="true" aria-label="Down the chimney: pinball">
+					<p className={classes.chimneyTitle}>Down the chimney!</p>
+					<p className={classes.chimneyHint}>
+						{touchScreen
+							? "Press the left or right half to flip."
+							: "Flip with the left and right arrow keys (or Z and M), or Space for both."}
+					</p>
+					<div className={classes.chimneyTable}>
+						<PinballGame
+							soundOn={soundOn}
+							onGameOver={(points) => {
+								setState(leaveChimney(stateRef.current, points));
+								setInChimney(false);
+							}}
+						/>
+					</div>
+				</div>
 			)}
 			{fullscreen && (overlay || (touchScreen && portrait)) && (
 				// The page's prompts are hidden behind the game, so they show over it instead.

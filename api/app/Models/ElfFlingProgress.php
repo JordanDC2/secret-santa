@@ -23,8 +23,10 @@ use Illuminate\Support\Carbon;
  * @property array<int, string>|null $batters
  * @property string $batter
  * @property Carbon|null $imported_at
+ * @property Carbon|null $pinball_unlocked_at When they first found the chimney (pinball unlocked).
+ * @property int $pinball_best Their best pinball score, played on its own.
  */
-#[Fillable(['user_id', 'coins', 'gems', 'prestiges', 'upgrades', 'gem_upgrades', 'skins', 'skin', 'batters', 'batter', 'imported_at'])]
+#[Fillable(['user_id', 'coins', 'gems', 'prestiges', 'upgrades', 'gem_upgrades', 'skins', 'skin', 'batters', 'batter', 'imported_at', 'pinball_unlocked_at', 'pinball_best'])]
 class ElfFlingProgress extends Model
 {
     protected $table = 'elf_fling_progress';
@@ -40,6 +42,8 @@ class ElfFlingProgress extends Model
             'skins' => 'array',
             'batters' => 'array',
             'imported_at' => 'datetime',
+            'pinball_unlocked_at' => 'datetime',
+            'pinball_best' => 'integer',
         ];
     }
 

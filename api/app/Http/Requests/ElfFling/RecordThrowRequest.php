@@ -22,6 +22,8 @@ class RecordThrowRequest extends FormRequest
             'distance' => ['required', 'numeric', 'min:0', 'max:'.config('elf_fling.max_distance')],
             // What the throw collected, before the lucky stocking (the server adds that).
             'coins_collected' => ['required', 'integer', 'min:0', 'max:'.config('elf_fling.max_coins')],
+            // Points from the chimney's pinball, added to the throw's score.
+            'bonus_points' => ['sometimes', 'integer', 'min:0', 'max:'.config('elf_fling.max_coins')],
         ];
     }
 }

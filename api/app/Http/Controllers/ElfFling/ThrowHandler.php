@@ -15,7 +15,12 @@ class ThrowHandler extends Controller
 {
     public function __invoke(RecordThrow $recordThrow, RecordThrowRequest $request): JsonResponse
     {
-        $result = $recordThrow($request->user(), $request->float('distance'), $request->integer('coins_collected'));
+        $result = $recordThrow(
+            $request->user(),
+            $request->float('distance'),
+            $request->integer('coins_collected'),
+            $request->integer('bonus_points'),
+        );
 
         return response()->json([
             'progress' => new ElfFlingProgressResource($result['progress']),
