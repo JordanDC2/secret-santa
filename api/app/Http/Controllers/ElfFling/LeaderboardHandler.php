@@ -14,7 +14,7 @@ class LeaderboardHandler extends Controller
 {
     public function __invoke(LeaderboardRequest $request): JsonResponse
     {
-        /** @var 'distance'|'coins'|'swings' $board */
+        /** @var 'distance'|'score'|'coins'|'swings' $board */
         $board = $request->string('board')->value();
         /** @var 'week'|'all' $period */
         $period = $request->string('period')->value();

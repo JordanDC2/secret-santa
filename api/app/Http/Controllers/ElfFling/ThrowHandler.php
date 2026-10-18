@@ -21,6 +21,7 @@ class ThrowHandler extends Controller
             'progress' => new ElfFlingProgressResource($result['progress']),
             'banked' => $result['banked'],
             'new_best' => $result['newBest'],
+            'score' => $result['score'],
         ]);
     }
 }

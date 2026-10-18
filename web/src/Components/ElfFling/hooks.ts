@@ -26,7 +26,7 @@ type IProgressResponse = {
 	imported: boolean;
 };
 
-export type ILeaderboardBoard = "distance" | "coins" | "swings";
+export type ILeaderboardBoard = "distance" | "score" | "coins" | "swings";
 export type ILeaderboardPeriod = "week" | "all";
 
 export type ILeaderboard = {
@@ -73,12 +73,19 @@ export function useRecordThrowMutation() {
 
 	return useMutation({
 		mutationFn: async (details: { distance: number; coinsCollected: number }) => {
-			const response = await apiClient.post<{ progress: IProgressResponse; banked: number; new_best: boolean }>(
-				"/elf-fling/throws",
-				{ distance: details.distance, coins_collected: details.coinsCollected },
-			);
+			const response = await apiClient.post<{
+				progress: IProgressResponse;
+				banked: number;
+				new_best: boolean;
+				score: number;
+			}>("/elf-fling/throws", { distance: details.distance, coins_collected: details.coinsCollected });
 
-			return { progress: toProgress(response.progress), banked: response.banked, newBest: response.new_best };
+			return {
+				progress: toProgress(response.progress),
+				banked: response.banked,
+				newBest: response.new_best,
+				score: response.score,
+			};
 		},
 		onSuccess: ({ progress }) => {
 			queryClient.setQueryData(PROGRESS_KEY, progress);

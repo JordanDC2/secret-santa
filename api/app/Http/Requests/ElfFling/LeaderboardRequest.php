@@ -18,7 +18,7 @@ class LeaderboardRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'board' => ['required', Rule::in(['distance', 'coins', 'swings'])],
+            'board' => ['required', Rule::in(['distance', 'score', 'coins', 'swings'])],
             'period' => ['required', Rule::in(['week', 'all'])],
         ];
     }

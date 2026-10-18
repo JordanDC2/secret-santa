@@ -276,7 +276,7 @@ export default function ElfFlingShop({
 	}
 
 	return (
-		<SectionCard title="Shop" action={<Balances progress={progress} />}>
+		<SectionCard title="Shop" action={<Balances progress={progress} compact />}>
 			{items}
 		</SectionCard>
 	);
@@ -287,8 +287,8 @@ export default function ElfFlingShop({
  * (the icons alone say which is which) where space is tight, like the drawer's header on a phone.
  */
 export function Balances({ progress, compact = false }: { progress: IProgress; compact?: boolean }) {
-	const coins = `${progress.coins} ${progress.coins === 1 ? "coin" : "coins"}`;
-	const gems = `${progress.gems} ${progress.gems === 1 ? "gem" : "gems"}`;
+	const coins = `${progress.coins.toLocaleString()} ${progress.coins === 1 ? "coin" : "coins"}`;
+	const gems = `${progress.gems.toLocaleString()} ${progress.gems === 1 ? "gem" : "gems"}`;
 
 	return (
 		<Group gap="xs" wrap="nowrap">
@@ -298,7 +298,7 @@ export function Balances({ progress, compact = false }: { progress: IProgress; c
 				leftSection={<FontAwesomeIcon icon={faCoins} />}
 				aria-label={compact ? coins : undefined}
 			>
-				{compact ? progress.coins : coins}
+				{compact ? progress.coins.toLocaleString() : coins}
 			</Badge>
 			{progress.prestiges > 0 && (
 				<Badge
@@ -307,7 +307,7 @@ export function Balances({ progress, compact = false }: { progress: IProgress; c
 					leftSection={<FontAwesomeIcon icon={faGem} />}
 					aria-label={compact ? gems : undefined}
 				>
-					{compact ? progress.gems : gems}
+					{compact ? progress.gems.toLocaleString() : gems}
 				</Badge>
 			)}
 		</Group>

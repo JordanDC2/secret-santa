@@ -16,6 +16,7 @@ import classes from "Components/ElfFling/ElfFling.module.less";
 /** Short labels on phones, so the three tabs fit on one row (a Galaxy Z Fold's cover screen is 344px). */
 const BOARDS: { value: ILeaderboardBoard; label: string; short: string }[] = [
 	{ value: "distance", label: "Best distance", short: "Distance" },
+	{ value: "score", label: "Best score", short: "Score" },
 	{ value: "coins", label: "Most coins", short: "Coins" },
 	{ value: "swings", label: "Most swings", short: "Swings" },
 ];
@@ -29,6 +30,8 @@ function formatValue(board: ILeaderboardBoard, value: number): string {
 	switch (board) {
 		case "distance":
 			return `${value.toFixed(1)} m`;
+		case "score":
+			return value.toLocaleString();
 		case "coins":
 			return `${value.toLocaleString()} ${value === 1 ? "coin" : "coins"}`;
 		default:

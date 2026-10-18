@@ -1,3 +1,5 @@
+@import (reference) "../../Styles/breakpoints.less";
+
 .frame {
 	position: relative;
 	width: 100%;
@@ -188,6 +190,15 @@
 /* The leaderboard tab in view reads bolder, as well as underlined. */
 .festiveTab[data-active] {
 	font-weight: 700;
+}
+
+/* On a phone the four leaderboard tabs (and the shop's two) sit tighter, so they fit one row on
+   a narrow screen like a folded Z Fold's. */
+@media @phone {
+	.festiveTab {
+		padding-inline: 6px;
+		font-size: var(--mantine-font-size-sm);
+	}
 }
 
 /* Wrapping up Christmas, over the game (WrapUpHold.tsx): the game dims behind a small card. */

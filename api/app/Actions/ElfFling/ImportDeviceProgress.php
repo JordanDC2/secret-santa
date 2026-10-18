@@ -44,6 +44,7 @@ class ImportDeviceProgress
                 $user->elfFlingThrows()->create([
                     'distance' => round($device['best_distance'], 1),
                     'coins' => 0,
+                    'score' => RecordThrow::score($device['best_distance'], 0),
                     'from_device' => true,
                 ]);
                 // Sent once the transaction commits, like the throw it adds to the boards.

@@ -33,7 +33,7 @@ import { apiErrorMessage } from "Data/Api/Client";
 /** A finished throw's outcome. Coins are filled in once the server has banked them. */
 type IResult = {
 	message: string;
-	banked: { coins: number; bonus: number; newBest: boolean } | null;
+	banked: { coins: number; bonus: number; newBest: boolean; score: number } | null;
 	saveFailed: boolean;
 };
 
@@ -162,10 +162,13 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 			recordThrow.mutate(
 				{ distance, coinsCollected: state.coinsCollected },
 				{
-					onSuccess: ({ banked, newBest }) =>
+					onSuccess: ({ banked, newBest, score }) =>
 						setResult(
 							(current) =>
-								current && { ...current, banked: { coins: banked, bonus: banked - state.coinsCollected, newBest } },
+								current && {
+									...current,
+									banked: { coins: banked, bonus: banked - state.coinsCollected, newBest, score },
+								},
 						),
 					onError: () => setResult((current) => current && { ...current, saveFailed: true }),
 				},
@@ -252,7 +255,9 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 							: PROMPTS[phase];
 	// Over the game in full screen: the same, minus the "Wheee!" (the flight speaks for itself),
 	// and after a throw, the coins and how to go again, since the page's buttons are hidden.
-	const coinsNote = result?.banked && result.banked.coins > 0 ? ` +${result.banked.coins} coins.` : "";
+	const coinsNote = result?.banked
+		? `${result.banked.coins > 0 ? ` +${result.banked.coins} coins.` : ""} Score ${result.banked.score.toLocaleString()}.`
+		: "";
 	const overlay =
 		phase === "done" && result
 			? `${result.message}${coinsNote} ${touchScreen ? "Tap" : "Click or press Space"} to throw again.`
@@ -345,6 +350,11 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 						<MantineText size="sm" fw={700} c="var(--festive-gold-text)">
 							+{result.banked.coins} {result.banked.coins === 1 ? "coin" : "coins"}
 							{result.banked.bonus > 0 && ` (${result.banked.bonus} from ${bonusSources(progress)})`}
+						</MantineText>
+					)}
+					{phase === "done" && result?.banked && (
+						<MantineText size="sm" fw={700}>
+							Score: {result.banked.score.toLocaleString()}
 						</MantineText>
 					)}
 					{phase === "done" && result?.banked?.newBest && (

@@ -325,6 +325,25 @@ class ElfFlingTest extends TestCase
             ->assertJsonValidationErrors(['item' => 'That\'s already fully upgraded.']);
     }
 
+    public function test_a_throw_scores_its_distance_plus_its_coins_before_multipliers_and_the_best_goes_on_the_board(): void
+    {
+        $user = $this->player(['first_name' => 'holly', 'last_name' => 'berry']);
+        ElfFlingProgress::for($user)->update(['upgrades' => ['luckyStocking' => 2]]);
+
+        // 123.6 m rounds to 124, plus 10 coins collected (banked as 15, but that doesn't count).
+        $this->postJson(route('elf-fling.throws'), ['distance' => 123.6, 'coins_collected' => 10])
+            ->assertJsonPath('score', 134)
+            ->assertJsonPath('banked', 15);
+        $this->postJson(route('elf-fling.throws'), ['distance' => 40, 'coins_collected' => 200])
+            ->assertJsonPath('score', 240);
+
+        $this->getJson(route('elf-fling.leaderboard', ['board' => 'score', 'period' => 'all']))
+            ->assertOk()
+            ->assertJsonPath('entries.0.name', 'Holly B.')
+            ->assertJsonPath('entries.0.value', 240)
+            ->assertJsonPath('you.rank', 1);
+    }
+
     public function test_huge_runs_and_hauls_are_welcome_but_nonsense_is_refused(): void
     {
         $this->player();
