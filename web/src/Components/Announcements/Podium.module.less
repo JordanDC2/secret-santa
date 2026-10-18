@@ -1,0 +1,84 @@
+/* The podium's colours: gold, silver and bronze, each with dark numbers on its step. */
+.podium {
+	--podium-gold: var(--festive-gold-deep);
+	--podium-silver: #b9c2cc;
+	--podium-bronze: #c98a55;
+}
+
+.title {
+	margin-bottom: 6px;
+	font-weight: 800;
+	text-align: center;
+}
+
+.places {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	align-items: end;
+	gap: 6px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.place {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+	min-width: 0;
+	text-align: center;
+
+	&[data-place="1"] {
+		--podium-colour: var(--podium-gold);
+		--podium-step: 64px;
+		--podium-trophy: 30px;
+	}
+
+	&[data-place="2"] {
+		--podium-colour: var(--podium-silver);
+		--podium-step: 46px;
+		--podium-trophy: 24px;
+	}
+
+	&[data-place="3"] {
+		--podium-colour: var(--podium-bronze);
+		--podium-step: 32px;
+		--podium-trophy: 20px;
+	}
+}
+
+.trophy {
+	font-size: var(--podium-trophy);
+	color: var(--podium-colour);
+	filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
+}
+
+.name {
+	max-width: 100%;
+	overflow: hidden;
+	font-weight: 800;
+	font-size: var(--mantine-font-size-sm);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.value {
+	font-size: var(--mantine-font-size-xs);
+	opacity: 0.85;
+}
+
+.step {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: var(--podium-step);
+	margin-top: 4px;
+	border-radius: var(--mantine-radius-sm) var(--mantine-radius-sm) 0 0;
+	color: #1a1208;
+	font-family: var(--festive-font);
+	font-size: 1.6rem;
+	font-weight: 700;
+	background-color: var(--podium-colour);
+}

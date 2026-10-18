@@ -3,6 +3,7 @@ import { Alert, Modal, Stack, Text as MantineText } from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBell } from "@fortawesome/free-solid-svg-icons";
 import { useLocation } from "react-router-dom";
+import { unseenAnnouncement } from "Components/Announcements/seen";
 import ConfirmButtons from "Components/Common/ConfirmButtons";
 import { usePushDeviceQuery, useTurnOnPushMutation } from "Components/PushNotifications/hooks";
 import { apiErrorMessage } from "Data/Api/Client";
@@ -49,8 +50,9 @@ export default function PushPrompt() {
 	}, []);
 
 	const askable = device.data?.support === "supported" && device.data.permission === "default" && !device.data.on;
-	// Settings has its own button for this, right there on the page.
-	const opened = ready && askable && !dismissed && pathname !== "/settings";
+	// Settings has its own button for this, right there on the page; and it waits for any
+	// announcement on this page to be read first.
+	const opened = ready && askable && !dismissed && pathname !== "/settings" && !unseenAnnouncement(pathname);
 
 	function notNow() {
 		rememberDeclined();
