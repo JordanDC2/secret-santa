@@ -22,17 +22,18 @@ export function drawOrnaments(
 	const enlarge = Math.max(1, MIN_PIXELS / (ORNAMENT_RADIUS * 2 * pixelsPerMetre));
 	const colors = [palette.red, palette.green, palette.goldDeep];
 
-	ornaments.forEach((ornament, index) => {
+	for (const ornament of ornaments) {
 		if (ornament.x < visible.left - 3 || ornament.x > visible.right + 3) {
-			return;
+			continue;
 		}
 
-		const color = colors[index % colors.length];
+		// Fixed per ornament by its look, so it keeps its colour as the course moves on.
+		const color = colors[Math.floor(ornament.look * colors.length)];
 		const radius = ORNAMENT_RADIUS * enlarge;
 
 		if (ornament.shatteredAt === null) {
 			// A slow bob, each one out of step with its neighbours.
-			const bob = Math.sin(time * 1.8 + index) * 0.12 * enlarge;
+			const bob = Math.sin(time * 1.8 + ornament.look * 10) * 0.12 * enlarge;
 			drawBauble(context, palette, ornament.x, ornament.y + bob, radius, color);
 		} else if (time - ornament.shatteredAt < SHATTER_SECONDS) {
 			drawShards(
@@ -42,10 +43,10 @@ export function drawOrnaments(
 				radius,
 				color,
 				(time - ornament.shatteredAt) / SHATTER_SECONDS,
-				index,
+				ornament.look * 10,
 			);
 		}
-	});
+	}
 }
 
 function drawBauble(

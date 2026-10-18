@@ -302,41 +302,43 @@ export function endlessPrice(item: IEndlessItem, level: number, count = 1): numb
 	return total;
 }
 
-import type { IPowerUpKind } from "Components/ElfFling/powerUps";
+import { POWER_UP_KINDS, type IPowerUpKind } from "Components/ElfFling/powerUps";
 
-export type IGemOnlyId = "christmasBonus" | "offSeasonTraining" | "polarJetStream" | "santasLedger" | IPowerUpKind;
+/** The power-ups section of the gem shop: the pickups, and Yule log cannons. */
+export type IPowerUpItemId = IPowerUpKind | "yuleLog";
+
+export type IGemOnlyId = "christmasBonus" | "offSeasonTraining" | "polarJetStream" | "santasLedger" | IPowerUpItemId;
+
+const NO_POWER_UPS = Object.fromEntries([...POWER_UP_KINDS, "yuleLog"].map((id) => [id, 0])) as Record<
+	IPowerUpItemId,
+	number
+>;
 
 /** Gem levels bought, per upgrade (and the gem-only ones): they never reset. */
 export type IGemUpgrades = IUpgrades & Record<IGemOnlyId, number>;
 
 export const NO_GEM_UPGRADES: IGemUpgrades = {
 	...NO_UPGRADES,
+	...NO_POWER_UPS,
 	christmasBonus: 0,
 	offSeasonTraining: 0,
 	polarJetStream: 0,
 	santasLedger: 0,
-	christmasStar: 0,
-	gingerbreadMan: 0,
-	snowAngelWings: 0,
-	giantSnowball: 0,
 };
 
 /** What a throw uses: the coin and gem levels together, plus the gem-only boosts and power-ups. */
 export type IThrowUpgrades = IUpgrades &
-	Record<IPowerUpKind, number> & { offSeasonTraining: number; polarJetStream: number };
+	Record<IPowerUpItemId, number> & { offSeasonTraining: number; polarJetStream: number };
 
 export const NO_THROW_UPGRADES: IThrowUpgrades = {
 	...NO_UPGRADES,
+	...NO_POWER_UPS,
 	offSeasonTraining: 0,
 	polarJetStream: 0,
-	christmasStar: 0,
-	gingerbreadMan: 0,
-	snowAngelWings: 0,
-	giantSnowball: 0,
 };
 
-/** Power-ups, sold only for gems: level 1 puts them on the course, levels 2 and 3 make them last longer. */
-export const POWER_UP_ITEMS: Array<{ id: IPowerUpKind; name: string; description: string; prices: number[] }> = [
+/** Power-ups, sold only for gems: level 1 puts them on the course, later levels make them stronger or last longer. */
+export const POWER_UP_ITEMS: Array<{ id: IPowerUpItemId; name: string; description: string; prices: number[] }> = [
 	{
 		id: "christmasStar",
 		name: "Christmas star",
@@ -362,6 +364,32 @@ export const POWER_UP_ITEMS: Array<{ id: IPowerUpKind; name: string; description
 		description:
 			"Grab a snowball on the course and roll up inside it: you grab things from further away, and roll along the snow instead of bouncing. When it wears off, it pops you back up.",
 		prices: [6, 12, 20],
+	},
+	{
+		id: "northWind",
+		name: "North wind",
+		description: "Grab a gust on the course and the north wind blows you along.",
+		prices: [6, 12, 20],
+	},
+	{
+		id: "hotCocoa",
+		name: "Hot cocoa",
+		description: "Grab a mug on the course for a warm-up: extra jumps, there and then.",
+		prices: [5, 10, 18],
+	},
+	{
+		id: "spareFirework",
+		name: "Spare firework",
+		description:
+			"Grab a firework on the course and the rocket is ready to fire again, even if you've never bought one.",
+		prices: [10],
+	},
+	{
+		id: "yuleLog",
+		name: "Yule log cannon",
+		description:
+			"Hollow logs lie in the snow. Slide, roll or skim low into the open end and it fires you out up and forward, however slowly you went in.",
+		prices: [8, 15, 25],
 	},
 ];
 
@@ -395,15 +423,16 @@ export function maxLevel(item: IShopItem): number {
 
 /** The coin and gem levels together, as the throw uses them. */
 export function combinedUpgrades(upgrades: IUpgrades, gemUpgrades: IGemUpgrades): IThrowUpgrades {
-	const combined = {
+	const combined: IThrowUpgrades = {
 		...upgrades,
+		...NO_POWER_UPS,
 		offSeasonTraining: gemUpgrades.offSeasonTraining,
 		polarJetStream: gemUpgrades.polarJetStream,
-		christmasStar: gemUpgrades.christmasStar,
-		gingerbreadMan: gemUpgrades.gingerbreadMan,
-		snowAngelWings: gemUpgrades.snowAngelWings,
-		giantSnowball: gemUpgrades.giantSnowball,
 	};
+
+	for (const id of Object.keys(NO_POWER_UPS) as IPowerUpItemId[]) {
+		combined[id] = gemUpgrades[id];
+	}
 
 	for (const item of SHOP_ITEMS) {
 		combined[item.id] = Math.min(maxLevel(item), upgrades[item.id] + gemUpgrades[item.id]);

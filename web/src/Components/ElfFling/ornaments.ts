@@ -11,6 +11,8 @@ export type IOrnament = {
 	y: number;
 	/** Game time it shattered, or null while it's still hanging there. */
 	shatteredAt: number | null;
+	/** A 0–1 random number picked when it's laid out, for its colour, bob and shards. */
+	look: number;
 };
 
 /** The ornament's size; the elf's centre must come this close to hit one. */
@@ -27,7 +29,7 @@ const HEIGHT = { min: 5, max: 26 };
 export const ORNAMENT_LAYOUT: ILayout<IOrnament> = {
 	firstAt: { min: 15, max: 25 },
 	gap: { min: 7, max: 16 },
-	place: (x, random) => [{ x, y: between(HEIGHT, random), shatteredAt: null }],
+	place: (x, random) => [{ x, y: between(HEIGHT, random), shatteredAt: null, look: random() }],
 };
 
 /** The whole ornament an elf at (x, y) is hitting (extraReach further, as a giant snowball), as its index, or -1. */

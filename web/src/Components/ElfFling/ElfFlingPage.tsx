@@ -74,6 +74,7 @@ function describe(state: IGameState, subject: string): string {
 		state.sleigh?.boardedAt != null ? "caught a ride on a sleigh" : null,
 		state.pops > 0 ? `popped ${count(state.pops, "cracker", "crackers")}` : null,
 		state.smashes > 0 ? `smashed ${count(state.smashes, "ornament", "ornaments")}` : null,
+		state.logFires > 0 ? `got fired from ${count(state.logFires, "Yule log", "Yule logs")}` : null,
 		state.bonks > 0 ? `bumped into ${count(state.bonks, "snowman", "snowmen")}` : null,
 	].filter(Boolean);
 	const crackers = extras.length === 0 ? "" : `, ${extras.join(", ")}`;

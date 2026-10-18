@@ -1,6 +1,6 @@
 /**
  * The course, laid out as the elf goes: there's no end to it. Coins, crackers, ornaments,
- * snowmen and power-ups are each laid out by a layout (where the first goes, the gap after each, and what to
+ * snowmen, power-ups and Yule logs are each laid out by a layout (where the first goes, the gap after each, and what to
  * put there), a chunk at a time, always well ahead of the elf; things far behind are dropped,
  * so only a short stretch is ever kept.
  *
@@ -12,6 +12,7 @@ import { addCoins, type ICoin } from "Components/ElfFling/coins";
 import type { ICracker } from "Components/ElfFling/crackers";
 import type { IOrnament } from "Components/ElfFling/ornaments";
 import type { IPowerUp } from "Components/ElfFling/powerUps";
+import type { IYuleLog } from "Components/ElfFling/yuleLogs";
 import type { ISnowman } from "Components/ElfFling/snowmen";
 
 export type IRange = { min: number; max: number };
@@ -30,6 +31,7 @@ export type ICourseItems = {
 	ornaments: IOrnament[];
 	snowmen: ISnowman[];
 	powerUps: IPowerUp[];
+	yuleLogs: IYuleLog[];
 };
 
 export type ICourse = {
@@ -94,11 +96,12 @@ type ILayouts = {
 	ornaments: ILayout<IOrnament> | null;
 	snowmen: ILayout<ISnowman>;
 	powerUps: ILayout<IPowerUp> | null;
+	yuleLogs: ILayout<IYuleLog> | null;
 };
 
 /** Every layout in a fixed order, so each keeps its own cursor. Missing ones (not bought) lay nothing. */
 function allLayouts(layouts: ILayouts): Array<ILayout<unknown> | null> {
-	return [...layouts.coins, layouts.crackers, layouts.ornaments, layouts.snowmen, layouts.powerUps];
+	return [...layouts.coins, layouts.crackers, layouts.ornaments, layouts.snowmen, layouts.powerUps, layouts.yuleLogs];
 }
 
 /** A new course for a round: nothing laid yet, each layout's first spot picked. */
@@ -125,7 +128,7 @@ export function keepCourseAhead<T extends ICourseItems & { course: ICourse }>(
 		return state;
 	}
 
-	let { coins, crackers, ornaments, snowmen, powerUps } = state;
+	let { coins, crackers, ornaments, snowmen, powerUps, yuleLogs } = state;
 	const cursors = [...state.course.cursors];
 	let laidTo = state.course.laidTo;
 	const keep = <I extends { x: number }>(items: I[]) => items.filter((item) => item.x >= x - BEHIND);
@@ -134,6 +137,7 @@ export function keepCourseAhead<T extends ICourseItems & { course: ICourse }>(
 	ornaments = keep(ornaments);
 	snowmen = keep(snowmen);
 	powerUps = keep(powerUps);
+	yuleLogs = keep(yuleLogs);
 
 	while (laidTo < x + AHEAD) {
 		const to = laidTo + CHUNK;
@@ -156,8 +160,18 @@ export function keepCourseAhead<T extends ICourseItems & { course: ICourse }>(
 		ornaments = [...ornaments, ...lay(layouts.ornaments, base + 1)];
 		snowmen = [...snowmen, ...lay(layouts.snowmen, base + 2)];
 		powerUps = [...powerUps, ...lay(layouts.powerUps, base + 3)];
+		yuleLogs = [...yuleLogs, ...lay(layouts.yuleLogs, base + 4)];
 		laidTo = to;
 	}
 
-	return { ...state, coins, crackers, ornaments, snowmen, powerUps, course: { ...state.course, laidTo, cursors } };
+	return {
+		...state,
+		coins,
+		crackers,
+		ornaments,
+		snowmen,
+		powerUps,
+		yuleLogs,
+		course: { ...state.course, laidTo, cursors },
+	};
 }

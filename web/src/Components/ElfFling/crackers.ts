@@ -3,13 +3,15 @@
  * one pops it, which launches the elf up and forward again. Laid out as the elf goes (course.ts).
  */
 
-import type { ILayout } from "Components/ElfFling/course";
+import { between, type ILayout } from "Components/ElfFling/course";
 
 export type ICracker = {
 	/** Metres from the start (the same scale as the elf's x). */
 	x: number;
 	/** Game time it went bang, or null while it's still waiting. */
 	poppedAt: number | null;
+	/** A 0–1 random number picked when it's laid out, for its wrapping and its confetti. */
+	look: number;
 };
 
 /** How long a cracker is; also how close the elf's centre must come to set one off. */
@@ -23,11 +25,23 @@ const POP_UP = 10;
 const POP_FORWARD = 6;
 const MAX_FORWARD = 32;
 
-/** Where they lie: the first a little way out, then irregular gaps. */
+/**
+ * Where they lie: the first a little way out, then uneven gaps, and now and then a little
+ * cluster of two or three a few metres apart, to bounce along.
+ */
 export const CRACKER_LAYOUT: ILayout<ICracker> = {
-	firstAt: { min: 18, max: 40 },
-	gap: { min: 16, max: 42 },
-	place: (x) => [{ x, poppedAt: null }],
+	firstAt: { min: 12, max: 45 },
+	gap: { min: 12, max: 48 },
+	place: (x, random) => {
+		const count = random() < 0.25 ? 2 + Math.floor(random() * 2) : 1;
+		const crackers: ICracker[] = [];
+
+		for (let i = 0, at = x; i < count; i++, at += between({ min: 3, max: 6 }, random)) {
+			crackers.push({ x: at, poppedAt: null, look: random() });
+		}
+
+		return crackers;
+	},
 };
 
 /** The unpopped cracker an elf at (x, y) is touching (extraReach further, as a giant snowball), as its index, or -1. */

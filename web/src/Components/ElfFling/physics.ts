@@ -4,8 +4,8 @@
  * elf is to the bat's sweet spot at that moment sets how hard and how high it flies. Then it
  * bounces and slides along the snow until it stops. On the way: coins to collect, and (with
  * shop upgrades, see upgrades.ts) crackers, sky ornaments and a sleigh that launch it on,
- * jumps and a rocket the player sets off, power-ups to grab (powerUps.ts), and the odd snowman
- * that gets in the way. The course
+ * jumps and a rocket the player sets off, power-ups to grab (powerUps.ts), Yule log cannons to
+ * slide into (yuleLogs.ts), and the odd snowman that gets in the way. The course
  * never ends: it's laid out as the elf goes (course.ts). Distance is measured from the reindeer.
  */
 
@@ -14,6 +14,7 @@ import { keepCourseAhead, seededRandom, startCourse, type ICourse } from "Compon
 import { CRACKER_LAYOUT, crackerTouching, poppedVelocity, type ICracker } from "Components/ElfFling/crackers";
 import { kickedVelocity, ORNAMENT_LAYOUT, ornamentHit, type IOrnament } from "Components/ElfFling/ornaments";
 import {
+	COCOA_JUMPS,
 	GINGERBREAD_BURST,
 	GLIDE_SINK,
 	isActive,
@@ -25,6 +26,7 @@ import {
 	SNOWBALL_FRICTION,
 	SNOWBALL_POP_UP,
 	SNOWBALL_REACH,
+	TAILWIND,
 	type IActivePowerUps,
 	type IPowerUp,
 } from "Components/ElfFling/powerUps";
@@ -39,6 +41,13 @@ import {
 	type ISleigh,
 } from "Components/ElfFling/sleigh";
 import { SNOWMAN_LAYOUT, snowmanHit, type ISnowman } from "Components/ElfFling/snowmen";
+import {
+	LOG_HOLD_SECONDS,
+	LOG_SPEEDS,
+	logCatching,
+	YULE_LOG_LAYOUT,
+	type IYuleLog,
+} from "Components/ElfFling/yuleLogs";
 import {
 	airDragShare,
 	bounceKeep,
@@ -90,6 +99,13 @@ export type IGameState = {
 	powerUps: IPowerUp[];
 	/** Which power-ups are going, and until when. */
 	active: IActivePowerUps;
+	/** How many power-ups the elf has grabbed this round. */
+	grabs: number;
+	yuleLogs: IYuleLog[];
+	/** While a Yule log holds the elf: which log, and the game time it fires. */
+	inLog: { x: number; firesAt: number } | null;
+	/** How many times a Yule log has fired the elf this round. */
+	logFires: number;
 	sleigh: ISleigh | null;
 	/** How far along the elf must be for this round's sleigh to fly in, or null (none coming, or here). */
 	sleighDueAt: number | null;
@@ -140,6 +156,7 @@ function layoutsFor(upgrades: IThrowUpgrades) {
 		ornaments: upgrades.skyOrnaments > 0 ? ORNAMENT_LAYOUT : null,
 		snowmen: SNOWMAN_LAYOUT,
 		powerUps: powerUpLayout(POWER_UP_KINDS.filter((kind) => upgrades[kind] > 0)),
+		yuleLogs: upgrades.yuleLog > 0 ? YULE_LOG_LAYOUT : null,
 	};
 }
 
@@ -170,6 +187,10 @@ export function newGame(
 		bonks: 0,
 		powerUps: [],
 		active: NO_ACTIVE_POWER_UPS,
+		grabs: 0,
+		yuleLogs: [],
+		inLog: null,
+		logFires: 0,
 		sleigh: null,
 		sleighDueAt: upgrades.sleigh > 0 ? planSleigh(seededRandom(seed)) : null,
 		jumpsLeft: upgrades.elfJump,
@@ -180,9 +201,9 @@ export function newGame(
 	return keepCourseAhead(state, layouts, state.elf.x);
 }
 
-/** Whether the elf is out on the course: flying or sliding, not riding the sleigh. */
+/** Whether the elf is out on the course: flying or sliding, not riding the sleigh or in a Yule log. */
 function isLoose(state: IGameState): boolean {
-	return (state.phase === "flying" || state.phase === "sliding") && !isRiding(state);
+	return (state.phase === "flying" || state.phase === "sliding") && !isRiding(state) && state.inLog === null;
 }
 
 function isRiding(state: IGameState): boolean {
@@ -270,6 +291,10 @@ export function step(state: IGameState, dt: number): IGameState {
 
 	next = snowballWearsOff(next);
 
+	if (next.inLog) {
+		return next.time < next.inLog.firesAt ? next : fireLog(next);
+	}
+
 	if (next.sleighDueAt !== null && next.elf.x >= next.sleighDueAt && isLoose(next)) {
 		next.sleigh = sleighArrives(next.elf, seededRandom(next.course.seed + 1));
 		next.sleighDueAt = null;
@@ -307,6 +332,12 @@ function fly(state: IGameState, dt: number): IGameState {
 	elf.vx += ((rocket ? ROCKET_PUSH.forward : 0) - drag * elf.vx * speed) * dt;
 	elf.vy += ((rocket ? ROCKET_PUSH.up : 0) - gravity - drag * elf.vy * speed) * dt;
 
+	// The north wind blows the elf along.
+	if (next.phase === "flying" && isActive(next.active, "northWind", next.time)) {
+		elf.vx += TAILWIND.forward * dt;
+		elf.vy += TAILWIND.up * dt;
+	}
+
 	// Snow angel wings: a fall becomes a glide.
 	if (next.phase === "flying" && isActive(next.active, "snowAngelWings", next.time)) {
 		elf.vy = Math.max(elf.vy, -GLIDE_SINK);
@@ -328,6 +359,12 @@ function fly(state: IGameState, dt: number): IGameState {
 		if (popped) {
 			return popped;
 		}
+
+		const caught = catchInLog(next);
+
+		if (caught) {
+			return caught;
+		}
 	}
 
 	return next.elf.y <= ELF_RADIUS ? land(next) : next;
@@ -344,6 +381,12 @@ function slide(state: IGameState, dt: number): IGameState {
 	elf.spin += (elf.vx / ELF_RADIUS) * dt * 0.5;
 
 	const next = bumpSnowman(grabPowerUp(pickUpCoins(state, dt)));
+	const caught = catchInLog(next);
+
+	if (caught) {
+		return caught;
+	}
+
 	const popped = popCracker(next);
 
 	if (popped) {
@@ -426,7 +469,10 @@ function snowballWearsOff(state: IGameState): IGameState {
 	return { ...state, active, phase: "flying", elf: { ...state.elf, y: ELF_RADIUS, vy: SNOWBALL_POP_UP } };
 }
 
-/** Grabbing a power-up sets it going for as long as its level allows (starting over if it already was). */
+/**
+ * Grabbing a power-up: a timed one goes for as long as its level allows (starting over if it
+ * already was); hot cocoa and a spare firework act there and then.
+ */
 function grabPowerUp(state: IGameState): IGameState {
 	const index = powerUpGrabbed(state.powerUps, state.elf.x, state.elf.y, extraReach(state));
 
@@ -435,14 +481,58 @@ function grabPowerUp(state: IGameState): IGameState {
 	}
 
 	const { kind } = state.powerUps[index];
-	const seconds = POWER_UP_SECONDS[kind][Math.max(0, state.upgrades[kind] - 1)];
+	const level = Math.max(1, state.upgrades[kind]);
+	const next: IGameState = {
+		...state,
+		powerUps: state.powerUps.map((powerUp, i) => (i === index ? { ...powerUp, collectedAt: state.time } : powerUp)),
+		grabs: state.grabs + 1,
+	};
+
+	if (kind === "hotCocoa") {
+		return { ...next, jumpsLeft: next.jumpsLeft + COCOA_JUMPS[level - 1] };
+	}
+
+	if (kind === "spareFirework") {
+		return { ...next, rocketReady: true };
+	}
+
+	return {
+		...next,
+		active: { ...next.active, [kind]: next.time + POWER_UP_SECONDS[kind][level - 1] },
+		// The gingerbread man sets off at once.
+		elf: kind === "gingerbreadMan" ? { ...next.elf, vx: next.elf.vx + GINGERBREAD_BURST } : next.elf,
+	};
+}
+
+/** Sliding, rolling or skimming low into a Yule log's open end: it holds the elf, ready to fire. Null if not. */
+function catchInLog(state: IGameState): IGameState | null {
+	const index = logCatching(state.yuleLogs, state.elf.x, state.elf.y, state.elf.vx);
+
+	if (index === -1) {
+		return null;
+	}
+
+	const { x } = state.yuleLogs[index];
 
 	return {
 		...state,
-		powerUps: state.powerUps.map((powerUp, i) => (i === index ? { ...powerUp, collectedAt: state.time } : powerUp)),
-		active: { ...state.active, [kind]: state.time + seconds },
-		// The gingerbread man sets off at once.
-		elf: kind === "gingerbreadMan" ? { ...state.elf, vx: state.elf.vx + GINGERBREAD_BURST } : state.elf,
+		inLog: { x, firesAt: state.time + LOG_HOLD_SECONDS },
+		elf: { ...state.elf, x, y: ELF_RADIUS, vx: 0, vy: 0 },
+	};
+}
+
+/** The Yule log fires: the elf flies out at 45°, as fast as the log's level allows. */
+function fireLog(state: IGameState): IGameState {
+	const { x } = state.inLog!;
+	const speed = LOG_SPEEDS[Math.max(1, state.upgrades.yuleLog) - 1] * Math.SQRT1_2;
+
+	return {
+		...state,
+		phase: "flying",
+		inLog: null,
+		logFires: state.logFires + 1,
+		yuleLogs: state.yuleLogs.map((log) => (log.x === x ? { ...log, firedAt: state.time } : log)),
+		elf: { ...state.elf, y: ELF_RADIUS + 0.5, vx: speed, vy: speed },
 	};
 }
 

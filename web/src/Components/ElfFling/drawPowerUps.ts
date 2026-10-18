@@ -4,10 +4,11 @@ import type { IGameState } from "Components/ElfFling/physics";
 import { ELF_RADIUS } from "Components/ElfFling/physics";
 import {
 	isActive,
-	POWER_UP_KINDS,
+	TIMED_POWER_UP_KINDS,
 	SNOWBALL_REACH,
 	type IPowerUp,
 	type IPowerUpKind,
+	type ITimedPowerUpKind,
 } from "Components/ElfFling/powerUps";
 
 /**
@@ -22,6 +23,7 @@ const SIZE = 0.5;
 const MIN_PIXELS = 22;
 const GINGERBREAD = "#b5652b";
 const SNOW_SHADE = "#c9d6de";
+const COCOA = "#5a3420";
 
 export function drawPowerUps(
 	context: CanvasRenderingContext2D,
@@ -140,11 +142,11 @@ export function drawActivePowerUps(
 	palette: IPalette,
 	state: IGameState,
 	top: number,
-	seconds: (kind: IPowerUpKind) => number,
+	seconds: (kind: ITimedPowerUpKind) => number,
 ) {
 	let x = 26;
 
-	for (const kind of POWER_UP_KINDS) {
+	for (const kind of TIMED_POWER_UP_KINDS) {
 		const until = state.active[kind];
 
 		if (until === null || state.time >= until) {
@@ -246,6 +248,88 @@ function drawIcon(context: CanvasRenderingContext2D, palette: IPalette, kind: IP
 				context.restore();
 			}
 
+			break;
+		}
+
+		case "northWind": {
+			// The wind symbol, blowing right: a long middle gust, with the top one curling up and
+			// back at its end and the bottom one curling down and back (y runs up).
+			context.strokeStyle = palette.white;
+			context.lineCap = "round";
+			context.lineJoin = "round";
+			context.lineWidth = size * 0.16;
+			context.beginPath();
+			context.moveTo(-size * 0.9, 0);
+			context.lineTo(size * 0.75, 0);
+
+			for (const side of [1, -1]) {
+				const y = side * size * 0.42;
+				const end = size * 0.3;
+				context.moveTo(-size * 0.75, y);
+				context.lineTo(end, y);
+				context.bezierCurveTo(
+					end + size * 0.32,
+					y,
+					end + size * 0.32,
+					y + side * size * 0.4,
+					end,
+					y + side * size * 0.4,
+				);
+				context.quadraticCurveTo(end - size * 0.14, y + side * size * 0.4, end - size * 0.14, y + side * size * 0.26);
+			}
+
+			context.stroke();
+			break;
+		}
+
+		case "hotCocoa": {
+			// A red mug with a white band, cocoa on top, and steam.
+			context.fillStyle = palette.red;
+			context.fillRect(-size * 0.5, -size * 0.7, size * 0.9, size * 1.05);
+			context.fillStyle = palette.white;
+			context.fillRect(-size * 0.5, -size * 0.25, size * 0.9, size * 0.2);
+			context.fillStyle = COCOA;
+			context.fillRect(-size * 0.45, size * 0.22, size * 0.8, size * 0.12);
+			context.strokeStyle = palette.red;
+			context.lineWidth = size * 0.14;
+			context.beginPath();
+			context.arc(size * 0.48, -size * 0.18, size * 0.24, -Math.PI / 2, Math.PI / 2, true);
+			context.stroke();
+			context.strokeStyle = palette.white;
+			context.lineWidth = size * 0.09;
+			context.lineCap = "round";
+
+			for (const dx of [-0.2, 0.15]) {
+				context.beginPath();
+				context.moveTo(dx * size, size * 0.45);
+				context.quadraticCurveTo((dx + 0.15) * size, size * 0.65, dx * size, size * 0.9);
+				context.stroke();
+			}
+
+			break;
+		}
+
+		case "spareFirework": {
+			// A little rocket, tilted up and to the right.
+			context.save();
+			context.rotate(-Math.PI / 4);
+			context.fillStyle = palette.goldDeep;
+			context.beginPath();
+			context.moveTo(-size * 0.18, -size * 0.55);
+			context.lineTo(0, -size * 1);
+			context.lineTo(size * 0.18, -size * 0.55);
+			context.fill();
+			context.fillStyle = palette.red;
+			context.fillRect(-size * 0.2, -size * 0.55, size * 0.4, size * 1.1);
+			context.fillStyle = palette.white;
+			context.fillRect(-size * 0.2, -size * 0.1, size * 0.4, size * 0.14);
+			context.fillStyle = palette.gold;
+			context.beginPath();
+			context.moveTo(-size * 0.2, size * 0.55);
+			context.lineTo(0, size * 0.95);
+			context.lineTo(size * 0.2, size * 0.55);
+			context.fill();
+			context.restore();
 			break;
 		}
 

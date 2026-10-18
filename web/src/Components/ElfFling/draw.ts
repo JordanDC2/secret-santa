@@ -4,6 +4,7 @@ import { drawCoinCount, drawCoins } from "Components/ElfFling/drawCoins";
 import { drawGemCount } from "Components/ElfFling/drawGems";
 import { drawActivePowerUps, drawElfPowerUps, drawPowerUps, drawShine } from "Components/ElfFling/drawPowerUps";
 import { POWER_UP_SECONDS } from "Components/ElfFling/powerUps";
+import { drawYuleLogs } from "Components/ElfFling/drawYuleLogs";
 import { drawCrackers, drawPopLabels } from "Components/ElfFling/drawCrackers";
 import { drawFlyer, flyerEnlargement } from "Components/ElfFling/drawFlyers";
 import { drawOrnaments } from "Components/ElfFling/drawOrnaments";
@@ -18,7 +19,7 @@ import { drawBatter } from "Components/ElfFling/drawBatters";
  * presents, whoever's swinging the candy cane (drawBatters.ts) and whoever's being flung
  * (drawFlyers.ts). World units are metres
  * (y up); the camera follows the elf and zooms out when it flies high. The crackers, sky
- * ornaments, coins, power-ups, snowmen and sleigh have their own files (drawCrackers.ts and so on).
+ * ornaments, coins, power-ups, Yule logs, snowmen and sleigh have their own files (drawCrackers.ts and so on).
  */
 
 /** The scene's colours, read once from the app's --festive-* tokens. */
@@ -138,6 +139,8 @@ export function drawFrame(
 	drawShine(context, palette, state, camera.pixelsPerMetre);
 	drawFlyer(context, palette, state, camera.pixelsPerMetre, skin);
 	drawElfPowerUps(context, palette, state, camera.pixelsPerMetre);
+	// In front of the elf, so one inside a log is hidden by it.
+	drawYuleLogs(context, palette, state.yuleLogs, state.inLog?.x ?? null, state.time, camera.pixelsPerMetre, visible);
 	context.restore();
 	drawPopLabels(context, palette, state.crackers, state.time, toScreen);
 	drawSnowfall(context, palette, camera, size, clock);

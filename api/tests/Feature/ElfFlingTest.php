@@ -309,6 +309,22 @@ class ElfFlingTest extends TestCase
         $this->postJson(route('elf-fling.prestige'))->assertJsonPath('progress.gem_upgrades.santasLedger', 5);
     }
 
+    public function test_the_second_batch_of_power_ups_and_yule_logs_are_sold_for_gems(): void
+    {
+        $user = $this->player();
+        ElfFlingProgress::for($user)->update(['gems' => 100]);
+
+        foreach (['northWind' => 6, 'hotCocoa' => 5, 'spareFirework' => 10, 'yuleLog' => 8] as $item => $price) {
+            $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => $item])
+                ->assertOk()
+                ->assertJsonPath("gem_upgrades.{$item}", 1);
+        }
+
+        $this->assertSame(100 - 29, ElfFlingProgress::for($user)->gems);
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'spareFirework'])
+            ->assertJsonValidationErrors(['item' => 'That\'s already fully upgraded.']);
+    }
+
     public function test_huge_runs_and_hauls_are_welcome_but_nonsense_is_refused(): void
     {
         $this->player();

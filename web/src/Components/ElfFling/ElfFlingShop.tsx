@@ -4,13 +4,16 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCoins, faGem, faSnowflake } from "@fortawesome/free-solid-svg-icons";
 import SectionCard from "Components/Common/SectionCard";
 import {
+	COCOA_JUMPS,
 	GINGERBREAD_BURST,
 	GLIDE_SINK,
 	POWER_UP_SECONDS,
 	SNOWBALL_FRICTION,
 	SNOWBALL_REACH,
-	type IPowerUpKind,
+	TAILWIND,
+	type ITimedPowerUpKind,
 } from "Components/ElfFling/powerUps";
+import { LOG_SPEEDS } from "Components/ElfFling/yuleLogs";
 import {
 	airDragShare,
 	bounceKeep,
@@ -354,11 +357,12 @@ function WrapUpChristmas({ progress, busy, onWrapUp }: IWrapUpChristmasProps) {
 }
 
 /** What each power-up does, in numbers (powerUps.ts and the physics apply them). */
-const POWER_UP_EFFECTS: Record<IPowerUpKind, string> = {
+const POWER_UP_EFFECTS: Record<ITimedPowerUpKind, string> = {
 	christmasStar: "Bounces keep: 100% of their speed",
 	gingerbreadMan: `Burst: +${GINGERBREAD_BURST} m/s · Air drag: none`,
 	snowAngelWings: `Fastest fall: ${GLIDE_SINK} m/s`,
 	giantSnowball: `Reach: +${SNOWBALL_REACH} m · Slide friction: −${Math.round((1 - SNOWBALL_FRICTION) * 100)}%`,
+	northWind: `Tailwind: +${TAILWIND.forward} m/s² forward, +${TAILWIND.up} m/s² up`,
 };
 
 /**
@@ -379,7 +383,14 @@ function gemEffect(id: IUpgradeId | IGemOnlyId, progress: IProgress): string | n
 		case "gingerbreadMan":
 		case "snowAngelWings":
 		case "giantSnowball":
+		case "northWind":
 			return `${POWER_UP_EFFECTS[id]} · ${describe("Lasts", POWER_UP_SECONDS[id].length, (gemLevel) => `${POWER_UP_SECONDS[id][gemLevel - 1]} s`)}`;
+		case "hotCocoa":
+			return describe("Extra jumps", COCOA_JUMPS.length, (gemLevel) => `+${COCOA_JUMPS[gemLevel - 1]}`);
+		case "spareFirework":
+			return "Rockets: +1 for every firework you grab";
+		case "yuleLog":
+			return describe("Fires you out at", LOG_SPEEDS.length, (gemLevel) => `${LOG_SPEEDS[gemLevel - 1]} m/s`);
 		case "offSeasonTraining":
 			return `Launch speed: +${Math.round((swingMultiplier({ ...NO_THROW_UPGRADES, offSeasonTraining: 1 }) - 1) * 100)}%`;
 		case "polarJetStream":

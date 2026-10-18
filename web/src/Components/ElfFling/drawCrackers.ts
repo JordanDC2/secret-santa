@@ -23,9 +23,9 @@ export function drawCrackers(
 ) {
 	const enlarge = Math.max(1, MIN_PIXELS / (CRACKER_LENGTH * pixelsPerMetre));
 
-	crackers.forEach((cracker, index) => {
+	for (const cracker of crackers) {
 		if (cracker.x < visible.left - 5 || cracker.x > visible.right + 5) {
-			return;
+			continue;
 		}
 
 		context.save();
@@ -33,18 +33,18 @@ export function drawCrackers(
 		context.scale(enlarge, enlarge);
 
 		if (cracker.poppedAt === null) {
-			drawWhole(context, palette, index);
+			drawWhole(context, palette, cracker.look);
 		} else {
 			const since = time - cracker.poppedAt;
-			drawHalves(context, palette, index, since);
+			drawHalves(context, palette, cracker.look, since);
 
 			if (since < BURST_SECONDS) {
-				drawConfetti(context, palette, index, since);
+				drawConfetti(context, palette, cracker.look, since);
 			}
 		}
 
 		context.restore();
-	});
+	}
 }
 
 /** "Pop!" over each cracker that has just gone off. Screen units: call outside the world transform. */
@@ -74,14 +74,14 @@ export function drawPopLabels(
 	context.globalAlpha = 1;
 }
 
-/** Red or green, alternating, so a row of them reads as festive rather than identical. */
-function wrapping(palette: IPalette, index: number) {
-	return index % 2 === 0 ? { body: palette.red, band: palette.gold } : { body: palette.green, band: palette.white };
+/** Red or green (fixed per cracker by its look), so a row of them reads as festive rather than identical. */
+function wrapping(palette: IPalette, look: number) {
+	return look < 0.5 ? { body: palette.red, band: palette.gold } : { body: palette.green, band: palette.white };
 }
 
 /** A tube with a band round the middle and a twisted, flared end each side. */
-function drawWhole(context: CanvasRenderingContext2D, palette: IPalette, index: number) {
-	const colors = wrapping(palette, index);
+function drawWhole(context: CanvasRenderingContext2D, palette: IPalette, look: number) {
+	const colors = wrapping(palette, look);
 	const half = CRACKER_LENGTH / 2;
 
 	context.fillStyle = colors.body;
@@ -111,8 +111,8 @@ function drawEnd(context: CanvasRenderingContext2D, color: string, side: number)
 }
 
 /** After the bang: the halves spring apart, their outer ends tipping up, and lie there. */
-function drawHalves(context: CanvasRenderingContext2D, palette: IPalette, index: number, since: number) {
-	const colors = wrapping(palette, index);
+function drawHalves(context: CanvasRenderingContext2D, palette: IPalette, look: number, since: number) {
+	const colors = wrapping(palette, look);
 	const progress = Math.min(1, since / 0.25);
 	const apart = progress * 0.3;
 
@@ -130,14 +130,14 @@ function drawHalves(context: CanvasRenderingContext2D, palette: IPalette, index:
 }
 
 /** Bits of confetti thrown up and out, falling back under gravity and fading. */
-function drawConfetti(context: CanvasRenderingContext2D, palette: IPalette, index: number, since: number) {
+function drawConfetti(context: CanvasRenderingContext2D, palette: IPalette, look: number, since: number) {
 	const colors = [palette.red, palette.gold, palette.green, palette.white, palette.redBright];
 	context.globalAlpha = 1 - since / BURST_SECONDS;
 
 	for (let piece = 0; piece < CONFETTI_PIECES; piece++) {
 		// Fixed per cracker and piece, so the burst doesn't flicker from frame to frame.
-		const angle = Math.PI * (0.15 + 0.7 * fraction(index * 31 + piece * 7.3));
-		const speed = 2.5 + 3 * fraction(index * 17 + piece * 3.1);
+		const angle = Math.PI * (0.15 + 0.7 * fraction(look * 3100 + piece * 7.3));
+		const speed = 2.5 + 3 * fraction(look * 1700 + piece * 3.1);
 		const x = Math.cos(angle) * speed * since;
 		const y = Math.sin(angle) * speed * since - 4.9 * since * since;
 

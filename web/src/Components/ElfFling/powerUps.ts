@@ -7,15 +7,36 @@
  * - Snow angel wings: a fall turns into a gentle glide.
  * - Giant snowball: the elf rolls up inside one, reaching further for everything it can grab.
  *   It rolls instead of bouncing, barely slowing, and pops the elf back up when it wears off.
+ * - North wind: a tailwind pushing the elf forward and a little up.
+ *
+ * And two that act at once rather than for a while:
+ *
+ * - Hot cocoa: extra jumps, there and then.
+ * - Spare firework: the rocket, ready to fire again (even without the rocket upgrade).
  *
  * Only the ones the player has unlocked appear. Laid out as the elf goes (course.ts).
  */
 
 import { between, type ILayout } from "Components/ElfFling/course";
 
-export type IPowerUpKind = "christmasStar" | "gingerbreadMan" | "snowAngelWings" | "giantSnowball";
+/** The power-ups that last a while (and show a countdown). */
+export type ITimedPowerUpKind = "christmasStar" | "gingerbreadMan" | "snowAngelWings" | "giantSnowball" | "northWind";
 
-export const POWER_UP_KINDS: IPowerUpKind[] = ["christmasStar", "gingerbreadMan", "snowAngelWings", "giantSnowball"];
+export type IPowerUpKind = ITimedPowerUpKind | "hotCocoa" | "spareFirework";
+
+export const TIMED_POWER_UP_KINDS: ITimedPowerUpKind[] = [
+	"christmasStar",
+	"gingerbreadMan",
+	"snowAngelWings",
+	"giantSnowball",
+	"northWind",
+];
+
+export const POWER_UP_KINDS: IPowerUpKind[] = [...TIMED_POWER_UP_KINDS, "hotCocoa", "spareFirework"];
+
+export function isTimed(kind: IPowerUpKind): kind is ITimedPowerUpKind {
+	return (TIMED_POWER_UP_KINDS as IPowerUpKind[]).includes(kind);
+}
 
 export type IPowerUp = {
 	x: number;
@@ -26,22 +47,29 @@ export type IPowerUp = {
 };
 
 /** Game time each power-up runs until, while it's going; null when it isn't. */
-export type IActivePowerUps = Record<IPowerUpKind, number | null>;
+export type IActivePowerUps = Record<ITimedPowerUpKind, number | null>;
 
 export const NO_ACTIVE_POWER_UPS: IActivePowerUps = {
 	christmasStar: null,
 	gingerbreadMan: null,
 	snowAngelWings: null,
 	giantSnowball: null,
+	northWind: null,
 };
 
 /** How long each lasts, in seconds, at levels 1, 2 and 3. */
-export const POWER_UP_SECONDS: Record<IPowerUpKind, number[]> = {
+export const POWER_UP_SECONDS: Record<ITimedPowerUpKind, number[]> = {
 	christmasStar: [5, 7.5, 10],
 	gingerbreadMan: [5, 7.5, 10],
 	snowAngelWings: [5, 7.5, 10],
 	giantSnowball: [5, 7.5, 10],
+	northWind: [5, 7.5, 10],
 };
+
+/** Hot cocoa: extra jumps at levels 1, 2 and 3. */
+export const COCOA_JUMPS = [1, 2, 3];
+/** The north wind's push while it lasts, in m/s per second: mostly forward, a little up. */
+export const TAILWIND = { forward: 3, up: 1 };
 
 /** Generous, like coins: they're drawn bigger than life when zoomed out. */
 const GRAB_RADIUS = 1.8;
@@ -89,7 +117,7 @@ export function powerUpGrabbed(powerUps: IPowerUp[], x: number, y: number, extra
 	);
 }
 
-export function isActive(active: IActivePowerUps, kind: IPowerUpKind, time: number): boolean {
+export function isActive(active: IActivePowerUps, kind: ITimedPowerUpKind, time: number): boolean {
 	const until = active[kind];
 
 	return until !== null && time < until;
