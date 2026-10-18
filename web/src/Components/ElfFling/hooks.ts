@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { IProgress } from "Components/ElfFling/progress";
 import type { IBatterId, ISkinId } from "Components/ElfFling/skins";
-import type { IGemUpgrades, IUpgradeId, IUpgrades } from "Components/ElfFling/upgrades";
+import type { IGemOnlyId, IGemUpgrades, IUpgradeId, IUpgrades } from "Components/ElfFling/upgrades";
 import { apiClient } from "Data/Api/Client";
 
 /** The player's progress as the API sends it. */
@@ -88,7 +88,7 @@ export function usePurchaseMutation() {
 		mutationFn: async (
 			purchase:
 				| { kind: "upgrade"; item: IUpgradeId }
-				| { kind: "gemUpgrade"; item: IUpgradeId | "christmasBonus" }
+				| { kind: "gemUpgrade"; item: IUpgradeId | IGemOnlyId }
 				| { kind: "skin"; item: ISkinId }
 				| { kind: "batter"; item: IBatterId },
 		) => toProgress(await apiClient.post<IProgressResponse>("/elf-fling/purchases", purchase)),

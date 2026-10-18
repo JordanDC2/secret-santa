@@ -40,7 +40,7 @@ return [
     // gem_extra sell extra levels on top of the coin shop's. The rest sell keeping the coin
     // shop's own levels through prestige, so they never need buying again.
     'gem_upgrades' => [
-        'swingStrength' => [3, 8, 15],
+        'swingStrength' => [2, 3, 5, 7, 10],
         'goldenCane' => [2, 5],
         'sledRunners' => [2, 4, 7],
         'springyBoots' => [8],
@@ -54,8 +54,14 @@ return [
         'luckyStocking' => [10],
         // Gem shop only: banked coins double with each level (×2, ×4, ×8).
         'christmasBonus' => [10, 25, 50],
+        // Gem shop only: every hit launches 30% harder (the game applies it).
+        'offSeasonTraining' => [20],
+        // Gem shop only: half the air drag (the game applies it).
+        'polarJetStream' => [35],
     ],
-    'gem_extra' => ['swingStrength', 'springyBoots', 'candyMagnet', 'luckyStocking', 'christmasBonus'],
+    'gem_extra' => [
+        'springyBoots', 'candyMagnet', 'luckyStocking', 'christmasBonus', 'offSeasonTraining', 'polarJetStream',
+    ],
 
     // Who gets flung. The first is free and everyone has it.
     'skins' => [

@@ -101,25 +101,32 @@ class ElfFlingTest extends TestCase
     public function test_gem_levels_survive_prestige_as_extra_levels_or_kept_coin_levels(): void
     {
         $user = $this->player();
-        ElfFlingProgress::for($user)->update(['coins' => 5000, 'gems' => 20, 'upgrades' => ['swingStrength' => 5]]);
+        ElfFlingProgress::for($user)->update(['coins' => 5000, 'gems' => 30, 'upgrades' => ['swingStrength' => 5]]);
 
-        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'swingStrength'])
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'springyBoots'])
             ->assertOk()
-            ->assertJsonPath('gem_upgrades.swingStrength', 1)
-            ->assertJsonPath('gems', 17)
+            ->assertJsonPath('gem_upgrades.springyBoots', 1)
+            ->assertJsonPath('gems', 22)
             ->assertJsonPath('coins', 5000);
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'swingStrength'])
+            ->assertJsonPath('gem_upgrades.swingStrength', 1)
+            ->assertJsonPath('gems', 20);
         $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'rocket'])
             ->assertJsonPath('gem_upgrades.rocket', 1)
-            ->assertJsonPath('gems', 13);
+            ->assertJsonPath('gems', 16);
 
         $this->postJson(route('elf-fling.prestige'))
             ->assertJsonPath('progress.upgrades.swingStrength', 0)
-            ->assertJsonPath('progress.gem_upgrades.swingStrength', 1)
+            ->assertJsonPath('progress.gem_upgrades.springyBoots', 1)
             ->assertJsonPath('progress.gem_upgrades.rocket', 1);
 
+        // Springy boots' gem level goes on top of the coin shop's three; swing strength's is
+        // a kept coin level, so it never goes past five.
         $progress = ElfFlingProgress::for($user);
+        $this->assertSame(1, $progress->combinedLevel('springyBoots'));
+        $this->assertSame(4, $progress->maxLevel('springyBoots'));
         $this->assertSame(1, $progress->combinedLevel('swingStrength'));
-        $this->assertSame(8, $progress->maxLevel('swingStrength'));
+        $this->assertSame(5, $progress->maxLevel('swingStrength'));
 
         // The rocket is owned with gems, so there's nothing to buy with coins.
         $progress->update(['coins' => 1000]);
@@ -186,6 +193,25 @@ class ElfFlingTest extends TestCase
         // Doubled again.
         $this->postJson(route('elf-fling.throws'), ['distance' => 100, 'coins_collected' => 10])
             ->assertJsonPath('banked', 60);
+    }
+
+    public function test_off_season_training_and_the_polar_jet_stream_are_single_gem_only_purchases(): void
+    {
+        $user = $this->player();
+        ElfFlingProgress::for($user)->update(['coins' => 5000, 'gems' => 60]);
+
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'upgrade', 'item' => 'offSeasonTraining'])
+            ->assertJsonValidationErrors(['item' => 'That isn\'t in the shop.']);
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'offSeasonTraining'])
+            ->assertJsonPath('gem_upgrades.offSeasonTraining', 1)
+            ->assertJsonPath('gems', 40);
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'offSeasonTraining'])
+            ->assertJsonValidationErrors(['item' => 'That\'s already fully upgraded.']);
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'polarJetStream'])
+            ->assertJsonPath('gem_upgrades.polarJetStream', 1)
+            ->assertJsonPath('gems', 5);
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'upgrade', 'item' => 'polarJetStream'])
+            ->assertJsonValidationErrors(['item' => 'That isn\'t in the shop.']);
     }
 
     public function test_huge_runs_and_hauls_are_welcome_but_nonsense_is_refused(): void

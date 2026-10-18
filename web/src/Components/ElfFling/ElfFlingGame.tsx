@@ -17,7 +17,7 @@ import {
 	type IPhase,
 } from "Components/ElfFling/physics";
 import type { IBatterId, ISkinId } from "Components/ElfFling/skins";
-import type { IUpgrades } from "Components/ElfFling/upgrades";
+import type { IThrowUpgrades } from "Components/ElfFling/upgrades";
 import { releaseFocus } from "Components/ElfFling/releaseFocus";
 import { playFanfare, playStateChanges } from "Components/ElfFling/sound";
 import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
@@ -26,7 +26,7 @@ import classes from "Components/ElfFling/ElfFling.module.less";
 /** The page gives each round a new React key, so a fresh game starts on top of the presents. */
 type IElfFlingGameProps = {
 	/** The upgrades in play this round, coin and gem levels together (read when the round starts). */
-	upgrades: IUpgrades;
+	upgrades: IThrowUpgrades;
 	/** Who's being flung, and who's swinging; changing either shows at once, even mid-throw. */
 	skin: ISkinId;
 	batter: IBatterId;

@@ -1,8 +1,8 @@
 /**
  * The Elf Fling shops: what each upgrade costs and what owning it changes in a throw. Levels
  * start at 0 (not bought). Coin levels go when you wrap up Christmas (prestige); gem levels
- * stay. In the gem shop, a few upgrades sell extra levels on top of the coin shop's; the rest
- * sell keeping the coin shop's levels through prestige. The helpers at the bottom turn levels
+ * stay. In the gem shop, a few upgrades sell extra levels on top of the coin shop's, the rest
+ * sell keeping the coin shop's levels through prestige, and a couple are sold only for gems. The helpers at the bottom turn levels
  * into the numbers the physics uses. The server charges the same prices
  * (api/config/elf_fling.php).
  */
@@ -68,12 +68,7 @@ export const SHOP_ITEMS: IShopItem[] = [
 		name: "Swing strength",
 		description: "The reindeer swings harder, so every hit sends the elf further.",
 		prices: [25, 50, 80, 120, 175],
-		gem: {
-			kind: "extra",
-			name: "Extra swing strength",
-			description: "Up to three levels on top of the coin shop's five, each sending the elf further still.",
-			prices: [3, 8, 15],
-		},
+		gem: keep("swing strength", [2, 3, 5, 7, 10]),
 	},
 	{
 		id: "goldenCane",
@@ -201,15 +196,37 @@ export const NO_UPGRADES: IUpgrades = {
 	luckyStocking: 0,
 };
 
-/** Gem levels bought, per upgrade (plus the gem-only Christmas bonus): they never reset. */
-export type IGemUpgrades = IUpgrades & { christmasBonus: number };
+export type IGemOnlyId = "christmasBonus" | "offSeasonTraining" | "polarJetStream";
 
-/** Sold only for gems: banked coins double with each level (×2, ×4, ×8). */
-export const CHRISTMAS_BONUS = {
-	name: "Christmas bonus",
-	description: "Santa doubles every coin you bank, and doubles it again with each level: ×2, ×4, then ×8.",
-	prices: [10, 25, 50],
-};
+/** Gem levels bought, per upgrade (and the gem-only ones): they never reset. */
+export type IGemUpgrades = IUpgrades & Record<IGemOnlyId, number>;
+
+/** What a throw uses: the coin and gem levels together, plus the gem-only boosts to the flight. */
+export type IThrowUpgrades = IUpgrades & { offSeasonTraining: number; polarJetStream: number };
+
+export const NO_THROW_UPGRADES: IThrowUpgrades = { ...NO_UPGRADES, offSeasonTraining: 0, polarJetStream: 0 };
+
+/** Sold only for gems. */
+export const GEM_ONLY_ITEMS: Array<{ id: IGemOnlyId; name: string; description: string; prices: number[] }> = [
+	{
+		id: "christmasBonus",
+		name: "Christmas bonus",
+		description: "Santa doubles every coin you bank, and doubles it again with each level: ×2, ×4, then ×8.",
+		prices: [10, 25, 50],
+	},
+	{
+		id: "offSeasonTraining",
+		name: "Off-season training",
+		description: "The reindeer trained hard between Christmases: every hit launches 30% harder.",
+		prices: [20],
+	},
+	{
+		id: "polarJetStream",
+		name: "Polar jet stream",
+		description: "A polar jet stream sweeps along the course: half the air drag, so fast flights carry much further.",
+		prices: [35],
+	},
+];
 
 /** An upgrade's top level, counting coin and gem levels together. */
 export function maxLevel(item: IShopItem): number {
@@ -217,8 +234,12 @@ export function maxLevel(item: IShopItem): number {
 }
 
 /** The coin and gem levels together, as the throw uses them. */
-export function combinedUpgrades(upgrades: IUpgrades, gemUpgrades: IGemUpgrades): IUpgrades {
-	const combined = { ...upgrades };
+export function combinedUpgrades(upgrades: IUpgrades, gemUpgrades: IGemUpgrades): IThrowUpgrades {
+	const combined = {
+		...upgrades,
+		offSeasonTraining: gemUpgrades.offSeasonTraining,
+		polarJetStream: gemUpgrades.polarJetStream,
+	};
 
 	for (const item of SHOP_ITEMS) {
 		combined[item.id] = Math.min(maxLevel(item), upgrades[item.id] + gemUpgrades[item.id]);
@@ -252,9 +273,14 @@ function split(level: number, ownLevels: number): { own: number; extra: number }
 	return { own: Math.min(level, ownLevels), extra: Math.max(0, level - ownLevels) };
 }
 
-/** Launch speed: +7% per level of swing strength. */
-export function swingMultiplier(upgrades: IUpgrades): number {
-	return 1 + 0.07 * upgrades.swingStrength;
+/** Launch speed: +7% per level of swing strength, then 30% harder with off-season training. */
+export function swingMultiplier(upgrades: IThrowUpgrades): number {
+	return (1 + 0.07 * upgrades.swingStrength) * (1 + 0.3 * upgrades.offSeasonTraining);
+}
+
+/** How much of the usual air drag the elf feels: half with the polar jet stream. */
+export function airDragShare(upgrades: IThrowUpgrades): number {
+	return upgrades.polarJetStream > 0 ? 0.5 : 1;
 }
 
 /** How far either side of the sweet spot the bat still connects, in metres. */

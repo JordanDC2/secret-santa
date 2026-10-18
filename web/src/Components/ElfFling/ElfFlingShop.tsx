@@ -4,12 +4,13 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCoins, faGem, faSnowflake } from "@fortawesome/free-solid-svg-icons";
 import SectionCard from "Components/Common/SectionCard";
 import {
-	CHRISTMAS_BONUS,
+	GEM_ONLY_ITEMS,
 	nextCoinPrice,
 	nextGemPrice,
 	prestigeGems,
 	SHOP_GROUPS,
 	SHOP_ITEMS,
+	type IGemOnlyId,
 	type IShopItem,
 	type IUpgradeId,
 } from "Components/ElfFling/upgrades";
@@ -23,7 +24,7 @@ type IElfFlingShopProps = {
 	/** While a purchase or change is saving, the buttons wait. */
 	busy: boolean;
 	onBuy: (id: IUpgradeId) => void;
-	onBuyGemUpgrade: (id: IUpgradeId | "christmasBonus") => void;
+	onBuyGemUpgrade: (id: IUpgradeId | IGemOnlyId) => void;
 	/** Opens the hold-to-confirm over the game (WrapUpHold.tsx). */
 	onWrapUp: () => void;
 	onBuySkin: (id: ISkinId) => void;
@@ -141,17 +142,20 @@ export default function ElfFlingShop({
 			</MantineText>
 			<Stack gap="sm">
 				<Divider label="Gem shop only" labelPosition="left" />
-				<ShopRow
-					name={CHRISTMAS_BONUS.name}
-					description={CHRISTMAS_BONUS.description}
-					level={gemUpgrades.christmasBonus}
-					levels={CHRISTMAS_BONUS.prices.length}
-					price={CHRISTMAS_BONUS.prices[gemUpgrades.christmasBonus] ?? null}
-					currency="gems"
-					balance={gems}
-					busy={busy}
-					onBuy={() => onBuyGemUpgrade("christmasBonus")}
-				/>
+				{GEM_ONLY_ITEMS.map((item) => (
+					<ShopRow
+						key={item.id}
+						name={item.name}
+						description={item.description}
+						level={gemUpgrades[item.id]}
+						levels={item.prices.length}
+						price={item.prices[gemUpgrades[item.id]] ?? null}
+						currency="gems"
+						balance={gems}
+						busy={busy}
+						onBuy={() => onBuyGemUpgrade(item.id)}
+					/>
+				))}
 			</Stack>
 			<Stack gap="sm">
 				<Divider label="Extra levels" labelPosition="left" />

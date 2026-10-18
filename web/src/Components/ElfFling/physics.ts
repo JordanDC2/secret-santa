@@ -23,14 +23,15 @@ import {
 } from "Components/ElfFling/sleigh";
 import { SNOWMAN_LAYOUT, snowmanHit, type ISnowman } from "Components/ElfFling/snowmen";
 import {
+	airDragShare,
 	bounceKeep,
 	magnetRadius,
-	NO_UPGRADES,
+	NO_THROW_UPGRADES,
 	snowFriction,
 	snowmanKeep,
 	swingMultiplier,
 	swingReach,
-	type IUpgrades,
+	type IThrowUpgrades,
 } from "Components/ElfFling/upgrades";
 
 export type IPhase = "ready" | "dropping" | "flying" | "sliding" | "done";
@@ -53,7 +54,7 @@ export type IGameState = {
 	/** Seconds since the round began moving (for animations and timed effects). */
 	time: number;
 	/** The shop upgrades in play this round. */
-	upgrades: IUpgrades;
+	upgrades: IThrowUpgrades;
 	/** How far the course is laid out, and how to lay more (course.ts). */
 	course: ICourse;
 	/** What's on the course near the elf: ahead of it, and not too far behind. */
@@ -110,7 +111,7 @@ export const ROCKET_SECONDS = 1.3;
 const ROCKET_PUSH = { forward: 22, up: 9 };
 
 /** Which things this round's course has: crackers and ornaments only once they're bought. */
-function layoutsFor(upgrades: IUpgrades) {
+function layoutsFor(upgrades: IThrowUpgrades) {
 	return {
 		coins: COIN_LAYOUTS,
 		crackers: upgrades.crackers > 0 ? CRACKER_LAYOUT : null,
@@ -121,7 +122,7 @@ function layoutsFor(upgrades: IUpgrades) {
 
 /** A fresh round. The course is random; pass a seed to get the same one again (for tests). */
 export function newGame(
-	upgrades: IUpgrades = NO_UPGRADES,
+	upgrades: IThrowUpgrades = NO_THROW_UPGRADES,
 	seed: number = Math.floor(Math.random() * 2 ** 32),
 ): IGameState {
 	const layouts = layoutsFor(upgrades);
@@ -267,9 +268,10 @@ function fly(state: IGameState, dt: number): IGameState {
 	const speed = Math.hypot(elf.vx, elf.vy);
 	const gravity = next.phase === "dropping" ? DROP_GRAVITY : GRAVITY;
 	const rocket = next.rocketUntil !== null && next.time < next.rocketUntil;
+	const drag = AIR_DRAG * airDragShare(next.upgrades);
 
-	elf.vx += ((rocket ? ROCKET_PUSH.forward : 0) - AIR_DRAG * elf.vx * speed) * dt;
-	elf.vy += ((rocket ? ROCKET_PUSH.up : 0) - gravity - AIR_DRAG * elf.vy * speed) * dt;
+	elf.vx += ((rocket ? ROCKET_PUSH.forward : 0) - drag * elf.vx * speed) * dt;
+	elf.vy += ((rocket ? ROCKET_PUSH.up : 0) - gravity - drag * elf.vy * speed) * dt;
 	elf.x += elf.vx * dt;
 	elf.y += elf.vy * dt;
 
