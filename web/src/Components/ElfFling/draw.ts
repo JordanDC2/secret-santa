@@ -4,6 +4,7 @@ import { drawCoinCount, drawCoins } from "Components/ElfFling/drawCoins";
 import { drawGemCount } from "Components/ElfFling/drawGems";
 import { drawActivePowerUps, drawElfPowerUps, drawPowerUps, drawShine } from "Components/ElfFling/drawPowerUps";
 import { POWER_UP_SECONDS } from "Components/ElfFling/powerUps";
+import { drawWeather } from "Components/ElfFling/drawWeather";
 import { drawYuleLogs } from "Components/ElfFling/drawYuleLogs";
 import { drawCrackers, drawPopLabels } from "Components/ElfFling/drawCrackers";
 import { drawFlyer, flyerEnlargement } from "Components/ElfFling/drawFlyers";
@@ -19,7 +20,7 @@ import { drawBatter } from "Components/ElfFling/drawBatters";
  * presents, whoever's swinging the candy cane (drawBatters.ts) and whoever's being flung
  * (drawFlyers.ts). World units are metres
  * (y up); the camera follows the elf and zooms out when it flies high. The crackers, sky
- * ornaments, coins, power-ups, Yule logs, snowmen and sleigh have their own files (drawCrackers.ts and so on).
+ * ornaments, coins, power-ups, Yule logs, weather, snowmen and sleigh have their own files (drawCrackers.ts and so on).
  */
 
 /** The scene's colours, read once from the app's --festive-* tokens. */
@@ -126,9 +127,10 @@ export function drawFrame(
 	const origin = toScreen(0, 0);
 	context.translate(origin.x, origin.y);
 	context.scale(camera.pixelsPerMetre, -camera.pixelsPerMetre);
+	const visible = { left: camera.left, right: camera.left + width / camera.pixelsPerMetre };
+	drawWeather(context, palette, state.gusts, state.updrafts, clock, camera.pixelsPerMetre, visible);
 	drawPresents(context, palette);
 	drawBatter(context, palette, state.swingTime, batter);
-	const visible = { left: camera.left, right: camera.left + width / camera.pixelsPerMetre };
 	drawCrackers(context, palette, state.crackers, state.time, camera.pixelsPerMetre, visible);
 	drawOrnaments(context, palette, state.ornaments, state.time, camera.pixelsPerMetre, visible);
 	drawSnowmen(context, palette, state.snowmen, state.time, camera.pixelsPerMetre, visible);

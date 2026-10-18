@@ -5,7 +5,8 @@
  * bounces and slides along the snow until it stops. On the way: coins to collect, and (with
  * shop upgrades, see upgrades.ts) crackers, sky ornaments and a sleigh that launch it on,
  * jumps and a rocket the player sets off, power-ups to grab (powerUps.ts), Yule log cannons to
- * slide into (yuleLogs.ts), and the odd snowman that gets in the way. The course
+ * slide into (yuleLogs.ts), winds and updrafts (weather.ts), and the odd snowman that gets in
+ * the way. The course
  * never ends: it's laid out as the elf goes (course.ts). Distance is measured from the reindeer.
  */
 
@@ -41,6 +42,16 @@ import {
 	type ISleigh,
 } from "Components/ElfFling/sleigh";
 import { SNOWMAN_LAYOUT, snowmanHit, type ISnowman } from "Components/ElfFling/snowmen";
+import {
+	GUST_LAYOUT,
+	GUST_PUSH,
+	inGust,
+	inUpdraft,
+	UPDRAFT_LAYOUT,
+	UPDRAFT_LIFT,
+	type IGust,
+	type IUpdraft,
+} from "Components/ElfFling/weather";
 import {
 	LOG_HOLD_SECONDS,
 	LOG_SPEEDS,
@@ -106,6 +117,8 @@ export type IGameState = {
 	inLog: { x: number; firesAt: number } | null;
 	/** How many times a Yule log has fired the elf this round. */
 	logFires: number;
+	gusts: IGust[];
+	updrafts: IUpdraft[];
 	sleigh: ISleigh | null;
 	/** How far along the elf must be for this round's sleigh to fly in, or null (none coming, or here). */
 	sleighDueAt: number | null;
@@ -157,6 +170,8 @@ function layoutsFor(upgrades: IThrowUpgrades) {
 		snowmen: SNOWMAN_LAYOUT,
 		powerUps: powerUpLayout(POWER_UP_KINDS.filter((kind) => upgrades[kind] > 0)),
 		yuleLogs: upgrades.yuleLog > 0 ? YULE_LOG_LAYOUT : null,
+		gusts: upgrades.highWinds > 0 ? GUST_LAYOUT : null,
+		updrafts: upgrades.updrafts > 0 ? UPDRAFT_LAYOUT : null,
 	};
 }
 
@@ -191,6 +206,8 @@ export function newGame(
 		yuleLogs: [],
 		inLog: null,
 		logFires: 0,
+		gusts: [],
+		updrafts: [],
 		sleigh: null,
 		sleighDueAt: upgrades.sleigh > 0 ? planSleigh(seededRandom(seed)) : null,
 		jumpsLeft: upgrades.elfJump,
@@ -338,6 +355,17 @@ function fly(state: IGameState, dt: number): IGameState {
 		elf.vy += TAILWIND.up * dt;
 	}
 
+	// High winds push the elf along; an updraft lifts it.
+	if (next.phase === "flying") {
+		if (inGust(next.gusts, elf.x, elf.y)) {
+			elf.vx += GUST_PUSH * dt;
+		}
+
+		if (inUpdraft(next.updrafts, elf.x, elf.y)) {
+			elf.vy += UPDRAFT_LIFT * dt;
+		}
+	}
+
 	// Snow angel wings: a fall becomes a glide.
 	if (next.phase === "flying" && isActive(next.active, "snowAngelWings", next.time)) {
 		elf.vy = Math.max(elf.vy, -GLIDE_SINK);
@@ -391,6 +419,11 @@ function slide(state: IGameState, dt: number): IGameState {
 
 	if (popped) {
 		return popped;
+	}
+
+	// An updraft lifts a sliding elf off the snow.
+	if (inUpdraft(next.updrafts, next.elf.x, next.elf.y)) {
+		return { ...next, phase: "flying", elf: { ...next.elf, vy: Math.max(next.elf.vy, 2) } };
 	}
 
 	return next.elf.vx === 0 ? finish(next, next.outcome ?? "hit") : next;

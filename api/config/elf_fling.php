@@ -87,6 +87,9 @@ return [
         'spareFirework' => [10],
         // Yule log cannons on the course (the game runs them): each level fires harder.
         'yuleLog' => [8, 15, 25],
+        // Weather on the course (the game runs it): high winds and updrafts.
+        'highWinds' => [15],
+        'updrafts' => [10],
     ],
     // Every Christmas wrapped up after the first puts another Christmas bonus level on sale,
     // each this many times the price of the one before.
@@ -95,7 +98,7 @@ return [
     'gem_extra' => [
         'springyBoots', 'candyMagnet', 'luckyStocking', 'christmasBonus', 'offSeasonTraining', 'polarJetStream',
         'christmasStar', 'gingerbreadMan', 'snowAngelWings', 'giantSnowball', 'northWind', 'hotCocoa',
-        'spareFirework', 'yuleLog',
+        'spareFirework', 'yuleLog', 'highWinds', 'updrafts',
     ],
 
     // Who gets flung. The first is free and everyone has it.

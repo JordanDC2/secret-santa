@@ -13,6 +13,7 @@ import {
 	TAILWIND,
 	type ITimedPowerUpKind,
 } from "Components/ElfFling/powerUps";
+import { GUST_PUSH, UPDRAFT_LIFT } from "Components/ElfFling/weather";
 import { LOG_SPEEDS } from "Components/ElfFling/yuleLogs";
 import {
 	airDragShare,
@@ -391,6 +392,10 @@ function gemEffect(id: IUpgradeId | IGemOnlyId, progress: IProgress): string | n
 			return "Rockets: +1 for every firework you grab";
 		case "yuleLog":
 			return describe("Fires you out at", LOG_SPEEDS.length, (gemLevel) => `${LOG_SPEEDS[gemLevel - 1]} m/s`);
+		case "highWinds":
+			return `Push: +${GUST_PUSH} m/s² forward`;
+		case "updrafts":
+			return `Lift: +${UPDRAFT_LIFT} m/s² up`;
 		case "offSeasonTraining":
 			return `Launch speed: +${Math.round((swingMultiplier({ ...NO_THROW_UPGRADES, offSeasonTraining: 1 }) - 1) * 100)}%`;
 		case "polarJetStream":

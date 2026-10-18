@@ -314,13 +314,13 @@ class ElfFlingTest extends TestCase
         $user = $this->player();
         ElfFlingProgress::for($user)->update(['gems' => 100]);
 
-        foreach (['northWind' => 6, 'hotCocoa' => 5, 'spareFirework' => 10, 'yuleLog' => 8] as $item => $price) {
+        foreach (['northWind' => 6, 'hotCocoa' => 5, 'spareFirework' => 10, 'yuleLog' => 8, 'highWinds' => 15, 'updrafts' => 10] as $item => $price) {
             $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => $item])
                 ->assertOk()
                 ->assertJsonPath("gem_upgrades.{$item}", 1);
         }
 
-        $this->assertSame(100 - 29, ElfFlingProgress::for($user)->gems);
+        $this->assertSame(100 - 54, ElfFlingProgress::for($user)->gems);
         $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'spareFirework'])
             ->assertJsonValidationErrors(['item' => 'That\'s already fully upgraded.']);
     }

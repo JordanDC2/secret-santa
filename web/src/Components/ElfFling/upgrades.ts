@@ -304,15 +304,14 @@ export function endlessPrice(item: IEndlessItem, level: number, count = 1): numb
 
 import { POWER_UP_KINDS, type IPowerUpKind } from "Components/ElfFling/powerUps";
 
-/** The power-ups section of the gem shop: the pickups, and Yule log cannons. */
-export type IPowerUpItemId = IPowerUpKind | "yuleLog";
+/** The power-ups section of the gem shop: the pickups, Yule log cannons, and the weather. */
+export type IPowerUpItemId = IPowerUpKind | "yuleLog" | "highWinds" | "updrafts";
 
 export type IGemOnlyId = "christmasBonus" | "offSeasonTraining" | "polarJetStream" | "santasLedger" | IPowerUpItemId;
 
-const NO_POWER_UPS = Object.fromEntries([...POWER_UP_KINDS, "yuleLog"].map((id) => [id, 0])) as Record<
-	IPowerUpItemId,
-	number
->;
+const NO_POWER_UPS = Object.fromEntries(
+	[...POWER_UP_KINDS, "yuleLog", "highWinds", "updrafts"].map((id) => [id, 0]),
+) as Record<IPowerUpItemId, number>;
 
 /** Gem levels bought, per upgrade (and the gem-only ones): they never reset. */
 export type IGemUpgrades = IUpgrades & Record<IGemOnlyId, number>;
@@ -390,6 +389,18 @@ export const POWER_UP_ITEMS: Array<{ id: IPowerUpItemId; name: string; descripti
 		description:
 			"Hollow logs lie in the snow. Slide, roll or skim low into the open end and it fires you out up and forward, however slowly you went in.",
 		prices: [8, 15, 25],
+	},
+	{
+		id: "highWinds",
+		name: "High winds",
+		description: "Gusts blow along high up among the sky coins: get up there and they push you onward.",
+		prices: [15],
+	},
+	{
+		id: "updrafts",
+		name: "Updrafts",
+		description: "Now and then a column of rising air lifts you high. Fly or slide through it.",
+		prices: [10],
 	},
 ];
 
