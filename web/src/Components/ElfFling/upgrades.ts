@@ -393,7 +393,8 @@ export const POWER_UP_ITEMS: Array<{ id: IPowerUpItemId; name: string; descripti
 	{
 		id: "highWinds",
 		name: "High winds",
-		description: "Gusts blow along high up among the sky coins: get up there and they push you onward.",
+		description:
+			"Gusts blow along high up among the sky coins, and higher still: get up there and they push you onward.",
 		prices: [15],
 	},
 	{

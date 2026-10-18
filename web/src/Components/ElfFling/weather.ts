@@ -1,8 +1,8 @@
 /**
  * Winter weather on the course (gem shop unlocks, laid out as the elf goes; see course.ts):
  *
- * - High winds: bands of gusts high up among the top sky coins. Inside one, the elf is pushed
- *   forward, a reward for a big launch.
+ * - High winds: bands of gusts high up among the top sky coins, and some above them all.
+ *   Inside one, the elf is pushed forward, a reward for a big launch.
  * - Updrafts: rare columns of rising air from the snow up into the sky. Inside one, the elf is
  *   lifted hard: the way up to the winds and sky coins. A sliding elf is lifted off the snow.
  */
@@ -26,7 +26,12 @@ export const GUST_LAYOUT: ILayout<IGust> = {
 	firstAt: { min: 60, max: 150 },
 	gap: { min: 80, max: 200 },
 	place: (x, random) => [
-		{ x, y: between({ min: 30, max: 48 }, random), length: between({ min: 30, max: 60 }, random) },
+		{
+			x,
+			// Most among the upper sky coins; some higher still, above them all.
+			y: random() < 0.4 ? between({ min: 56, max: 75 }, random) : between({ min: 30, max: 48 }, random),
+			length: between({ min: 30, max: 60 }, random),
+		},
 	],
 };
 
