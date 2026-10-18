@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ActionIcon, Tooltip } from "@mantine/core";
-import { useElementSize, useMediaQuery, useViewportSize } from "@mantine/hooks";
+import { useElementSize, useMediaQuery, useReducedMotion, useViewportSize } from "@mantine/hooks";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
 	faCompress,
@@ -11,7 +11,16 @@ import {
 	faVolumeXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import RocketIcon from "Components/Common/FestiveIcons/RocketIcon";
-import { drawFrame, nextCamera, readPalette, type ICamera, type IPalette } from "Components/ElfFling/draw";
+import ChimneyLevel from "Components/ElfFling/ChimneyLevel";
+import { CHIMNEY_HEIGHT } from "Components/ElfFling/chimneys";
+import {
+	drawFrame,
+	nextCamera,
+	readPalette,
+	toScreenPoint,
+	type ICamera,
+	type IPalette,
+} from "Components/ElfFling/draw";
 import {
 	canJump,
 	canRocket,
@@ -30,7 +39,6 @@ import { releaseFocus } from "Components/ElfFling/releaseFocus";
 import { playFanfare, playStateChanges } from "Components/ElfFling/sound";
 import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
 import classes from "Components/ElfFling/ElfFling.module.less";
-import PinballGame from "Components/Pinball/PinballGame";
 
 /** The page gives each round a new React key, so a fresh game starts on top of the presents. */
 type IElfFlingGameProps = {
@@ -69,6 +77,9 @@ type IElfFlingGameProps = {
 
 /** Never simulate more than this much at once, e.g. after the tab was in the background. */
 const MAX_FRAME_TIME = 0.1;
+/** How long the dive into a chimney takes, and the table's shrink back into it (as in the stylesheet). */
+const CHIMNEY_DIVE_MS = 600;
+const CHIMNEY_LEAVE_MS = 450;
 
 /**
  * The game's canvas: runs the physics in fixed steps on every animation frame and draws the
@@ -118,8 +129,15 @@ export default function ElfFlingGame({
 	const skinRef = useRef(skin);
 	const batterRef = useRef(batter);
 	const callbacksRef = useRef({ onPhaseChange, onFinish, onJumpsChange, onRestart, onChimneyFound });
-	// Down a chimney, the pinball takes over the screen until its last ball drains.
-	const [inChimney, setInChimney] = useState(false);
+	// Down a chimney, the pinball takes over the screen until its last ball drains: first the
+	// view dives into the chimney, then the table pulls out of it; at the end it shrinks back in
+	// before the elf comes back out.
+	const [chimney, setChimney] = useState<{
+		stage: "diving" | "in" | "leaving";
+		origin: { x: number; y: number };
+	} | null>(null);
+	const chimneyTimerRef = useRef<number | undefined>(undefined);
+	const reducedMotion = useReducedMotion();
 	// The rocket button shows only while the rocket can fire.
 	const [rocketAvailable, setRocketAvailable] = useState(false);
 	// The restart button shows while a run is under way; the first tap arms it, a second confirms.
@@ -151,6 +169,25 @@ export default function ElfFlingGame({
 			);
 	const touchScreen = useTouchScreen();
 
+	// Into the chimney: the view zooms into its mouth (about it, on the canvas), then the pinball takes over.
+	const diveIntoChimney = useCallback(
+		(x: number) => {
+			const canvas = canvasRef.current!;
+			const mouth = toScreenPoint(cameraRef.current!, canvas.clientHeight, x, CHIMNEY_HEIGHT);
+			const box = canvas.getBoundingClientRect();
+			canvas.style.setProperty("--dive-x", `${mouth.x}px`);
+			canvas.style.setProperty("--dive-y", `${mouth.y}px`);
+			setChimney({ stage: "diving", origin: { x: box.left + mouth.x, y: box.top + mouth.y } });
+			chimneyTimerRef.current = window.setTimeout(
+				() => setChimney((current) => current && { ...current, stage: "in" }),
+				reducedMotion ? 0 : CHIMNEY_DIVE_MS,
+			);
+		},
+		[reducedMotion],
+	);
+
+	useEffect(() => () => window.clearTimeout(chimneyTimerRef.current), []);
+
 	const setState = useCallback(
 		(next: IGameState) => {
 			const previous = stateRef.current;
@@ -171,7 +208,7 @@ export default function ElfFlingGame({
 			}
 
 			if (!previous.inChimney && next.inChimney) {
-				setInChimney(true);
+				diveIntoChimney(next.inChimney.x);
 				callbacksRef.current.onChimneyFound();
 			}
 
@@ -192,7 +229,7 @@ export default function ElfFlingGame({
 				}
 			}
 		},
-		[bestBefore],
+		[bestBefore, diveIntoChimney],
 	);
 
 	const handleInput = useCallback(() => {
@@ -298,6 +335,7 @@ export default function ElfFlingGame({
 			<canvas
 				ref={canvasRef}
 				className={classes.canvas}
+				data-diving={chimney !== null || undefined}
 				style={{ height }}
 				role="img"
 				// A long press shouldn't open the phone's copy or save-image menu mid-throw.
@@ -334,24 +372,24 @@ export default function ElfFlingGame({
 					</ActionIcon>
 				</Tooltip>
 			)}
-			{inChimney && (
-				<div className={classes.chimneyLevel} role="dialog" aria-modal="true" aria-label="Down the chimney: pinball">
-					<p className={classes.chimneyTitle}>Down the chimney!</p>
-					<p className={classes.chimneyHint}>
-						{touchScreen
-							? "Press and let go to launch, then press the left or right half to flip."
-							: "Hold Space and let go to launch. Flip with the left and right arrow keys, or Space for both."}
-					</p>
-					<div className={classes.chimneyTable}>
-						<PinballGame
-							soundOn={soundOn}
-							onGameOver={(points) => {
+			{chimney && chimney.stage !== "diving" && (
+				<ChimneyLevel
+					origin={chimney.origin}
+					leaving={chimney.stage === "leaving"}
+					touchScreen={touchScreen}
+					soundOn={soundOn}
+					onGameOver={(points) => {
+						// The table shrinks back into the chimney, then the elf comes out with the points.
+						setChimney((current) => current && { ...current, stage: "leaving" });
+						chimneyTimerRef.current = window.setTimeout(
+							() => {
 								setState(leaveChimney(stateRef.current, points));
-								setInChimney(false);
-							}}
-						/>
-					</div>
-				</div>
+								setChimney(null);
+							},
+							reducedMotion ? 0 : CHIMNEY_LEAVE_MS,
+						);
+					}}
+				/>
 			)}
 			{fullscreen && (overlay || (touchScreen && portrait)) && (
 				// The page's prompts are hidden behind the game, so they show over it instead.

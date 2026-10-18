@@ -17,25 +17,39 @@ import {
 import { playPinballEvents, startPinballMusic } from "Components/Pinball/pinballSound";
 import classes from "Components/Pinball/Pinball.module.less";
 
+/**
+ * How far the table's drawn turned (degrees, clockwise): a quarter either way on a phone held
+ * sideways, so its top is the phone's top.
+ */
+export type IPinballTurn = 0 | 90 | -90;
+
 type IPinballGameProps = {
 	/** Called once, when the last ball drains, with the final score. */
 	onGameOver: (score: number) => void;
 	soundOn: boolean;
 	balls?: number;
+	turn?: IPinballTurn;
 };
 
 /**
- * A press on the left half works the left flipper, on the right half the right ones; while a
- * ball waits on the plunger, any press pulls it back.
+ * A press on the table's left half works the left flipper, on its right half the right one
+ * (turned, the halves are the screen's bottom and top); while a ball waits on the plunger, any
+ * press pulls it back.
  */
-function controlFor(event: React.PointerEvent<HTMLCanvasElement>, state: IPinballState): IControl {
+function controlFor(event: React.PointerEvent<HTMLCanvasElement>, state: IPinballState, turn: IPinballTurn): IControl {
 	const box = event.currentTarget.getBoundingClientRect();
 
 	if (waitingToLaunch(state)) {
 		return "launch";
 	}
 
-	return event.clientX - box.left < box.width / 2 ? "left" : "right";
+	if (turn === 0) {
+		return event.clientX - box.left < box.width / 2 ? "left" : "right";
+	}
+
+	const upperHalf = event.clientY - box.top < box.height / 2;
+
+	return upperHalf === (turn === -90) ? "right" : "left";
 }
 
 /** Never run more than this much at once, e.g. after the tab was in the background. */
@@ -61,7 +75,7 @@ const LAUNCH_KEYS = new Set(["Space", "ArrowDown", "Enter", "KeyS"]);
  * and M), Space for both. Nudge: X, full stop, up arrow. On a touch screen, press and let go to
  * launch, then press the left or right half to flip. Only the end of the game reaches React.
  */
-export default function PinballGame({ onGameOver, soundOn, balls = 3 }: IPinballGameProps) {
+export default function PinballGame({ onGameOver, soundOn, balls = 3, turn = 0 }: IPinballGameProps) {
 	const { ref: frameRef, width, height } = useElementSize();
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const stateRef = useRef<IPinballState>(newPinball(balls));
@@ -151,12 +165,23 @@ export default function PinballGame({ onGameOver, soundOn, balls = 3 }: IPinball
 
 		const context = canvas.getContext("2d")!;
 		const palette = readPalette(canvas);
-		const scale = Math.min(width / VIEW.width, height / VIEW.height);
+		// Turned a quarter, the table's across is the screen's down.
+		const across = turn === 0 ? VIEW.width : VIEW.height;
+		const down = turn === 0 ? VIEW.height : VIEW.width;
+		const scale = Math.min(width / across, height / down);
 		const ratio = window.devicePixelRatio || 1;
-		canvas.width = Math.round(VIEW.width * scale * ratio);
-		canvas.height = Math.round(VIEW.height * scale * ratio);
-		canvas.style.width = `${VIEW.width * scale}px`;
-		canvas.style.height = `${VIEW.height * scale}px`;
+		canvas.width = Math.round(across * scale * ratio);
+		canvas.height = Math.round(down * scale * ratio);
+		canvas.style.width = `${across * scale}px`;
+		canvas.style.height = `${down * scale}px`;
+		const size = ratio * scale;
+		// The view's x and y to the canvas's: as is, or turned with its top to the left (-90) or right (90).
+		const transform: [number, number, number, number, number, number] =
+			turn === 0
+				? [size, 0, 0, size, 0, 0]
+				: turn === -90
+					? [0, -size, size, 0, 0, VIEW.width * size]
+					: [0, size, -size, 0, VIEW.height * size, 0];
 
 		let frame = 0;
 		let last = performance.now();
@@ -179,7 +204,7 @@ export default function PinballGame({ onGameOver, soundOn, balls = 3 }: IPinball
 
 			stateRef.current = { ...state, events: [] };
 
-			context.setTransform(ratio * scale, 0, 0, ratio * scale, 0, 0);
+			context.setTransform(...transform);
 			drawPinball(context, palette, state);
 
 			if (state.over && !ended) {
@@ -194,7 +219,7 @@ export default function PinballGame({ onGameOver, soundOn, balls = 3 }: IPinball
 		frame = requestAnimationFrame(render);
 
 		return () => cancelAnimationFrame(frame);
-	}, [width, height]);
+	}, [width, height, turn]);
 
 	const release = (event: React.PointerEvent<HTMLCanvasElement>) => {
 		const control = pointersRef.current.get(event.pointerId);
@@ -217,7 +242,7 @@ export default function PinballGame({ onGameOver, soundOn, balls = 3 }: IPinball
 				aria-label="Pinball: press and let go to launch, then press the left or right half to flip"
 				onPointerDown={(event) => {
 					event.preventDefault();
-					const control = controlFor(event, stateRef.current);
+					const control = controlFor(event, stateRef.current, turn);
 					pointersRef.current.set(event.pointerId, control);
 					setHeld(control, true);
 				}}

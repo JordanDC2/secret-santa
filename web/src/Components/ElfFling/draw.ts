@@ -115,6 +115,13 @@ export function nextCamera(previous: ICamera | null, state: IGameState, width: n
 	};
 }
 
+/** Where a point in the world (metres, y up) is on a canvas `height` tall, through the camera. */
+export function toScreenPoint(camera: ICamera, height: number, x: number, y: number): { x: number; y: number } {
+	const floorY = height * (1 - GROUND_SHARE) + camera.bottom * camera.pixelsPerMetre;
+
+	return { x: (x - camera.left) * camera.pixelsPerMetre, y: floorY - y * camera.pixelsPerMetre };
+}
+
 export function drawFrame(
 	context: CanvasRenderingContext2D,
 	state: IGameState,
@@ -135,10 +142,7 @@ export function drawFrame(
 	const groundY = height * (1 - GROUND_SHARE);
 	// Where the snow is on screen: below groundY (maybe off the bottom) while the camera's panned up.
 	const floorY = groundY + camera.bottom * camera.pixelsPerMetre;
-	const toScreen = (x: number, y: number) => ({
-		x: (x - camera.left) * camera.pixelsPerMetre,
-		y: floorY - y * camera.pixelsPerMetre,
-	});
+	const toScreen = (x: number, y: number) => toScreenPoint(camera, height, x, y);
 
 	// How far into the day the middle of the view is (dayNight.ts).
 	const viewMiddle = camera.left + width / camera.pixelsPerMetre / 2;
