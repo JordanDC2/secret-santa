@@ -5,11 +5,13 @@ import { drawPinball, VIEW } from "Components/Pinball/drawPinball";
 import {
 	hold,
 	newPinball,
+	nudge,
 	step,
 	STEP,
 	waitingToLaunch,
 	type IControl,
 	type IFlipperSide,
+	type INudge,
 	type IPinballState,
 } from "Components/Pinball/pinball";
 import { playPinballEvents, startPinballMusic } from "Components/Pinball/pinballSound";
@@ -48,14 +50,16 @@ const KEYS: Record<string, IFlipperSide[]> = {
 	KeyL: ["right"],
 	Slash: ["right"],
 };
+/** Nudging the table, with Space Cadet's keys: X bumps it from the left, the full stop from the right, up from below. */
+const NUDGE_KEYS: Record<string, INudge> = { KeyX: "left", Period: "right", ArrowUp: "up" };
 /** The plunger's keys. Space is the plunger while a ball waits on it, and both flippers otherwise. */
 const LAUNCH_KEYS = new Set(["Space", "ArrowDown", "Enter", "KeyS"]);
 
 /**
  * A game of Christmas pinball, filling its container (the table keeps its shape and is centred).
  * Plunger: hold Space (or the down arrow) and let go. Flippers: the left and right arrows (or Z
- * and M), Space for both. On a touch screen, press and let go to launch, then press the left or
- * right half to flip. Only the end of the game reaches React.
+ * and M), Space for both. Nudge: X, full stop, up arrow. On a touch screen, press and let go to
+ * launch, then press the left or right half to flip. Only the end of the game reaches React.
  */
 export default function PinballGame({ onGameOver, soundOn, balls = 3 }: IPinballGameProps) {
 	const { ref: frameRef, width, height } = useElementSize();
@@ -84,9 +88,10 @@ export default function PinballGame({ onGameOver, soundOn, balls = 3 }: IPinball
 	useEffect(() => {
 		function onKey(event: KeyboardEvent, down: boolean) {
 			const launchKey = LAUNCH_KEYS.has(event.code);
+			const nudgeKey = NUDGE_KEYS[event.code];
 
 			if (
-				(!KEYS[event.code] && !launchKey) ||
+				(!KEYS[event.code] && !launchKey && !nudgeKey) ||
 				(event.target instanceof HTMLElement && event.target.closest("input, textarea, select"))
 			) {
 				return;
@@ -95,6 +100,14 @@ export default function PinballGame({ onGameOver, soundOn, balls = 3 }: IPinball
 			event.preventDefault();
 
 			if (event.repeat) {
+				return;
+			}
+
+			if (nudgeKey) {
+				if (down) {
+					stateRef.current = nudge(stateRef.current, nudgeKey);
+				}
+
 				return;
 			}
 

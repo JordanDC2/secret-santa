@@ -602,6 +602,12 @@ function goDownChimney(state: IGameState, index: number): IGameState {
 }
 
 /**
+ * Pinball scores run into the millions (Space Cadet's scoring), so a chimney adds a thousandth
+ * of its game's score to the throw's.
+ */
+const PINBALL_POINTS_PER_POINT = 1000;
+
+/**
  * The pinball's over: the chimney shoots the elf back out, up and forward, and the points
  * count towards the throw's score.
  */
@@ -614,7 +620,7 @@ export function leaveChimney(state: IGameState, points: number): IGameState {
 		...state,
 		phase: "flying",
 		inChimney: null,
-		pinballPoints: state.pinballPoints + points,
+		pinballPoints: state.pinballPoints + Math.floor(points / PINBALL_POINTS_PER_POINT),
 		chimneyVisits: state.chimneyVisits + 1,
 		elf: {
 			...state.elf,

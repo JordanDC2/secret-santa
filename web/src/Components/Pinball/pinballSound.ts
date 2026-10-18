@@ -18,132 +18,152 @@ function knock(delay = 0) {
 	hiss("lowpass", 500, 0.12, 0.6, delay);
 }
 
-/** Each event's sound: the classic table noises, synthesised. */
+// The classic table noises, synthesised.
+/** A flipper's solenoid: a short, hard clack. */
+function clack() {
+	hiss("lowpass", 1400, 0.05, 0.6);
+	tone("square", 110, 60, 0.06, 0.25);
+}
+
+/** A pop bumper: the bright electronic pop of an old table. */
+function pop(pitch = 920) {
+	tone("square", pitch, pitch / 2, 0.09, 0.22);
+	hiss("highpass", 3000, 0.04, 0.4);
+}
+
+function blip(pitch: number) {
+	run(
+		"square",
+		[
+			[pitch, 0],
+			[pitch * 1.33, 0.05],
+		],
+		0.06,
+		0.12,
+	);
+}
+
+/** A drop target going down: a thunk. */
+function drop() {
+	tone("square", 300, 120, 0.08, 0.2);
+	hiss("lowpass", 900, 0.06, 0.4);
+}
+
+/** A bell: a two-tone ding (higher for glassy things). */
+function ding(pitch = 1568) {
+	tone("sine", pitch, pitch, 0.45, 0.22);
+	tone("sine", pitch * 1.5, pitch * 1.5, 0.35, 0.12, 0.01);
+}
+
+/** Up a run of notes. */
+function arpeggio(notes: number[], gap = 0.07, length = 0.12) {
+	run(
+		"square",
+		notes.map((pitch, index) => [pitch, index * gap]),
+		length,
+		0.14,
+	);
+}
+
+/** A ramp or chute: a rising whirr. */
+function whirr(from: number, to: number) {
+	tone("sawtooth", from, to, 0.6, 0.07);
+	hiss("bandpass", 1400, 0.6, 0.12, 0, 3600);
+}
+
+/** Into a hole: a thud and a rattle. */
+function thud(pitch = 140) {
+	tone("sine", pitch, pitch * 0.43, 0.2, 0.5);
+	hiss("bandpass", 600, 0.25, 0.3);
+}
+
+/** A buzzer, for the tilt. */
+function buzz(length: number) {
+	tone("sawtooth", 110, 104, length, 0.18);
+	tone("square", 55, 52, length, 0.12);
+}
+
+const FANFARE = [523, 659, 784, 1047, 784, 1047];
+
+/** Each event's sound. */
 const SOUNDS: Record<IPinballEvent, () => void> = {
-	// A flipper's solenoid: a short, hard clack.
-	flip: () => {
-		hiss("lowpass", 1400, 0.05, 0.6);
-		tone("square", 110, 60, 0.06, 0.25);
-	},
+	flip: clack,
 	// The plunger's spring letting go.
 	launch: () => {
 		hiss("bandpass", 900, 0.18, 0.5, 0, 300);
 		tone("triangle", 220, 90, 0.15, 0.3);
 	},
-	// A bumper: the bright electronic pop of an old table.
-	bumper: () => {
-		tone("square", 920, 460, 0.09, 0.22);
-		hiss("highpass", 3000, 0.04, 0.4);
-	},
+	skillShot: () => arpeggio([784, 1047, 1319, 1568, 2093], 0.1, 0.18),
+	attackBumper: () => pop(),
+	starBumper: () => ding(2093),
+	// The workshop's toy drums: a lower pop.
+	workshopBumper: () => pop(520),
 	slingshot: () => tone("square", 620, 300, 0.05, 0.18),
-	rollover: () =>
-		run(
-			"square",
-			[
-				[1320, 0],
-				[1760, 0.05],
-			],
-			0.06,
-			0.12,
-		),
-	lanesLit: () =>
-		run(
-			"square",
-			[
-				[1047, 0],
-				[1319, 0.07],
-				[1568, 0.14],
-				[2093, 0.21],
-			],
-			0.12,
-			0.14,
-		),
-	skillShot: () =>
-		run(
-			"square",
-			[
-				[784, 0],
-				[1047, 0.1],
-				[1319, 0.2],
-				[1568, 0.3],
-				[2093, 0.42],
-			],
-			0.18,
-			0.16,
-		),
-	drop: () => {
-		tone("square", 300, 120, 0.08, 0.2);
-		hiss("lowpass", 900, 0.06, 0.4);
+	rebound: () => tone("square", 700, 340, 0.05, 0.16),
+	joyLane: () => blip(1320),
+	joyLanesLit: () => arpeggio([1047, 1319, 1568, 2093]),
+	toyLane: () => blip(880),
+	toyLanesLit: () => arpeggio([659, 784, 988, 1319]),
+	cookieRollover: () => blip(1760),
+	// Sleigh bells: a jingle of quick bright bursts.
+	sleighBell: () => {
+		for (let shake = 0; shake < 4; shake++) {
+			hiss("highpass", 6000, 0.08, 0.3, shake * 0.07);
+			tone("sine", 2637, 2637, 0.12, 0.06, shake * 0.07);
+		}
 	},
-	reindeer: () =>
-		run(
-			"square",
-			[
-				[523, 0],
-				[659, 0.08],
-				[784, 0.16],
-				[1047, 0.24],
-			],
-			0.14,
-			0.16,
-		),
-	// A bell target: a two-tone ding.
-	bell: () => {
-		tone("sine", 1568, 1568, 0.45, 0.22);
-		tone("sine", 2349, 2349, 0.35, 0.12, 0.01);
+	stockingLane: () => blip(1175),
+	returnLane: () => blip(988),
+	outlane: () => tone("square", 330, 110, 0.4, 0.15),
+	// A spinner's tick.
+	spinner: () => hiss("highpass", 5000, 0.02, 0.25),
+	reindeerTarget: drop,
+	reindeerBank: () => arpeggio([523, 659, 784, 1047], 0.08, 0.14),
+	goldStarTarget: () => {
+		drop();
+		ding(2349);
 	},
-	lockLit: () =>
+	goldStarBank: () => arpeggio([1047, 1319, 1568, 2093, 2637]),
+	giftTarget: drop,
+	giftBank: () => arpeggio([784, 988, 1175, 1568]),
+	cookieTarget: () => tone("triangle", 400, 300, 0.08, 0.25),
+	cookieBank: () => arpeggio([587, 784, 988]),
+	letterTarget: () => ding(1319),
+	icicleTarget: () => ding(2637),
+	icicleBank: () => arpeggio([1568, 2093, 2637, 3136], 0.06, 0.2),
+	snowflakeTarget: () => ding(2349),
+	snowflakeBank: () => arpeggio([1397, 1865, 2349, 2794], 0.06, 0.2),
+	// The weathervane turning: a creak.
+	weathervane: () => tone("sawtooth", 260, 180, 0.25, 0.08),
+	ramp: () => whirr(140, 620),
+	auroraChute: () => whirr(300, 1200),
+	aurora: () => {
+		thud(160);
 		run(
 			"sine",
 			[
-				[1568, 0],
-				[2093, 0.12],
-				[2637, 0.24],
+				[1568, 0.1],
+				[2093, 0.2],
+				[2637, 0.3],
 			],
 			0.4,
-			0.2,
-		),
-	// Up a ramp: a rising whirr.
-	sleigh: () => {
-		tone("sawtooth", 180, 760, 0.7, 0.07);
-		hiss("bandpass", 1800, 0.7, 0.12, 0, 4200);
-	},
-	ramp: () => {
-		tone("sawtooth", 140, 620, 0.6, 0.07);
-		hiss("bandpass", 1400, 0.6, 0.12, 0, 3600);
-	},
-	combo: () =>
-		run(
-			"square",
-			[
-				[1568, 0],
-				[1568, 0.09],
-				[2093, 0.18],
-			],
-			0.08,
-			0.15,
-		),
-	jackpot: () => {
-		run(
-			"square",
-			[
-				[523, 0],
-				[659, 0.1],
-				[784, 0.2],
-				[1047, 0.3],
-				[784, 0.45],
-				[1047, 0.55],
-			],
-			0.16,
-			0.18,
+			0.12,
 		);
-		knock(0.3);
 	},
-	// Into the chimney: a thud and a rattle.
-	saucer: () => {
-		tone("sine", 140, 60, 0.2, 0.5);
-		hiss("bandpass", 600, 0.25, 0.3);
+	globe: () => {
+		thud(120);
+		ding(1760);
 	},
+	// The coal bin: a deep, heavy thud.
+	coal: () => thud(70),
+	// Down a chimney: a falling whoosh.
+	chimney: () => {
+		tone("triangle", 900, 120, 0.5, 0.15);
+		hiss("bandpass", 1200, 0.5, 0.2, 0, 300);
+	},
+	greenChimney: () => {},
+	redChimney: () => {},
+	goldChimney: () => {},
 	lock: () => {
 		knock();
 		run(
@@ -162,6 +182,20 @@ const SOUNDS: Record<IPinballEvent, () => void> = {
 			tone("sawtooth", 300, 1200, 0.35, 0.08, rise * 0.35);
 		}
 	},
+	jackpot: () => {
+		arpeggio(FANFARE, 0.1, 0.16);
+		knock(0.3);
+	},
+	missionSelected: () =>
+		run(
+			"square",
+			[
+				[880, 0],
+				[880, 0.12],
+			],
+			0.08,
+			0.12,
+		),
 	missionStart: () =>
 		run(
 			"square",
@@ -173,19 +207,8 @@ const SOUNDS: Record<IPinballEvent, () => void> = {
 			0.1,
 			0.14,
 		),
-	missionDone: () =>
-		run(
-			"square",
-			[
-				[659, 0],
-				[784, 0.1],
-				[1047, 0.2],
-				[1319, 0.3],
-				[1568, 0.45],
-			],
-			0.2,
-			0.16,
-		),
+	missionStep: () => arpeggio([988, 1319], 0.1),
+	missionDone: () => arpeggio([659, 784, 1047, 1319, 1568], 0.1, 0.2),
 	missionFailed: () =>
 		run(
 			"square",
@@ -197,6 +220,11 @@ const SOUNDS: Record<IPinballEvent, () => void> = {
 			0.18,
 			0.12,
 		),
+	rankUp: () => {
+		arpeggio([...FANFARE, 1319, 1568, 2093], 0.09, 0.2);
+		knock();
+		knock(0.2);
+	},
 	kickback: () => knock(),
 	ballSaved: () =>
 		run(
@@ -215,6 +243,10 @@ const SOUNDS: Record<IPinballEvent, () => void> = {
 		knock();
 		knock(0.18);
 	},
+	// A nudge: the cabinet's thump.
+	nudge: () => tone("sine", 90, 50, 0.12, 0.5),
+	tiltWarning: () => buzz(0.2),
+	tilt: () => buzz(1.2),
 };
 
 /** The sounds for whatever's happened on the table (each once, however many times it happened). */
