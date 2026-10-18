@@ -339,8 +339,8 @@ export default function ElfFlingGame({
 					<p className={classes.chimneyTitle}>Down the chimney!</p>
 					<p className={classes.chimneyHint}>
 						{touchScreen
-							? "Press the left or right half to flip."
-							: "Flip with the left and right arrow keys (or Z and M), or Space for both."}
+							? "Press and let go to launch, then press the left or right half to flip."
+							: "Hold Space and let go to launch. Flip with the left and right arrow keys, or Space for both."}
 					</p>
 					<div className={classes.chimneyTable}>
 						<PinballGame

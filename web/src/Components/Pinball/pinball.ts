@@ -1,149 +1,303 @@
 /**
- * Christmas pinball's rules, with no drawing or React: a snowball drops down a chimney onto a
- * table of ornament bumpers, candy-striped slingshots and a row of gift targets, kept in play
- * with two candy-cane flippers. Table units (the table is TABLE.width by TABLE.height, y down)
- * and seconds. Used on its own (the Games page) and as Elf Fling's secret level.
+ * Christmas pinball's rules, with no drawing or React. The table is in table.ts; the rules,
+ * much as on a real machine:
+ *
+ * - Each ball waits on the plunger: pull it back (hold) and let go to launch. Drop the launch
+ *   into the flashing rollover lane for a skill shot.
+ * - Light all four N-O-E-L lanes for a bigger end-of-ball bonus (up to 5x). The flippers move
+ *   the lit lanes along.
+ * - Knock down all three reindeer to light the kickback, which saves one ball from the left
+ *   outlane.
+ * - Ring all three bells to light the lock; then sink the ball in the chimney to lock it. Lock
+ *   two for three-ball multiball, when every ramp is a jackpot.
+ * - Otherwise the chimney starts a mission: do it in time and go up a rank.
+ * - Two ramps in a row is a combo. Each ball is saved if it drains in its first few seconds.
+ *
+ * Table units and seconds; used on its own (the Games page) and as Elf Fling's secret level.
  */
 
-export const TABLE = { width: 400, height: 720 };
-export const BALL_RADIUS = 9;
+import {
+	bounceBalls,
+	bounceOffBumper,
+	bounceOffFlipper,
+	bounceOffGate,
+	bounceOffSegment,
+	type IMovingBall,
+} from "Components/Pinball/collide";
+import {
+	BALL_RADIUS,
+	BELLS,
+	BUMPERS,
+	DROP_TARGETS,
+	FLIPPER_IDS,
+	FLIPPERS,
+	flipperTip,
+	GATE,
+	inBox,
+	KICKBACK,
+	LANE_TRIGGER_Y,
+	LANES,
+	PLUNGER,
+	RAIL_IDS,
+	RAILS,
+	railPoint,
+	SAUCER,
+	SAUCER_CATCH_SPEED,
+	SLINGSHOTS,
+	TABLE,
+	WALLS,
+	type IFlipperId,
+	type IFlipperSide,
+	type IRailId,
+} from "Components/Pinball/table";
+
+export { TABLE } from "Components/Pinball/table";
+export type { IFlipperSide } from "Components/Pinball/table";
+
 const GRAVITY = 900;
 const MAX_SPEED = 1800;
 /** Each second runs in this many steps, so a fast ball can't pass through a wall. */
 export const STEP = 1 / 480;
-
-type IPoint = { x: number; y: number };
-export type ISegment = { a: IPoint; b: IPoint };
-
-/**
- * The walls. The outer rails, rounded at the top. Low on each side a post splits the way down:
- * outside it runs the outlane, which drains past the flippers however well they're played;
- * inside it the inlane, whose guide leads down to the flipper. Between the inlane and the
- * middle sits the slingshot, a solid triangle.
- */
-export const WALLS: ISegment[] = [
-	segment(20, 740, 20, 120),
-	segment(20, 120, 60, 52),
-	segment(60, 52, 140, 22),
-	segment(140, 22, 260, 22),
-	segment(260, 22, 340, 52),
-	segment(340, 52, 380, 120),
-	segment(380, 120, 380, 740),
-	...mirrored([
-		// The post between outlane and inlane, capped with a slant towards the wall so about half
-		// the balls coming down the side are turned into the inlane, and the inlane's guide.
-		segment(48, 470, 48, 740),
-		segment(48, 470, 40, 460),
-		segment(48, 520, 118, 600),
-		// The slingshot's back and underside (its kicking face is in SLINGSHOTS).
-		segment(86, 430, 74, 520),
-		segment(74, 520, 112, 540),
-	]),
-];
-
-/** Candy-striped slingshots above the flippers: they kick the ball back up and across. */
-export const SLINGSHOTS: ISegment[] = mirrored([segment(86, 430, 112, 540)]);
-const SLINGSHOT_KICK = 380;
-
-/** Ornament bumpers: hit one and it kicks the ball away. */
-export const BUMPERS = [
-	{ x: 130, y: 235, radius: 24 },
-	{ x: 270, y: 235, radius: 24 },
-	{ x: 200, y: 320, radius: 26 },
-];
-const BUMPER_KICK = 520;
-
-/** Gift targets in a row near the top: each lights up when hit; light them all for a bonus. */
-export const GIFTS = [96, 148, 200, 252, 304].map((x) => ({ x, y: 150, width: 30, height: 18 }));
-/** How far a gift's lid peaks above its sides. */
-export const GIFT_PEAK = 8;
-
-/** Candy-cane flippers: the pivot, length, and the angles at rest and raised (radians, y down). */
-export const FLIPPER_LENGTH = 74;
-export const FLIPPER_RADIUS = 7;
-const FLIPPERS = {
-	left: { pivot: { x: 118, y: 600 }, rest: 0.5, raised: -0.45 },
-	right: { pivot: { x: 282, y: 600 }, rest: Math.PI - 0.5, raised: Math.PI + 0.45 },
-};
 const FLIPPER_SPEED = 20;
-
-/** Points. */
-export const POINTS = { bumper: 100, slingshot: 10, gift: 250, allGifts: 5000 };
-/** An extra ball every this many points. */
-export const EXTRA_BALL_EVERY = 30000;
-const SERVE_DELAY = 1;
+const SLINGSHOT_KICK = 380;
+const BUMPER_KICK = 520;
+/** The plunger: how long a full pull takes, and the launch at no pull and a full one. */
+const PULL_SECONDS = 0.9;
+const LAUNCH_SLOWEST = 900;
+const LAUNCH_FASTEST = 1260;
+const RAIL_ENTRY_SPEED = 100;
+/** How fast a ball rides a rail (at least), and how fast it drops off the end. */
+const RAIL_MIN_SPEED = 300;
+const RAIL_EXIT_SPEED = 220;
+const KICKBACK_SPEED = 1150;
+/** How long the chimney holds a ball, and how soon it can catch one it just let go. */
+const SAUCER_HOLD = 1;
+const SAUCER_REST = 0.6;
 /** A ball barely moving for this long gets nudged, as a player would nudge a real table. */
 const STILL_SPEED = 25;
 const NUDGE_AFTER = 1.2;
+/** A target hit again within this long is the same hit. */
+const DEBOUNCE = 0.25;
+const SERVE_DELAY = 1;
+/** After the last ball, the bonus shows this long before the game's over. */
+const GAME_OVER_DELAY = 2;
+/** Each ball is saved if it drains this soon after its launch (or multiball's start). */
+const BALL_SAVE = 6;
+const MULTIBALL_SAVE = 10;
+const SKILL_SHOT_WINDOW = 5;
+const COMBO_WINDOW = 4;
+const LOCKS_FOR_MULTIBALL = 2;
+const MULTIBALL_BALLS = 3;
+const MAX_MULTIPLIER = 5;
+const MISSION_SECONDS = 45;
+/** An extra ball every this many points. */
+export const EXTRA_BALL_EVERY = 50000;
 
-export type IFlipperSide = "left" | "right";
-export type IFlipper = { angle: number; omega: number };
+/** Everything that happens on the table, for the sounds (and the missions). */
+export type IPinballEvent =
+	| "flip"
+	| "launch"
+	| "bumper"
+	| "slingshot"
+	| "rollover"
+	| "lanesLit"
+	| "skillShot"
+	| "drop"
+	| "reindeer"
+	| "bell"
+	| "lockLit"
+	| "sleigh"
+	| "ramp"
+	| "combo"
+	| "jackpot"
+	| "saucer"
+	| "lock"
+	| "multiball"
+	| "missionStart"
+	| "missionDone"
+	| "missionFailed"
+	| "kickback"
+	| "ballSaved"
+	| "drain"
+	| "extraBall";
+
+/** Points for each, and what each adds to the end-of-ball bonus. */
+const POINTS: Partial<Record<IPinballEvent, number>> = {
+	bumper: 100,
+	slingshot: 10,
+	rollover: 500,
+	lanesLit: 2000,
+	skillShot: 5000,
+	drop: 250,
+	reindeer: 2500,
+	bell: 250,
+	lockLit: 1000,
+	sleigh: 1000,
+	ramp: 1500,
+	combo: 5000,
+	saucer: 1000,
+	lock: 2500,
+	multiball: 5000,
+};
+const BONUS: Partial<Record<IPinballEvent, number>> = {
+	rollover: 200,
+	drop: 200,
+	bell: 200,
+	sleigh: 1000,
+	ramp: 1000,
+	reindeer: 1000,
+	missionDone: 2500,
+};
+const JACKPOT_START = 10000;
+const JACKPOT_STEP = 5000;
+
+/** The chimney's missions, in turn: the event that counts towards each, and how many. */
+export const MISSIONS: Array<{
+	name: string;
+	event: IPinballEvent;
+	goal: number;
+}> = [
+	{ name: "Wake the reindeer", event: "reindeer", goal: 1 },
+	{ name: "Ring the bells", event: "bell", goal: 6 },
+	{ name: "Sleigh test run", event: "sleigh", goal: 2 },
+	{ name: "Reindeer games", event: "ramp", goal: 2 },
+	{ name: "Light the tree", event: "bumper", goal: 20 },
+	{ name: "Check it twice", event: "rollover", goal: 8 },
+];
+/** Each mission done is a rank up, and a mission is worth more the higher the rank. */
+export const RANKS = ["Elf", "Toy maker", "Sleigh mechanic", "Reindeer handler", "Head elf", "Santa's deputy", "Santa"];
+const MISSION_POINTS = 5000;
+
+export type IBall = {
+	x: number;
+	y: number;
+	vx: number;
+	vy: number;
+	/** On the plunger, loose on the table, held in the chimney, or riding a rail. */
+	at: "plunger" | "table" | "saucer" | "rail";
+	rail: { id: IRailId; along: number; speed: number } | null;
+	/** In the chimney: when it's let go. After: when it was, so it isn't caught again at once. */
+	saucerUntil: number;
+	launchedAt: number;
+	/** How long it's been barely moving (for the nudge). */
+	stillFor: number;
+};
+
+export type IControl = IFlipperSide | "launch";
 
 export type IPinballState = {
 	time: number;
-	ball: { x: number; y: number; vx: number; vy: number } | null;
+	balls: IBall[];
 	/** Balls still to come, counting the one in play. */
 	ballsLeft: number;
+	ballNumber: number;
 	score: number;
-	flippers: Record<IFlipperSide, IFlipper>;
-	held: Record<IFlipperSide, boolean>;
-	/** When each bumper and slingshot was last hit (for the flash), or -Infinity. */
+	flippers: Record<IFlipperId, { angle: number; omega: number }>;
+	held: Record<IControl, boolean>;
+	/** How far back the plunger's pulled, 0 to 1. */
+	pull: number;
+	/** When each bumper, slingshot and bell was last hit (for the flash), or -Infinity. */
 	bumperHitAt: number[];
 	slingshotHitAt: number[];
-	gifts: boolean[];
-	/** When the next ball drops in, while one's on its way. */
+	bellHitAt: number[];
+	lanes: boolean[];
+	/** The lane that's a skill shot for the ball on the plunger. */
+	skillLane: number | null;
+	drops: boolean[];
+	dropsResetAt: number | null;
+	bells: boolean[];
+	lockLit: boolean;
+	locks: number;
+	multiball: boolean;
+	jackpot: number;
+	mission: { index: number; progress: number; until: number } | null;
+	nextMission: number;
+	rank: number;
+	/** The end-of-ball bonus so far, and what it's multiplied by. */
+	bonus: number;
+	multiplier: number;
+	kickback: boolean;
+	ballSaveUntil: number;
+	lastRampAt: number;
+	/** When the next ball goes on the plunger, while one's on its way. */
 	serveAt: number | null;
+	endsAt: number | null;
 	nextExtraBallAt: number;
-	/** A message over the table, until a time ("Extra ball!"). */
-	message: { text: string; until: number } | null;
-	/** How long the ball has been barely moving (for the nudge). */
-	stillFor: number;
-	/** Counts the sounds go by. */
-	hits: number;
-	drains: number;
-	extraBalls: number;
+	/** A message for the display (big ones over the table too), until a time. */
+	message: { text: string; until: number; big: boolean } | null;
+	/** What's happened since the caller last cleared them, for the sounds. */
+	events: IPinballEvent[];
 	over: boolean;
 };
 
 export function newPinball(balls = 3): IPinballState {
 	return {
 		time: 0,
-		ball: null,
+		balls: [],
 		ballsLeft: balls,
+		ballNumber: 0,
 		score: 0,
 		flippers: {
 			left: { angle: FLIPPERS.left.rest, omega: 0 },
 			right: { angle: FLIPPERS.right.rest, omega: 0 },
+			upper: { angle: FLIPPERS.upper.rest, omega: 0 },
 		},
-		held: { left: false, right: false },
+		held: { left: false, right: false, launch: false },
+		pull: 0,
 		bumperHitAt: BUMPERS.map(() => -Infinity),
 		slingshotHitAt: SLINGSHOTS.map(() => -Infinity),
-		gifts: GIFTS.map(() => false),
-		serveAt: 0.4,
+		bellHitAt: BELLS.map(() => -Infinity),
+		lanes: LANES.map(() => false),
+		skillLane: null,
+		drops: DROP_TARGETS.map(() => false),
+		dropsResetAt: null,
+		bells: BELLS.map(() => false),
+		lockLit: false,
+		locks: 0,
+		multiball: false,
+		jackpot: JACKPOT_START,
+		mission: null,
+		nextMission: 0,
+		rank: 0,
+		bonus: 0,
+		multiplier: 1,
+		kickback: false,
+		ballSaveUntil: -Infinity,
+		lastRampAt: -Infinity,
+		serveAt: 0.3,
+		endsAt: null,
 		nextExtraBallAt: EXTRA_BALL_EVERY,
 		message: null,
-		stillFor: 0,
-		hits: 0,
-		drains: 0,
-		extraBalls: 0,
+		events: [],
 		over: false,
 	};
 }
 
-/** Press or let go of a flipper. */
-export function hold(state: IPinballState, side: IFlipperSide, down: boolean): IPinballState {
-	return state.held[side] === down ? state : { ...state, held: { ...state.held, [side]: down } };
+/** Whether a ball is waiting on the plunger with nothing else in play (so any press launches). */
+export function waitingToLaunch(state: IPinballState): boolean {
+	return state.balls.length > 0 && state.balls.every((ball) => ball.at === "plunger");
 }
 
-/** The flipper's tip, from its pivot along its angle. */
-export function flipperTip(side: IFlipperSide, angle: number): IPoint {
-	const { pivot } = FLIPPERS[side];
+/** Press or let go of a flipper button or the plunger. A flipper press moves the lit lanes along. */
+export function hold(state: IPinballState, control: IControl, down: boolean): IPinballState {
+	if (state.held[control] === down) {
+		return state;
+	}
 
-	return { x: pivot.x + Math.cos(angle) * FLIPPER_LENGTH, y: pivot.y + Math.sin(angle) * FLIPPER_LENGTH };
-}
+	const next = { ...state, held: { ...state.held, [control]: down } };
 
-export function flipperPivot(side: IFlipperSide): IPoint {
-	return FLIPPERS[side].pivot;
+	if (down && control !== "launch") {
+		const turn = (items: boolean[]) =>
+			control === "left" ? [...items.slice(1), items[0]] : [items[items.length - 1], ...items.slice(0, -1)];
+		next.lanes = turn(state.lanes);
+		next.events = [...state.events, "flip"];
+
+		if (state.skillLane !== null) {
+			next.skillLane = (state.skillLane + (control === "left" ? LANES.length - 1 : 1)) % LANES.length;
+		}
+	}
+
+	return next;
 }
 
 /** Moves the game on by one STEP. */
@@ -153,277 +307,491 @@ export function step(state: IPinballState, random: () => number = Math.random): 
 	}
 
 	const dt = STEP;
-	let next: IPinballState = { ...state, time: state.time + dt, flippers: moveFlippers(state, dt) };
+	const s: IPinballState = {
+		...state,
+		time: state.time + dt,
+		balls: state.balls.map((ball) => ({
+			...ball,
+			rail: ball.rail && { ...ball.rail },
+		})),
+		flippers: moveFlippers(state, dt),
+		lanes: [...state.lanes],
+		drops: [...state.drops],
+		bells: [...state.bells],
+		bumperHitAt: [...state.bumperHitAt],
+		slingshotHitAt: [...state.slingshotHitAt],
+		bellHitAt: [...state.bellHitAt],
+		mission: state.mission && { ...state.mission },
+		events: [...state.events],
+	};
+	const firstEvent = s.events.length;
 
-	if (next.serveAt !== null && next.time >= next.serveAt) {
-		next = {
-			...next,
-			serveAt: null,
-			// Down the chimney, with a little nudge either way.
-			ball: { x: 200 + (random() - 0.5) * 20, y: 40, vx: (random() - 0.5) * 160, vy: 60 },
-		};
+	if (s.endsAt !== null && s.time >= s.endsAt) {
+		return { ...s, over: true };
 	}
 
-	if (!next.ball) {
-		return next;
+	if (s.serveAt !== null && s.time >= s.serveAt) {
+		s.serveAt = null;
+		s.ballNumber++;
+		serve(s, random);
 	}
 
-	const ball = { ...next.ball };
-	ball.vy += GRAVITY * dt;
-	ball.x += ball.vx * dt;
-	ball.y += ball.vy * dt;
-	next = { ...next, ball };
-	next = collide(next);
-
-	const speed = Math.hypot(next.ball!.vx, next.ball!.vy);
-
-	if (speed > MAX_SPEED) {
-		next.ball!.vx *= MAX_SPEED / speed;
-		next.ball!.vy *= MAX_SPEED / speed;
+	if (s.dropsResetAt !== null && s.time >= s.dropsResetAt) {
+		s.drops = s.drops.map(() => false);
+		s.dropsResetAt = null;
 	}
 
-	// Stuck somewhere? A nudge, up and to one side, gets it going again.
-	next.stillFor = speed < STILL_SPEED ? next.stillFor + dt : 0;
-
-	if (next.stillFor > NUDGE_AFTER) {
-		next.ball!.vx += (random() < 0.5 ? -1 : 1) * 120;
-		next.ball!.vy -= 140;
-		next.stillFor = 0;
+	if (s.mission && s.time >= s.mission.until) {
+		s.mission = null;
+		fire(s, "missionFailed");
+		say(s, "Mission failed", 1.5);
 	}
 
-	if (next.ball!.y > TABLE.height + BALL_RADIUS * 2) {
-		return drain(next);
+	pullPlunger(s, dt);
+	const drained: IBall[] = [];
+
+	for (const ball of s.balls) {
+		if (ball.at === "rail") {
+			rideRail(ball, dt);
+		} else if (ball.at === "saucer") {
+			if (s.time >= ball.saucerUntil) {
+				// Out of the chimney, towards the left flipper.
+				ball.at = "table";
+				ball.vx = -190 + (random() - 0.5) * 60;
+				ball.vy = -160;
+			}
+		} else if (ball.at === "table") {
+			moveBall(s, ball, dt, random);
+
+			if (ball.y > TABLE.height + BALL_RADIUS * 2) {
+				drained.push(ball);
+			}
+		}
 	}
 
-	return awardExtraBall(next);
+	const loose = s.balls.filter((ball) => ball.at === "table");
+
+	for (let first = 0; first < loose.length; first++) {
+		for (let second = first + 1; second < loose.length; second++) {
+			bounceBalls(loose[first], loose[second], BALL_RADIUS);
+		}
+	}
+
+	if (drained.length > 0) {
+		drain(s, drained);
+	}
+
+	countMission(s, firstEvent);
+
+	if (s.score >= s.nextExtraBallAt) {
+		s.ballsLeft++;
+		s.nextExtraBallAt += EXTRA_BALL_EVERY;
+		fire(s, "extraBall");
+		say(s, "Extra ball!", 2, true);
+	}
+
+	return s;
 }
 
-function moveFlippers(state: IPinballState, dt: number): Record<IFlipperSide, IFlipper> {
-	const move = (side: IFlipperSide): IFlipper => {
-		const { rest, raised } = FLIPPERS[side];
+function moveFlippers(state: IPinballState, dt: number): IPinballState["flippers"] {
+	const move = (id: IFlipperId) => {
+		const { rest, raised, side } = FLIPPERS[id];
 		const target = state.held[side] ? raised : rest;
-		const { angle } = state.flippers[side];
+		const { angle } = state.flippers[id];
 		const room = target - angle;
 		const turn = Math.sign(room) * Math.min(Math.abs(room), FLIPPER_SPEED * dt);
 
 		return { angle: angle + turn, omega: turn / dt };
 	};
 
-	return { left: move("left"), right: move("right") };
+	return { left: move("left"), right: move("right"), upper: move("upper") };
+}
+
+function fire(s: IPinballState, event: IPinballEvent, points = POINTS[event] ?? 0) {
+	s.events.push(event);
+	s.score += points;
+	s.bonus += BONUS[event] ?? 0;
+}
+
+function say(s: IPinballState, text: string, seconds: number, big = false) {
+	s.message = { text, until: s.time + seconds, big };
+}
+
+/** A new ball on the plunger, with a lane flashing for the skill shot. */
+function serve(s: IPinballState, random: () => number) {
+	s.balls.push({
+		x: PLUNGER.x,
+		y: PLUNGER.y,
+		vx: 0,
+		vy: 0,
+		at: "plunger",
+		rail: null,
+		saucerUntil: -Infinity,
+		launchedAt: -Infinity,
+		stillFor: 0,
+	});
+	s.skillLane = Math.floor(random() * LANES.length);
+}
+
+/** Held, the plunger pulls back; let go, it fires whatever ball is on it, harder the further it was pulled. */
+function pullPlunger(s: IPinballState, dt: number) {
+	const ball = s.balls.find((candidate) => candidate.at === "plunger");
+
+	if (!ball) {
+		s.pull = 0;
+
+		return;
+	}
+
+	if (s.held.launch) {
+		s.pull = Math.min(1, s.pull + dt / PULL_SECONDS);
+	} else if (s.pull > 0) {
+		ball.at = "table";
+		ball.vy = -(LAUNCH_SLOWEST + (LAUNCH_FASTEST - LAUNCH_SLOWEST) * s.pull);
+		ball.launchedAt = s.time;
+		s.pull = 0;
+		s.ballSaveUntil = Math.max(s.ballSaveUntil, s.time + BALL_SAVE);
+		fire(s, "launch");
+	}
+}
+
+function moveBall(s: IPinballState, ball: IBall, dt: number, random: () => number) {
+	const fromY = ball.y;
+	ball.vy += GRAVITY * dt;
+	ball.x += ball.vx * dt;
+	ball.y += ball.vy * dt;
+	collide(s, ball);
+
+	const speed = Math.hypot(ball.vx, ball.vy);
+
+	if (speed > MAX_SPEED) {
+		ball.vx *= MAX_SPEED / speed;
+		ball.vy *= MAX_SPEED / speed;
+	}
+
+	// Back down the plunger lane (a weak launch): onto the plunger again.
+	if (ball.x > PLUNGER.left && ball.y >= PLUNGER.y - 4 && Math.abs(ball.vy) < 80) {
+		Object.assign(ball, {
+			x: PLUNGER.x,
+			y: PLUNGER.y,
+			vx: 0,
+			vy: 0,
+			at: "plunger",
+		});
+
+		return;
+	}
+
+	// Stuck somewhere? A nudge, up and to one side, gets it going again.
+	ball.stillFor = speed < STILL_SPEED ? ball.stillFor + dt : 0;
+
+	if (ball.stillFor > NUDGE_AFTER) {
+		ball.vx += (random() < 0.5 ? -1 : 1) * 120;
+		ball.vy -= 140;
+		ball.stillFor = 0;
+	}
+
+	// Across a rollover lane.
+	if ((fromY - LANE_TRIGGER_Y) * (ball.y - LANE_TRIGGER_Y) <= 0 && fromY !== ball.y) {
+		const lane = LANES.findIndex((x) => Math.abs(ball.x - x) < 16);
+
+		if (lane >= 0) {
+			rollover(s, ball, lane);
+		}
+	}
+
+	const fromSaucer = Math.hypot(ball.x - SAUCER.x, ball.y - SAUCER.y);
+
+	if (fromSaucer < SAUCER.radius && speed < SAUCER_CATCH_SPEED && s.time > ball.saucerUntil + SAUCER_REST) {
+		sinkInChimney(s, ball, random);
+
+		return;
+	}
+
+	for (const id of RAIL_IDS) {
+		if (ball.vy < -RAIL_ENTRY_SPEED && inBox(ball, RAILS[id].mouth)) {
+			boardRail(s, ball, id, speed);
+
+			return;
+		}
+	}
+
+	if (s.kickback && ball.x < KICKBACK.right && ball.y > KICKBACK.y) {
+		ball.vx = 20;
+		ball.vy = -KICKBACK_SPEED;
+		s.kickback = false;
+		fire(s, "kickback");
+		say(s, "Kickback!", 1.2);
+	}
 }
 
 /** Bounces the ball off everything it's touching, scoring as it goes. */
-function collide(state: IPinballState): IPinballState {
-	let next = state;
-	const ball = next.ball!;
-
+function collide(s: IPinballState, ball: IMovingBall) {
 	for (const wall of WALLS) {
-		bounceOffSegment(ball, wall, BALL_RADIUS, 0.45, 0);
+		bounceOffSegment(ball, wall, BALL_RADIUS, 0.45);
 	}
 
+	bounceOffGate(ball, GATE, BALL_RADIUS);
+
 	SLINGSHOTS.forEach((sling, index) => {
-		if (bounceOffSegment(ball, sling, BALL_RADIUS, 0.5, SLINGSHOT_KICK)) {
-			next = scored(next, POINTS.slingshot, { slingshotHitAt: replace(next.slingshotHitAt, index, next.time) });
+		if (
+			bounceOffSegment(ball, sling, BALL_RADIUS, 0.5, SLINGSHOT_KICK) &&
+			s.time - s.slingshotHitAt[index] > DEBOUNCE
+		) {
+			s.slingshotHitAt[index] = s.time;
+			fire(s, "slingshot");
 		}
 	});
 
 	BUMPERS.forEach((bumper, index) => {
-		const dx = ball.x - bumper.x;
-		const dy = ball.y - bumper.y;
-		const distance = Math.hypot(dx, dy);
-		const reach = bumper.radius + BALL_RADIUS;
-
-		if (distance < reach && distance > 0) {
-			const nx = dx / distance;
-			const ny = dy / distance;
-			ball.x = bumper.x + nx * reach;
-			ball.y = bumper.y + ny * reach;
-			// Kicked straight away from the bumper's centre, whatever came in.
-			ball.vx = nx * BUMPER_KICK;
-			ball.vy = ny * BUMPER_KICK;
-			next = scored(next, POINTS.bumper, { bumperHitAt: replace(next.bumperHitAt, index, next.time) });
+		if (bounceOffBumper(ball, bumper, BALL_RADIUS, BUMPER_KICK)) {
+			s.bumperHitAt[index] = s.time;
+			fire(s, "bumper");
 		}
 	});
 
-	GIFTS.forEach((gift, index) => {
-		if (bounceOffBox(ball, gift) && !next.gifts[index]) {
-			const gifts = replace(next.gifts, index, true);
+	DROP_TARGETS.forEach((target, index) => {
+		if (!s.drops[index] && bounceOffSegment(ball, target, BALL_RADIUS, 0.5)) {
+			s.drops[index] = true;
+			fire(s, "drop");
 
-			if (gifts.every(Boolean)) {
-				next = scored(next, POINTS.gift + POINTS.allGifts, {
-					gifts: gifts.map(() => false),
-					message: { text: "All the gifts!", until: next.time + 1.5 },
-				});
-			} else {
-				next = scored(next, POINTS.gift, { gifts });
+			if (s.drops.every(Boolean)) {
+				s.kickback = true;
+				s.dropsResetAt = s.time + 1.5;
+				fire(s, "reindeer");
+				say(s, "Reindeer awake! Kickback lit", 2);
 			}
 		}
 	});
 
-	for (const side of ["left", "right"] as const) {
-		bounceOffFlipper(ball, side, next.flippers[side]);
-	}
+	BELLS.forEach((bell, index) => {
+		if (bounceOffSegment(ball, bell, BALL_RADIUS, 0.5) && s.time - s.bellHitAt[index] > DEBOUNCE) {
+			s.bellHitAt[index] = s.time;
+			s.bells[index] = true;
+			fire(s, "bell");
 
-	return next;
-}
+			if (s.bells.every(Boolean)) {
+				s.bells = s.bells.map(() => false);
 
-function scored(state: IPinballState, points: number, changes: Partial<IPinballState>): IPinballState {
-	return { ...state, ...changes, score: state.score + points, hits: state.hits + 1 };
-}
-
-function awardExtraBall(state: IPinballState): IPinballState {
-	if (state.score < state.nextExtraBallAt) {
-		return state;
-	}
-
-	return {
-		...state,
-		ballsLeft: state.ballsLeft + 1,
-		nextExtraBallAt: state.nextExtraBallAt + EXTRA_BALL_EVERY,
-		extraBalls: state.extraBalls + 1,
-		message: { text: "Extra ball!", until: state.time + 1.5 },
-	};
-}
-
-/** The ball's gone down between the flippers: the next drops in, or that was the last. */
-function drain(state: IPinballState): IPinballState {
-	const ballsLeft = state.ballsLeft - 1;
-
-	return {
-		...state,
-		ball: null,
-		ballsLeft,
-		drains: state.drains + 1,
-		serveAt: ballsLeft > 0 ? state.time + SERVE_DELAY : null,
-		over: ballsLeft === 0,
-	};
-}
-
-/**
- * Pushes the ball out of a segment it overlaps and bounces it off (restitution `bounce`),
- * adding `kick` straight out from the surface. Mutates the ball; returns whether it touched.
- */
-function bounceOffSegment(
-	ball: { x: number; y: number; vx: number; vy: number },
-	{ a, b }: ISegment,
-	radius: number,
-	bounce: number,
-	kick: number,
-): boolean {
-	const closest = closestPoint(ball, a, b);
-	const dx = ball.x - closest.x;
-	const dy = ball.y - closest.y;
-	const distance = Math.hypot(dx, dy);
-
-	if (distance >= radius || distance === 0) {
-		return false;
-	}
-
-	const nx = dx / distance;
-	const ny = dy / distance;
-	ball.x = closest.x + nx * radius;
-	ball.y = closest.y + ny * radius;
-	const into = ball.vx * nx + ball.vy * ny;
-
-	if (into < 0) {
-		ball.vx -= (1 + bounce) * into * nx;
-		ball.vy -= (1 + bounce) * into * ny;
-
-		if (kick > 0) {
-			ball.vx += nx * kick;
-			ball.vy += ny * kick;
+				if (!s.lockLit && !s.multiball) {
+					s.lockLit = true;
+					fire(s, "lockLit");
+					say(s, "Lock is lit: shoot the chimney", 2);
+				}
+			}
 		}
-	}
+	});
 
-	return true;
+	for (const id of FLIPPER_IDS) {
+		const { pivot, radius } = FLIPPERS[id];
+		const flipper = s.flippers[id];
+		bounceOffFlipper(ball, pivot, flipperTip(id, flipper.angle), flipper.omega, BALL_RADIUS + radius);
+	}
 }
 
-/**
- * A gift target is a small box with a peaked lid, so a ball can't come to rest on top: it
- * bounces off whichever side it hit.
- */
-function bounceOffBox(
-	ball: { x: number; y: number; vx: number; vy: number },
-	box: { x: number; y: number; width: number; height: number },
-): boolean {
-	const left = box.x - box.width / 2;
-	const top = box.y - box.height / 2;
-	const corners = [
-		{ x: left, y: top },
-		{ x: box.x, y: top - GIFT_PEAK },
-		{ x: left + box.width, y: top },
-		{ x: left + box.width, y: top + box.height },
-		{ x: left, y: top + box.height },
-	];
-	let touched = false;
+function rollover(s: IPinballState, ball: IBall, lane: number) {
+	const skillShot = s.skillLane === lane && s.time - ball.launchedAt < SKILL_SHOT_WINDOW;
+	s.skillLane = null;
 
-	for (let side = 0; side < corners.length; side++) {
-		const edge = { a: corners[side], b: corners[(side + 1) % corners.length] };
-		touched = bounceOffSegment(ball, edge, BALL_RADIUS, 0.6, 0) || touched;
+	if (skillShot) {
+		fire(s, "skillShot");
+		say(s, "Skill shot!", 1.5, true);
 	}
 
-	return touched;
-}
-
-/**
- * The flipper is a rounded bar from its pivot to its tip. A moving flipper bats the ball with
- * the speed of the bar where it touches, so the tip hits hardest.
- */
-function bounceOffFlipper(
-	ball: { x: number; y: number; vx: number; vy: number },
-	side: IFlipperSide,
-	flipper: IFlipper,
-) {
-	const pivot = FLIPPERS[side].pivot;
-	const tip = flipperTip(side, flipper.angle);
-	const closest = closestPoint(ball, pivot, tip);
-	const dx = ball.x - closest.x;
-	const dy = ball.y - closest.y;
-	const distance = Math.hypot(dx, dy);
-	const reach = BALL_RADIUS + FLIPPER_RADIUS;
-
-	if (distance >= reach || distance === 0) {
+	if (s.lanes[lane]) {
 		return;
 	}
 
-	const nx = dx / distance;
-	const ny = dy / distance;
-	ball.x = closest.x + nx * reach;
-	ball.y = closest.y + ny * reach;
-	// The bar's own speed where the ball touches it (spinning about the pivot).
-	const surfaceVx = -flipper.omega * (closest.y - pivot.y);
-	const surfaceVy = flipper.omega * (closest.x - pivot.x);
-	const relativeVx = ball.vx - surfaceVx;
-	const relativeVy = ball.vy - surfaceVy;
-	const into = relativeVx * nx + relativeVy * ny;
+	s.lanes[lane] = true;
+	fire(s, "rollover");
 
-	if (into < 0) {
-		ball.vx = surfaceVx + relativeVx - 1.3 * into * nx;
-		ball.vy = surfaceVy + relativeVy - 1.3 * into * ny;
+	if (s.lanes.every(Boolean)) {
+		s.lanes = s.lanes.map(() => false);
+		s.multiplier = Math.min(MAX_MULTIPLIER, s.multiplier + 1);
+		fire(s, "lanesLit");
+		say(s, `NOEL! Bonus ${s.multiplier}x`, 1.5);
 	}
 }
 
-function closestPoint(p: IPoint, a: IPoint, b: IPoint): IPoint {
-	const abx = b.x - a.x;
-	const aby = b.y - a.y;
-	const t = Math.max(0, Math.min(1, ((p.x - a.x) * abx + (p.y - a.y) * aby) / (abx * abx + aby * aby)));
+/**
+ * Into the chimney: it holds the ball a moment, then lets it go. Lit, it locks the ball instead
+ * (the third lock starts multiball); otherwise it starts the next mission.
+ */
+function sinkInChimney(s: IPinballState, ball: IBall, random: () => number) {
+	Object.assign(ball, {
+		x: SAUCER.x,
+		y: SAUCER.y,
+		vx: 0,
+		vy: 0,
+		at: "saucer",
+		saucerUntil: s.time + SAUCER_HOLD,
+	});
+	fire(s, "saucer");
 
-	return { x: a.x + abx * t, y: a.y + aby * t };
+	if (s.lockLit && !s.multiball) {
+		s.lockLit = false;
+		s.locks++;
+
+		if (s.locks >= LOCKS_FOR_MULTIBALL) {
+			// Multiball: the chimney lets out the locked balls one after another.
+			s.locks = 0;
+			s.multiball = true;
+			s.ballSaveUntil = s.time + MULTIBALL_SAVE;
+
+			for (let extra = 1; extra < MULTIBALL_BALLS; extra++) {
+				s.balls.push({
+					...ball,
+					saucerUntil: s.time + SAUCER_HOLD + extra * 0.8,
+				});
+			}
+
+			fire(s, "multiball");
+			say(s, "Multiball!", 2.5, true);
+		} else {
+			// Locked: the ball stays, and a new one goes on the plunger.
+			s.balls = s.balls.filter((candidate) => candidate !== ball);
+			serve(s, random);
+			fire(s, "lock");
+			say(s, `Ball ${s.locks} locked`, 2);
+		}
+	} else if (!s.mission && !s.multiball) {
+		const index = s.nextMission;
+		s.mission = { index, progress: 0, until: s.time + MISSION_SECONDS };
+		s.nextMission = (index + 1) % MISSIONS.length;
+		fire(s, "missionStart");
+		say(s, `Mission: ${MISSIONS[index].name}`, 2);
+	}
 }
 
-/** Left-hand segments, and the same mirrored to the right. */
-function mirrored(segments: ISegment[]): ISegment[] {
-	return [...segments, ...segments.map(({ a, b }) => ({ a: flipped(a), b: flipped(b) }))];
+/** Onto a rail: points, a combo if it's soon after another, and in multiball the jackpot. */
+function boardRail(s: IPinballState, ball: IBall, id: IRailId, speed: number) {
+	ball.at = "rail";
+	ball.rail = { id, along: 0, speed: Math.max(RAIL_MIN_SPEED, speed * 0.8) };
+	fire(s, id === "sleigh" ? "sleigh" : "ramp");
+	say(s, id === "sleigh" ? "Sleigh ride!" : "Reindeer ramp!", 1.2);
+
+	if (s.time - s.lastRampAt < COMBO_WINDOW) {
+		fire(s, "combo");
+		say(s, "Combo!", 1.2, true);
+	}
+
+	s.lastRampAt = s.time;
+
+	if (s.multiball) {
+		fire(s, "jackpot", s.jackpot);
+		say(s, `Jackpot! ${s.jackpot.toLocaleString()}`, 1.8, true);
+		s.jackpot += JACKPOT_STEP;
+	}
 }
 
-function flipped({ x, y }: IPoint): IPoint {
-	return { x: TABLE.width - x, y };
+/** Along a rail at its own pace, then off the end into an inlane. */
+function rideRail(ball: IBall, dt: number) {
+	const { id, speed } = ball.rail!;
+	const { path, length } = RAILS[id];
+	const along = ball.rail!.along + speed * dt;
+
+	if (along >= length) {
+		const end = path[path.length - 1];
+		const before = path[path.length - 2];
+		const segmentLength = Math.hypot(end.x - before.x, end.y - before.y);
+		Object.assign(ball, {
+			at: "table",
+			rail: null,
+			x: end.x,
+			y: end.y,
+			vx: ((end.x - before.x) / segmentLength) * RAIL_EXIT_SPEED,
+			vy: ((end.y - before.y) / segmentLength) * RAIL_EXIT_SPEED,
+		});
+
+		return;
+	}
+
+	ball.rail!.along = along;
+	Object.assign(ball, railPoint(id, along), { stillFor: 0 });
 }
 
-function segment(ax: number, ay: number, bx: number, by: number): ISegment {
-	return { a: { x: ax, y: ay }, b: { x: bx, y: by } };
+/**
+ * Balls down past the flippers. Saved ones come back; otherwise they're gone, multiball ends
+ * when one's left, and when none are, so is the ball: the bonus is paid out and the next one
+ * goes on the plunger (or that was the last).
+ */
+function drain(s: IPinballState, drained: IBall[]) {
+	s.balls = s.balls.filter((ball) => !drained.includes(ball));
+
+	if (s.time < s.ballSaveUntil) {
+		for (const ball of drained) {
+			fire(s, "ballSaved");
+			say(s, "Ball saved!", 1.5);
+
+			if (s.multiball) {
+				s.balls.push({
+					...ball,
+					x: SAUCER.x,
+					y: SAUCER.y,
+					vx: 0,
+					vy: 0,
+					at: "saucer",
+					saucerUntil: s.time + 0.6,
+				});
+			} else {
+				s.balls.push({
+					...ball,
+					x: PLUNGER.x,
+					y: PLUNGER.y,
+					vx: 0,
+					vy: 0,
+					at: "plunger",
+					stillFor: 0,
+				});
+			}
+		}
+
+		return;
+	}
+
+	if (s.multiball && s.balls.length <= 1) {
+		s.multiball = false;
+		s.jackpot = JACKPOT_START;
+		say(s, "Multiball over", 1.5);
+	}
+
+	if (s.balls.length > 0) {
+		return;
+	}
+
+	const bonus = s.bonus * s.multiplier;
+	fire(s, "drain", bonus);
+	say(s, `Bonus ${s.bonus.toLocaleString()} x ${s.multiplier}`, 2);
+
+	if (s.mission) {
+		s.mission = null;
+		fire(s, "missionFailed");
+	}
+
+	s.bonus = 0;
+	s.multiplier = 1;
+	s.ballsLeft--;
+
+	if (s.ballsLeft > 0) {
+		s.serveAt = s.time + SERVE_DELAY;
+	} else {
+		s.endsAt = s.time + GAME_OVER_DELAY;
+	}
 }
 
-function replace<T>(items: T[], index: number, value: T): T[] {
-	return items.map((item, i) => (i === index ? value : item));
+/** The mission's goal, counted from this step's events: done in time, a rank up. */
+function countMission(s: IPinballState, firstEvent: number) {
+	if (!s.mission) {
+		return;
+	}
+
+	const mission = MISSIONS[s.mission.index];
+	s.mission.progress += s.events.slice(firstEvent).filter((event) => event === mission.event).length;
+
+	if (s.mission.progress >= mission.goal) {
+		s.mission = null;
+		s.rank = Math.min(RANKS.length - 1, s.rank + 1);
+		fire(s, "missionDone", MISSION_POINTS * s.rank);
+		say(s, `Mission done! ${RANKS[s.rank]}`, 2.5, true);
+	}
 }

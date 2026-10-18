@@ -59,8 +59,8 @@ function PinballPlay({ best }: { best: number }) {
 		<Stack gap="sm">
 			<Group justify="space-between" wrap="nowrap">
 				<MantineText size="sm">
-					Flip with the left and right arrow keys (or Z and M), or Space for both. On a phone, press the left or right
-					half.
+					Hold Space to pull the plunger back, and let go to launch. Flip with the left and right arrow keys (or Z and
+					M), or Space for both. On a phone, press and let go to launch, then press the left or right half to flip.
 				</MantineText>
 				<Button
 					variant="subtle"

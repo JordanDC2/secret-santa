@@ -1,9 +1,18 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useElementSize } from "@mantine/hooks";
 import { readPalette } from "Components/ElfFling/draw";
-import { playFanfare, playPop, playThud } from "Components/ElfFling/sound";
-import { drawPinball } from "Components/Pinball/drawPinball";
-import { hold, newPinball, step, STEP, TABLE, type IFlipperSide, type IPinballState } from "Components/Pinball/pinball";
+import { drawPinball, VIEW } from "Components/Pinball/drawPinball";
+import {
+	hold,
+	newPinball,
+	step,
+	STEP,
+	waitingToLaunch,
+	type IControl,
+	type IFlipperSide,
+	type IPinballState,
+} from "Components/Pinball/pinball";
+import { playPinballEvents, startPinballMusic } from "Components/Pinball/pinballSound";
 import classes from "Components/Pinball/Pinball.module.less";
 
 type IPinballGameProps = {
@@ -13,9 +22,16 @@ type IPinballGameProps = {
 	balls?: number;
 };
 
-/** A press on the left half works the left flipper, on the right half the right one. */
-function sideFor(event: React.PointerEvent<HTMLCanvasElement>): IFlipperSide {
+/**
+ * A press on the left half works the left flipper, on the right half the right ones; while a
+ * ball waits on the plunger, any press pulls it back.
+ */
+function controlFor(event: React.PointerEvent<HTMLCanvasElement>, state: IPinballState): IControl {
 	const box = event.currentTarget.getBoundingClientRect();
+
+	if (waitingToLaunch(state)) {
+		return "launch";
+	}
 
 	return event.clientX - box.left < box.width / 2 ? "left" : "right";
 }
@@ -31,13 +47,15 @@ const KEYS: Record<string, IFlipperSide[]> = {
 	KeyM: ["right"],
 	KeyL: ["right"],
 	Slash: ["right"],
-	Space: ["left", "right"],
 };
+/** The plunger's keys. Space is the plunger while a ball waits on it, and both flippers otherwise. */
+const LAUNCH_KEYS = new Set(["Space", "ArrowDown", "Enter", "KeyS"]);
 
 /**
  * A game of Christmas pinball, filling its container (the table keeps its shape and is centred).
- * Flippers: the left and right arrows (or Z and M), Space for both; on a touch screen, press
- * the left or right half. Only the end of the game reaches React.
+ * Plunger: hold Space (or the down arrow) and let go. Flippers: the left and right arrows (or Z
+ * and M), Space for both. On a touch screen, press and let go to launch, then press the left or
+ * right half to flip. Only the end of the game reaches React.
  */
 export default function PinballGame({ onGameOver, soundOn, balls = 3 }: IPinballGameProps) {
 	const { ref: frameRef, width, height } = useElementSize();
@@ -45,29 +63,58 @@ export default function PinballGame({ onGameOver, soundOn, balls = 3 }: IPinball
 	const stateRef = useRef<IPinballState>(newPinball(balls));
 	const soundRef = useRef(soundOn);
 	const onGameOverRef = useRef(onGameOver);
-	// Which pointers (fingers or the mouse) hold which flipper.
-	const pointersRef = useRef(new Map<number, IFlipperSide>());
+	// Which pointers (fingers or the mouse) hold which control, and what each key pressed.
+	const pointersRef = useRef(new Map<number, IControl>());
+	const keysRef = useRef(new Map<string, IControl[]>());
 
 	useEffect(() => {
 		soundRef.current = soundOn;
 		onGameOverRef.current = onGameOver;
 	});
 
-	const setHeld = (side: IFlipperSide, down: boolean) => {
-		stateRef.current = hold(stateRef.current, side, down);
+	// The music plays while the sound is on and the game isn't over.
+	const [over, setOver] = useState(false);
+
+	useEffect(() => (soundOn && !over ? startPinballMusic() : undefined), [soundOn, over]);
+
+	const setHeld = (control: IControl, down: boolean) => {
+		stateRef.current = hold(stateRef.current, control, down);
 	};
 
 	useEffect(() => {
 		function onKey(event: KeyboardEvent, down: boolean) {
-			const sides = KEYS[event.code];
+			const launchKey = LAUNCH_KEYS.has(event.code);
 
-			if (!sides || (event.target instanceof HTMLElement && event.target.closest("input, textarea, select"))) {
+			if (
+				(!KEYS[event.code] && !launchKey) ||
+				(event.target instanceof HTMLElement && event.target.closest("input, textarea, select"))
+			) {
 				return;
 			}
 
 			event.preventDefault();
-			sides.forEach((side) => {
-				stateRef.current = hold(stateRef.current, side, down);
+
+			if (event.repeat) {
+				return;
+			}
+
+			// A key lets go of whatever it pressed, even if the plunger's been fired since.
+			let controls: IControl[] = KEYS[event.code] ?? [];
+
+			if (!down) {
+				controls = keysRef.current.get(event.code) ?? controls;
+				keysRef.current.delete(event.code);
+			} else if (launchKey) {
+				const flipBoth = event.code === "Space" && !waitingToLaunch(stateRef.current);
+				controls = flipBoth ? ["left", "right"] : ["launch"];
+			}
+
+			if (down) {
+				keysRef.current.set(event.code, controls);
+			}
+
+			controls.forEach((control) => {
+				stateRef.current = hold(stateRef.current, control, down);
 			});
 		}
 
@@ -91,12 +138,12 @@ export default function PinballGame({ onGameOver, soundOn, balls = 3 }: IPinball
 
 		const context = canvas.getContext("2d")!;
 		const palette = readPalette(canvas);
-		const scale = Math.min(width / TABLE.width, height / TABLE.height);
+		const scale = Math.min(width / VIEW.width, height / VIEW.height);
 		const ratio = window.devicePixelRatio || 1;
-		canvas.width = Math.round(TABLE.width * scale * ratio);
-		canvas.height = Math.round(TABLE.height * scale * ratio);
-		canvas.style.width = `${TABLE.width * scale}px`;
-		canvas.style.height = `${TABLE.height * scale}px`;
+		canvas.width = Math.round(VIEW.width * scale * ratio);
+		canvas.height = Math.round(VIEW.height * scale * ratio);
+		canvas.style.width = `${VIEW.width * scale}px`;
+		canvas.style.height = `${VIEW.height * scale}px`;
 
 		let frame = 0;
 		let last = performance.now();
@@ -106,35 +153,25 @@ export default function PinballGame({ onGameOver, soundOn, balls = 3 }: IPinball
 		const render = (now: number) => {
 			carry += Math.min(MAX_FRAME_TIME, (now - last) / 1000);
 			last = now;
-			const before = stateRef.current;
-			let state = before;
+			let state = stateRef.current;
 
 			while (carry >= STEP) {
 				state = step(state);
 				carry -= STEP;
 			}
 
-			stateRef.current = state;
-
 			if (soundRef.current) {
-				if (state.hits > before.hits) {
-					playPop();
-				}
-
-				if (state.drains > before.drains) {
-					playThud();
-				}
-
-				if (state.extraBalls > before.extraBalls) {
-					playFanfare();
-				}
+				playPinballEvents(state.events);
 			}
+
+			stateRef.current = { ...state, events: [] };
 
 			context.setTransform(ratio * scale, 0, 0, ratio * scale, 0, 0);
 			drawPinball(context, palette, state);
 
 			if (state.over && !ended) {
 				ended = true;
+				setOver(true);
 				onGameOverRef.current(state.score);
 			}
 
@@ -147,14 +184,14 @@ export default function PinballGame({ onGameOver, soundOn, balls = 3 }: IPinball
 	}, [width, height]);
 
 	const release = (event: React.PointerEvent<HTMLCanvasElement>) => {
-		const side = pointersRef.current.get(event.pointerId);
+		const control = pointersRef.current.get(event.pointerId);
 
-		if (side) {
+		if (control) {
 			pointersRef.current.delete(event.pointerId);
 
-			// Still held by another finger on the same side?
-			if (![...pointersRef.current.values()].includes(side)) {
-				setHeld(side, false);
+			// Still held by another finger?
+			if (![...pointersRef.current.values()].includes(control)) {
+				setHeld(control, false);
 			}
 		}
 	};
@@ -164,12 +201,12 @@ export default function PinballGame({ onGameOver, soundOn, balls = 3 }: IPinball
 			<canvas
 				ref={canvasRef}
 				className={classes.canvas}
-				aria-label="Pinball: press the left or right half to flip"
+				aria-label="Pinball: press and let go to launch, then press the left or right half to flip"
 				onPointerDown={(event) => {
 					event.preventDefault();
-					const side = sideFor(event);
-					pointersRef.current.set(event.pointerId, side);
-					setHeld(side, true);
+					const control = controlFor(event, stateRef.current);
+					pointersRef.current.set(event.pointerId, control);
+					setHeld(control, true);
 				}}
 				onPointerUp={release}
 				onPointerCancel={release}

@@ -31,6 +31,11 @@ export function saveSoundOn(on: boolean) {
 	}
 }
 
+/** The audio clock (seconds), for scheduling music ahead; null without audio. */
+export function audioNow(): number | null {
+	return audio()?.currentTime ?? null;
+}
+
 /** Starts (or wakes) the audio. Call from the tap or click that turns sound on. */
 export function wakeAudio() {
 	audio()
@@ -70,8 +75,11 @@ function noiseBuffer(ctx: AudioContext): AudioBuffer {
 	return noise;
 }
 
-/** A tone that starts at `from` Hz, slides to `to`, and fades out over `length` seconds. */
-function tone(type: OscillatorType, from: number, to: number, length: number, volume: number, delay = 0) {
+/**
+ * A tone that starts at `from` Hz, slides to `to`, and fades out over `length` seconds, `delay`
+ * seconds from now. Shared with pinball's sounds and music (Components/Pinball/pinballSound.ts).
+ */
+export function tone(type: OscillatorType, from: number, to: number, length: number, volume: number, delay = 0) {
 	const ctx = audio();
 
 	if (!ctx || !master) {
@@ -91,8 +99,8 @@ function tone(type: OscillatorType, from: number, to: number, length: number, vo
 	oscillator.stop(start + length + 0.02);
 }
 
-/** A burst of filtered noise, fading out over `length` seconds. */
-function hiss(
+/** A burst of filtered noise, fading out over `length` seconds, `delay` seconds from now. Shared too. */
+export function hiss(
 	filter: BiquadFilterType,
 	frequency: number,
 	length: number,
