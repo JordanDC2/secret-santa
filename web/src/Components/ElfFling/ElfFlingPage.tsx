@@ -27,6 +27,12 @@ import { releaseFocus } from "Components/ElfFling/releaseFocus";
 import RunSummary, { type IRunStats } from "Components/ElfFling/RunSummary";
 import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
 import { useWakeLock } from "Components/ElfFling/useWakeLock";
+import {
+	readSwitchedOff,
+	saveSwitchedOff,
+	withoutSwitchedOff,
+	type ISwitchableId,
+} from "Components/ElfFling/switchedOff";
 import WrapUpHold from "Components/ElfFling/WrapUpHold";
 import classes from "Components/ElfFling/ElfFling.module.less";
 import BackToGroups from "Components/Layout/BackToGroups";
@@ -154,6 +160,8 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 	// A phone in full screen stays awake: long runs outlast its sleep timer.
 	useWakeLock(fullscreen && touchScreen);
 	const [soundOn, setSoundOn] = useState(readSoundOn);
+	// Bought things switched off on this device: left out of the next throw.
+	const [switchedOff, setSwitchedOff] = useState(readSwitchedOff);
 	// Throws finished on this device: after a few, the tips over the game stop.
 	const [throwsSeen, setThrowsSeen] = useState(readThrowsSeen);
 	const [shopOpen, setShopOpen] = useState(false);
@@ -289,7 +297,15 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 	// the game says it all instead.
 	const overlay = phase === "done" || prompt === PROMPTS.flying || throwsSeen >= TIPS_FOR ? "" : prompt;
 
+	const switchItem = (id: ISwitchableId, on: boolean) => {
+		const next = on ? switchedOff.filter((other) => other !== id) : [...switchedOff, id];
+		saveSwitchedOff(next);
+		setSwitchedOff(next);
+	};
+
 	const shopProps = {
+		switchedOff,
+		onSwitch: switchItem,
 		progress,
 		busy: purchase.isPending || looks.isPending || prestige.isPending,
 		onBuy: buy,
@@ -310,7 +326,7 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 			<div ref={stageRef} className={fullscreen ? `${classes.stage} ${classes.fullscreen}` : classes.stage}>
 				<ElfFlingGame
 					key={round}
-					upgrades={combinedUpgrades(progress.upgrades, progress.gemUpgrades)}
+					upgrades={withoutSwitchedOff(combinedUpgrades(progress.upgrades, progress.gemUpgrades), switchedOff)}
 					skin={progress.skin}
 					batter={progress.batter}
 					best={progress.bestDistance}

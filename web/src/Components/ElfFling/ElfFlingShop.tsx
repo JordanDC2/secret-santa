@@ -48,6 +48,7 @@ import { letGoOfFocus, releaseFocus } from "Components/ElfFling/releaseFocus";
 import classes from "Components/ElfFling/ElfFling.module.less";
 import EndlessUpgrades from "Components/ElfFling/EndlessUpgrades";
 import ShopRow, { type IShopRowProps } from "Components/ElfFling/ShopRow";
+import type { ISwitchableId } from "Components/ElfFling/switchedOff";
 
 type IElfFlingShopProps = {
 	progress: IProgress;
@@ -65,12 +66,18 @@ type IElfFlingShopProps = {
 	onWearBatter: (id: IBatterId) => void;
 	/** On a phone, keyboard shortcuts aren't mentioned. */
 	touchScreen: boolean;
+	/** Bought things switched off on this device (switchedOff.ts), and switching one. */
+	switchedOff: ISwitchableId[];
+	onSwitch: (id: ISwitchableId, on: boolean) => void;
 	/** In the drawer over the game, whose own header shows the title and balance (pinned while
 	    the list scrolls), so the shop goes without its card. */
 	inDrawer?: boolean;
 };
 
 type IShopTab = "coins" | "gems";
+
+/** The coin shop's one-time buys that put something on the course, so can be switched off. */
+const COIN_SWITCHABLE = new Set<IUpgradeId>(["crackers", "skyOrnaments", "sleigh"]);
 
 /**
  * The coin shop (upgrades in sections: the swing, landings, in the air, coins; then wrapping up
@@ -88,8 +95,15 @@ export default function ElfFlingShop({
 	onBuyBatter,
 	onWearBatter,
 	touchScreen,
+	switchedOff,
+	onSwitch,
 	inDrawer = false,
 }: IElfFlingShopProps) {
+	// The props that give a row its on/off switch.
+	const switchFor = (id: ISwitchableId) => ({
+		on: !switchedOff.includes(id),
+		onSwitch: (on: boolean) => onSwitch(id, on),
+	});
 	const { coins, gems, upgrades, gemUpgrades, prestiges } = progress;
 	const describe = (item: IShopItem) =>
 		!touchScreen && item.keyboardHint ? `${item.description} ${item.keyboardHint}` : item.description;
@@ -123,6 +137,7 @@ export default function ElfFlingShop({
 							balance={coins}
 							busy={busy}
 							onBuy={() => onBuy(item.id)}
+							{...(COIN_SWITCHABLE.has(item.id) ? switchFor(item.id as ISwitchableId) : {})}
 						/>
 					))}
 				</Stack>
@@ -226,6 +241,7 @@ export default function ElfFlingShop({
 						balance={gems}
 						busy={busy}
 						onBuy={() => onBuyGemUpgrade(item.id)}
+						{...switchFor(item.id)}
 					/>
 				))}
 			</Stack>
