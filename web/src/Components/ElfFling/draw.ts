@@ -4,9 +4,10 @@ import { drawCoinCount, drawCoins, drawOutlinedText } from "Components/ElfFling/
 import { drawGemCount } from "Components/ElfFling/drawGems";
 import { drawActivePowerUps, drawElfPowerUps, drawPowerUps, drawShine } from "Components/ElfFling/drawPowerUps";
 import { POWER_UP_SECONDS } from "Components/ElfFling/powerUps";
-import { arrivingIn, forestAt } from "Components/ElfFling/biomes";
+import { arrivingIn, biomeWeights, type IBiomeId } from "Components/ElfFling/biomes";
 import { sunAt, warmth } from "Components/ElfFling/dayNight";
 import { drawForest, drawForestForeground } from "Components/ElfFling/drawForest";
+import { drawAurora, drawTundra, drawTundraForeground } from "Components/ElfFling/drawTundra";
 import { drawChimneys } from "Components/ElfFling/drawChimneys";
 import { drawWeather } from "Components/ElfFling/drawWeather";
 import { drawYuleLogs } from "Components/ElfFling/drawYuleLogs";
@@ -149,7 +150,9 @@ export function drawFrame(
 	// How far into the day the middle of the view is (dayNight.ts).
 	const viewMiddle = camera.left + width / camera.pixelsPerMetre / 2;
 	const day = warmth(viewMiddle);
-	drawSky(context, palette, width, height, groundY, floorY, camera, day, sunAt(viewMiddle));
+	// Which biome's scenery, and how much of each while one fades into the next (biomes.ts).
+	const biomes = biomeWeights(viewMiddle);
+	drawSky(context, palette, width, height, groundY, floorY, camera, day, sunAt(viewMiddle), biomes, clock);
 
 	if (floorY < height) {
 		drawGround(context, palette, width, height, floorY, camera, day);
@@ -190,19 +193,33 @@ export function drawFrame(
 	drawPopLabels(context, palette, state.crackers, state.time, toScreen);
 	drawSnowfall(context, palette, camera, size, clock, 1 - day * 0.8);
 
-	// In the boreal forest, its foreground in front of the course (behind the counts and controls).
-	const forestHere = forestAt(camera.left + width / camera.pixelsPerMetre / 2);
+	// The biome's foreground in front of the course (behind the counts and controls), standing at
+	// the bottom of the snow in view, so it drops away as the camera pans up.
+	const foregroundBase = floorY + (height - groundY);
 
-	if (forestHere > 0) {
-		// Standing at the bottom of the snow in view, so it drops away as the camera pans up.
+	if (biomes.borealForest > 0) {
 		drawForestForeground(
 			context,
 			width,
 			height,
-			floorY + (height - groundY),
+			foregroundBase,
 			groundY,
 			parallaxPan(camera, width),
-			forestHere,
+			biomes.borealForest,
+		);
+	}
+
+	if (biomes.tundra > 0) {
+		drawTundraForeground(
+			context,
+			width,
+			height,
+			foregroundBase,
+			groundY,
+			parallaxPan(camera, width),
+			day,
+			biomes.tundra,
+			mix,
 		);
 	}
 
@@ -265,6 +282,8 @@ function drawSky(
 	camera: ICamera,
 	day: number,
 	sun: number | null,
+	biomes: Record<IBiomeId, number>,
+	clock: number,
 ) {
 	// Down to the snow, or the whole canvas while the camera's panned up above it.
 	const horizon = Math.min(height, floorY);
@@ -312,10 +331,12 @@ function drawSky(
 	}
 	context.globalAlpha = 1;
 
-	// Distant hills, slower still; past the first sunset, the boreal forest instead (biomes.ts).
-	const forest = forestAt(camera.left + width / camera.pixelsPerMetre / 2);
+	// On the tundra, the northern lights, at night.
+	drawAurora(context, width, groundY, clock, biomes.tundra * (1 - day));
+
+	// Distant hills, slower still; in the later biomes, their scenery instead (biomes.ts).
 	context.fillStyle = mix(palette.greenDark, DAY.hills, day);
-	context.globalAlpha = 0.55 * (1 - forest);
+	context.globalAlpha = 0.55 * biomes.hills;
 	context.beginPath();
 	context.moveTo(0, floorY);
 	const hillDrift = parallaxPan(camera, width) * 0.3;
@@ -327,8 +348,12 @@ function drawSky(
 	context.fill();
 	context.globalAlpha = 1;
 
-	if (forest > 0) {
-		drawForest(context, palette, width, floorY, parallaxPan(camera, width), day, forest, mix);
+	if (biomes.borealForest > 0) {
+		drawForest(context, palette, width, floorY, parallaxPan(camera, width), day, biomes.borealForest, mix);
+	}
+
+	if (biomes.tundra > 0) {
+		drawTundra(context, width, floorY, parallaxPan(camera, width), day, biomes.tundra, mix);
 	}
 }
 

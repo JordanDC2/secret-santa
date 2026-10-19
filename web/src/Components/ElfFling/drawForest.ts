@@ -1,3 +1,4 @@
+import { drawOutOfFocus, drawVignette, hash } from "Components/ElfFling/drawForeground";
 import type { IPalette } from "Components/ElfFling/draw";
 
 /**
@@ -8,13 +9,6 @@ import type { IPalette } from "Components/ElfFling/draw";
  */
 
 const MOUNTAIN_SPACING = 40;
-
-/** A steady pseudo-random 0–1 for a whole number, so each tree keeps its own size and place. */
-function hash(n: number): number {
-	const s = Math.sin(n * 127.1) * 43758.5453;
-
-	return s - Math.floor(s);
-}
 
 /** A spruce: stacked tiers narrowing up to a point, its base at (x, base). */
 function spruce(context: CanvasRenderingContext2D, x: number, base: number, height: number, snow: string | null) {
@@ -116,29 +110,6 @@ const BRUSH_CHANCE = 0.4;
 /** Near-black, faintly green: the foreground's silhouettes; a little lighter for the bark's grooves. */
 const SILHOUETTE = "#040d0a";
 const BARK_GROOVE = "#0b1a14";
-/** How out of focus the foreground is (CSS pixels of blur), and how see-through. */
-const FOREGROUND_BLUR = 2.5;
-const FOREGROUND_OPACITY = 0.88;
-
-/** The foreground's own layer, at the target's size and scale, cleared for this frame. */
-let layer: HTMLCanvasElement | null = null;
-
-function foregroundLayer(target: CanvasRenderingContext2D): CanvasRenderingContext2D {
-	layer ??= document.createElement("canvas");
-
-	if (layer.width !== target.canvas.width || layer.height !== target.canvas.height) {
-		layer.width = target.canvas.width;
-		layer.height = target.canvas.height;
-	}
-
-	const context = layer.getContext("2d")!;
-	context.setTransform(1, 0, 0, 1, 0, 0);
-	context.clearRect(0, 0, layer.width, layer.height);
-	context.setTransform(target.getTransform());
-
-	return context;
-}
-
 /** Moonlight catching the trunks' left edges. */
 const RIM_LIGHT = "rgba(160, 200, 210, 0.14)";
 
@@ -158,61 +129,36 @@ export function drawForestForeground(
 	pan: number,
 	amount: number,
 ) {
-	// Drawn on a layer of its own, then laid over the game blurred and a little see-through, out
-	// of focus in front of it (blurring the finished layer once is much cheaper than each shape).
-	const context = foregroundLayer(target);
+	drawOutOfFocus(target, amount, (context) => {
+		// Great trees.
+		const drift = pan * 1.6;
+		const first = Math.floor(drift / FOREGROUND_SPACING) - 1;
 
-	// Great trees.
-	const drift = pan * 1.6;
-	const first = Math.floor(drift / FOREGROUND_SPACING) - 1;
+		for (let index = first; index * FOREGROUND_SPACING - drift < width + FOREGROUND_SPACING; index++) {
+			if (hash(index * 5 + 3) > 0.4) {
+				continue;
+			}
 
-	for (let index = first; index * FOREGROUND_SPACING - drift < width + FOREGROUND_SPACING; index++) {
-		if (hash(index * 5 + 3) > 0.4) {
-			continue;
+			const x = index * FOREGROUND_SPACING - drift + (hash(index * 11) - 0.5) * FOREGROUND_SPACING * 0.5;
+			greatTree(context, x, base, skyHeight * (0.55 + hash(index * 13) * 0.3), 34 + hash(index * 19) * 20, index);
 		}
 
-		const x = index * FOREGROUND_SPACING - drift + (hash(index * 11) - 0.5) * FOREGROUND_SPACING * 0.5;
-		greatTree(context, x, base, skyHeight * (0.55 + hash(index * 13) * 0.3), 34 + hash(index * 19) * 20, index);
-	}
+		// Undergrowth along the bottom.
+		const brushDrift = pan * 1.3;
+		const brushFirst = Math.floor(brushDrift / BRUSH_SPACING) - 1;
 
-	// Undergrowth along the bottom.
-	const brushDrift = pan * 1.3;
-	const brushFirst = Math.floor(brushDrift / BRUSH_SPACING) - 1;
+		for (let index = brushFirst; index * BRUSH_SPACING - brushDrift < width + BRUSH_SPACING; index++) {
+			if (hash(index * 41 + 7) > BRUSH_CHANCE) {
+				continue;
+			}
 
-	for (let index = brushFirst; index * BRUSH_SPACING - brushDrift < width + BRUSH_SPACING; index++) {
-		if (hash(index * 41 + 7) > BRUSH_CHANCE) {
-			continue;
+			const x = index * BRUSH_SPACING - brushDrift + (hash(index * 23) - 0.5) * BRUSH_SPACING * 0.6;
+			undergrowth(context, x, base + 4, index);
 		}
-
-		const x = index * BRUSH_SPACING - brushDrift + (hash(index * 23) - 0.5) * BRUSH_SPACING * 0.6;
-		undergrowth(context, x, base + 4, index);
-	}
-
-	// The layer over the game: blurred (in the canvas's own pixels), a little see-through.
-	const pixelRatio = target.getTransform().a || 1;
-	target.save();
-	target.setTransform(1, 0, 0, 1, 0, 0);
-	target.filter = `blur(${(FOREGROUND_BLUR * pixelRatio).toFixed(1)}px)`;
-	target.globalAlpha = amount * FOREGROUND_OPACITY;
-	target.drawImage(context.canvas, 0, 0);
-	target.restore();
+	});
 
 	// The edges darkened, closing in.
-	target.save();
-	const vignette = target.createRadialGradient(
-		width / 2,
-		height / 2,
-		Math.min(width, height) * 0.35,
-		width / 2,
-		height / 2,
-		Math.max(width, height) * 0.75,
-	);
-	vignette.addColorStop(0, "rgba(2, 8, 6, 0)");
-	vignette.addColorStop(1, "rgba(2, 8, 6, 0.55)");
-	target.globalAlpha = amount;
-	target.fillStyle = vignette;
-	target.fillRect(0, 0, width, height);
-	target.restore();
+	drawVignette(target, width, height, 0.55 * amount, [2, 8, 6]);
 }
 
 /**
