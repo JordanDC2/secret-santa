@@ -59,6 +59,8 @@ import {
 	inUpdraft,
 	UPDRAFT_LAYOUT,
 	UPDRAFT_LIFT,
+	JET_STREAM_HEIGHT,
+	JET_STREAM_PUSH,
 	type IGust,
 	type IUpdraft,
 } from "Components/ElfFling/weather";
@@ -391,6 +393,10 @@ function fly(state: IGameState, dt: number): IGameState {
 	if (next.phase === "flying") {
 		if (inGust(next.gusts, elf.x, elf.y)) {
 			elf.vx += GUST_PUSH * dt;
+		}
+
+		if (next.upgrades.highWinds > 0 && elf.y > JET_STREAM_HEIGHT) {
+			elf.vx += JET_STREAM_PUSH * dt;
 		}
 
 		if (inUpdraft(next.updrafts, elf.x, elf.y)) {

@@ -4,7 +4,7 @@
  * goes (course.ts).
  */
 
-import { between, type ILayout } from "Components/ElfFling/course";
+import { between, HIGH_SKY, type ILayout } from "Components/ElfFling/course";
 
 export type IOrnament = {
 	x: number;
@@ -26,11 +26,17 @@ const MAX_FORWARD = 34;
 
 const HEIGHT = { min: 5, max: 26 };
 
+/** Now and then, one more ornament far up in the high sky. */
+const HIGH_CHANCE = 1 / 8;
+
 export const ORNAMENT_LAYOUT: ILayout<IOrnament> = {
 	firstAt: { min: 15, max: 25 },
 	gap: { min: 7, max: 16 },
 	scarcerByDay: true,
-	place: (x, random) => [{ x, y: between(HEIGHT, random), shatteredAt: null, look: random() }],
+	place: (x, random) => [
+		{ x, y: between(HEIGHT, random), shatteredAt: null, look: random() },
+		...(random() < HIGH_CHANCE ? [{ x: x + 3, y: between(HIGH_SKY, random), shatteredAt: null, look: random() }] : []),
+	],
 };
 
 /** The whole ornament an elf at (x, y) is hitting (extraReach further, as a giant snowball), as its index, or -1. */

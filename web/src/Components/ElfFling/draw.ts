@@ -159,7 +159,16 @@ export function drawFrame(
 	context.translate(origin.x, origin.y);
 	context.scale(camera.pixelsPerMetre, -camera.pixelsPerMetre);
 	const visible = { left: camera.left, right: camera.left + width / camera.pixelsPerMetre };
-	drawWeather(context, palette, state.gusts, state.updrafts, clock, camera.pixelsPerMetre, visible);
+	drawWeather(
+		context,
+		palette,
+		state.gusts,
+		state.updrafts,
+		clock,
+		camera.pixelsPerMetre,
+		visible,
+		state.upgrades.highWinds > 0,
+	);
 	drawPresents(context, palette);
 	drawBatter(context, palette, state.swingTime, batter);
 	drawCrackers(context, palette, state.crackers, state.time, camera.pixelsPerMetre, visible);
@@ -203,6 +212,7 @@ export function drawFrame(
 
 	if (state.phase === "flying" || state.phase === "sliding") {
 		drawLiveDistance(context, palette, width, state.elf.x - REINDEER_X);
+		drawSpeed(context, palette, width, Math.hypot(state.elf.vx, state.elf.vy));
 	}
 
 	// Panned up with a high elf, the snow's out of shot: say how high it is instead.
@@ -454,20 +464,31 @@ function drawRocketTrail(
 }
 
 /** How high the elf is, under the distance: a small up-pointing triangle and "74 m up". */
+/** How high the elf is, under the speed (only while it's flying, when the speed shows). */
+const ALTITUDE_Y = 78;
+
 function drawAltitude(context: CanvasRenderingContext2D, palette: IPalette, width: number, metres: number) {
 	const text = `${Math.round(metres)} m up`;
 	context.font = "700 15px Nunito, sans-serif";
 	context.textAlign = "right";
 	context.fillStyle = palette.white;
-	drawOutlinedText(context, text, width - 14, 56);
+	drawOutlinedText(context, text, width - 14, ALTITUDE_Y);
 	const left = width - 14 - context.measureText(text).width - 14;
 	context.fillStyle = palette.gold;
 	context.beginPath();
-	context.moveTo(left, 58);
-	context.lineTo(left + 5, 48);
-	context.lineTo(left + 10, 58);
+	context.moveTo(left, ALTITUDE_Y + 2);
+	context.lineTo(left + 5, ALTITUDE_Y - 8);
+	context.lineTo(left + 10, ALTITUDE_Y + 2);
 	context.closePath();
 	context.fill();
+}
+
+/** How fast the elf's going, under the distance. */
+function drawSpeed(context: CanvasRenderingContext2D, palette: IPalette, width: number, metresPerSecond: number) {
+	context.font = "700 15px Nunito, sans-serif";
+	context.textAlign = "right";
+	context.fillStyle = palette.white;
+	drawOutlinedText(context, `${Math.round(metresPerSecond)} m/s`, width - 14, 56);
 }
 
 /**

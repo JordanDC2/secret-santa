@@ -1,9 +1,10 @@
 import type { IPalette } from "Components/ElfFling/draw";
-import { GUST_DEPTH, UPDRAFT_WIDTH, type IGust, type IUpdraft } from "Components/ElfFling/weather";
+import { GUST_DEPTH, JET_STREAM_HEIGHT, UPDRAFT_WIDTH, type IGust, type IUpdraft } from "Components/ElfFling/weather";
 
 /**
  * The weather, drawn faintly behind everything: high winds as white streaks racing along their
- * band, and updrafts as a pale column with flecks of snow rising up it. World units (metres,
+ * band (and all across the sky above JET_STREAM_HEIGHT, the jet stream), and updrafts as a pale
+ * column with flecks of snow rising up it. World units (metres,
  * y up); widths in pixels are kept steady as the camera zooms.
  */
 
@@ -18,11 +19,16 @@ export function drawWeather(
 	clock: number,
 	pixelsPerMetre: number,
 	visible: { left: number; right: number },
+	jetStream: boolean,
 ) {
 	const pixel = 1 / pixelsPerMetre;
 	context.strokeStyle = palette.white;
 	context.fillStyle = palette.white;
 	context.lineCap = "round";
+
+	if (jetStream) {
+		drawJetStream(context, clock, pixel, visible);
+	}
 
 	for (const gust of gusts) {
 		if (gust.x + gust.length < visible.left || gust.x > visible.right) {
@@ -89,4 +95,32 @@ function fraction(seed: number): number {
 	const value = Math.sin(seed * 12.9898) * 43758.5453;
 
 	return value - Math.floor(value);
+}
+
+/** The jet stream's streaks: one in each tile of sky above its height, racing along, everywhere. */
+const JET_TILE = { across: 26, up: 16 };
+const JET_TOP = 320;
+
+function drawJetStream(
+	context: CanvasRenderingContext2D,
+	clock: number,
+	pixel: number,
+	visible: { left: number; right: number },
+) {
+	context.lineWidth = 2 * pixel;
+	const first = Math.floor(visible.left / JET_TILE.across) * JET_TILE.across;
+
+	for (let tileX = first; tileX < visible.right; tileX += JET_TILE.across) {
+		for (let tileY = JET_STREAM_HEIGHT; tileY < JET_TOP; tileY += JET_TILE.up) {
+			const lane = fraction(tileX * 0.37 + tileY * 1.7);
+			const along = (((clock * (0.6 + lane * 0.5) + lane) % 1) + 1) % 1;
+			context.globalAlpha = 0.25 * Math.sin(along * Math.PI);
+			context.beginPath();
+			context.moveTo(tileX + along * JET_TILE.across, tileY + lane * JET_TILE.up);
+			context.lineTo(tileX + along * JET_TILE.across + 5 + lane * 4, tileY + lane * JET_TILE.up);
+			context.stroke();
+		}
+	}
+
+	context.globalAlpha = 1;
 }

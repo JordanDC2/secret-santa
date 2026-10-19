@@ -58,6 +58,9 @@ const AHEAD = 600;
 const BEHIND = 400;
 
 /** A number in [min, max) from a 0–1 random number generator. */
+/** The high sky, above the sky coins: where an updraft or a huge launch sends the elf. */
+export const HIGH_SKY: IRange = { min: 60, max: 140 };
+
 export function between(range: IRange, random: () => number): number {
 	return range.min + random() * (range.max - range.min);
 }

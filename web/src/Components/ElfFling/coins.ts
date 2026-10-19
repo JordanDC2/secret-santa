@@ -1,12 +1,13 @@
 /**
  * Coins hanging in the air along the course, in little patterns (a row, an arc, a column, a
  * slope) of random sizes at random heights. The elf collects any it flies or slides through.
- * Two layers: plenty of low coins worth 1 (now and then a big one worth 5), and fewer sky
- * coins high up worth 3 (now and then 10), which only well-upgraded throws can reach.
+ * Three layers: plenty of low coins worth 1 (now and then a big one worth 5), fewer sky coins
+ * high up worth 3 (now and then 10), which only well-upgraded throws can reach, and the high
+ * sky's, far up, worth 10 (now and then 25), for an elf an updraft or a huge launch sends up.
  * Laid out as the elf goes (course.ts), and kept in order along the course.
  */
 
-import { between, type ILayout, type IRange } from "Components/ElfFling/course";
+import { between, HIGH_SKY, type ILayout, type IRange } from "Components/ElfFling/course";
 
 export type ICoin = {
 	x: number;
@@ -50,6 +51,16 @@ const LAYERS: ILayer[] = [
 		spacing: 2,
 		value: 3,
 		bigValue: 10,
+		bigChance: 0.25,
+	},
+	// The high sky: far up, worth the most.
+	{
+		firstAt: { min: 40, max: 80 },
+		gap: { min: 4, max: 10 },
+		height: (r) => HIGH_SKY.min + r * (HIGH_SKY.max - HIGH_SKY.min),
+		spacing: 3,
+		value: 10,
+		bigValue: 25,
 		bigChance: 0.25,
 	},
 ];

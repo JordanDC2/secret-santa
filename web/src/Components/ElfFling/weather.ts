@@ -2,9 +2,10 @@
  * Winter weather on the course (gem shop unlocks, laid out as the elf goes; see course.ts):
  *
  * - High winds: bands of gusts high up among the top sky coins, and some above them all.
- *   Inside one, the elf is pushed forward, a reward for a big launch.
+ *   Inside one, the elf is pushed forward, a reward for a big launch. Far up, above
+ *   JET_STREAM_HEIGHT, a jet stream always pushes the elf onward, across the high sky's coins.
  * - Updrafts: rare columns of rising air from the snow up into the sky. Inside one, the elf is
- *   lifted hard: the way up to the winds and sky coins. A sliding elf is lifted off the snow.
+ *   lifted hard: the way up to the winds, the sky coins and the jet stream. A sliding elf is lifted off the snow.
  */
 
 import { between, type ILayout } from "Components/ElfFling/course";
@@ -18,6 +19,9 @@ export type IUpdraft = { x: number; top: number };
 /** How hard a gust pushes forward, and an updraft lifts, in m/s per second. */
 export const GUST_PUSH = 4;
 export const UPDRAFT_LIFT = 60;
+/** The jet stream (with high winds): above this height, it always pushes the elf forward, this hard (m/s per second). */
+export const JET_STREAM_HEIGHT = 80;
+export const JET_STREAM_PUSH = 6;
 /** A gust band's height, and an updraft's width, in metres. */
 export const GUST_DEPTH = 10;
 export const UPDRAFT_WIDTH = 12;
@@ -37,7 +41,7 @@ export const GUST_LAYOUT: ILayout<IGust> = {
 
 export const UPDRAFT_LAYOUT: ILayout<IUpdraft> = {
 	firstAt: { min: 150, max: 400 },
-	gap: { min: 600, max: 1200 },
+	gap: { min: 800, max: 1600 },
 	place: (x) => [{ x, top: 45 }],
 };
 

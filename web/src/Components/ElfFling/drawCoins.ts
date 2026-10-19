@@ -10,6 +10,10 @@ const RADIUS = 0.28;
 
 /** Each value has its own rim colour and size, so the valuable ones stand out. */
 function coinStyle(palette: IPalette, value: number): { rim: string; scale: number } {
+	if (value >= 25) {
+		return { rim: palette.white, scale: 2.2 };
+	}
+
 	if (value >= 10) {
 		return { rim: palette.redBright, scale: 1.8 };
 	}

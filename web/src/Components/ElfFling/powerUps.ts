@@ -17,7 +17,7 @@
  * Only the ones the player has unlocked appear. Laid out as the elf goes (course.ts).
  */
 
-import { between, type ILayout } from "Components/ElfFling/course";
+import { between, HIGH_SKY, type ILayout } from "Components/ElfFling/course";
 
 /** The power-ups that last a while (and show a countdown). */
 export type ITimedPowerUpKind = "christmasStar" | "gingerbreadMan" | "snowAngelWings" | "giantSnowball" | "northWind";
@@ -84,7 +84,9 @@ export const SNOWBALL_REACH = 1.2;
 /** When the snowball wears off mid-roll, it pops the elf up this fast (m/s) to bounce on. */
 export const SNOWBALL_POP_UP = 8;
 
-/** One every 70–150 m, a third low over the snow and the rest up to 12 m. */
+const HIGH_POWER_UP_CHANCE = 1 / 6;
+
+/** One every 70–150 m, a third low over the snow and the rest up to 12 m; now and then one more far up in the high sky. */
 export function powerUpLayout(kinds: IPowerUpKind[]): ILayout<IPowerUp> | null {
 	if (kinds.length === 0) {
 		return null;
@@ -102,6 +104,16 @@ export function powerUpLayout(kinds: IPowerUpKind[]): ILayout<IPowerUp> | null {
 				kind: kinds[Math.floor(random() * kinds.length)],
 				collectedAt: null,
 			},
+			...(random() < HIGH_POWER_UP_CHANCE
+				? [
+						{
+							x: x + 5,
+							y: between(HIGH_SKY, random),
+							kind: kinds[Math.floor(random() * kinds.length)],
+							collectedAt: null,
+						},
+					]
+				: []),
 		],
 	};
 }

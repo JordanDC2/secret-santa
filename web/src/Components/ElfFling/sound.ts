@@ -7,7 +7,7 @@
  */
 
 import { ROCKET_SECONDS, type IGameState } from "Components/ElfFling/physics";
-import { inGust, inUpdraft } from "Components/ElfFling/weather";
+import { inGust, inUpdraft, JET_STREAM_HEIGHT } from "Components/ElfFling/weather";
 
 const STORAGE_KEY = "secret-santa-elf-fling-sound";
 const VOLUME = 0.35;
@@ -283,6 +283,13 @@ export function playFanfare() {
 	[523, 659, 784, 1047].forEach((pitch, i) => tone("triangle", pitch, pitch, i === 3 ? 0.6 : 0.16, 0.4, i * 0.12));
 }
 
+/** In a gust, or up in the jet stream. */
+function inWind(state: IGameState): boolean {
+	return (
+		inGust(state.gusts, state.elf.x, state.elf.y) || (state.upgrades.highWinds > 0 && state.elf.y > JET_STREAM_HEIGHT)
+	);
+}
+
 /**
  * The sounds for whatever just happened in the game, from one moment to the next: the hop off
  * the presents, the swing,
@@ -321,10 +328,10 @@ export function playStateChanges(previous: IGameState, next: IGameState) {
 		playLanding(next.landingSpeed);
 	}
 
-	// Into the wind, or an updraft.
+	// Into the wind (a gust, or up into the jet stream), or an updraft.
 	const entered = (inside: (state: IGameState) => boolean) => !inside(previous) && inside(next);
 
-	if (entered((state) => inGust(state.gusts, state.elf.x, state.elf.y))) {
+	if (entered(inWind)) {
 		playGust();
 	}
 

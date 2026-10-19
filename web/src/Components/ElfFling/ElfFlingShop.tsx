@@ -14,7 +14,7 @@ import {
 	type ITimedPowerUpKind,
 } from "Components/ElfFling/powerUps";
 import { CHIMNEY_BOOST_MAX, CHIMNEY_LAUNCH } from "Components/ElfFling/chimneys";
-import { GUST_PUSH, UPDRAFT_LIFT } from "Components/ElfFling/weather";
+import { GUST_PUSH, JET_STREAM_HEIGHT, JET_STREAM_PUSH, UPDRAFT_LIFT } from "Components/ElfFling/weather";
 import { LOG_SPEEDS } from "Components/ElfFling/yuleLogs";
 import {
 	airDragShare,
@@ -396,7 +396,7 @@ function gemEffect(id: IUpgradeId | IGemOnlyId, progress: IProgress): string | n
 		case "chimney":
 			return `Out at: ${CHIMNEY_LAUNCH.forward} m/s forward, ${CHIMNEY_LAUNCH.up} m/s up · The secret level's score multiplies that and your coins so far, up to ×${CHIMNEY_BOOST_MAX}`;
 		case "highWinds":
-			return `Push: +${GUST_PUSH} m/s² forward`;
+			return `Push: +${GUST_PUSH} m/s² forward · Above ${JET_STREAM_HEIGHT} m, the jet stream: +${JET_STREAM_PUSH} m/s²`;
 		case "updrafts":
 			return `Lift: +${UPDRAFT_LIFT} m/s² up`;
 		case "offSeasonTraining":
