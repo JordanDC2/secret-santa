@@ -50,6 +50,28 @@ const FINAL_STANDINGS: Array<{ title: string; places: IPodiumPlace[] }> = [
 
 export const ANNOUNCEMENTS: IAnnouncement[] = [
 	{
+		id: "elf-fling-keep-it-all",
+		released: "2026-10-19T21:59:50Z",
+		paths: ["/games/elf-fling"],
+		title: "New in Elf Fling: keep it all",
+		content: (
+			<Stack gap="md">
+				<MantineText size="sm">Here&apos;s what&apos;s new:</MantineText>
+				<BulletList size="sm">
+					<List.Item>
+						The springy boots, candy magnet and lucky stocking can now be kept through Christmas with gems, like the
+						rest of the coin shop.
+					</List.Item>
+					<List.Item>
+						Found the secret level? Getting there looks a little different now, and it fills the screen when you&apos;re
+						playing full screen.
+					</List.Item>
+					<List.Item>On phones, holding to wrap up Christmas no longer flashes a blue box.</List.Item>
+				</BulletList>
+			</Stack>
+		),
+	},
+	{
 		id: "elf-fling-new-horizons",
 		released: "2026-10-19T13:48:00Z",
 		paths: ["/games/elf-fling"],
