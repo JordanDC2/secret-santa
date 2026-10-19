@@ -9,6 +9,7 @@ import { sunAt, warmth } from "Components/ElfFling/dayNight";
 import { drawForest, drawForestForeground } from "Components/ElfFling/drawForest";
 import { drawHills, drawHillsForeground } from "Components/ElfFling/drawHills";
 import { drawAurora, drawTundra, drawTundraForeground } from "Components/ElfFling/drawTundra";
+import { drawMountains, drawStreamWater } from "Components/ElfFling/drawStream";
 import { drawChimneys } from "Components/ElfFling/drawChimneys";
 import { drawWeather } from "Components/ElfFling/drawWeather";
 import { drawYuleLogs } from "Components/ElfFling/drawYuleLogs";
@@ -191,6 +192,23 @@ export function drawFrame(
 	drawChimneys(context, palette, state.chimneys, state.inChimney?.x ?? null, clock, camera.pixelsPerMetre, visible);
 	drawYuleLogs(context, palette, state.yuleLogs, state.inLog?.x ?? null, state.time, camera.pixelsPerMetre, visible);
 	context.restore();
+
+	// Along the mountain stream, the water under the bank, mirroring all of the above.
+	if (biomes.mountainStream > 0) {
+		drawStreamWater(
+			context,
+			palette,
+			width,
+			height,
+			floorY,
+			parallaxPan(camera, width),
+			clock,
+			day,
+			biomes.mountainStream,
+			mix,
+		);
+	}
+
 	drawPopLabels(context, palette, state.crackers, state.time, toScreen);
 	drawSnowfall(context, palette, camera, size, clock, 1 - day * 0.8);
 
@@ -361,6 +379,10 @@ function drawSky(
 
 	if (biomes.tundra > 0) {
 		drawTundra(context, width, floorY, parallaxPan(camera, width), day, biomes.tundra, mix);
+	}
+
+	if (biomes.mountainStream > 0) {
+		drawMountains(context, width, floorY, parallaxPan(camera, width), day, biomes.mountainStream, mix);
 	}
 }
 
