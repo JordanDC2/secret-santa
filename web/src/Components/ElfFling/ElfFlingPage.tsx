@@ -26,6 +26,7 @@ import { useFullscreen } from "Components/ElfFling/useFullscreen";
 import { releaseFocus } from "Components/ElfFling/releaseFocus";
 import RunSummary, { type IRunStats } from "Components/ElfFling/RunSummary";
 import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
+import { useWakeLock } from "Components/ElfFling/useWakeLock";
 import WrapUpHold from "Components/ElfFling/WrapUpHold";
 import classes from "Components/ElfFling/ElfFling.module.less";
 import BackToGroups from "Components/Layout/BackToGroups";
@@ -150,6 +151,8 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 	const touchScreen = useTouchScreen();
 	const stageRef = useRef<HTMLDivElement>(null);
 	const { fullscreen, enter: enterFullscreen, exit: exitFullscreen } = useFullscreen(stageRef);
+	// A phone in full screen stays awake: long runs outlast its sleep timer.
+	useWakeLock(fullscreen && touchScreen);
 	const [soundOn, setSoundOn] = useState(readSoundOn);
 	// Throws finished on this device: after a few, the tips over the game stop.
 	const [throwsSeen, setThrowsSeen] = useState(readThrowsSeen);
