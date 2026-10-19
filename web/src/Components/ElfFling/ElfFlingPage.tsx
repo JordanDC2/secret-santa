@@ -6,6 +6,7 @@ import GiftBoxIcon from "Components/Common/FestiveIcons/GiftBoxIcon";
 import LoadingText from "Components/Common/LoadingText";
 import ElfFlingGame from "Components/ElfFling/ElfFlingGame";
 import ElfFlingLeaderboard from "Components/ElfFling/ElfFlingLeaderboard";
+import { WhatsNewButton } from "Components/Announcements/Announcement";
 import ElfFlingShop, { Balances } from "Components/ElfFling/ElfFlingShop";
 import {
 	useImportMutation,
@@ -133,7 +134,10 @@ export default function ElfFlingPage() {
 	return (
 		<Page>
 			<Stack gap="lg">
-				<BackToGroups to="/games" label="Back to games" />
+				<Group justify="space-between" align="flex-start" gap="sm">
+					<BackToGroups to="/games" label="Back to games" />
+					<WhatsNewButton />
+				</Group>
 				<PageTitle icon={<GiftBoxIcon />}>Elf Fling</PageTitle>
 				{progressQuery.isError && <Alert color="red">{apiErrorMessage(progressQuery.error)}</Alert>}
 				{progressQuery.isPending && <LoadingText>Loading Elf Fling...</LoadingText>}

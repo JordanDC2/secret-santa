@@ -21,12 +21,14 @@ export function markSeen(id: string): void {
 	}
 }
 
-/** The first announcement for this page that this device hasn't seen yet, if any. */
-export function unseenAnnouncement(pathname: string): IAnnouncement | null {
-	const seen = seenIds();
+/** This page's announcements, newest first (as they're listed). */
+export function announcementsFor(pathname: string): IAnnouncement[] {
+	return ANNOUNCEMENTS.filter((announcement) => announcement.paths.includes(pathname));
+}
 
-	return (
-		ANNOUNCEMENTS.find((announcement) => announcement.paths.includes(pathname) && !seen.includes(announcement.id)) ??
-		null
-	);
+/** This page's newest announcement, if this device hasn't seen it yet (the earlier ones show under it). */
+export function unseenAnnouncement(pathname: string): IAnnouncement | null {
+	const [newest] = announcementsFor(pathname);
+
+	return newest && !seenIds().includes(newest.id) ? newest : null;
 }
