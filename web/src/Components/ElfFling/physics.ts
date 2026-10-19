@@ -182,8 +182,11 @@ const JUMP_SPEED = 7;
 export const ROCKET_SECONDS = 1.3;
 const ROCKET_PUSH = { forward: 22, up: 9 };
 
-/** Which things this round's course has: crackers and ornaments only once they're bought. */
-function layoutsFor(upgrades: IThrowUpgrades) {
+/**
+ * Which things this round's course has: crackers and ornaments only once they're bought, and
+ * chimneys only until the elf has been down one this round.
+ */
+function layoutsFor(upgrades: IThrowUpgrades, chimneyVisited = false) {
 	return {
 		coins: COIN_LAYOUTS,
 		crackers: upgrades.crackers > 0 ? CRACKER_LAYOUT : null,
@@ -193,7 +196,7 @@ function layoutsFor(upgrades: IThrowUpgrades) {
 		yuleLogs: upgrades.yuleLog > 0 ? YULE_LOG_LAYOUT : null,
 		gusts: upgrades.highWinds > 0 ? GUST_LAYOUT : null,
 		updrafts: upgrades.updrafts > 0 ? UPDRAFT_LAYOUT : null,
-		chimneys: upgrades.chimney > 0 ? CHIMNEY_LAYOUT : null,
+		chimneys: upgrades.chimney > 0 && !chimneyVisited ? CHIMNEY_LAYOUT : null,
 	};
 }
 
@@ -336,7 +339,7 @@ export function step(state: IGameState, dt: number): IGameState {
 
 	let next: IGameState = keepCourseAhead(
 		{ ...state, elf: { ...state.elf }, time: state.time + dt },
-		layoutsFor(state.upgrades),
+		layoutsFor(state.upgrades, state.chimneyVisits > 0),
 		state.elf.x,
 	);
 
@@ -636,6 +639,8 @@ export function leaveChimney(state: IGameState, points: number): IGameState {
 		phase: "flying",
 		inChimney: null,
 		pinballPoints: state.pinballPoints + Math.floor(points / PINBALL_POINTS_PER_POINT),
+		// One secret level a run: the chimneys further on go (the one it came out of stays).
+		chimneys: state.chimneys.filter((chimney) => chimney.x <= state.elf.x),
 		coinsCollected: Math.floor(state.coinsCollected * chimneyBoost(points)),
 		chimneyVisits: state.chimneyVisits + 1,
 		elf: {
