@@ -13,6 +13,17 @@ import type { ICamera, IPalette } from "Components/ElfFling/draw";
  * thousands of metres, so tying it to the zoom made the background lurch whenever it zoomed.
  */
 export const BACKGROUND_PIXELS_PER_METRE = 20;
+/** How far across the view the camera holds the elf (draw.ts's nextCamera). */
+export const ELF_ACROSS = 0.4;
+
+/**
+ * How far the background has scrolled, in its own pixels: by where the elf is held in the view,
+ * not the view's left edge, which jumps back as the camera zooms out (on a bounce, say) and
+ * would stall or reverse the background while the elf carries on.
+ */
+export function parallaxPan(camera: ICamera, width: number): number {
+	return (camera.left + (width / camera.pixelsPerMetre) * ELF_ACROSS) * BACKGROUND_PIXELS_PER_METRE;
+}
 
 const FLAKES = 60;
 /** Each flake's fixed character, from its number: where it starts, how big, fast and near it is. */
@@ -46,8 +57,10 @@ export function drawSnowfall(
 	const { width, height } = size;
 	context.fillStyle = palette.white;
 
+	const scrolled = parallaxPan(camera, width);
+
 	for (const flake of flakes) {
-		const pan = camera.left * BACKGROUND_PIXELS_PER_METRE * flake.depth;
+		const pan = scrolled * flake.depth;
 		const x = wrap(flake.x * width - pan + Math.sin(clock * 0.8 + flake.x * 20) * flake.sway, width);
 		const y = wrap(flake.y * height + clock * flake.fallSpeed, height);
 

@@ -4,7 +4,9 @@ import { drawCoinCount, drawCoins, drawOutlinedText } from "Components/ElfFling/
 import { drawGemCount } from "Components/ElfFling/drawGems";
 import { drawActivePowerUps, drawElfPowerUps, drawPowerUps, drawShine } from "Components/ElfFling/drawPowerUps";
 import { POWER_UP_SECONDS } from "Components/ElfFling/powerUps";
+import { arrivingIn, forestAt } from "Components/ElfFling/biomes";
 import { sunAt, warmth } from "Components/ElfFling/dayNight";
+import { drawForest, drawForestForeground } from "Components/ElfFling/drawForest";
 import { drawChimneys } from "Components/ElfFling/drawChimneys";
 import { drawWeather } from "Components/ElfFling/drawWeather";
 import { drawYuleLogs } from "Components/ElfFling/drawYuleLogs";
@@ -12,7 +14,7 @@ import { drawCrackers, drawPopLabels } from "Components/ElfFling/drawCrackers";
 import { drawFlyer, flyerEnlargement } from "Components/ElfFling/drawFlyers";
 import { drawOrnaments } from "Components/ElfFling/drawOrnaments";
 import { drawSleigh } from "Components/ElfFling/drawSleigh";
-import { BACKGROUND_PIXELS_PER_METRE, drawSnowfall } from "Components/ElfFling/drawSnowfall";
+import { drawSnowfall, ELF_ACROSS, parallaxPan } from "Components/ElfFling/drawSnowfall";
 import { drawSnowmen } from "Components/ElfFling/drawSnowmen";
 import type { IBatterId, ISkinId } from "Components/ElfFling/skins";
 import { drawBatter } from "Components/ElfFling/drawBatters";
@@ -95,7 +97,7 @@ export function nextCamera(previous: ICamera | null, state: IGameState, width: n
 	const viewHeight = Math.min(MAX_VIEW_HEIGHT, wanted);
 	const targetScale = Math.min(skyHeight / viewHeight, width / MIN_VIEW_WIDTH);
 	const viewWidth = width / targetScale;
-	const targetLeft = Math.max(-1.4, state.elf.x - viewWidth * 0.4);
+	const targetLeft = Math.max(-1.4, state.elf.x - viewWidth * ELF_ACROSS);
 	// Too high to zoom out to: pan up with the elf instead.
 	const targetBottom = wanted > MAX_VIEW_HEIGHT ? Math.max(0, state.elf.y - viewHeight * ELF_HEIGHT_IN_VIEW) : 0;
 
@@ -188,6 +190,22 @@ export function drawFrame(
 	drawPopLabels(context, palette, state.crackers, state.time, toScreen);
 	drawSnowfall(context, palette, camera, size, clock, 1 - day * 0.8);
 
+	// In the boreal forest, its foreground in front of the course (behind the counts and controls).
+	const forestHere = forestAt(camera.left + width / camera.pixelsPerMetre / 2);
+
+	if (forestHere > 0) {
+		// Standing at the bottom of the snow in view, so it drops away as the camera pans up.
+		drawForestForeground(
+			context,
+			width,
+			height,
+			floorY + (height - groundY),
+			groundY,
+			parallaxPan(camera, width),
+			forestHere,
+		);
+	}
+
 	if (celebrationAge !== null) {
 		drawCelebration(context, palette, size, celebrationAge);
 	}
@@ -213,6 +231,13 @@ export function drawFrame(
 	if (state.phase === "flying" || state.phase === "sliding") {
 		drawLiveDistance(context, palette, width, state.elf.x - REINDEER_X);
 		drawSpeed(context, palette, width, Math.hypot(state.elf.vx, state.elf.vy));
+	}
+
+	// Arriving in a new biome: its name, fading in and out over the first stretch of it.
+	const arriving = state.phase === "flying" || state.phase === "sliding" ? arrivingIn(state.elf.x) : null;
+
+	if (arriving) {
+		drawBiomeTitle(context, palette, width, height, arriving.name, Math.sin(arriving.along * Math.PI));
 	}
 
 	// Panned up with a high elf, the snow's out of shot: say how high it is instead.
@@ -275,7 +300,7 @@ function drawSky(
 
 	// Stars, scrolling slowly so the flight feels fast without being dizzy; gone by day.
 	context.fillStyle = palette.gold;
-	const drift = camera.left * BACKGROUND_PIXELS_PER_METRE * 0.1;
+	const drift = parallaxPan(camera, width) * 0.1;
 	for (let index = 0; index < 40; index++) {
 		const x = (((index * 137.5 - drift) % width) + width) % width;
 		const y = (((index * 97) % 100) / 100) * groundY * 0.75;
@@ -287,12 +312,13 @@ function drawSky(
 	}
 	context.globalAlpha = 1;
 
-	// Distant hills, slower still.
+	// Distant hills, slower still; past the first sunset, the boreal forest instead (biomes.ts).
+	const forest = forestAt(camera.left + width / camera.pixelsPerMetre / 2);
 	context.fillStyle = mix(palette.greenDark, DAY.hills, day);
-	context.globalAlpha = 0.55;
+	context.globalAlpha = 0.55 * (1 - forest);
 	context.beginPath();
 	context.moveTo(0, floorY);
-	const hillDrift = camera.left * BACKGROUND_PIXELS_PER_METRE * 0.3;
+	const hillDrift = parallaxPan(camera, width) * 0.3;
 	for (let x = 0; x <= width; x += 8) {
 		const worldX = (x + hillDrift) / 90;
 		context.lineTo(x, floorY - 28 - Math.sin(worldX) * 16 - Math.sin(worldX * 2.7) * 8);
@@ -300,6 +326,10 @@ function drawSky(
 	context.lineTo(width, floorY);
 	context.fill();
 	context.globalAlpha = 1;
+
+	if (forest > 0) {
+		drawForest(context, palette, width, floorY, parallaxPan(camera, width), day, forest, mix);
+	}
 }
 
 /** The snow, going grey and slushy by day (day: 0 to 1), with patches of grass showing through. */
@@ -491,6 +521,23 @@ function drawRocketTrail(
 }
 
 /** How high the elf is, under the distance: a small up-pointing triangle and "74 m up". */
+/** A biome's name across the sky as the elf comes into it, `alpha` of the way faded in. */
+function drawBiomeTitle(
+	context: CanvasRenderingContext2D,
+	palette: IPalette,
+	width: number,
+	height: number,
+	name: string,
+	alpha: number,
+) {
+	context.globalAlpha = alpha;
+	context.font = '700 34px "Mountains of Christmas", Nunito, serif';
+	context.textAlign = "center";
+	context.fillStyle = palette.gold;
+	drawOutlinedText(context, name, width / 2, height * 0.28);
+	context.globalAlpha = 1;
+}
+
 /** How high the elf is, under the speed (only while it's flying, when the speed shows). */
 const ALTITUDE_Y = 78;
 
