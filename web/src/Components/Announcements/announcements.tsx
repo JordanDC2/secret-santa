@@ -79,4 +79,29 @@ export const ANNOUNCEMENTS: IAnnouncement[] = [
 		),
 		button: "Let's play",
 	},
+	{
+		id: "elf-fling-high-sky",
+		paths: ["/games/elf-fling"],
+		title: "New in Elf Fling: the high sky",
+		content: (
+			<Stack gap="md">
+				<MantineText size="sm">Here&apos;s what&apos;s new:</MantineText>
+				<BulletList size="sm">
+					<List.Item>
+						The high sky: far above the course, coins worth 10 and 25, with the odd ornament and power-up. Get up there
+						on an updraft or a huge launch.
+					</List.Item>
+					<List.Item>
+						With high winds, a jet stream up there pushes you onward instead of letting you slow down.
+					</List.Item>
+					<List.Item>Updrafts are a little rarer.</List.Item>
+					<List.Item>
+						The secret level is one ball now, and the better you do, the harder you shoot back out and the more your
+						coins so far are multiplied.
+					</List.Item>
+					<List.Item>Your speed shows under the distance.</List.Item>
+				</BulletList>
+			</Stack>
+		),
+	},
 ];
