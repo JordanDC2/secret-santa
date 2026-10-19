@@ -7,6 +7,7 @@ import { POWER_UP_SECONDS } from "Components/ElfFling/powerUps";
 import { arrivingIn, biomeWeights, type IBiomeId } from "Components/ElfFling/biomes";
 import { sunAt, warmth } from "Components/ElfFling/dayNight";
 import { drawForest, drawForestForeground } from "Components/ElfFling/drawForest";
+import { drawHills, drawHillsForeground } from "Components/ElfFling/drawHills";
 import { drawAurora, drawTundra, drawTundraForeground } from "Components/ElfFling/drawTundra";
 import { drawChimneys } from "Components/ElfFling/drawChimneys";
 import { drawWeather } from "Components/ElfFling/drawWeather";
@@ -197,6 +198,21 @@ export function drawFrame(
 	// the bottom of the snow in view, so it drops away as the camera pans up.
 	const foregroundBase = floorY + (height - groundY);
 
+	if (biomes.hills > 0) {
+		drawHillsForeground(
+			context,
+			palette,
+			width,
+			foregroundBase,
+			groundY,
+			parallaxPan(camera, width),
+			clock,
+			day,
+			biomes.hills,
+			mix,
+		);
+	}
+
 	if (biomes.borealForest > 0) {
 		drawForestForeground(
 			context,
@@ -265,7 +281,7 @@ export function drawFrame(
 
 /** The winter day: a pale blue sky, low sun and greener hills, blended in as it warms. */
 const SUN_RADIUS = 20;
-const DAY = { skyTop: "#5e9fd6", skyBottom: "#cfe6f3", hills: "#4f8a5b", slush: "#c9d2cd", grass: "#5c8f4e" };
+const DAY = { skyTop: "#5e9fd6", skyBottom: "#cfe6f3", slush: "#c9d2cd", grass: "#5c8f4e" };
 
 /**
  * The sky: night blue-green, warming to a winter blue by day (day: 0 to 1), with stars that fade
@@ -334,19 +350,10 @@ function drawSky(
 	// On the tundra, the northern lights, at night.
 	drawAurora(context, width, groundY, clock, biomes.tundra * (1 - day));
 
-	// Distant hills, slower still; in the later biomes, their scenery instead (biomes.ts).
-	context.fillStyle = mix(palette.greenDark, DAY.hills, day);
-	context.globalAlpha = 0.55 * biomes.hills;
-	context.beginPath();
-	context.moveTo(0, floorY);
-	const hillDrift = parallaxPan(camera, width) * 0.3;
-	for (let x = 0; x <= width; x += 8) {
-		const worldX = (x + hillDrift) / 90;
-		context.lineTo(x, floorY - 28 - Math.sin(worldX) * 16 - Math.sin(worldX * 2.7) * 8);
+	// The biomes' scenery behind the course (biomes.ts), fading from one into the next.
+	if (biomes.hills > 0) {
+		drawHills(context, palette, width, floorY, parallaxPan(camera, width), day, biomes.hills, clock, mix);
 	}
-	context.lineTo(width, floorY);
-	context.fill();
-	context.globalAlpha = 1;
 
 	if (biomes.borealForest > 0) {
 		drawForest(context, palette, width, floorY, parallaxPan(camera, width), day, biomes.borealForest, mix);
