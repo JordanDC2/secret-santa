@@ -28,6 +28,8 @@ type IPinballGameProps = {
 	onGameOver: (score: number) => void;
 	soundOn: boolean;
 	balls?: number;
+	/** Whether extra balls can be earned. */
+	extraBalls?: boolean;
 	turn?: IPinballTurn;
 };
 
@@ -75,10 +77,16 @@ const LAUNCH_KEYS = new Set(["Space", "ArrowDown", "Enter", "KeyS"]);
  * and M), Space for both. Nudge: X, full stop, up arrow. On a touch screen, press and let go to
  * launch, then press the left or right half to flip. Only the end of the game reaches React.
  */
-export default function PinballGame({ onGameOver, soundOn, balls = 3, turn = 0 }: IPinballGameProps) {
+export default function PinballGame({
+	onGameOver,
+	soundOn,
+	balls = 3,
+	extraBalls = true,
+	turn = 0,
+}: IPinballGameProps) {
 	const { ref: frameRef, width, height } = useElementSize();
 	const canvasRef = useRef<HTMLCanvasElement>(null);
-	const stateRef = useRef<IPinballState>(newPinball(balls));
+	const stateRef = useRef<IPinballState>(newPinball(balls, extraBalls));
 	const soundRef = useRef(soundOn);
 	const onGameOverRef = useRef(onGameOver);
 	// Which pointers (fingers or the mouse) hold which control, and what each key pressed.

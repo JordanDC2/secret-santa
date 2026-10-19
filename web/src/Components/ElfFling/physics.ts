@@ -13,7 +13,8 @@
 
 import {
 	CHIMNEY_HEIGHT,
-	CHIMNEY_LAUNCH,
+	chimneyBoost,
+	chimneyLaunch,
 	CHIMNEY_LAYOUT,
 	chimneyEntered,
 	type IChimney,
@@ -613,25 +614,29 @@ function goDownChimney(state: IGameState, index: number): IGameState {
 const PINBALL_POINTS_PER_POINT = 1000;
 
 /**
- * The pinball's over: the chimney shoots the elf back out, up and forward, and the points
- * count towards the throw's score.
+ * The pinball's over: the chimney shoots the elf back out, up and forward, and multiplies the
+ * coins collected so far this throw, both by the game's boost (chimneyBoost, about 1.8 for a
+ * typical game); the points count towards the throw's score.
  */
 export function leaveChimney(state: IGameState, points: number): IGameState {
 	if (!state.inChimney) {
 		return state;
 	}
 
+	const launch = chimneyLaunch(points);
+
 	return {
 		...state,
 		phase: "flying",
 		inChimney: null,
 		pinballPoints: state.pinballPoints + Math.floor(points / PINBALL_POINTS_PER_POINT),
+		coinsCollected: Math.floor(state.coinsCollected * chimneyBoost(points)),
 		chimneyVisits: state.chimneyVisits + 1,
 		elf: {
 			...state.elf,
 			y: CHIMNEY_HEIGHT + ELF_RADIUS + 0.3,
-			vx: CHIMNEY_LAUNCH.forward,
-			vy: CHIMNEY_LAUNCH.up,
+			vx: launch.forward,
+			vy: launch.up,
 		},
 	};
 }

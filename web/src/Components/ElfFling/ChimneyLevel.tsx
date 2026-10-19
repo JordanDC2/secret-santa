@@ -94,6 +94,9 @@ export default function ChimneyLevel({ origin, leaving, touchScreen, soundOn, on
 		>
 			<p className={classes.chimneyTitle}>Down the chimney!</p>
 			<p className={classes.chimneyHint}>
+				One ball: the higher you score, the more your coins so far are multiplied, and the harder you shoot back out.
+			</p>
+			<p className={classes.chimneyHint}>
 				{turn !== 0
 					? "Turn your phone upright for the best view. Press and let go to launch, then press the half by a flipper to flip."
 					: touchScreen
@@ -101,7 +104,7 @@ export default function ChimneyLevel({ origin, leaving, touchScreen, soundOn, on
 						: "Hold Space and let go to launch. Flip with the left and right arrow keys, or Space for both."}
 			</p>
 			<div ref={tableRef} className={classes.chimneyTable}>
-				<PinballGame soundOn={soundOn} turn={turn} onGameOver={onGameOver} />
+				<PinballGame soundOn={soundOn} balls={1} extraBalls={false} turn={turn} onGameOver={onGameOver} />
 			</div>
 		</div>
 	);

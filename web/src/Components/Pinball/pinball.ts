@@ -337,10 +337,12 @@ export type IPinballState = {
 	lightShow: { kind: "flash" | "chase"; until: number } | null;
 	/** What's happened since the caller last cleared them, for the sounds. */
 	events: IPinballEvent[];
+	/** Whether extra balls can be earned (not in Elf Fling's chimney, where there's one ball, ever). */
+	extraBalls: boolean;
 	over: boolean;
 };
 
-export function newPinball(balls = 3): IPinballState {
+export function newPinball(balls = 3, extraBalls = true): IPinballState {
 	return {
 		time: 0,
 		balls: [],
@@ -396,6 +398,7 @@ export function newPinball(balls = 3): IPinballState {
 		message: null,
 		lightShow: null,
 		events: [],
+		extraBalls,
 		over: false,
 	};
 }
@@ -833,9 +836,11 @@ function hitTarget(s: IPinballState, bank: ITargetBank, index: number) {
 	} else if (bank === "goldStars") {
 		const completion = s.goldStarCompletions++;
 
-		if (completion < GOLD_STAR_POINTS.length) {
-			fire(s, bankEvent, GOLD_STAR_POINTS[completion]);
-			say(s, `Gold stars: ${GOLD_STAR_POINTS[completion].toLocaleString()}`, 1.8);
+		// Without extra balls, the third and later pay the second's points again.
+		if (completion < GOLD_STAR_POINTS.length || !s.extraBalls) {
+			const points = GOLD_STAR_POINTS[Math.min(completion, GOLD_STAR_POINTS.length - 1)];
+			fire(s, bankEvent, points);
+			say(s, `Gold stars: ${points.toLocaleString()}`, 1.8);
 		} else {
 			fire(s, bankEvent);
 			extraBall(s);
@@ -1078,9 +1083,14 @@ function auroraKickout(s: IPinballState) {
 		fire(s, "aurora", 20000);
 		say(s, "Center post up", 1.8);
 	} else if (level === 3) {
-		s.extraBallLitUntil = s.time + EXTRA_BALL_LIT_SECONDS;
 		fire(s, "aurora", 50000);
-		say(s, "Extra ball lit in the outlanes", 2);
+
+		if (s.extraBalls) {
+			s.extraBallLitUntil = s.time + EXTRA_BALL_LIT_SECONDS;
+			say(s, "Extra ball lit in the outlanes", 2);
+		} else {
+			say(s, "Aurora: 50,000", 1.5);
+		}
 	} else {
 		s.aurora = 0;
 		s.auroraDropsAt = Infinity;

@@ -22,6 +22,26 @@ const MOUTH_DEPTH = 2.5;
 /** Coming back out: shot up and forward, fast. */
 export const CHIMNEY_LAUNCH = { forward: 34, up: 18 };
 
+/**
+ * The better the pinball game, the harder the chimney shoots the elf back out, and the more
+ * the run's coins so far are multiplied by (physics.ts): CHIMNEY_LAUNCH times a boost that climbs steadily from 1 with the score and levels off towards
+ * CHIMNEY_BOOST_MAX: about 1.8 for 150,000 (a typical one-ball game), 2.3 for 300,000, near
+ * the most by a million.
+ */
+export const CHIMNEY_BOOST_MAX = 3;
+/** The score at which the boost is about two thirds of the way to its most. */
+const CHIMNEY_BOOST_SCALE = 300000;
+
+export function chimneyBoost(points: number): number {
+	return 1 + (CHIMNEY_BOOST_MAX - 1) * (1 - Math.exp(-points / CHIMNEY_BOOST_SCALE));
+}
+
+export function chimneyLaunch(points: number): { forward: number; up: number } {
+	const boost = chimneyBoost(points);
+
+	return { forward: CHIMNEY_LAUNCH.forward * boost, up: CHIMNEY_LAUNCH.up * boost };
+}
+
 /** Rare: a kilometre or two apart, the first a good way out. */
 export const CHIMNEY_LAYOUT: ILayout<IChimney> = {
 	firstAt: { min: 500, max: 1200 },
