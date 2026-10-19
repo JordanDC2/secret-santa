@@ -360,7 +360,11 @@ export function drawHills(
 	context.restore();
 }
 
-/** A big snowman: three balls of snow, a top hat, a scarf blowing, stick arms, coal buttons and a carrot. */
+/**
+ * A big snowman: three balls of snow, a top hat, a scarf blowing, stick arms, coal buttons and a
+ * carrot. `melt` (0 to 1) slumps him under the sun: his balls squash and sink, his head lolls,
+ * his hat slips, his nose and arms droop, and a puddle spreads around him.
+ */
 function snowman(
 	context: CanvasRenderingContext2D,
 	x: number,
@@ -371,71 +375,133 @@ function snowman(
 	dark: string,
 	scarf: string,
 	carrot: string,
+	water: string,
 	flap: number,
+	melt: number,
 ) {
-	const bottom = tall * 0.2;
-	const middle = tall * 0.15;
-	const head = tall * 0.11;
-	const bottomY = base - bottom;
-	const middleY = bottomY - bottom - middle * 0.75;
-	const headY = middleY - middle - head * 0.8;
+	// Each ball wider and flatter as he melts, the upper ones smaller too.
+	const bottom = { wide: tall * 0.2 * (1 + 0.55 * melt), high: tall * 0.2 * (1 - 0.55 * melt) };
+	const middle = { wide: tall * 0.15 * (1 + 0.1 * melt), high: tall * 0.15 * (1 - 0.45 * melt) };
+	const head = tall * 0.11 * (1 - 0.12 * melt);
+	const bottomY = base - bottom.high;
+	const middleY = bottomY - bottom.high - middle.high * 0.7;
+	// His head lolling to one side.
+	const headX = x + head * 0.8 * melt;
+	const headY = middleY - middle.high - head * (0.8 - 0.4 * melt);
 
-	// Stick arms, behind the body: one raised in a wave.
+	// The meltwater, spreading, with the sky caught in it; and slush slumping into it.
+	if (melt > 0) {
+		context.save();
+		context.globalAlpha *= melt;
+		context.fillStyle = water;
+		context.beginPath();
+		context.ellipse(x + bottom.wide * 0.25, base, bottom.wide * (1.2 + 1.1 * melt), 3 + 6 * melt, 0, 0, Math.PI * 2);
+		context.fill();
+		context.fillStyle = snow;
+		context.globalAlpha *= 0.6;
+		context.fillRect(x + bottom.wide * 0.6, base - 1, bottom.wide * 0.9, 1.5);
+		context.globalAlpha /= 0.6;
+		context.beginPath();
+		context.ellipse(x, base - 2, bottom.wide * (1 + 0.25 * melt), 3 + 5 * melt, 0, 0, Math.PI * 2);
+		context.fill();
+		context.restore();
+	}
+
+	// Stick arms, behind the body: one raised in a wave, both drooping as he melts.
+	const droop = middle.wide * 1.8 * melt;
 	context.strokeStyle = dark;
 	context.lineWidth = 3;
 	context.lineCap = "round";
 	context.beginPath();
-	context.moveTo(x - middle * 0.8, middleY - middle * 0.2);
-	context.lineTo(x - middle * 2.1, middleY - middle * 1.1);
-	context.moveTo(x - middle * 1.7, middleY - middle * 0.85);
-	context.lineTo(x - middle * 1.9, middleY - middle * 1.4);
-	context.moveTo(x + middle * 0.8, middleY - middle * 0.2);
-	context.lineTo(x + middle * 2, middleY + middle * 0.3);
+	context.moveTo(x - middle.wide * 0.8, middleY - middle.high * 0.2);
+	context.lineTo(x - middle.wide * 2.1, middleY - middle.high * 1.1 + droop * 1.5);
+	context.moveTo(x - middle.wide * 1.7, middleY - middle.high * 0.85 + droop * 1.2);
+	context.lineTo(x - middle.wide * 1.9, middleY - middle.high * 1.4 + droop * 1.2);
+	context.moveTo(x + middle.wide * 0.8, middleY - middle.high * 0.2);
+	context.lineTo(x + middle.wide * 2, middleY + middle.high * 0.3 + droop);
 	context.stroke();
 
 	// The three balls, each lit from the upper left.
-	for (const [cy, r] of [
-		[bottomY, bottom],
-		[middleY, middle],
-		[headY, head],
+	for (const [cx, cy, wide, high] of [
+		[x, bottomY, bottom.wide, bottom.high],
+		[x, middleY, middle.wide, middle.high],
+		[headX, headY, head, head * (1 - 0.1 * melt)],
 	]) {
-		const ball = context.createRadialGradient(x - r * 0.35, cy - r * 0.35, r * 0.2, x, cy, r);
+		const r = Math.max(wide, high);
+		const ball = context.createRadialGradient(cx - wide * 0.35, cy - high * 0.35, r * 0.2, cx, cy, r);
 		ball.addColorStop(0, snow);
 		ball.addColorStop(0.6, snow);
 		ball.addColorStop(1, shade);
 		context.fillStyle = ball;
 		context.beginPath();
-		context.arc(x, cy, r, 0, Math.PI * 2);
+		context.ellipse(cx, cy, wide, high, 0, 0, Math.PI * 2);
 		context.fill();
+
+		// Wet, and glistening, as he melts.
+		if (melt > 0) {
+			context.save();
+			context.globalAlpha *= 0.7 * melt;
+			context.strokeStyle = "#ffffff";
+			context.lineWidth = 2;
+			context.beginPath();
+			context.ellipse(cx, cy, wide * 0.7, high * 0.7, 0, Math.PI * 1.1, Math.PI * 1.45);
+			context.stroke();
+			context.restore();
+		}
+	}
+
+	// Drips running down him.
+	if (melt > 0) {
+		context.fillStyle = shade;
+
+		for (const [across, long] of [
+			[-0.6, 0.5],
+			[0.15, 0.8],
+			[0.55, 0.4],
+		]) {
+			const dx = x + middle.wide * across;
+			const top = middleY + middle.high * 0.75;
+			context.beginPath();
+			context.ellipse(
+				dx,
+				top + middle.high * long * melt * 0.5,
+				1.6,
+				middle.high * long * melt * 0.5,
+				0,
+				0,
+				Math.PI * 2,
+			);
+			context.fill();
+		}
 	}
 
 	// Coal buttons and eyes.
 	context.fillStyle = dark;
 
-	for (const [by, bx, r] of [
-		[middleY - middle * 0.4, 0, 2.4],
-		[middleY, 0, 2.4],
-		[middleY + middle * 0.4, 0, 2.4],
-		[headY - head * 0.2, -head * 0.35, 2],
-		[headY - head * 0.2, head * 0.35, 2],
+	for (const [bx, by, r] of [
+		[x, middleY - middle.high * 0.4, 2.4],
+		[x, middleY, 2.4],
+		[x, middleY + middle.high * 0.4, 2.4],
+		[headX - head * 0.35, headY - head * 0.2, 2],
+		[headX + head * 0.35, headY - head * 0.2 + head * 0.15 * melt, 2],
 	]) {
 		context.beginPath();
-		context.arc(x + bx, by, r, 0, Math.PI * 2);
+		context.arc(bx, by, r, 0, Math.PI * 2);
 		context.fill();
 	}
 
-	// A carrot nose.
+	// A carrot nose, drooping.
 	context.fillStyle = carrot;
 	context.beginPath();
-	context.moveTo(x, headY - 2);
-	context.lineTo(x + head * 0.9, headY + 1);
-	context.lineTo(x, headY + 3);
+	context.moveTo(headX, headY - 2);
+	context.lineTo(headX + head * 0.9 * (1 - 0.3 * melt), headY + 1 + head * 0.7 * melt);
+	context.lineTo(headX, headY + 3);
 	context.closePath();
 	context.fill();
 
 	// A scarf, one end blowing.
 	context.fillStyle = scarf;
-	context.fillRect(x - head * 0.95, headY + head * 0.75, head * 1.9, head * 0.4);
+	context.fillRect(x - head * 0.95, headY + head * 0.75, head * 1.9 + (headX - x), head * 0.4);
 	context.beginPath();
 	context.moveTo(x + head * 0.5, headY + head * 0.9);
 	context.lineTo(x + head * 1.6, headY + head * 1.4 + flap);
@@ -444,15 +510,20 @@ function snowman(
 	context.closePath();
 	context.fill();
 
-	// A top hat, with a band.
+	// A top hat, with a band, slipping off as his head lolls.
+	context.save();
+	context.translate(headX, headY - head * 0.85);
+	context.rotate(0.6 * melt);
+	context.translate(head * 0.4 * melt, head * 0.2 * melt);
 	context.fillStyle = dark;
-	context.fillRect(x - head * 1.05, headY - head * 0.85, head * 2.1, head * 0.22);
-	context.fillRect(x - head * 0.7, headY - head * 1.9, head * 1.4, head * 1.1);
+	context.fillRect(-head * 1.05, 0, head * 2.1, head * 0.22);
+	context.fillRect(-head * 0.7, -head * 1.05, head * 1.4, head * 1.1);
 	context.fillStyle = scarf;
-	context.fillRect(x - head * 0.7, headY - head * 1.05, head * 1.4, head * 0.18);
+	context.fillRect(-head * 0.7, -head * 0.2, head * 1.4, head * 0.18);
+	context.restore();
 }
 
-/** In front: nothing but, rarely, a big snowman, out of focus. */
+/** In front: nothing but, rarely, a big snowman, out of focus, melting (`melt`, 0 to 1) under the sun. */
 export function drawHillsForeground(
 	target: CanvasRenderingContext2D,
 	palette: IPalette,
@@ -462,6 +533,7 @@ export function drawHillsForeground(
 	pan: number,
 	clock: number,
 	day: number,
+	melt: number,
 	amount: number,
 	mix: IMix,
 ) {
@@ -469,7 +541,7 @@ export function drawHillsForeground(
 	const red = mix("#5a1418", palette.red, day);
 
 	drawOutOfFocus(target, amount, (context) => {
-		// Half a dozen across the hills.
+		// Half a dozen across the hills, stood on the snow in view so a melting one's puddle shows.
 		const snowmanDrift = pan * 1.6;
 		const snowmanSpacing = 520;
 		const snowmanFirst = Math.floor(snowmanDrift / snowmanSpacing) - 1;
@@ -482,14 +554,16 @@ export function drawHillsForeground(
 			snowman(
 				context,
 				index * snowmanSpacing - snowmanDrift + hash(index * 37) * snowmanSpacing * 0.4,
-				base + 6,
+				base - 10,
 				skyHeight * (0.42 + hash(index * 41) * 0.12),
 				snow,
 				mix("#6a7c84", "#9fb3c0", day),
 				mix("#0b0b0d", "#2a2a2e", day),
 				red,
 				mix("#6b3a14", "#e8823a", day),
+				mix("#3d5a6a", "#8fbcd4", day),
 				Math.sin(clock * 3 + index) * 4,
+				melt,
 			);
 		}
 	});

@@ -226,6 +226,8 @@ export function drawFrame(
 			parallaxPan(camera, width),
 			clock,
 			day,
+			// The hills see one day, from dawn to the last of the dusk; the snowmen melt through it.
+			Math.min(1, (sunAt(viewMiddle) ?? 0) * 1.5),
 			biomes.hills,
 			mix,
 		);
