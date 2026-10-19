@@ -11,7 +11,7 @@
 | them. One price per level; an item with one price is a single purchase.
 |
 | Prestige ("wrapping up Christmas") turns spare coins into gems and starts the coin shop
-| over. Gems buy extra levels for a few upgrades, and keeping the rest through prestige.
+| over. Gems buy keeping the coin shop's levels through prestige, and extra levels for a few.
 |
 */
 
@@ -56,8 +56,9 @@ return [
     'coins_per_gem_squared' => 10,
 
     // The gem shop, priced in gems, one price per level; gem levels never reset. Upgrades in
-    // gem_extra sell extra levels on top of the coin shop's. The rest sell keeping the coin
-    // shop's own levels through prestige, so they never need buying again.
+    // gem_extra sell extra levels on top of the coin shop's, and keeping their coin levels is
+    // sold separately (keep + the upgrade's name). The rest sell keeping the coin shop's own
+    // levels through prestige, so they never need buying again.
     'gem_upgrades' => [
         'swingStrength' => [2, 3, 5, 7, 10],
         'goldenCane' => [2, 5],
@@ -71,6 +72,11 @@ return [
         'sleigh' => [6],
         'candyMagnet' => [6],
         'luckyStocking' => [10],
+        // Keeping the coin levels of the upgrades above that sell extra levels: priced like
+        // keeping the sled runners and the padded snowsuit, which cost about the same in coins.
+        'keepSpringyBoots' => [2, 4, 7],
+        'keepCandyMagnet' => [2, 4, 7],
+        'keepLuckyStocking' => [3, 6],
         // Gem shop only: banked coins double with each level (×2, ×4, ×8).
         'christmasBonus' => [10, 25, 50],
         // Gem shop only: every hit launches 30% harder (the game applies it).

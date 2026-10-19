@@ -124,9 +124,11 @@ class ElfFlingTest extends TestCase
         // a kept coin level, so it never goes past five.
         $progress = ElfFlingProgress::for($user);
         $this->assertSame(1, $progress->combinedLevel('springyBoots'));
-        $this->assertSame(4, $progress->maxLevel('springyBoots'));
         $this->assertSame(1, $progress->combinedLevel('swingStrength'));
-        $this->assertSame(5, $progress->maxLevel('swingStrength'));
+        $progress->update(['upgrades' => ['springyBoots' => 3, 'swingStrength' => 5]]);
+        $this->assertSame(4, $progress->combinedLevel('springyBoots'));
+        $this->assertSame(5, $progress->combinedLevel('swingStrength'));
+        $progress->update(['upgrades' => []]);
 
         // The rocket is owned with gems, so there's nothing to buy with coins.
         $progress->update(['coins' => 1000]);
@@ -147,6 +149,39 @@ class ElfFlingTest extends TestCase
         $this->assertSame(3, $progress->fresh()->combinedLevel('sledRunners'));
         $this->postJson(route('elf-fling.purchases'), ['kind' => 'upgrade', 'item' => 'sledRunners'])
             ->assertJsonValidationErrors(['item' => 'That\'s already fully upgraded.']);
+    }
+
+    public function test_upgrades_that_sell_extra_levels_also_sell_keeping_their_coin_levels(): void
+    {
+        $user = $this->player();
+        ElfFlingProgress::for($user)->update(['coins' => 1000, 'gems' => 20, 'upgrades' => ['springyBoots' => 1], 'gem_upgrades' => ['springyBoots' => 1]]);
+
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'keepSpringyBoots'])
+            ->assertOk()
+            ->assertJsonPath('gem_upgrades.keepSpringyBoots', 1)
+            ->assertJsonPath('gem_upgrades.springyBoots', 1)
+            ->assertJsonPath('gems', 18);
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'gemUpgrade', 'item' => 'keepSpringyBoots'])
+            ->assertJsonPath('gem_upgrades.keepSpringyBoots', 2)
+            ->assertJsonPath('gems', 14);
+
+        // One bought and two kept: the coin shop's three, with the extra level on top.
+        $progress = ElfFlingProgress::for($user);
+        $this->assertSame(4, $progress->combinedLevel('springyBoots'));
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'upgrade', 'item' => 'springyBoots'])
+            ->assertJsonValidationErrors(['item' => 'That\'s already fully upgraded.']);
+
+        // Through prestige, the kept levels stay: the next with coins is priced as level 3.
+        $progress->update(['coins' => 1000]);
+        $this->postJson(route('elf-fling.prestige'))
+            ->assertJsonPath('progress.upgrades.springyBoots', 0)
+            ->assertJsonPath('progress.gem_upgrades.keepSpringyBoots', 2);
+        $this->assertSame(3, $progress->fresh()->combinedLevel('springyBoots'));
+        $progress->fresh()->update(['coins' => 500]);
+        $this->postJson(route('elf-fling.purchases'), ['kind' => 'upgrade', 'item' => 'springyBoots'])
+            ->assertJsonPath('upgrades.springyBoots', 1)
+            ->assertJsonPath('coins', 500 - 140);
+        $this->assertSame(4, $progress->fresh()->combinedLevel('springyBoots'));
     }
 
     public function test_gem_upgrades_cost_gems_and_kept_stocking_levels_add_to_every_throws_coins(): void

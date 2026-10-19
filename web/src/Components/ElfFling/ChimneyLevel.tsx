@@ -1,10 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, type CSSProperties } from "react";
+import { useLayoutEffect, useRef, type CSSProperties } from "react";
 import { useMediaQuery } from "@mantine/hooks";
 import classes from "Components/ElfFling/ElfFling.module.less";
 import PinballGame, { type IPinballTurn } from "Components/Pinball/PinballGame";
+import { VIEW } from "Components/Pinball/view";
 
 type IChimneyLevelProps = {
-	/** Where the chimney's mouth is on screen (page pixels): the table grows out of it, and shrinks back in. */
+	/** Where the chimney's mouth is on screen (page pixels): the table comes out of it, and goes back in. */
 	origin: { x: number; y: number };
 	leaving: boolean;
 	touchScreen: boolean;
@@ -22,64 +23,30 @@ function turnFor(landscapePhone: boolean): IPinballTurn {
 }
 
 /**
- * Down the chimney: the pinball takes over the screen, its table pulling out of the chimney's
- * mouth (and shrinking back into it when the game's over).
- *
- * On a phone held sideways the table's drawn turned a quarter, to fill the screen, and it turns
- * into place as it pulls out; turned upright, the phone shows it the right way up. Where the
- * browser allows (Android), the first press also switches to full screen locked upright, so the
- * phone turns itself. Locking needs full screen, and full screen needs a press, which is why it
- * waits for one.
+ * Down the chimney: the pinball takes over the game, full screen if the game was. The table
+ * comes out of the chimney's mouth as the view pulls back, showing it whole and tilted away;
+ * on a phone held sideways it turns a quarter, to fill the screen; then the view moves in until
+ * it fills the game. When the game's over, it goes back into the chimney.
  */
 export default function ChimneyLevel({ origin, leaving, touchScreen, soundOn, onGameOver }: IChimneyLevelProps) {
 	const portrait = useMediaQuery("(orientation: portrait)");
 	const turn = turnFor(touchScreen && portrait === false);
 	const levelRef = useRef<HTMLDivElement>(null);
 	const tableRef = useRef<HTMLDivElement>(null);
-	// Whether this level locked the screen (and so has to unlock it and leave full screen).
-	const lockedRef = useRef(false);
 
-	// The table starts at the chimney: how far that is from where the table sits, set before it's first painted.
+	// Set before it's first painted: the table starts at the chimney, this far from where it sits;
+	// and pulled back, it's half size, or on a phone held sideways (where it's drawn turned to
+	// fill the screen), shown upright at 60% of the screen's height.
 	useLayoutEffect(() => {
-		const box = tableRef.current!.getBoundingClientRect();
-		levelRef.current!.style.setProperty("--from-x", `${origin.x - (box.left + box.width / 2)}px`);
-		levelRef.current!.style.setProperty("--from-y", `${origin.y - (box.top + box.height / 2)}px`);
-	}, [origin]);
-
-	useEffect(
-		() => () => {
-			if (lockedRef.current) {
-				screen.orientation.unlock();
-
-				if (document.fullscreenElement) {
-					document.exitFullscreen().catch(() => {});
-				}
-			}
-		},
-		[],
-	);
-
-	const lockUpright = () => {
-		if (turn === 0 || lockedRef.current || !document.documentElement.requestFullscreen) {
-			return;
-		}
-
-		const orientation = screen.orientation as ScreenOrientation & {
-			lock?: (orientation: "portrait") => Promise<void>;
-		};
-		document.documentElement
-			.requestFullscreen()
-			.then(() => orientation.lock?.("portrait"))
-			.then(() => {
-				lockedRef.current = true;
-			})
-			.catch(() => {
-				// Not allowed here (an iPhone): the table stays turned until the phone is.
-				if (document.fullscreenElement) {
-					document.exitFullscreen().catch(() => {});
-				}
-			});
-	};
+		const table = tableRef.current!;
+		const box = table.getBoundingClientRect();
+		const level = levelRef.current!;
+		level.style.setProperty("--from-x", `${origin.x - (box.left + box.width / 2)}px`);
+		level.style.setProperty("--from-y", `${origin.y - (box.top + box.height / 2)}px`);
+		// Turned, the table's drawn as tall as the space, its length across it (or as long as fits).
+		const length = Math.min(table.offsetWidth, (table.offsetHeight * VIEW.height) / VIEW.width);
+		level.style.setProperty("--pulled-back", `${turn === 0 ? 0.5 : (0.6 * table.offsetHeight) / length}`);
+	}, [origin, turn]);
 
 	return (
 		<div
@@ -89,20 +56,8 @@ export default function ChimneyLevel({ origin, leaving, touchScreen, soundOn, on
 			style={{ "--turn-from": `${-turn}deg` } as CSSProperties}
 			role="dialog"
 			aria-modal="true"
-			aria-label="Down the chimney: pinball"
-			onPointerDownCapture={lockUpright}
+			aria-label="Down the chimney: pinball, with one ball"
 		>
-			<p className={classes.chimneyTitle}>Down the chimney!</p>
-			<p className={classes.chimneyHint}>
-				One ball: the higher you score, the more your coins so far are multiplied, and the harder you shoot back out.
-			</p>
-			<p className={classes.chimneyHint}>
-				{turn !== 0
-					? "Turn your phone upright for the best view. Press and let go to launch, then press the half by a flipper to flip."
-					: touchScreen
-						? "Press and let go to launch, then press the left or right half to flip."
-						: "Hold Space and let go to launch. Flip with the left and right arrow keys, or Space for both."}
-			</p>
 			<div ref={tableRef} className={classes.chimneyTable}>
 				<PinballGame soundOn={soundOn} balls={1} extraBalls={false} turn={turn} onGameOver={onGameOver} />
 			</div>

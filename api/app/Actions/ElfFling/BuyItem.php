@@ -61,9 +61,9 @@ class BuyItem
     }
 
     /**
-     * The next coin level's price. Nothing's left to buy with coins once the coin and gem
-     * levels together reach the top. Kept levels count as bought, so the next is priced as
-     * the level after them.
+     * The next coin level's price. Nothing's left to buy with coins once the coin shop's levels
+     * are all bought or kept. Kept levels count as bought, so the next is priced as the level
+     * after them.
      */
     private function coinUpgradePrice(ElfFlingProgress $progress, string $upgrade, int $count): int
     {
@@ -81,11 +81,11 @@ class BuyItem
 
         $prices = (array) config("elf_fling.upgrades.{$upgrade}", []);
 
-        if ($prices !== [] && $progress->combinedLevel($upgrade) >= $progress->maxLevel($upgrade)) {
+        $level = $progress->level($upgrade) + $progress->keptLevel($upgrade);
+
+        if ($prices !== [] && $level >= count($prices)) {
             throw ValidationException::withMessages(['item' => 'That\'s already fully upgraded.']);
         }
-
-        $level = $progress->gemLevelsAreExtra($upgrade) ? $progress->level($upgrade) : $progress->combinedLevel($upgrade);
 
         return $this->levelPrice($prices, $level);
     }

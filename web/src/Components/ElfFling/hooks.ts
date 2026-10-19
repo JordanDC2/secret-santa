@@ -4,7 +4,7 @@ import type { IBatterId, ISkinId } from "Components/ElfFling/skins";
 import {
 	NO_GEM_UPGRADES,
 	NO_UPGRADES,
-	type IGemOnlyId,
+	type IGemShopId,
 	type IGemUpgrades,
 	type IUpgradeId,
 	type IUpgrades,
@@ -111,7 +111,7 @@ export function usePurchaseMutation() {
 		mutationFn: async (
 			purchase:
 				| { kind: "upgrade"; item: IUpgradeId; count?: number }
-				| { kind: "gemUpgrade"; item: IUpgradeId | IGemOnlyId; count?: number }
+				| { kind: "gemUpgrade"; item: IGemShopId; count?: number }
 				| { kind: "skin"; item: ISkinId }
 				| { kind: "batter"; item: IBatterId },
 		) => toProgress(await apiClient.post<IProgressResponse>("/elf-fling/purchases", purchase)),

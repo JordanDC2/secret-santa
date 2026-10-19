@@ -1,8 +1,8 @@
 /**
  * The Elf Fling shops: what each upgrade costs and what owning it changes in a throw. Levels
  * start at 0 (not bought). Coin levels go when you wrap up Christmas (prestige); gem levels
- * stay. In the gem shop, a few upgrades sell extra levels on top of the coin shop's, the rest
- * sell keeping the coin shop's levels through prestige, and a couple are sold only for gems. The helpers at the bottom turn levels
+ * stay. In the gem shop, every upgrade sells keeping the coin shop's levels through prestige, a
+ * few sell extra levels on top of them too, and a couple are sold only for gems. The helpers at the bottom turn levels
  * into the numbers the physics uses. The server charges the same prices
  * (api/config/elf_fling.php).
  */
@@ -37,6 +37,8 @@ export type IShopItem = {
 	prices: number[];
 	/** How the gem shop sells it. */
 	gem: IGemOffer;
+	/** For one whose gem levels are extra: keeping its coin levels, sold separately. */
+	alsoKeep?: IGemOffer & { id: IKeepId };
 	/** Shown after the description where there's a keyboard (not on phones). */
 	keyboardHint?: string;
 };
@@ -98,6 +100,7 @@ export const SHOP_ITEMS: IShopItem[] = [
 			description: "Bouncier landings still.",
 			prices: [8],
 		},
+		alsoKeep: { id: "keepSpringyBoots", ...keep("the springy boots", [2, 4, 7]) },
 	},
 	{
 		id: "crackers",
@@ -161,6 +164,7 @@ export const SHOP_ITEMS: IShopItem[] = [
 			description: "Coins drift in from further away still.",
 			prices: [6],
 		},
+		alsoKeep: { id: "keepCandyMagnet", ...keep("the candy magnet", [2, 4, 7]) },
 	},
 	{
 		id: "luckyStocking",
@@ -174,6 +178,7 @@ export const SHOP_ITEMS: IShopItem[] = [
 			description: "More for every coin you bank.",
 			prices: [10],
 		},
+		alsoKeep: { id: "keepLuckyStocking", ...keep("the lucky stocking", [3, 6]) },
 	},
 ];
 
@@ -309,16 +314,25 @@ export type IPowerUpItemId = IPowerUpKind | "yuleLog" | "highWinds" | "updrafts"
 
 export type IGemOnlyId = "christmasBonus" | "offSeasonTraining" | "polarJetStream" | "santasLedger" | IPowerUpItemId;
 
+/** Keeping the coin levels of the upgrades whose gem levels are extra (alsoKeep). */
+export type IKeepId = "keepSpringyBoots" | "keepCandyMagnet" | "keepLuckyStocking";
+
+/** Everything the gem shop sells levels of. */
+export type IGemShopId = IUpgradeId | IGemOnlyId | IKeepId;
+
 const NO_POWER_UPS = Object.fromEntries(
 	[...POWER_UP_KINDS, "yuleLog", "highWinds", "updrafts", "chimney"].map((id) => [id, 0]),
 ) as Record<IPowerUpItemId, number>;
 
 /** Gem levels bought, per upgrade (and the gem-only ones): they never reset. */
-export type IGemUpgrades = IUpgrades & Record<IGemOnlyId, number>;
+export type IGemUpgrades = IUpgrades & Record<IGemOnlyId | IKeepId, number>;
 
 export const NO_GEM_UPGRADES: IGemUpgrades = {
 	...NO_UPGRADES,
 	...NO_POWER_UPS,
+	keepSpringyBoots: 0,
+	keepCandyMagnet: 0,
+	keepLuckyStocking: 0,
 	christmasBonus: 0,
 	offSeasonTraining: 0,
 	polarJetStream: 0,
@@ -435,9 +449,18 @@ export const GEM_ONLY_ITEMS: Array<{ id: IGemOnlyId; name: string; description: 
 	},
 ];
 
-/** An upgrade's top level, counting coin and gem levels together. */
-export function maxLevel(item: IShopItem): number {
-	return item.prices.length + (item.gem.kind === "extra" ? item.gem.prices.length : 0);
+/** How many of an upgrade's coin-shop levels are kept through prestige, bought with gems. */
+export function keptLevel(item: IShopItem, gemUpgrades: IGemUpgrades): number {
+	if (item.gem.kind === "keep") {
+		return gemUpgrades[item.id];
+	}
+
+	return item.alsoKeep ? gemUpgrades[item.alsoKeep.id] : 0;
+}
+
+/** How many extra levels on top of the coin shop's an upgrade has, bought with gems. */
+export function extraLevel(item: IShopItem, gemUpgrades: IGemUpgrades): number {
+	return item.gem.kind === "extra" ? gemUpgrades[item.id] : 0;
 }
 
 /** The coin and gem levels together, as the throw uses them. */
@@ -453,8 +476,10 @@ export function combinedUpgrades(upgrades: IUpgrades, gemUpgrades: IGemUpgrades)
 		combined[id] = gemUpgrades[id];
 	}
 
+	// The coin shop's levels, bought or kept (no more than it sells), and any extra on top.
 	for (const item of SHOP_ITEMS) {
-		combined[item.id] = Math.min(maxLevel(item), upgrades[item.id] + gemUpgrades[item.id]);
+		combined[item.id] =
+			Math.min(item.prices.length, upgrades[item.id] + keptLevel(item, gemUpgrades)) + extraLevel(item, gemUpgrades);
 	}
 
 	return combined;
@@ -464,15 +489,8 @@ export function combinedUpgrades(upgrades: IUpgrades, gemUpgrades: IGemUpgrades)
  * The coin price of the next level, or null if there's none to buy (all bought, or kept with
  * gems). Kept levels count as bought, so the next one is priced as the level after them.
  */
-export function nextCoinPrice(item: IShopItem, coinLevel: number, gemLevel: number): number | null {
-	const level = item.gem.kind === "keep" ? coinLevel + gemLevel : coinLevel;
-
-	return coinLevel + gemLevel >= maxLevel(item) ? null : (item.prices[level] ?? null);
-}
-
-/** The gem price of the next gem level, or null once they're all bought. */
-export function nextGemPrice(item: IShopItem, gemLevel: number): number | null {
-	return item.gem.prices[gemLevel] ?? null;
+export function nextCoinPrice(item: IShopItem, coinLevel: number, gemUpgrades: IGemUpgrades): number | null {
+	return item.prices[coinLevel + keptLevel(item, gemUpgrades)] ?? null;
 }
 
 /** The gems prestiging would give for these spare coins: √(coins ÷ 10), rounded down. */

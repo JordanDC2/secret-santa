@@ -20,7 +20,7 @@ import {
 import type { IGameState, IPhase } from "Components/ElfFling/physics";
 import { forgetDeviceProgress, readDeviceProgress, type IProgress } from "Components/ElfFling/progress";
 import { capitalised, skinById, type IBatterId, type ISkinId } from "Components/ElfFling/skins";
-import { combinedUpgrades, prestigeGems, type IGemOnlyId, type IUpgradeId } from "Components/ElfFling/upgrades";
+import { combinedUpgrades, prestigeGems, type IGemShopId, type IUpgradeId } from "Components/ElfFling/upgrades";
 import { playGem, readSoundOn, saveSoundOn, wakeAudio } from "Components/ElfFling/sound";
 import { readThrowsSeen, saveThrowsSeen, TIPS_FOR } from "Components/ElfFling/throwsSeen";
 import { useFullscreen } from "Components/ElfFling/useFullscreen";
@@ -246,7 +246,7 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 			{ kind: "upgrade", item: id, count: levels },
 			{ onSuccess: () => phase === "ready" && setRound((current) => current + 1) },
 		);
-	const buyGemUpgrade = (id: IUpgradeId | IGemOnlyId, levels = 1) =>
+	const buyGemUpgrade = (id: IGemShopId, levels = 1) =>
 		purchase.mutate(
 			{ kind: "gemUpgrade", item: id, count: levels },
 			{ onSuccess: () => phase === "ready" && setRound((current) => current + 1) },

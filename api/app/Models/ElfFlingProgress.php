@@ -95,18 +95,9 @@ class ElfFlingProgress extends Model
     }
 
     /**
-     * An upgrade's top level, coin and gem levels together: the coin shop's levels, plus the
-     * gem shop's extra levels for the upgrades that have them.
-     */
-    public function maxLevel(string $upgrade): int
-    {
-        return count(config("elf_fling.upgrades.{$upgrade}", []))
-            + ($this->gemLevelsAreExtra($upgrade) ? count(config("elf_fling.gem_upgrades.{$upgrade}", [])) : 0);
-    }
-
-    /**
      * Whether the gem shop sells extra levels of this upgrade, rather than keeping the coin
-     * shop's levels through prestige.
+     * shop's levels through prestige (which is then sold separately, as keepSpringyBoots for
+     * springyBoots).
      */
     public function gemLevelsAreExtra(string $upgrade): bool
     {
@@ -114,11 +105,30 @@ class ElfFlingProgress extends Model
     }
 
     /**
-     * Coin and gem levels together, as a throw uses them.
+     * How many of an upgrade's coin-shop levels are kept through prestige, bought with gems.
+     */
+    public function keptLevel(string $upgrade): int
+    {
+        return $this->gemLevelsAreExtra($upgrade) ? $this->gemLevel('keep'.ucfirst($upgrade)) : $this->gemLevel($upgrade);
+    }
+
+    /**
+     * Coin and gem levels together, as a throw uses them: the coin shop's levels, bought or
+     * kept (no more than it sells), and any extra levels on top.
      */
     public function combinedLevel(string $upgrade): int
     {
-        return min($this->maxLevel($upgrade), $this->level($upgrade) + $this->gemLevel($upgrade));
+        $extra = $this->gemLevelsAreExtra($upgrade) ? $this->gemLevel($upgrade) : 0;
+
+        return min($this->coinLevels($upgrade), $this->level($upgrade) + $this->keptLevel($upgrade)) + $extra;
+    }
+
+    /**
+     * How many levels the coin shop sells of an upgrade (none for the gem shop's own).
+     */
+    private function coinLevels(string $upgrade): int
+    {
+        return count(config("elf_fling.upgrades.{$upgrade}", []));
     }
 
     /**

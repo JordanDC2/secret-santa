@@ -31,14 +31,17 @@ import {
 	swingMultiplier,
 	swingReach,
 	POWER_UP_ITEMS,
+	extraLevel,
+	keptLevel,
 	nextCoinPrice,
-	nextGemPrice,
 	prestigeGems,
 	SANTAS_LEDGER,
 	SHOP_GROUPS,
 	SHOP_ITEMS,
-	type IGemOnlyId,
+	type IGemOffer,
+	type IGemShopId,
 	type IGemUpgrades,
+	type IKeepId,
 	type IShopItem,
 	type IUpgradeId,
 } from "Components/ElfFling/upgrades";
@@ -57,7 +60,7 @@ type IElfFlingShopProps = {
 	/** count: how many levels at once (the endless upgrades' ×5). */
 	onBuy: (id: IUpgradeId, count?: number) => void;
 	/** count: how many levels at once (Santa's ledger's ×5 and Max). */
-	onBuyGemUpgrade: (id: IUpgradeId | IGemOnlyId, count?: number) => void;
+	onBuyGemUpgrade: (id: IGemShopId, count?: number) => void;
 	/** Opens the hold-to-confirm over the game (WrapUpHold.tsx). */
 	onWrapUp: () => void;
 	onBuySkin: (id: ISkinId) => void;
@@ -130,9 +133,9 @@ export default function ElfFlingShop({
 							key={item.id}
 							name={item.name}
 							description={describe(item)}
-							{...coinRowLevels(item, upgrades[item.id], gemUpgrades[item.id])}
+							{...coinRowLevels(item, upgrades[item.id], gemUpgrades)}
 							effect={coinEffect(item, progress)}
-							price={nextCoinPrice(item, upgrades[item.id], gemUpgrades[item.id])}
+							price={nextCoinPrice(item, upgrades[item.id], gemUpgrades)}
 							currency="coins"
 							balance={coins}
 							busy={busy}
@@ -178,20 +181,22 @@ export default function ElfFlingShop({
 		</Stack>
 	);
 
-	const gemRow = (item: IShopItem) => (
+	// One gem-shop row: an upgrade's extra levels, or keeping its coin levels (stored under
+	// the upgrade's own id, or under alsoKeep's for one whose gem levels are extra).
+	const gemRow = (offer: IGemOffer, id: IUpgradeId | IKeepId) => (
 		<ShopRow
-			key={item.id}
-			name={item.gem.name}
-			description={item.gem.description}
-			level={gemUpgrades[item.id]}
-			levels={item.gem.prices.length}
-			doneLabel={item.gem.kind === "keep" ? "Kept" : undefined}
-			effect={gemEffect(item.id, progress)}
-			price={nextGemPrice(item, gemUpgrades[item.id])}
+			key={id}
+			name={offer.name}
+			description={offer.description}
+			level={gemUpgrades[id]}
+			levels={offer.prices.length}
+			doneLabel={offer.kind === "keep" ? "Kept" : undefined}
+			effect={gemEffect(id, progress)}
+			price={offer.prices[gemUpgrades[id]] ?? null}
 			currency="gems"
 			balance={gems}
 			busy={busy}
-			onBuy={() => onBuyGemUpgrade(item.id)}
+			onBuy={() => onBuyGemUpgrade(id)}
 		/>
 	);
 	const gemShop = (
@@ -247,14 +252,18 @@ export default function ElfFlingShop({
 			</Stack>
 			<Stack gap="sm">
 				<Divider label="Extra levels" labelPosition="left" />
-				{SHOP_ITEMS.filter((item) => item.gem.kind === "extra").map(gemRow)}
+				{SHOP_ITEMS.filter((item) => item.gem.kind === "extra").map((item) => gemRow(item.gem, item.id))}
 			</Stack>
 			<Stack gap="sm">
 				<Divider label="Keep through Christmas" labelPosition="left" />
 				<MantineText size="sm" c="dimmed">
 					The coin shop&apos;s own levels, kept when you wrap up Christmas so they never need buying again.
 				</MantineText>
-				{SHOP_ITEMS.filter((item) => item.gem.kind === "keep").map(gemRow)}
+				{SHOP_ITEMS.map((item) =>
+					item.gem.kind === "keep"
+						? gemRow(item.gem, item.id)
+						: item.alsoKeep && gemRow(item.alsoKeep, item.alsoKeep.id),
+				)}
 			</Stack>
 		</Stack>
 	);
@@ -388,7 +397,7 @@ const POWER_UP_EFFECTS: Record<ITimedPowerUpKind, string> = {
  * "Lasts: 5 s at level 1" before buying, "Lasts: 5 s now, 7.5 s at level 2" part way, and just
  * "Lasts: 10 s" when maxed. Null where there's no number to show (the keep items).
  */
-function gemEffect(id: IUpgradeId | IGemOnlyId, progress: IProgress): string | null {
+function gemEffect(id: IGemShopId, progress: IProgress): string | null {
 	const level = progress.gemUpgrades[id];
 	// The throw's numbers if this one were at `at` levels.
 	const at = (gemLevel: number) =>
@@ -447,12 +456,13 @@ function gemEffect(id: IUpgradeId | IGemOnlyId, progress: IProgress): string | n
  */
 function coinEffect(item: IShopItem, progress: IProgress): string | null {
 	const { id } = item;
-	const { level } = coinRowLevels(item, progress.upgrades[id], progress.gemUpgrades[id]);
+	const { level } = coinRowLevels(item, progress.upgrades[id], progress.gemUpgrades);
 	// The throw's numbers with the row at `rowLevel`: kept levels are already counted in it.
+	const keptId = item.gem.kind === "keep" ? id : item.alsoKeep?.id;
 	const at = (rowLevel: number) =>
 		combinedUpgrades(
 			{ ...progress.upgrades, [id]: rowLevel },
-			item.gem.kind === "keep" ? { ...progress.gemUpgrades, [id]: 0 } : progress.gemUpgrades,
+			keptId ? { ...progress.gemUpgrades, [keptId]: 0 } : progress.gemUpgrades,
 		);
 	const describe = (label: string, value: (rowLevel: number) => string) =>
 		effectLine(label, level, item.prices.length, value);
@@ -496,27 +506,25 @@ function effectLine(label: string, level: number, levels: number, value: (level:
 }
 
 /**
- * How a coin-shop row shows its levels alongside the gem shop's. Extra gem levels show as a note
- * ("+1 extra") beside the coin levels; kept levels count as bought, and once all are kept
- * there's nothing to buy with coins ("Kept").
+ * How a coin-shop row shows its levels alongside the gem shop's. Kept levels count as bought,
+ * and once all are kept there's nothing to buy with coins ("Kept"); extra gem levels show as a
+ * note ("+1 extra") beside them.
  */
 function coinRowLevels(
 	item: IShopItem,
 	coinLevel: number,
-	gemLevel: number,
+	gemUpgrades: IGemUpgrades,
 ): Pick<IShopRowProps, "level" | "levels" | "note" | "doneLabel"> {
 	const levels = item.prices.length;
-
-	if (item.gem.kind === "extra") {
-		return { level: coinLevel, levels, note: gemLevel > 0 ? `+${gemLevel} extra` : null };
-	}
-
-	const allKept = gemLevel >= levels;
+	const kept = keptLevel(item, gemUpgrades);
+	const extra = extraLevel(item, gemUpgrades);
+	const allKept = kept >= levels;
+	const notes = [kept > 0 && !allKept ? `${kept} kept` : null, extra > 0 ? `+${extra} extra` : null].filter(Boolean);
 
 	return {
-		level: Math.min(levels, coinLevel + gemLevel),
+		level: Math.min(levels, coinLevel + kept),
 		levels,
-		note: gemLevel > 0 && !allKept ? `${gemLevel} kept` : null,
+		note: notes.length > 0 ? notes.join(" · ") : null,
 		doneLabel: allKept ? "Kept" : undefined,
 	};
 }
