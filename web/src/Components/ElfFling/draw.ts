@@ -366,7 +366,13 @@ function parseHex(color: string): [number, number, number] | null {
 	return match ? [parseInt(match[1], 16), parseInt(match[2], 16), parseInt(match[3], 16)] : null;
 }
 
-/** A peppermint pole every 10 m, and a gold "Best" flag at this device's best throw. */
+/**
+ * A peppermint pole every 10 m, and a gold "Best" flag at this device's best throw. Every 50 m
+ * always shows; the poles between fade in as the camera zooms in (rather than the spacing
+ * switching at set zooms, which flickered as the zoom hovered by a switch).
+ */
+const MINOR_POLES = { hiddenBelow: 7, solidAbove: 14 };
+
 function drawDistanceFlags(
 	context: CanvasRenderingContext2D,
 	palette: IPalette,
@@ -376,14 +382,24 @@ function drawDistanceFlags(
 	best: number | null,
 ) {
 	const scale = camera.pixelsPerMetre;
-	const every = scale < 6 ? 50 : scale < 14 ? 20 : 10;
-	const first = Math.max(every, Math.ceil(camera.left / every) * every);
-	const last = camera.left + width / scale;
+	const minor = Math.min(
+		1,
+		Math.max(0, (scale - MINOR_POLES.hiddenBelow) / (MINOR_POLES.solidAbove - MINOR_POLES.hiddenBelow)),
+	);
+	const first = Math.max(10, Math.floor((camera.left - REINDEER_X) / 10) * 10);
+	const last = camera.left - REINDEER_X + width / scale;
 	context.font = "600 12px Nunito, sans-serif";
 	context.textAlign = "center";
 
-	for (let metres = first; metres <= last + every; metres += every) {
+	for (let metres = first; metres <= last + 10; metres += 10) {
+		const major = metres % 50 === 0;
+
+		if (!major && minor === 0) {
+			continue;
+		}
+
 		const x = (REINDEER_X + metres - camera.left) * scale;
+		context.globalAlpha = major ? 1 : minor;
 		context.fillStyle = palette.red;
 		context.fillRect(x - 1.5, groundY - 22, 3, 22);
 		context.fillStyle = palette.white;
@@ -392,6 +408,8 @@ function drawDistanceFlags(
 		context.fillStyle = palette.greenDark;
 		context.fillText(`${metres} m`, x, groundY + 16);
 	}
+
+	context.globalAlpha = 1;
 
 	if (best !== null && best > 0) {
 		const x = (REINDEER_X + best - camera.left) * scale;
