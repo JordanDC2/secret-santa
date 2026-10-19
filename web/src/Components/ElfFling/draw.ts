@@ -222,6 +222,7 @@ export function drawFrame(
 }
 
 /** The winter day: a pale blue sky, low sun and greener hills, blended in as it warms. */
+const SUN_RADIUS = 20;
 const DAY = { skyTop: "#5e9fd6", skyBottom: "#cfe6f3", hills: "#4f8a5b", slush: "#c9d2cd", grass: "#5c8f4e" };
 
 /**
@@ -250,18 +251,26 @@ function drawSky(
 
 	if (sun !== null) {
 		// Low across the sky, as a winter sun is. The elf heads east (right), so the sun comes up
-		// on the right, is highest at noon, and sets on the left in the west.
+		// on the right, is highest at noon, and sets on the left in the west. It starts and ends
+		// below the horizon (hidden: only the sky above it is drawn on), so it rises up through
+		// it, behind the hills, rather than appearing, and its glow brightens as it climbs.
+		const rise = Math.sin(sun * Math.PI);
 		const x = width * (0.9 - 0.8 * sun);
-		const y = groundY - Math.sin(sun * Math.PI) * groundY * 0.55 - 10;
+		const y = groundY + SUN_RADIUS + 6 - rise * (groundY * 0.55 + SUN_RADIUS + 16);
+		context.save();
+		context.beginPath();
+		context.rect(0, 0, width, groundY);
+		context.clip();
 		const glow = context.createRadialGradient(x, y, 0, x, y, 70);
-		glow.addColorStop(0, "rgba(255, 236, 170, 0.55)");
+		glow.addColorStop(0, `rgba(255, 236, 170, ${(0.55 * Math.min(1, rise * 3)).toFixed(3)})`);
 		glow.addColorStop(1, "rgba(255, 236, 170, 0)");
 		context.fillStyle = glow;
 		context.fillRect(x - 70, y - 70, 140, 140);
 		context.fillStyle = "#fff3c4";
 		context.beginPath();
-		context.arc(x, y, 20, 0, Math.PI * 2);
+		context.arc(x, y, SUN_RADIUS, 0, Math.PI * 2);
 		context.fill();
+		context.restore();
 	}
 
 	// Stars, scrolling slowly so the flight feels fast without being dizzy; gone by day.
