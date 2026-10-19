@@ -1,7 +1,10 @@
-import { Button, SimpleGrid, Stack, Text as MantineText } from "@mantine/core";
+import { useState } from "react";
+import { Alert, Button, SimpleGrid, Stack, Text as MantineText } from "@mantine/core";
 import { Link } from "react-router-dom";
+import ConfirmButtons from "Components/Common/ConfirmButtons";
 import GiftBoxIcon from "Components/Common/FestiveIcons/GiftBoxIcon";
-import { useProgressQuery } from "Components/ElfFling/hooks";
+import { useProgressQuery, useUnlockPinballMutation } from "Components/ElfFling/hooks";
+import { apiErrorMessage } from "Data/Api/Client";
 import SectionCard from "Components/Common/SectionCard";
 import BackToGroups from "Components/Layout/BackToGroups";
 import Page from "Components/Layout/Page";
@@ -41,23 +44,54 @@ export default function GamesPage() {
 							}
 						>
 							<MantineText size="sm">
-								Elf Fling&apos;s secret level: candy-cane flippers, ornament bumpers and gifts to light up.
+								Elf Fling&apos;s secret level: a whole Christmas pinball machine, with ramps, chimneys, missions and
+								multiball.
 							</MantineText>
 						</SectionCard>
 					) : (
-						<SectionCard
-							title="?"
-							action={
-								<Button component={Link} to="/games/elf-fling" variant="secondary" size="xs">
-									Play Elf Fling
-								</Button>
-							}
-						>
-							<MantineText size="sm">Play Elf Fling to unlock.</MantineText>
-						</SectionCard>
+						<LockedGame />
 					)}
 				</SimpleGrid>
 			</Stack>
 		</Page>
+	);
+}
+
+/**
+ * The secret game's card until it's found: play Elf Fling to find it, or (for anyone who won't
+ * play enough to get there) unlock it anyway, after an "are you sure?".
+ */
+function LockedGame() {
+	const [asking, setAsking] = useState(false);
+	const unlock = useUnlockPinballMutation();
+
+	return (
+		<SectionCard
+			title="?"
+			action={
+				<Button component={Link} to="/games/elf-fling" variant="secondary" size="xs">
+					Play Elf Fling
+				</Button>
+			}
+		>
+			<MantineText size="sm">Play Elf Fling to unlock.</MantineText>
+			{asking ? (
+				<Stack gap="xs">
+					<MantineText size="sm">Unlock it now? You&apos;ll miss finding it yourself in Elf Fling.</MantineText>
+					{unlock.isError && <Alert color="red">{apiErrorMessage(unlock.error)}</Alert>}
+					<ConfirmButtons
+						size="xs"
+						confirmLabel="Unlock it"
+						isPending={unlock.isPending}
+						onConfirm={() => unlock.mutate()}
+						onCancel={() => setAsking(false)}
+					/>
+				</Stack>
+			) : (
+				<Button variant="subtle" size="xs" w="fit-content" onClick={() => setAsking(true)}>
+					Unlock anyway
+				</Button>
+			)}
+		</SectionCard>
 	);
 }
