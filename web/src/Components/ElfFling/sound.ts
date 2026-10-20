@@ -6,6 +6,7 @@
  * after a tap or click, which turning it on always is.
  */
 
+import { fireworksSoFar } from "Components/ElfFling/journey";
 import { ROCKET_SECONDS, type IGameState } from "Components/ElfFling/physics";
 import { inGust, inUpdraft, JET_STREAM_HEIGHT } from "Components/ElfFling/weather";
 
@@ -78,9 +79,18 @@ function noiseBuffer(ctx: AudioContext): AudioBuffer {
 
 /**
  * A tone that starts at `from` Hz, slides to `to`, and fades out over `length` seconds, `delay`
- * seconds from now. Shared with pinball's sounds and music (Components/Pinball/pinballSound.ts).
+ * seconds from now (through `output`, if given, rather than straight out). Shared with
+ * pinball's sounds and music (Components/Pinball/pinballSound.ts).
  */
-export function tone(type: OscillatorType, from: number, to: number, length: number, volume: number, delay = 0) {
+export function tone(
+	type: OscillatorType,
+	from: number,
+	to: number,
+	length: number,
+	volume: number,
+	delay = 0,
+	output?: AudioNode,
+) {
 	const ctx = audio();
 
 	if (!ctx || !master) {
@@ -95,7 +105,7 @@ export function tone(type: OscillatorType, from: number, to: number, length: num
 	oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, to), start + length);
 	gain.gain.setValueAtTime(volume, start);
 	gain.gain.exponentialRampToValueAtTime(0.0001, start + length);
-	oscillator.connect(gain).connect(master);
+	oscillator.connect(gain).connect(output ?? master);
 	oscillator.start(start);
 	oscillator.stop(start + length + 0.02);
 }
@@ -108,6 +118,7 @@ export function hiss(
 	volume: number,
 	delay = 0,
 	sweepTo?: number,
+	output?: AudioNode,
 ) {
 	const ctx = audio();
 
@@ -130,7 +141,10 @@ export function hiss(
 
 	gain.gain.setValueAtTime(volume, start);
 	gain.gain.exponentialRampToValueAtTime(0.0001, start + length);
-	source.connect(shape).connect(gain).connect(master);
+	source
+		.connect(shape)
+		.connect(gain)
+		.connect(output ?? master);
 	source.start(start);
 	source.stop(start + length + 0.02);
 }
@@ -278,6 +292,360 @@ export function playSleighArrives() {
 	}
 }
 
+/** A firework bursting up over the village: a soft pop and a trailing crackle, under the music. */
+export function playFirework() {
+	tone("sine", 220, 90, 0.12, 0.18);
+
+	for (let crackle = 0; crackle < 4; crackle++) {
+		hiss("highpass", 6000, 0.04, 0.08, 0.18 + crackle * 0.07 + Math.random() * 0.04);
+	}
+}
+
+/** Note names to frequencies, for the welcome's music. */
+const NOTES: Record<string, number> = {
+	G2: 98,
+	A2: 110,
+	B2: 123.47,
+	C3: 130.81,
+	D3: 146.83,
+	E3: 164.81,
+	G3: 196,
+	A3: 220,
+	B3: 246.94,
+	C4: 261.63,
+	"C#4": 277.18,
+	D4: 293.66,
+	"D#4": 311.13,
+	E4: 329.63,
+	"F#4": 369.99,
+	G4: 392,
+	A4: 440,
+	B4: 493.88,
+	C5: 523.25,
+	D5: 587.33,
+	G5: 783.99,
+	B5: 987.77,
+	D6: 1174.66,
+	G6: 1567.98,
+};
+
+const G = ["G3", "B3", "D4"];
+const C = ["G3", "C4", "E4"];
+const D = ["A3", "D4", "F#4"];
+const D7 = ["A3", "C4", "F#4"];
+const EM = ["G3", "B3", "E4"];
+
+/**
+ * We Wish You a Merry Christmas (traditional), in G, all of it: the chorus, then "Good tidings
+ * we bring". Sixteen bars of three beats, each with its tune ([note, beats]), bass note and
+ * chord on each of the second and third beats. The tune's pickup into each half sits at the end
+ * of the bar before, so the song loops round.
+ */
+const MERRY_CHRISTMAS: Array<{ tune: Array<[string, number]>; bass: string; chords: [string[], string[]] }> = [
+	{
+		tune: [
+			["G4", 1],
+			["G4", 0.5],
+			["A4", 0.5],
+			["G4", 0.5],
+			["F#4", 0.5],
+		],
+		bass: "G2",
+		chords: [G, G],
+	},
+	{
+		tune: [
+			["E4", 1],
+			["E4", 1],
+			["E4", 1],
+		],
+		bass: "C3",
+		chords: [C, C],
+	},
+	{
+		tune: [
+			["A4", 1],
+			["A4", 0.5],
+			["B4", 0.5],
+			["A4", 0.5],
+			["G4", 0.5],
+		],
+		bass: "A2",
+		chords: [
+			["A3", "C#4", "E4"],
+			["A3", "C#4", "E4"],
+		],
+	},
+	{
+		tune: [
+			["F#4", 1],
+			["D4", 1],
+			["D4", 1],
+		],
+		bass: "D3",
+		chords: [D, D],
+	},
+	{
+		tune: [
+			["B4", 1],
+			["B4", 0.5],
+			["C5", 0.5],
+			["B4", 0.5],
+			["A4", 0.5],
+		],
+		bass: "B2",
+		chords: [
+			["B3", "D#4", "F#4"],
+			["B3", "D#4", "F#4"],
+		],
+	},
+	{
+		tune: [
+			["G4", 1],
+			["E4", 1],
+			["D4", 0.5],
+			["D4", 0.5],
+		],
+		bass: "E3",
+		chords: [EM, EM],
+	},
+	{
+		tune: [
+			["E4", 1],
+			["A4", 1],
+			["F#4", 1],
+		],
+		bass: "C3",
+		chords: [C, D7],
+	},
+	{
+		tune: [
+			["G4", 2],
+			["D4", 1],
+		],
+		bass: "G2",
+		chords: [G, G],
+	},
+	{
+		tune: [
+			["G4", 1],
+			["G4", 1],
+			["G4", 1],
+		],
+		bass: "G2",
+		chords: [G, G],
+	},
+	{
+		tune: [
+			["F#4", 2],
+			["F#4", 1],
+		],
+		bass: "D3",
+		chords: [D, D],
+	},
+	{
+		tune: [
+			["G4", 1],
+			["F#4", 1],
+			["E4", 1],
+		],
+		bass: "E3",
+		chords: [EM, EM],
+	},
+	{
+		tune: [
+			["D4", 2],
+			["A4", 1],
+		],
+		bass: "D3",
+		chords: [D, D],
+	},
+	{
+		tune: [
+			["B4", 1],
+			["A4", 1],
+			["G4", 1],
+		],
+		bass: "G2",
+		chords: [G, G],
+	},
+	{
+		tune: [
+			["D5", 1],
+			["D4", 1],
+			["D4", 0.5],
+			["D4", 0.5],
+		],
+		bass: "D3",
+		chords: [D, D],
+	},
+	{
+		tune: [
+			["E4", 1],
+			["A4", 1],
+			["F#4", 1],
+		],
+		bass: "C3",
+		chords: [C, D7],
+	},
+	{
+		tune: [
+			["G4", 2],
+			["D4", 1],
+		],
+		bass: "G2",
+		chords: [G, G],
+	},
+];
+
+/** The welcome's tempo. */
+const WELCOME_BEAT = 60 / 160;
+
+type IMusicHit = { at: number; play: (delay: number, output: AudioNode) => void };
+
+/**
+ * One time through the song as a little band, as hits in beats from its start: the tune on a
+ * bright lead (doubled an octave up, softly), oom-pah-pah bass and chords with a kick and a
+ * light snare, sleigh bells on and between every beat, and a glockenspiel run as each half
+ * comes home.
+ */
+function merryChristmas(): IMusicHit[] {
+	const hits: IMusicHit[] = [];
+
+	MERRY_CHRISTMAS.forEach(({ tune, bass, chords }, bar) => {
+		const start = bar * 3;
+		let beat = start;
+
+		for (const [note, beats] of tune) {
+			const pitch = NOTES[note];
+			hits.push({
+				at: beat,
+				play: (delay, output) => {
+					tone("square", pitch, pitch, beats * WELCOME_BEAT * 0.9, 0.07, delay, output);
+					tone("triangle", pitch * 2, pitch * 2, beats * WELCOME_BEAT * 0.6, 0.05, delay, output);
+				},
+			});
+			beat += beats;
+		}
+
+		// Oom: the bass and a kick.
+		hits.push({
+			at: start,
+			play: (delay, output) => {
+				tone("triangle", NOTES[bass], NOTES[bass], WELCOME_BEAT * 0.9, 0.35, delay, output);
+				tone("sine", 140, 50, 0.12, 0.45, delay, output);
+			},
+		});
+
+		// Pah-pah: the chord, and a light snare.
+		chords.forEach((chord, step) => {
+			hits.push({
+				at: start + 1 + step,
+				play: (delay, output) => {
+					for (const note of chord) {
+						tone("triangle", NOTES[note], NOTES[note], WELCOME_BEAT * 0.45, 0.06, delay, output);
+					}
+
+					hiss("bandpass", 2200, 0.08, 0.12, delay, undefined, output);
+				},
+			});
+		});
+
+		// Sleigh bells on every beat, and between them.
+		for (let step = 0; step < 3; step++) {
+			hits.push({
+				at: start + step,
+				play: (delay, output) => {
+					hiss("highpass", 7000, 0.06, 0.16, delay, undefined, output);
+					hiss("highpass", 8000, 0.04, 0.08, delay + WELCOME_BEAT / 2, undefined, output);
+				},
+			});
+		}
+
+		// Home at the end of each half ("and a happy New Year"): a glockenspiel run.
+		if (bar === 7 || bar === 15) {
+			hits.push({
+				at: start,
+				play: (delay, output) =>
+					["G5", "B5", "D6", "G6"].forEach((note, i) =>
+						tone("sine", NOTES[note], NOTES[note], 0.5, 0.18, delay + i * 0.09, output),
+					),
+			});
+		}
+	});
+
+	return hits;
+}
+
+/** How far ahead the music is scheduled, and how often the scheduler looks. */
+const MUSIC_LOOKAHEAD = 0.35;
+const MUSIC_TICK_MS = 120;
+
+/** The welcome's music while it plays: how to stop it (fading out over so many seconds). */
+let welcomeMusic: ((fade: number) => void) | null = null;
+
+/**
+ * The end of the journey: We Wish You a Merry Christmas, round and round for as long as the
+ * welcome lasts, on its own volume so it can fade out (stopJourneysEndMusic).
+ */
+export function startJourneysEndMusic() {
+	stopJourneysEndMusic(0);
+	const ctx = audio();
+	const started = audioNow();
+
+	if (!ctx || !master || started === null) {
+		return;
+	}
+
+	const bus = ctx.createGain();
+	bus.connect(master);
+	const hits = merryChristmas();
+	const loopLength = MERRY_CHRISTMAS.length * 3 * WELCOME_BEAT;
+	// The pickup ("We") first, then the song from its first full bar, round and round.
+	tone("square", NOTES.D4, NOTES.D4, WELCOME_BEAT * 0.9, 0.07, 0.05, bus);
+	const origin = started + 0.05 + WELCOME_BEAT;
+	let scheduledTo = origin;
+
+	const schedule = () => {
+		const now = audioNow();
+
+		if (now === null) {
+			return;
+		}
+
+		const until = now + MUSIC_LOOKAHEAD;
+
+		for (let loop = Math.floor((scheduledTo - origin) / loopLength); origin + loop * loopLength < until; loop++) {
+			for (const hit of hits) {
+				const when = origin + loop * loopLength + hit.at * WELCOME_BEAT;
+
+				if (when >= scheduledTo && when < until && when >= now) {
+					hit.play(when - now, bus);
+				}
+			}
+		}
+
+		scheduledTo = Math.max(scheduledTo, until);
+	};
+
+	schedule();
+	const timer = window.setInterval(schedule, MUSIC_TICK_MS);
+
+	welcomeMusic = (fade) => {
+		window.clearInterval(timer);
+		const now = ctx.currentTime;
+		bus.gain.setValueAtTime(bus.gain.value, now);
+		bus.gain.linearRampToValueAtTime(0, now + Math.max(0.01, fade));
+		window.setTimeout(() => bus.disconnect(), (Math.max(0.01, fade) + 0.5) * 1000);
+	};
+}
+
+/** Stops the welcome's music, if it's playing, fading it out over `fade` seconds. */
+export function stopJourneysEndMusic(fade = 1.5) {
+	welcomeMusic?.(fade);
+	welcomeMusic = null;
+}
+
 /** A new best: a little rising fanfare. */
 export function playFanfare() {
 	[523, 659, 784, 1047].forEach((pitch, i) => tone("triangle", pitch, pitch, i === 3 ? 0.6 : 0.16, 0.4, i * 0.12));
@@ -296,8 +664,21 @@ function inWind(state: IGameState): boolean {
  * the hit, coins, crackers, ornaments, snowmen, landings, gusts and updrafts, power-ups, Yule logs, jumps, the rocket and the sleigh.
  */
 export function playStateChanges(previous: IGameState, next: IGameState) {
-	if (previous.phase === "ready" && next.phase === "dropping") {
+	if ((previous.phase === "ready" || previous.phase === "celebrating") && next.phase === "dropping") {
 		playHop();
+	}
+
+	// The end of the journey: the music, round and round until the elf's off for the next round.
+	if (previous.phase !== "celebrating" && next.phase === "celebrating") {
+		startJourneysEndMusic();
+	}
+
+	if (previous.phase === "celebrating" && next.phase !== "celebrating") {
+		stopJourneysEndMusic();
+	}
+
+	if (fireworksSoFar(next.celebration, next.time) > fireworksSoFar(previous.celebration, previous.time)) {
+		playFirework();
 	}
 
 	if (previous.swingTime === null && next.swingTime !== null) {

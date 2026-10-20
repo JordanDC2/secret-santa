@@ -36,7 +36,7 @@ import {
 import type { IBatterId, ISkinId } from "Components/ElfFling/skins";
 import type { IThrowUpgrades } from "Components/ElfFling/upgrades";
 import { releaseFocus } from "Components/ElfFling/releaseFocus";
-import { playFanfare, playStateChanges } from "Components/ElfFling/sound";
+import { playFanfare, playStateChanges, stopJourneysEndMusic } from "Components/ElfFling/sound";
 import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
 import classes from "Components/ElfFling/ElfFling.module.less";
 
@@ -155,6 +155,15 @@ export default function ElfFlingGame({
 		callbacksRef.current = { onPhaseChange, onFinish, onJumpsChange, onRestart, onChimneyFound };
 	});
 
+	// The welcome's music stops with the sound, and when this throw's game goes (restarted, or left).
+	useEffect(() => {
+		if (!soundOn) {
+			stopJourneysEndMusic(0);
+		}
+	}, [soundOn]);
+
+	useEffect(() => () => stopJourneysEndMusic(0), []);
+
 	// Full screen: all of it. Otherwise taller in proportion on phones, so there's room to see
 	// the flight on a narrow screen.
 	// It never needs scrolling to see, e.g. on a phone held sideways (where full screen is better).
@@ -214,7 +223,12 @@ export default function ElfFlingGame({
 
 			if (next.phase !== previous.phase) {
 				callbacksRef.current.onPhaseChange(next.phase);
-				setRunning(next.phase === "dropping" || next.phase === "flying" || next.phase === "sliding");
+				setRunning(
+					next.phase === "dropping" ||
+						next.phase === "flying" ||
+						next.phase === "sliding" ||
+						next.phase === "celebrating",
+				);
 
 				if (next.phase === "done") {
 					callbacksRef.current.onFinish(next);

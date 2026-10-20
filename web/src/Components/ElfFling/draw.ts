@@ -21,6 +21,16 @@ import { drawSnowfall, ELF_ACROSS, parallaxPan } from "Components/ElfFling/drawS
 import { drawSnowmen } from "Components/ElfFling/drawSnowmen";
 import type { IBatterId, ISkinId } from "Components/ElfFling/skins";
 import { drawBatter } from "Components/ElfFling/drawBatters";
+import { celebrationStage } from "Components/ElfFling/journey";
+import { JOURNEY_LENGTH, launchX, RUNWAY_LENGTH } from "Components/ElfFling/journeyMap";
+import {
+	drawCrowd,
+	drawFireworks,
+	drawNorthPole,
+	drawNorthPoleForeground,
+	drawRunway,
+	drawVillage,
+} from "Components/ElfFling/drawNorthPole";
 
 /**
  * Draws one frame of Elf Fling on a canvas: a snowy night, distance flags, the stack of
@@ -90,17 +100,29 @@ const MAX_VIEW_HEIGHT = 30;
 const ELF_HEIGHT_IN_VIEW = 0.55;
 /** At least this much of the course is always in view across, so a tall, narrow screen (a phone held upright) still shows the batter and the presents. */
 const MIN_VIEW_WIDTH = 6.6;
+/** Through the welcome at a journey's end, the view's this tall, with the elf in the middle: Santa's workshop and all in shot. */
+const VILLAGE_VIEW_HEIGHT = 9;
 
 /** The camera for this frame, eased from the last one so zooming and panning stay smooth. */
 export function nextCamera(previous: ICamera | null, state: IGameState, width: number, height: number): ICamera {
 	const skyHeight = height * (1 - GROUND_SHARE);
+	// Being welcomed at a journey's end (until it's back on the presents for the next round).
+	const welcoming =
+		state.phase === "celebrating" &&
+		state.celebration !== null &&
+		celebrationStage(state.celebration, state.time).stage !== "waiting";
 	// In the air, leave room above the elf so it sits in the middle of the sky, not at the top.
 	const headroom = state.phase === "flying" ? state.elf.y * 0.6 + 1.5 : 1.2;
-	const wanted = Math.max(BASE_VIEW_HEIGHT, state.elf.y + headroom);
+	const wanted = welcoming
+		? Math.max(VILLAGE_VIEW_HEIGHT, state.elf.y + 1.5)
+		: Math.max(BASE_VIEW_HEIGHT, state.elf.y + headroom);
 	const viewHeight = Math.min(MAX_VIEW_HEIGHT, wanted);
 	const targetScale = Math.min(skyHeight / viewHeight, width / MIN_VIEW_WIDTH);
 	const viewWidth = width / targetScale;
-	const targetLeft = Math.max(-1.4, state.elf.x - viewWidth * ELF_ACROSS);
+	// Never further back than just behind this round's reindeer, except while welcomed.
+	const targetLeft = welcoming
+		? state.elf.x - viewWidth / 2
+		: Math.max(launchX(state.round) - 1.4, state.elf.x - viewWidth * ELF_ACROSS);
 	// Too high to zoom out to: pan up with the elf instead.
 	const targetBottom = wanted > MAX_VIEW_HEIGHT ? Math.max(0, state.elf.y - viewHeight * ELF_HEIGHT_IN_VIEW) : 0;
 
@@ -176,8 +198,36 @@ export function drawFrame(
 		visible,
 		state.upgrades.highWinds > 0,
 	);
-	drawPresents(context, palette);
-	drawBatter(context, palette, state.swingTime, batter);
+	// Each journey's end in view, and the runway up to it: Santa's workshop and all, its doors
+	// open once the crowd's out.
+	for (
+		let centre = Math.max(1, Math.floor((visible.left - 12) / JOURNEY_LENGTH)) * JOURNEY_LENGTH;
+		centre - RUNWAY_LENGTH - 5 < visible.right;
+		centre += JOURNEY_LENGTH
+	) {
+		if (centre + 12 > visible.left) {
+			drawRunway(context, palette, centre - RUNWAY_LENGTH, centre, visible.left, visible.right, clock);
+			drawVillage(context, palette, centre, clock, state.celebration?.centre === centre);
+		}
+	}
+
+	drawFireworks(context, state);
+
+	// The presents and whoever swings: at the start, and past each journey's end for the round after it.
+	for (const round of [state.round - 1, state.round, state.round + 1]) {
+		const x = launchX(round);
+
+		if (round >= 1 && x + 4 > visible.left && x - 2 < visible.right) {
+			// Only this round's batter swings, once the elf's hopped off for it.
+			const swinging = round === state.round && state.phase !== "celebrating" ? state.swingTime : null;
+			context.save();
+			context.translate(x, 0);
+			drawPresents(context, palette);
+			drawBatter(context, palette, swinging, batter);
+			context.restore();
+		}
+	}
+
 	drawCrackers(context, palette, state.crackers, state.time, camera.pixelsPerMetre, visible);
 	drawOrnaments(context, palette, state.ornaments, state.time, camera.pixelsPerMetre, visible);
 	drawSnowmen(context, palette, state.snowmen, state.time, camera.pixelsPerMetre, visible);
@@ -186,6 +236,7 @@ export function drawFrame(
 	drawCoins(context, palette, state.coins, state.time, camera.pixelsPerMetre, visible);
 	drawPowerUps(context, palette, state.powerUps, state.time, camera.pixelsPerMetre, visible);
 	drawShine(context, palette, state, camera.pixelsPerMetre);
+	drawCrowd(context, palette, state, camera.pixelsPerMetre);
 	drawFlyer(context, palette, state, camera.pixelsPerMetre, skin);
 	drawElfPowerUps(context, palette, state, camera.pixelsPerMetre);
 	// In front of the elf, so one inside a log or down a chimney is hidden by it.
@@ -259,6 +310,21 @@ export function drawFrame(
 		);
 	}
 
+	if (biomes.northPole > 0) {
+		drawNorthPoleForeground(
+			context,
+			palette,
+			width,
+			foregroundBase,
+			groundY,
+			parallaxPan(camera, width),
+			clock,
+			day,
+			biomes.northPole,
+			mix,
+		);
+	}
+
 	if (celebrationAge !== null) {
 		drawCelebration(context, palette, size, celebrationAge);
 	}
@@ -291,6 +357,18 @@ export function drawFrame(
 
 	if (arriving) {
 		drawBiomeTitle(context, palette, width, height, arriving.name, Math.sin(arriving.along * Math.PI));
+	}
+
+	// At a journey's end: "Merry Christmas!" through the party, then which round's next.
+	if (state.phase === "celebrating" && state.celebration) {
+		const { stage, along } = celebrationStage(state.celebration, state.time);
+
+		if (stage === "party") {
+			drawBiomeTitle(context, palette, width, height, "Merry Christmas!", Math.min(1, Math.sin(along * Math.PI) * 2));
+		} else if (stage === "waiting") {
+			// To the right, clear of the presents the elf's waiting on.
+			drawBiomeTitle(context, palette, width, height, `Round ${state.round}`, 1, 0.8);
+		}
 	}
 
 	// Panned up with a high elf, the snow's out of shot: say how high it is instead.
@@ -367,8 +445,8 @@ function drawSky(
 	}
 	context.globalAlpha = 1;
 
-	// On the tundra, the northern lights, at night.
-	drawAurora(context, width, groundY, clock, biomes.tundra * (1 - day));
+	// On the tundra and at the North Pole, the northern lights, at night.
+	drawAurora(context, width, groundY, clock, (biomes.tundra + biomes.northPole) * (1 - day));
 
 	// The biomes' scenery behind the course (biomes.ts), fading from one into the next.
 	if (biomes.hills > 0) {
@@ -385,6 +463,10 @@ function drawSky(
 
 	if (biomes.mountainStream > 0) {
 		drawMountains(context, width, floorY, parallaxPan(camera, width), day, biomes.mountainStream, mix);
+	}
+
+	if (biomes.northPole > 0) {
+		drawNorthPole(context, palette, width, floorY, parallaxPan(camera, width), day, biomes.northPole, clock, mix);
 	}
 }
 
@@ -585,12 +667,14 @@ function drawBiomeTitle(
 	height: number,
 	name: string,
 	alpha: number,
+	/** How far across the game its middle is. */
+	across = 0.5,
 ) {
 	context.globalAlpha = alpha;
 	context.font = '700 34px "Mountains of Christmas", Nunito, serif';
 	context.textAlign = "center";
 	context.fillStyle = palette.gold;
-	drawOutlinedText(context, name, width / 2, height * 0.28);
+	drawOutlinedText(context, name, width * across, height * 0.28);
 	context.globalAlpha = 1;
 }
 

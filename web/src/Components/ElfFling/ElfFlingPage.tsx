@@ -58,6 +58,7 @@ const PROMPTS: Record<Exclude<IPhase, "done" | "ready">, string> = {
 	dropping: "Now tap to swing!",
 	flying: "Wheee!",
 	sliding: "Wheee!",
+	celebrating: "You made it to the North Pole! Once you're back on the presents, tap to go again.",
 };
 
 /** "1 cracker", "3 crackers". */
@@ -295,7 +296,9 @@ function ElfFlingPlay({ progress }: { progress: IProgress }) {
 						? `Click the game (or press Space) to send ${skin.subject} hopping off the presents.`
 						: phase === "dropping" && !touchScreen
 							? "Now swing! (Click or press Space.)"
-							: PROMPTS[phase];
+							: phase === "celebrating" && !touchScreen
+								? "You made it to the North Pole! Once you're back on the presents, click (or press Space) to go again."
+								: PROMPTS[phase];
 	// Over the game in full screen: the same, minus the "Wheee!" (the flight speaks for itself),
 	// and only for the first few throws, while they're news. After a throw the run summary over
 	// the game says it all instead.

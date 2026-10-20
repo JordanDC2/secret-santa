@@ -7,8 +7,10 @@
  * jumps and a rocket the player sets off, power-ups to grab (powerUps.ts), Yule log cannons to
  * slide into (yuleLogs.ts), winds and updrafts (weather.ts), and the odd snowman that gets in
  * the way. Long runs go from night into day, which is warmer and harder (dayNight.ts). A rare
- * chimney leads down to a secret level of pinball (chimneys.ts). The course
- * never ends: it's laid out as the elf goes (course.ts). Distance is measured from the reindeer.
+ * chimney leads down to a secret level of pinball (chimneys.ts). At the North Pole the journey
+ * ends with a welcome, and round 2 starts from the village's own presents (journey.ts). The
+ * course never ends: it's laid out as the elf goes (course.ts). Distance is measured from the
+ * reindeer.
  */
 
 import {
@@ -20,6 +22,8 @@ import {
 	type IChimney,
 } from "Components/ElfFling/chimneys";
 import { COIN_LAYOUTS, collectCoins, type ICoin } from "Components/ElfFling/coins";
+import { celebrationStage, elfDuringCelebration, type ICelebration } from "Components/ElfFling/journey";
+import { ARRIVAL_DISTANCE, journeyEnd, RUNWAY_PULL, RUNWAY_SPEED, runwayStart } from "Components/ElfFling/journeyMap";
 import { MELT_FRICTION, warmth } from "Components/ElfFling/dayNight";
 import { keepCourseAhead, seededRandom, startCourse, type ICourse } from "Components/ElfFling/course";
 import { CRACKER_LAYOUT, crackerTouching, poppedVelocity, type ICracker } from "Components/ElfFling/crackers";
@@ -83,7 +87,8 @@ import {
 	type IThrowUpgrades,
 } from "Components/ElfFling/upgrades";
 
-export type IPhase = "ready" | "dropping" | "flying" | "sliding" | "done";
+/** "celebrating": the welcome at the end of the journey, then waiting on the presents for round 2. */
+export type IPhase = "ready" | "dropping" | "flying" | "sliding" | "celebrating" | "done";
 
 /** How the throw went: a clean or perfect hit, a swing that missed, or no swing at all. */
 export type IOutcome = "perfect" | "hit" | "miss" | "late";
@@ -149,6 +154,10 @@ export type IGameState = {
 	rocketReady: boolean;
 	/** Game time the rocket burns out, while it's burning. */
 	rocketUntil: number | null;
+	/** Which round of the journey (journey.ts): 1 until the first welcome at the North Pole, then 2... */
+	round: number;
+	/** The last welcome at the end of a journey, if there's been one this run. */
+	celebration: ICelebration | null;
 };
 
 export const GRAVITY = 9.8;
@@ -244,6 +253,8 @@ export function newGame(
 		jumpsLeft: upgrades.elfJump,
 		rocketReady: upgrades.rocket > 0,
 		rocketUntil: null,
+		round: 1,
+		celebration: null,
 	};
 
 	return keepCourseAhead(state, layouts, state.elf.x);
@@ -277,6 +288,24 @@ export function canRocket(state: IGameState): boolean {
 export function tap(state: IGameState): IGameState {
 	if (state.phase === "ready") {
 		return { ...state, phase: "dropping", elf: { ...state.elf, vx: HOP.vx, vy: HOP.vy } };
+	}
+
+	// On the village's presents after the welcome: off for the next round, with jumps and the rocket back.
+	if (
+		state.phase === "celebrating" &&
+		state.celebration &&
+		celebrationStage(state.celebration, state.time).stage === "waiting"
+	) {
+		return {
+			...state,
+			phase: "dropping",
+			celebration: { ...state.celebration, launchedAt: state.time },
+			swingTime: null,
+			swingResolved: false,
+			jumpsLeft: state.upgrades.elfJump,
+			rocketReady: state.upgrades.rocket > 0,
+			elf: { ...state.elf, vx: HOP.vx, vy: HOP.vy, spin: 0 },
+		};
 	}
 
 	if (state.phase === "dropping" && state.swingTime === null) {
@@ -337,6 +366,10 @@ export function step(state: IGameState, dt: number): IGameState {
 		return state;
 	}
 
+	if (state.phase === "celebrating") {
+		return celebrate(state, dt);
+	}
+
 	let next: IGameState = keepCourseAhead(
 		{ ...state, elf: { ...state.elf }, time: state.time + dt },
 		layoutsFor(state.upgrades, state.chimneyVisits > 0),
@@ -366,11 +399,85 @@ export function step(state: IGameState, dt: number): IGameState {
 		}
 	}
 
-	if (isRiding(next)) {
-		return ride(next, dt);
+	next = isRiding(next) ? ride(next, dt) : next.phase === "sliding" ? slide(next, dt) : fly(next, dt);
+
+	if (state.elf.x < runwayStart(next.round) && next.elf.x >= runwayStart(next.round)) {
+		next = ontoRunway(next);
 	}
 
-	return next.phase === "sliding" ? slide(next, dt) : fly(next, dt);
+	if (onRunway(next)) {
+		next = alongRunway(next, dt);
+	}
+
+	return arrived(next) ? welcome(next) : next;
+}
+
+/** Whether the elf's out on the runway up to the village (journey.ts). */
+function onRunway(state: IGameState): boolean {
+	return (
+		(state.phase === "flying" || state.phase === "sliding") &&
+		state.inChimney === null &&
+		state.inLog === null &&
+		state.elf.x >= runwayStart(state.round)
+	);
+}
+
+/**
+ * Onto the runway (where the course has nothing laid: course.ts): any power-ups and the sleigh
+ * ride end, so nothing gets in the way of coming in.
+ */
+function ontoRunway(state: IGameState): IGameState {
+	return {
+		...state,
+		sleigh: state.sleigh && { ...state.sleigh, finished: true },
+		sleighDueAt: null,
+		active: NO_ACTIVE_POWER_UPS,
+	};
+}
+
+/** Along the runway: pulled down to the snow and carried steadily along, never stopping. */
+function alongRunway(state: IGameState, dt: number): IGameState {
+	const elf = { ...state.elf };
+
+	if (state.phase === "flying") {
+		elf.vy -= RUNWAY_PULL * dt;
+		elf.vx += (RUNWAY_SPEED - elf.vx) * Math.min(1, 1.2 * dt);
+	} else {
+		elf.vx = Math.max(elf.vx, RUNWAY_SPEED);
+	}
+
+	return { ...state, elf };
+}
+
+/** Whether the elf has come up to the end of this round's journey, out on the course. */
+function arrived(state: IGameState): boolean {
+	return (
+		(state.phase === "flying" || state.phase === "sliding") &&
+		state.inChimney === null &&
+		state.inLog === null &&
+		state.elf.x >= journeyEnd(state.round) - ARRIVAL_DISTANCE
+	);
+}
+
+/** The end of the journey: the welcome takes over (journey.ts), and the rocket burns out. */
+function welcome(state: IGameState): IGameState {
+	const centre = journeyEnd(state.round);
+
+	return {
+		...ontoRunway(state),
+		phase: "celebrating",
+		round: state.round + 1,
+		celebration: { startedAt: state.time, from: { x: state.elf.x, y: state.elf.y }, centre, launchedAt: null },
+		rocketUntil: null,
+	};
+}
+
+/** Through the welcome, the elf goes where it's carried (journey.ts), until it's tapped off the presents. */
+function celebrate(state: IGameState, dt: number): IGameState {
+	const time = state.time + dt;
+	const pose = elfDuringCelebration(state.celebration!, time, state.round);
+
+	return { ...state, time, elf: { ...state.elf, ...pose, vx: 0, vy: 0 } };
 }
 
 /** Through the air (or dropping off the presents before the swing). */
@@ -750,7 +857,8 @@ function land(previous: IGameState): IGameState {
 }
 
 function finish(state: IGameState, outcome: IOutcome): IGameState {
-	const flew = outcome === "hit" || outcome === "perfect";
+	// After a journey's end, a missed swing still keeps the distance come so far.
+	const flew = outcome === "hit" || outcome === "perfect" || state.round > 1;
 
 	return {
 		...state,

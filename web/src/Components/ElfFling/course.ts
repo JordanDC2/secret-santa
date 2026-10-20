@@ -2,7 +2,8 @@
  * The course, laid out as the elf goes: there's no end to it. Coins, crackers, ornaments,
  * snowmen, power-ups, Yule logs, chimneys and the weather are each laid out by a layout (where the first goes, the gap after each, and what to
  * put there), a chunk at a time, always well ahead of the elf; things far behind are dropped,
- * so only a short stretch is ever kept.
+ * so only a short stretch is ever kept. Nothing's laid on the runways and in the villages at
+ * each journey's end (journeyMap.ts).
  *
  * Each round has a seed, and each chunk's randomness comes from the seed and the chunk's
  * number, so a round's course is the same however it's played (and the physics stays pure).
@@ -12,6 +13,7 @@ import type { IChimney } from "Components/ElfFling/chimneys";
 import { addCoins, type ICoin } from "Components/ElfFling/coins";
 import { scarcity } from "Components/ElfFling/dayNight";
 import type { ICracker } from "Components/ElfFling/crackers";
+import { keptClear } from "Components/ElfFling/journeyMap";
 import type { IOrnament } from "Components/ElfFling/ornaments";
 import type { IPowerUp } from "Components/ElfFling/powerUps";
 import type { IGust, IUpdraft } from "Components/ElfFling/weather";
@@ -84,8 +86,8 @@ function randomFor(seed: number, part: number): () => number {
 	return seededRandom(Math.imul(seed ^ 0x9e3779b9, 31) + part * 0x85ebca6b);
 }
 
-/** Everything a layout puts down from its cursor up to (not including) `to`. */
-function layOut<T>(
+/** Everything a layout puts down from its cursor up to (not including) `to`, except where the course is kept clear. */
+function layOut<T extends { x: number }>(
 	layout: ILayout<T>,
 	cursor: number,
 	to: number,
@@ -95,7 +97,7 @@ function layOut<T>(
 	let x = cursor;
 
 	for (; x < to; x += between(layout.gap, random) * (layout.scarcerByDay ? scarcity(x) : 1)) {
-		items.push(...layout.place(x, random));
+		items.push(...layout.place(x, random).filter((item) => !keptClear(item.x)));
 	}
 
 	return { items, cursor: x };
@@ -169,7 +171,7 @@ export function keepCourseAhead<T extends ICourseItems & { course: ICourse }>(
 	while (laidTo < x + AHEAD) {
 		const to = laidTo + CHUNK;
 		const random = randomFor(state.course.seed, laidTo / CHUNK);
-		const lay = <I>(layout: ILayout<I> | null, index: number): I[] => {
+		const lay = <I extends { x: number }>(layout: ILayout<I> | null, index: number): I[] => {
 			if (!layout) {
 				return [];
 			}
