@@ -76,7 +76,7 @@ function Dialogue({
 
 	return (
 		<div className={classes.dialogue}>
-			{url && <img src={url} alt="" className={classes.portrait} />}
+			<img src={url} alt="" className={classes.portrait} />
 			<p className={classes.speaker} style={{ color: colour }}>
 				{name}
 				<span className={classes.speakerFrom}> of {from}</span>

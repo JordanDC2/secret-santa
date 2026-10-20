@@ -624,8 +624,24 @@ export function makeCharacters(): ICharacterSprites {
 			5,
 			7,
 			(p) => {
-				p.e(2.5, 3.5, 1.6, 2.8, 0, "frost", -0.05);
-				p.d(2, 2, "frost", 0.95);
+				// A little diamond, lighter on its upper left facets, with a glint.
+				for (const [x, y, t] of [
+					[2, 1, 0.75],
+					[1, 2, 0.7],
+					[2, 2, 0.6],
+					[3, 2, 0.45],
+					[1, 3, 0.55],
+					[2, 3, 0.45],
+					[3, 3, 0.3],
+					[1, 4, 0.4],
+					[2, 4, 0.3],
+					[3, 4, 0.2],
+					[2, 5, 0.15],
+				]) {
+					p.d(x, y, "frost", t);
+				}
+
+				p.d(1, 2, "frost", 0.95);
 			},
 			0.3,
 		),

@@ -653,6 +653,11 @@ function burst(
 	events.blasts += 1;
 }
 
+/** How far the cocoa aura reaches from the elf. */
+export function cocoaReach(weapon: IWeapon, numbers: IStats): number {
+	return 24 * (1 + 0.15 * past(weapon.level, 3, 6, 8)) * numbers.area * (weapon.evolved ? 1.4 : 1);
+}
+
 function cocoa(world: IWorld, weapon: IWeapon, grid: IGrid, numbers: IStats, events: IEvents) {
 	if (world.time < weapon.readyAt) {
 		return;
@@ -660,7 +665,7 @@ function cocoa(world: IWorld, weapon: IWeapon, grid: IGrid, numbers: IStats, eve
 
 	const { player } = world;
 	const { level, evolved } = weapon;
-	const reach = 24 * (1 + 0.15 * past(level, 3, 6, 8)) * numbers.area * (evolved ? 1.4 : 1);
+	const reach = cocoaReach(weapon, numbers);
 	const damage = (4 + 2 * past(level, 2, 5) + 3 * past(level, 8)) * (evolved ? 1.5 : 1);
 	hitWhere(
 		world,

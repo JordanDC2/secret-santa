@@ -12,6 +12,7 @@ import { PATRONS } from "Components/SilentNight/patrons";
 import { hash, threshold } from "Components/SilentNight/pixelArt";
 import { CANDLE_LIGHT_RADIUS, ELF_FEET, GUN_GRIP, LIGHT_RADIUS, type ISprites } from "Components/SilentNight/sprites";
 import type { IEffect, IEnemy, IWorld } from "Components/SilentNight/types";
+import { cocoaReach } from "Components/SilentNight/weapons";
 import { dashing } from "Components/SilentNight/world";
 
 /** How dark the night is beyond the light (0 to 1). */
@@ -152,24 +153,17 @@ export function drawWorld(
 
 	context.fillRect(sx(player.x) - 4, sy(player.y) - 1, 8, 2);
 	drawTelegraphs(context, world, sx, sy);
+	drawCocoa(context, world, sx, sy);
 
-	// Everyone, back to front (the world keeps the enemies in order of depth).
-	let elfDrawn = false;
-
+	// The enemies, back to front (the world keeps them in order of depth), then the elf over
+	// them all, so it's never lost in a crowd.
 	for (const enemy of world.enemies) {
-		if (!elfDrawn && enemy.y > player.y) {
-			drawElf(context, world, sprites, sx, sy);
-			elfDrawn = true;
-		}
-
 		if (inView(enemy.x, enemy.y, 50)) {
 			drawEnemy(context, world, enemy, enemyArt(sprites, enemy), sx, sy);
 		}
 	}
 
-	if (!elfDrawn) {
-		drawElf(context, world, sprites, sx, sy);
-	}
+	drawElf(context, world, sprites, sx, sy);
 
 	// Allies: minions running, snow globes circling, candle flames.
 	for (const ally of world.allies) {
@@ -329,6 +323,46 @@ function drawEnemy(
 		context.fillStyle = Math.floor(time * 12) % 2 === 0 ? "#ffb060" : "#e0502a";
 		context.fillRect(x + Math.round(art.width * 0.3), y + 1 + flicker, 1, 2);
 		context.fillRect(x + Math.round(art.width * 0.6), y + 2 - flicker, 1, 2);
+	}
+}
+
+/** The hot cocoa aura: a warm haze round the elf, its edge simmering, steam rising inside. */
+function drawCocoa(context: CanvasRenderingContext2D, world: IWorld, sx: IToScreen, sy: IToScreen) {
+	const weapon = world.player.weapons.find((carried) => carried.id === "cocoa");
+
+	if (!weapon) {
+		return;
+	}
+
+	const { player, time } = world;
+	const reach = cocoaReach(weapon, world.numbers);
+	const x = sx(player.x);
+	const y = sy(player.y) - 3;
+	context.fillStyle = weapon.evolved ? "rgba(255, 220, 200, 0.1)" : "rgba(150, 80, 40, 0.14)";
+	context.beginPath();
+	context.ellipse(x, y, reach, reach * 0.7, 0, 0, Math.PI * 2);
+	context.fill();
+	const dots = Math.round(reach * 1.2);
+
+	for (let i = 0; i < dots; i++) {
+		const angle = (i / dots) * Math.PI * 2 + time * 0.4;
+		context.fillStyle = i % 3 === 0 ? "rgba(255, 200, 150, 0.5)" : "rgba(168, 112, 58, 0.45)";
+		context.fillRect(Math.round(x + Math.cos(angle) * reach), Math.round(y + Math.sin(angle) * reach * 0.7), 1, 1);
+	}
+
+	// Wisps of steam, each rising and fading on its own clock.
+	context.fillStyle = "rgba(242, 232, 224, 0.35)";
+
+	for (let i = 0; i < 6; i++) {
+		const rise = (time * 0.8 + i / 6) % 1;
+		const angle = i * 2.4;
+		const out = reach * 0.6 * hash(i, 3);
+		context.fillRect(
+			Math.round(x + Math.cos(angle) * out),
+			Math.round(y + Math.sin(angle) * out * 0.7 - rise * 10),
+			1,
+			2,
+		);
 	}
 }
 
