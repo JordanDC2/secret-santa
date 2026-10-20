@@ -1,0 +1,187 @@
+/* The game: wide, dark, its pixels kept crisp when scaled up. */
+.frame {
+	position: relative;
+	width: 100%;
+	aspect-ratio: 16 / 9;
+	max-height: 75vh;
+	overflow: hidden;
+	border-radius: var(--mantine-radius-md);
+	background-color: #030208;
+	color: #e9e1d4;
+	font-family: var(--mantine-font-family);
+	user-select: none;
+	-webkit-user-select: none;
+	-webkit-touch-callout: none;
+	-webkit-tap-highlight-color: transparent;
+}
+
+/* Holds the game; it's what goes full screen. */
+.stage {
+	position: relative;
+}
+
+/* Full screen: the game covers the whole page, edge to edge. */
+.fullscreen {
+	position: fixed;
+	inset: 0;
+	z-index: 300;
+	width: 100vw;
+	height: 100dvh;
+	background-color: #030208;
+
+	.frame {
+		height: 100%;
+		max-height: none;
+		aspect-ratio: auto;
+		border-radius: 0;
+	}
+}
+
+/* Where the thumbs (and the mouse) work the game: all of it. */
+.surface {
+	position: absolute;
+	inset: 0;
+	touch-action: none;
+	cursor: crosshair;
+}
+
+.canvas {
+	display: block;
+	width: 100%;
+	height: 100%;
+	image-rendering: pixelated;
+}
+
+/* A thumbstick, drawn where the thumb landed: a faint ring, and a knob where it's pushed. */
+.stick {
+	display: none;
+	position: absolute;
+	width: 104px;
+	height: 104px;
+	margin: -52px 0 0 -52px;
+	border: 2px solid rgba(233, 225, 212, 0.25);
+	border-radius: 50%;
+	pointer-events: none;
+
+	&::after {
+		content: "";
+		position: absolute;
+		left: 50%;
+		top: 50%;
+		width: 40px;
+		height: 40px;
+		margin: -20px 0 0 -20px;
+		border-radius: 50%;
+		background-color: rgba(233, 225, 212, 0.3);
+		transform: translate(var(--knob-x, 0), var(--knob-y, 0));
+	}
+
+	&[data-aim]::after {
+		background-color: rgba(228, 80, 90, 0.45);
+	}
+}
+
+/* The counters over the game, clear of a phone's notch and corners. */
+.health {
+	position: absolute;
+	top: calc(10px + env(safe-area-inset-top));
+	left: calc(12px + env(safe-area-inset-left));
+	width: min(30%, 180px);
+	height: 10px;
+	border: 2px solid #4a3220;
+	background-color: rgba(6, 3, 8, 0.8);
+	pointer-events: none;
+}
+
+.healthFill {
+	width: 100%;
+	height: 100%;
+	background-color: #c8343a;
+	transition: width 150ms linear;
+}
+
+.clock {
+	position: absolute;
+	top: calc(8px + env(safe-area-inset-top));
+	left: 50%;
+	transform: translateX(-50%);
+	font-family: "IM Fell English SC", Georgia, serif;
+	font-size: 20px;
+	color: #f0b44c;
+	font-variant-numeric: tabular-nums;
+	text-shadow: 0 1px 2px #000;
+	pointer-events: none;
+}
+
+.clockOf {
+	font-size: 14px;
+	opacity: 0.6;
+}
+
+.kills {
+	position: absolute;
+	top: calc(10px + env(safe-area-inset-top));
+	right: calc(12px + env(safe-area-inset-right));
+	font-size: 14px;
+	text-shadow: 0 1px 2px #000;
+	pointer-events: none;
+}
+
+.ammo {
+	position: absolute;
+	bottom: calc(12px + env(safe-area-inset-bottom));
+	left: 50%;
+	transform: translateX(-50%);
+	font-size: 14px;
+	font-variant-numeric: tabular-nums;
+	text-shadow: 0 1px 2px #000;
+	pointer-events: none;
+}
+
+/* The dash button, above where the right thumb aims. */
+.dash {
+	position: absolute;
+	right: calc(20px + env(safe-area-inset-right));
+	bottom: calc(150px + env(safe-area-inset-bottom));
+	width: 64px;
+	height: 64px;
+	border: 2px solid rgba(240, 180, 76, 0.6);
+	border-radius: 50%;
+	background-color: rgba(6, 3, 8, 0.55);
+	color: #f0b44c;
+	font-size: 13px;
+	touch-action: none;
+}
+
+.fullscreenButton {
+	position: absolute;
+	left: calc(10px + env(safe-area-inset-left));
+	bottom: calc(10px + env(safe-area-inset-bottom));
+	color: #f0b44c;
+	background-color: rgba(6, 3, 8, 0.5);
+	opacity: 0.8;
+}
+
+/* Starting, and the night's end: over the game, in the dark. */
+.overlay {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	padding: 16px;
+	text-align: center;
+	background-color: rgba(3, 2, 8, 0.72);
+
+	p {
+		margin: 0;
+	}
+}
+
+.title {
+	font-family: "IM Fell English SC", Georgia, serif;
+	font-size: 36px;
+	color: #f0b44c;
+}

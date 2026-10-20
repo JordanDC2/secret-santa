@@ -32,6 +32,7 @@ const queryClient = new QueryClient();
 /** The game only downloads when someone opens it, so it doesn't slow down the rest of the app. */
 const ElfFlingPage = lazy(() => import("Components/ElfFling/ElfFlingPage"));
 const PinballPage = lazy(() => import("Components/Pinball/PinballPage"));
+const SilentNightPage = lazy(() => import("Components/SilentNight/SilentNightPage"));
 
 /** The devtools' floating button covers page controls on phone-sized screens. */
 function DevtoolsOnLargerScreens() {
@@ -90,6 +91,14 @@ function AppRoutes() {
 					element={
 						<Suspense fallback={<LoadingText>Loading pinball...</LoadingText>}>
 							<PinballPage />
+						</Suspense>
+					}
+				/>
+				<Route
+					path="/games/silent-night"
+					element={
+						<Suspense fallback={<LoadingText>Loading Silent Night...</LoadingText>}>
+							<SilentNightPage />
 						</Suspense>
 					}
 				/>
