@@ -62,7 +62,7 @@ export default function NightOver({ world, onAgain, children }: INightOverProps)
 						return (
 							<span key={id} style={{ color: PATRONS[patron].colour }}>
 								{info.name}
-								{info.ranks.length > 1 ? ` ${rank}` : ""}
+								{info.ranks.length > 1 ? ` ${["I", "II", "III"][rank - 1]}` : ""}
 							</span>
 						);
 					})}
