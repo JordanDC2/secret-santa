@@ -63,6 +63,20 @@ function audio(): AudioContext | null {
 	return context;
 }
 
+/** A volume of its own for some music, on the way out (so it can fade); null without audio. */
+export function musicBus(): GainNode | null {
+	const ctx = audio();
+
+	if (!ctx || !master) {
+		return null;
+	}
+
+	const bus = ctx.createGain();
+	bus.connect(master);
+
+	return bus;
+}
+
 /** A second of white noise, made once, for the hissy and crackly sounds. */
 function noiseBuffer(ctx: AudioContext): AudioBuffer {
 	if (!noise) {
@@ -592,13 +606,12 @@ export function startJourneysEndMusic() {
 	stopJourneysEndMusic(0);
 	const ctx = audio();
 	const started = audioNow();
+	const bus = musicBus();
 
-	if (!ctx || !master || started === null) {
+	if (!ctx || !bus || started === null) {
 		return;
 	}
 
-	const bus = ctx.createGain();
-	bus.connect(master);
 	const hits = merryChristmas();
 	const loopLength = MERRY_CHRISTMAS.length * 3 * WELCOME_BEAT;
 	// The pickup ("We") first, then the song from its first full bar, round and round.

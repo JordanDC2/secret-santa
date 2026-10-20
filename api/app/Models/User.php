@@ -332,6 +332,14 @@ class User extends Authenticatable implements MustVerifyEmailContract
     }
 
     /**
+     * @return HasMany<SilentNightRun, $this>
+     */
+    public function silentNightRuns(): HasMany
+    {
+        return $this->hasMany(SilentNightRun::class);
+    }
+
+    /**
      * @return HasMany<WishlistClaim, $this>
      */
     public function wishlistClaims(): HasMany

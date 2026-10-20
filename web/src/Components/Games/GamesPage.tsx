@@ -33,6 +33,19 @@ export default function GamesPage() {
 							Help a reindeer bat a little elf as far as it can fly. Time the swing for the sweet spot.
 						</MantineText>
 					</SectionCard>
+					<SectionCard
+						title="Silent Night"
+						action={
+							<Button component={Link} to="/games/silent-night" variant="secondary" size="xs">
+								Play
+							</Button>
+						}
+					>
+						<MantineText size="sm">
+							Survive the longest night of the year against Krampus&apos;s horde, blessed by patrons from Christmases
+							around the world, until he comes for you at dawn.
+						</MantineText>
+					</SectionCard>
 					{/* Kept a mystery until it's found down a chimney in Elf Fling. */}
 					{pinballUnlocked ? (
 						<SectionCard

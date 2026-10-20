@@ -246,13 +246,20 @@
 	background-color: rgba(6, 3, 8, 0.5);
 }
 
-.fullscreenButton {
+/* Over everything, the start and end screens too. */
+.fullscreenButton,
+.soundButton {
 	position: absolute;
+	z-index: 1;
 	left: calc(10px + env(safe-area-inset-left));
 	bottom: calc(10px + env(safe-area-inset-bottom));
 	color: #f0b44c;
 	background-color: rgba(6, 3, 8, 0.5);
 	opacity: 0.8;
+}
+
+.soundButton {
+	left: calc(54px + env(safe-area-inset-left));
 }
 
 /* Starting, and the night's end: over the game, in the dark. */

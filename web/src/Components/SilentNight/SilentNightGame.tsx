@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ActionIcon, Button, Tooltip } from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCompress, faExpand, faPause } from "@fortawesome/free-solid-svg-icons";
+import { faCompress, faExpand, faPause, faVolumeHigh, faVolumeXmark } from "@fortawesome/free-solid-svg-icons";
 import { useElementSize } from "@mantine/hooks";
+import { readSoundOn, saveSoundOn, wakeAudio } from "Components/ElfFling/sound";
 import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
 import { experienceFor } from "Components/SilentNight/constants";
 import { drawWorld } from "Components/SilentNight/drawWorld";
@@ -10,10 +11,12 @@ import { ENEMIES } from "Components/SilentNight/enemies";
 import { iconUrl } from "Components/SilentNight/icons";
 import NightOver, { clock } from "Components/SilentNight/NightOver";
 import Prompt from "Components/SilentNight/Prompt";
+import { addEvents, playNightEvents, startNightMusic } from "Components/SilentNight/sound";
 import { makeSprites } from "Components/SilentNight/sprites";
 import { PASSIVES } from "Components/SilentNight/stats";
-import type { IInput, IPrompt, IWorld } from "Components/SilentNight/types";
+import { noEvents, type IInput, type IPrompt, type IWorld } from "Components/SilentNight/types";
 import { gunNumbers, weaponInfo } from "Components/SilentNight/weapons";
+import type { IRun } from "Components/SilentNight/hooks";
 import { NIGHT_SECONDS, newWorld, step, VIEW_HEIGHT } from "Components/SilentNight/world";
 import classes from "Components/SilentNight/SilentNight.module.less";
 
@@ -29,6 +32,8 @@ type IStick = { id: number; originX: number; originY: number; x: number; y: numb
 type IGameProps = {
 	fullscreen: boolean;
 	onToggleFullscreen: () => void;
+	/** A night's over, won or lost (or given up). */
+	onNightOver?: (run: IRun) => void;
 };
 
 /** A stick's push as a vector of length up to 1. */
@@ -88,7 +93,7 @@ const buildKey = (world: IWorld) =>
  * fire, Space to dash, R to reload, Esc to pause) or, on a touch screen, a thumbstick on each half
  * of the screen (left to move, right to aim and fire) and a dash button.
  */
-export default function SilentNightGame({ fullscreen, onToggleFullscreen }: IGameProps) {
+export default function SilentNightGame({ fullscreen, onToggleFullscreen, onNightOver }: IGameProps) {
 	const { ref: frameRef, width, height } = useElementSize();
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const touchScreen = useTouchScreen();
@@ -102,6 +107,14 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen }: IGam
 	const [paused, setPaused] = useState(false);
 	const pausedRef = useRef(false);
 	const [build, setBuild] = useState<IBuild>({ weapons: [], passives: [] });
+	const [soundOn, setSoundOn] = useState(readSoundOn);
+	// The latest callback, for the loop.
+	const onNightOverRef = useRef(onNightOver);
+
+	useEffect(() => {
+		onNightOverRef.current = onNightOver;
+	}, [onNightOver]);
+	const soundOnRef = useRef(soundOn);
 	// Input, read by the loop.
 	const keysRef = useRef(new Set<string>());
 	const mouseRef = useRef<{ x: number; y: number; down: boolean } | null>(null);
@@ -271,8 +284,10 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen }: IGam
 				carry = 0;
 			}
 
+			const heard = noEvents();
+
 			while (carry >= STEP) {
-				step(world, input(), STEP, view);
+				addEvents(heard, step(world, input(), STEP, view));
 				carry -= STEP;
 
 				if (world.prompt !== null) {
@@ -281,6 +296,10 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen }: IGam
 			}
 
 			drawWorld(context, darkness, world, sprites, view);
+
+			if (soundOnRef.current) {
+				playNightEvents(heard);
+			}
 
 			// The counters, only touched when they change.
 			const { player } = world;
@@ -350,6 +369,13 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen }: IGam
 
 			if (world.over) {
 				setOver(true);
+				onNightOverRef.current?.({
+					seconds: Math.min(NIGHT_SECONDS, Math.floor(world.time)),
+					kills: world.kills,
+					level: player.level,
+					bargains: player.bargains.length,
+					won: world.won,
+				});
 
 				return;
 			}
@@ -454,6 +480,29 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen }: IGam
 
 	const playing = started && !over;
 	const waiting = playing && (prompt !== null || paused);
+	const musicOn = playing && !waiting && soundOn;
+
+	// The music, while the night's going on (it starts again from the top after a pause).
+	useEffect(() => {
+		if (!musicOn) {
+			return;
+		}
+
+		return startNightMusic(() => ({
+			time: worldRef.current?.time ?? 0,
+			boss: worldRef.current?.enemies.some((enemy) => enemy.boss) ?? false,
+		}));
+	}, [musicOn]);
+
+	const toggleSound = () => {
+		if (!soundOn) {
+			wakeAudio();
+		}
+
+		saveSoundOn(!soundOn);
+		soundOnRef.current = !soundOn;
+		setSoundOn(!soundOn);
+	};
 
 	// Sticks let go when something comes up over the game, so the elf doesn't run on.
 	useEffect(() => {
@@ -569,6 +618,22 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen }: IGam
 					</ActionIcon>
 				</>
 			)}
+
+			<Tooltip label={soundOn ? "Sound off" : "Sound on"} withArrow disabled={touchScreen}>
+				<ActionIcon
+					variant="transparent"
+					radius="xl"
+					size={touchScreen ? 44 : 36}
+					className={classes.soundButton}
+					aria-label={soundOn ? "Turn sound off" : "Turn sound on"}
+					onClick={(event) => {
+						toggleSound();
+						event.currentTarget.blur();
+					}}
+				>
+					<FontAwesomeIcon icon={soundOn ? faVolumeHigh : faVolumeXmark} />
+				</ActionIcon>
+			</Tooltip>
 
 			<Tooltip label={fullscreen ? "Leave full screen (Esc)" : "Play full screen"} withArrow disabled={touchScreen}>
 				<ActionIcon

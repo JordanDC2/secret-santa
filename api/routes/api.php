@@ -41,6 +41,8 @@ use App\Http\Controllers\Group\LeaveHandler;
 use App\Http\Controllers\Group\StartNewDrawHandler;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\SantaChat\SantaChatController;
+use App\Http\Controllers\SilentNight\LeaderboardHandler as SilentNightLeaderboardHandler;
+use App\Http\Controllers\SilentNight\RecordRunHandler as SilentNightRecordRunHandler;
 use App\Http\Controllers\Wishlist\ClaimHandler;
 use App\Http\Controllers\Wishlist\LinkPreviewHandler;
 use App\Http\Controllers\Wishlist\MemberWishlistHandler;
@@ -160,6 +162,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('pinball/scores', ElfFlingPinballScoreHandler::class)->name('pinball.scores');
 
         Route::get('leaderboard', ElfFlingLeaderboardHandler::class)->name('leaderboard');
+    });
+
+    // Silent Night: each finished night, and the leaderboards.
+    Route::prefix('silent-night')->name('silent-night.')->group(function () {
+        Route::post('runs', SilentNightRecordRunHandler::class)->middleware('throttle:silent-night-runs')->name('runs');
+
+        Route::get('leaderboard', SilentNightLeaderboardHandler::class)->name('leaderboard');
     });
 
     Route::post('groups/join', JoinHandler::class)->middleware('throttle:join')->name('groups.join');
