@@ -19,5 +19,42 @@
 
 /* On its own page: as tall as fits, up to the table's own size. */
 .page {
+	position: relative;
 	height: min(78vh, 760px);
+}
+
+/* Full screen (useFullscreen.ts): the table covers the whole page, clear of the phone's notch and corners. */
+.fullscreen {
+	position: fixed;
+	inset: 0;
+	z-index: 300;
+	width: 100vw;
+	height: 100dvh;
+	padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+	background-color: var(--festive-darkest);
+}
+
+/* Leaving full screen: in the top-right corner, gold on a faint dark disc like Elf Fling's buttons. */
+.leaveFullscreen {
+	position: absolute;
+	top: calc(var(--mantine-spacing-xs) + env(safe-area-inset-top));
+	right: calc(var(--mantine-spacing-xs) + env(safe-area-inset-right));
+	color: var(--festive-gold);
+	background-color: rgba(15, 32, 39, 0.5);
+}
+
+/* The game-over line and Play again, over the bottom of the table in full screen. */
+.gameOver {
+	position: absolute;
+	left: 50%;
+	bottom: calc(var(--mantine-spacing-lg) + env(safe-area-inset-bottom));
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--mantine-spacing-xs);
+	padding: var(--mantine-spacing-sm) var(--mantine-spacing-md);
+	border-radius: var(--mantine-radius-md);
+	color: var(--festive-gold);
+	background-color: rgba(15, 32, 39, 0.85);
+	transform: translateX(-50%);
 }

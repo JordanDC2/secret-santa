@@ -4,9 +4,13 @@ import { useCallback, useEffect, useState, type RefObject } from "react";
  * Full-screen play for the game. The game's frame always fills the screen with CSS (which
  * works everywhere, including iPhones, where Safari won't make a page element full screen),
  * and where the browser allows it we also ask for real full screen (hiding the address bar)
- * and, on phones that support it (Android), turn the game sideways. Leaving undoes both.
+ * and, on phones that support it (Android), turn the game sideways (or upright, for a tall game
+ * like pinball). Leaving undoes both.
  */
-export function useFullscreen(element: RefObject<HTMLElement | null>) {
+export function useFullscreen(
+	element: RefObject<HTMLElement | null>,
+	orientation: "landscape" | "portrait" = "landscape",
+) {
 	const [fullscreen, setFullscreen] = useState(false);
 
 	const enter = useCallback(() => {
@@ -18,13 +22,13 @@ export function useFullscreen(element: RefObject<HTMLElement | null>) {
 				.requestFullscreen({ navigationUI: "hide" })
 				// Only possible once the page is full screen, and only on some phones.
 				.then(() =>
-					(screen.orientation as ScreenOrientation & { lock?: (type: string) => Promise<void> }).lock?.("landscape"),
+					(screen.orientation as ScreenOrientation & { lock?: (type: string) => Promise<void> }).lock?.(orientation),
 				)
 				.catch(() => {
 					// Not allowed here (or no orientation lock): the CSS version still fills the screen.
 				});
 		}
-	}, [element]);
+	}, [element, orientation]);
 
 	const exit = useCallback(() => {
 		setFullscreen(false);

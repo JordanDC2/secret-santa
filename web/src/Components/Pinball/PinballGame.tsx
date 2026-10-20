@@ -23,6 +23,15 @@ import classes from "Components/Pinball/Pinball.module.less";
  */
 export type IPinballTurn = 0 | 90 | -90;
 
+/** Which way a phone held sideways has its top: the table's drawn turned so its top is there too. */
+export function turnFor(landscapePhone: boolean): IPinballTurn {
+	if (!landscapePhone) {
+		return 0;
+	}
+
+	return screen.orientation?.type === "landscape-secondary" ? 90 : -90;
+}
+
 type IPinballGameProps = {
 	/** Called once, when the last ball drains, with the final score. */
 	onGameOver: (score: number) => void;

@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, type CSSProperties } from "react";
 import { useMediaQuery } from "@mantine/hooks";
 import classes from "Components/ElfFling/ElfFling.module.less";
-import PinballGame, { type IPinballTurn } from "Components/Pinball/PinballGame";
+import PinballGame, { turnFor } from "Components/Pinball/PinballGame";
 import { VIEW } from "Components/Pinball/view";
 
 type IChimneyLevelProps = {
@@ -12,15 +12,6 @@ type IChimneyLevelProps = {
 	soundOn: boolean;
 	onGameOver: (points: number) => void;
 };
-
-/** Which way a phone held sideways has its top: the table's drawn turned so its top is there too. */
-function turnFor(landscapePhone: boolean): IPinballTurn {
-	if (!landscapePhone) {
-		return 0;
-	}
-
-	return screen.orientation?.type === "landscape-secondary" ? 90 : -90;
-}
 
 /**
  * Down the chimney: the pinball takes over the game, full screen if the game was. The table
