@@ -7,6 +7,8 @@
 	overflow: hidden;
 	border-radius: var(--mantine-radius-md);
 	background-color: #030208;
+	/* What's over the game sizes itself to the game (cqw, cqh). */
+	container-type: size;
 	color: #e9e1d4;
 	font-family: var(--mantine-font-family);
 	user-select: none;
@@ -81,23 +83,106 @@
 	}
 }
 
-/* The counters over the game, clear of a phone's notch and corners. */
-.health {
+/* The counters over the game, clear of a phone's notch and corners: health, experience and
+   what the elf carries at the top left. */
+.status {
 	position: absolute;
 	top: calc(10px + env(safe-area-inset-top));
 	left: calc(12px + env(safe-area-inset-left));
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
 	width: min(30%, 180px);
-	height: 10px;
-	border: 2px solid #4a3220;
-	background-color: rgba(6, 3, 8, 0.8);
 	pointer-events: none;
 }
 
-.healthFill {
+.health,
+.experience,
+.bossHealth {
+	height: 10px;
+	border: 2px solid #4a3220;
+	background-color: rgba(6, 3, 8, 0.8);
+}
+
+.experience {
+	height: 6px;
+	border-width: 1px;
+}
+
+.healthFill,
+.experienceFill,
+.bossHealthFill {
 	width: 100%;
 	height: 100%;
 	background-color: #c8343a;
 	transition: width 150ms linear;
+}
+
+.experienceFill {
+	width: 0;
+	background-color: #7ac0e8;
+}
+
+.level {
+	font-size: 12px;
+	text-shadow: 0 1px 2px #000;
+}
+
+.carried {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 2px;
+}
+
+.slot {
+	position: relative;
+	display: inline-flex;
+	padding: 1px;
+	border: 1px solid rgba(240, 180, 76, 0.35);
+	background-color: rgba(6, 3, 8, 0.6);
+}
+
+.slotLevel {
+	position: absolute;
+	right: -1px;
+	bottom: -3px;
+	font-size: 10px;
+	line-height: 1;
+	text-shadow:
+		0 0 2px #000,
+		0 0 2px #000;
+}
+
+.icon {
+	width: 20px;
+	height: 20px;
+	image-rendering: pixelated;
+}
+
+.evolved {
+	filter: drop-shadow(0 0 2px #ffd060);
+}
+
+.boss {
+	display: none;
+	position: absolute;
+	top: calc(36px + env(safe-area-inset-top));
+	left: 50%;
+	transform: translateX(-50%);
+	width: min(50%, 320px);
+	text-align: center;
+	pointer-events: none;
+}
+
+.bossName {
+	font-family: "IM Fell English SC", Georgia, serif;
+	font-size: 14px;
+	color: #e9e1d4;
+	text-shadow: 0 1px 2px #000;
+}
+
+.bossHealthFill {
+	background-color: #8a1a2a;
 }
 
 .clock {
@@ -153,6 +238,14 @@
 	touch-action: none;
 }
 
+.pauseButton {
+	position: absolute;
+	right: calc(10px + env(safe-area-inset-right));
+	top: calc(34px + env(safe-area-inset-top));
+	color: #f0b44c;
+	background-color: rgba(6, 3, 8, 0.5);
+}
+
 .fullscreenButton {
 	position: absolute;
 	left: calc(10px + env(safe-area-inset-left));
@@ -169,9 +262,10 @@
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	justify-content: center;
+	justify-content: safe center;
 	gap: 12px;
 	padding: 16px;
+	overflow-y: auto;
 	text-align: center;
 	background-color: rgba(3, 2, 8, 0.72);
 
@@ -184,4 +278,243 @@
 	font-family: "IM Fell English SC", Georgia, serif;
 	font-size: 36px;
 	color: #f0b44c;
+}
+
+/* A level-up's choices, a patron's blessings, Krampus's bargains. */
+.cards {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 10px;
+	max-width: 760px;
+}
+
+.cardHolder {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.card {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	width: 220px;
+	min-height: 96px;
+	padding: 10px 12px;
+	border: 2px solid #6e460e;
+	border-radius: 4px;
+	background-color: rgba(14, 8, 16, 0.92);
+	color: #e9e1d4;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+
+	&:hover,
+	&:focus-visible {
+		background-color: rgba(40, 22, 30, 0.95);
+		border-color: #ffd060;
+	}
+}
+
+.cardHead {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.cardName {
+	flex: 1;
+	font-family: "IM Fell English SC", Georgia, serif;
+	font-size: 17px;
+	color: #f0b44c;
+}
+
+.cardTag {
+	font-size: 12px;
+	color: #a8a0a8;
+}
+
+.cardText {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 14px;
+	line-height: 1.35;
+}
+
+.bargain {
+	border-color: #781323;
+
+	&:hover,
+	&:focus-visible {
+		border-color: #f05a5a;
+	}
+
+	.cardName {
+		color: #f05a5a;
+	}
+}
+
+.gift {
+	color: #9ad07a;
+}
+
+.price {
+	color: #f2666a;
+}
+
+.banish {
+	align-self: center;
+	padding: 2px 8px;
+	border: none;
+	background: none;
+	color: #a8a0a8;
+	font: inherit;
+	font-size: 12px;
+	text-decoration: underline;
+	cursor: pointer;
+
+	&:hover {
+		color: #f2666a;
+	}
+}
+
+.promptButtons {
+	display: flex;
+	gap: 8px;
+}
+
+.hint {
+	font-size: 12px;
+	color: #a8a0a8;
+}
+
+.rewards {
+	white-space: pre-line;
+	font-size: 16px;
+	line-height: 1.6;
+}
+
+/* Meeting a patron (or Krampus): them speaking on one side, their offer on the other (one above
+   the other on a screen held upright). */
+.meeting {
+	flex-direction: row;
+	gap: 24px;
+
+	@container (orientation: portrait) {
+		flex-direction: column;
+	}
+}
+
+.dialogue {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	max-width: 50%;
+
+	@container (orientation: portrait) {
+		max-width: none;
+	}
+}
+
+.portrait {
+	height: min(62cqh, 320px);
+	max-width: 100%;
+	object-fit: contain;
+	image-rendering: pixelated;
+	border: 2px solid #3a2408;
+}
+
+.offer {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 8px;
+	width: min(300px, 45cqw);
+
+	@container (orientation: portrait) {
+		width: min(300px, 100%);
+	}
+
+	.card {
+		width: auto;
+		min-height: 0;
+	}
+}
+
+.speaker {
+	font-family: "IM Fell English SC", Georgia, serif;
+	font-size: 22px;
+}
+
+.speakerFrom {
+	font-size: 14px;
+	color: #a8a0a8;
+}
+
+.line {
+	font-style: italic;
+	max-width: 480px;
+}
+
+/* The night's end. */
+.summary {
+	overflow-y: auto;
+	justify-content: flex-start;
+	padding-top: 24px;
+}
+
+.damage {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	width: min(420px, 100%);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+
+	li {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 13px;
+	}
+}
+
+.damageName {
+	width: 150px;
+	text-align: left;
+}
+
+.damageBar {
+	flex: 1;
+	height: 6px;
+	background-color: rgba(233, 225, 212, 0.1);
+
+	span {
+		display: block;
+		height: 100%;
+		background-color: #c8343a;
+	}
+}
+
+.damageNumber {
+	width: 64px;
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+.dim {
+	color: #a8a0a8;
+}
+
+.blessings {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 4px 12px;
+	max-width: 520px;
+	font-size: 13px;
 }

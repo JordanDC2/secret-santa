@@ -1,22 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ActionIcon, Button, Tooltip } from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCompress, faExpand } from "@fortawesome/free-solid-svg-icons";
+import { faCompress, faExpand, faPause } from "@fortawesome/free-solid-svg-icons";
 import { useElementSize } from "@mantine/hooks";
 import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
+import { experienceFor } from "Components/SilentNight/constants";
 import { drawWorld } from "Components/SilentNight/drawWorld";
+import { ENEMIES } from "Components/SilentNight/enemies";
+import { iconUrl } from "Components/SilentNight/icons";
+import NightOver, { clock } from "Components/SilentNight/NightOver";
+import Prompt from "Components/SilentNight/Prompt";
 import { makeSprites } from "Components/SilentNight/sprites";
-import {
-	MAGAZINE,
-	MAX_HEALTH,
-	NIGHT_SECONDS,
-	newWorld,
-	reloading,
-	step,
-	VIEW_HEIGHT,
-	type IInput,
-	type IWorld,
-} from "Components/SilentNight/world";
+import { PASSIVES } from "Components/SilentNight/stats";
+import type { IInput, IPrompt, IWorld } from "Components/SilentNight/types";
+import { gunNumbers, weaponInfo } from "Components/SilentNight/weapons";
+import { NIGHT_SECONDS, newWorld, step, VIEW_HEIGHT } from "Components/SilentNight/world";
 import classes from "Components/SilentNight/SilentNight.module.less";
 
 /** The rules run in steps this long, however fast the screen refreshes, and never more than MAX_FRAME at once. */
@@ -33,12 +31,6 @@ type IGameProps = {
 	onToggleFullscreen: () => void;
 };
 
-function clock(seconds: number): string {
-	const whole = Math.floor(seconds);
-
-	return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
-}
-
 /** A stick's push as a vector of length up to 1. */
 function stickVector(stick: IStick): { x: number; y: number } {
 	if (!stick) {
@@ -52,22 +44,64 @@ function stickVector(stick: IStick): { x: number; y: number } {
 	return length > 1 ? { x: dx / length, y: dy / length } : { x: dx, y: dy };
 }
 
+// A thumbstick's look follows the thumb: its base where it landed, its knob where it is.
+function showStick(element: HTMLDivElement | null, stick: IStick) {
+	if (!element) {
+		return;
+	}
+
+	if (!stick) {
+		element.style.display = "none";
+
+		return;
+	}
+
+	const push = stickVector(stick);
+	element.style.display = "block";
+	element.style.left = `${stick.originX}px`;
+	element.style.top = `${stick.originY}px`;
+	element.style.setProperty("--knob-x", `${push.x * STICK_REACH}px`);
+	element.style.setProperty("--knob-y", `${push.y * STICK_REACH}px`);
+}
+
+type IBuild = ReturnType<typeof buildOf>;
+
+/** What the elf carries, as the counters show it: each weapon and passive, at its level. */
+function buildOf(world: IWorld) {
+	return {
+		weapons: world.player.weapons.map((weapon) => ({ id: weapon.id, level: weapon.level, evolved: weapon.evolved })),
+		passives: PASSIVES.filter((passive) => world.player.passives[passive.id]).map((passive) => ({
+			id: passive.id,
+			level: world.player.passives[passive.id]!,
+		})),
+	};
+}
+
+const buildKey = (world: IWorld) =>
+	world.player.weapons.map((weapon) => `${weapon.id}${weapon.level}${weapon.evolved}`).join() +
+	JSON.stringify(world.player.passives);
+
 /**
  * Silent Night itself: the night drawn on a canvas at the game's own resolution and scaled up
- * crisply, run in fixed steps, with the counters over it. Keyboard and mouse (WASD to move, the
- * mouse to aim, hold the button to fire, Space to dash, R to reload) or, on a touch screen, a
- * thumbstick on each half of the screen (left to move, right to aim and fire) and a dash button.
+ * crisply, run in fixed steps, with the counters over it and whatever the night's waiting on the
+ * player for (Prompt.tsx). Keyboard and mouse (WASD to move, the mouse to aim, hold the button to
+ * fire, Space to dash, R to reload, Esc to pause) or, on a touch screen, a thumbstick on each half
+ * of the screen (left to move, right to aim and fire) and a dash button.
  */
 export default function SilentNightGame({ fullscreen, onToggleFullscreen }: IGameProps) {
 	const { ref: frameRef, width, height } = useElementSize();
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const touchScreen = useTouchScreen();
 	const sprites = useMemo(() => makeSprites(), []);
-	const worldRef = useRef<IWorld>(newWorld());
-	// Which night this is (0 before the first): each one starts the loop afresh.
-	const [night, setNight] = useState(0);
-	const started = night > 0;
-	const [over, setOver] = useState<{ time: number; kills: number } | null>(null);
+	// The night being played (null before the first), and the same for the loop and handlers.
+	const [world, setWorld] = useState<IWorld | null>(null);
+	const worldRef = useRef<IWorld | null>(null);
+	const started = world !== null;
+	const [over, setOver] = useState(false);
+	const [prompt, setPrompt] = useState<IPrompt | null>(null);
+	const [paused, setPaused] = useState(false);
+	const pausedRef = useRef(false);
+	const [build, setBuild] = useState<IBuild>({ weapons: [], passives: [] });
 	// Input, read by the loop.
 	const keysRef = useRef(new Set<string>());
 	const mouseRef = useRef<{ x: number; y: number; down: boolean } | null>(null);
@@ -77,9 +111,14 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen }: IGam
 	const reloadRef = useRef(false);
 	// The counters, updated straight from the loop.
 	const healthRef = useRef<HTMLDivElement>(null);
+	const experienceRef = useRef<HTMLDivElement>(null);
+	const levelRef = useRef<HTMLSpanElement>(null);
 	const timeRef = useRef<HTMLSpanElement>(null);
 	const killsRef = useRef<HTMLSpanElement>(null);
 	const ammoRef = useRef<HTMLSpanElement>(null);
+	const bossRef = useRef<HTMLDivElement>(null);
+	const bossNameRef = useRef<HTMLSpanElement>(null);
+	const bossHealthRef = useRef<HTMLDivElement>(null);
 	const moveStickView = useRef<HTMLDivElement>(null);
 	const aimStickView = useRef<HTMLDivElement>(null);
 
@@ -89,7 +128,7 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen }: IGam
 		[width, height],
 	);
 
-	// Keys: moving, dashing, reloading.
+	// Keys: moving, dashing, reloading, pausing.
 	useEffect(() => {
 		const GAME_KEYS = new Set([
 			"KeyW",
@@ -106,7 +145,21 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen }: IGam
 		const down = (event: KeyboardEvent) => {
 			const typing = (event.target as HTMLElement | null)?.closest("input, textarea, select, [contenteditable]");
 
-			if (typing || !GAME_KEYS.has(event.code)) {
+			const current = worldRef.current;
+
+			if (typing || !current) {
+				return;
+			}
+
+			if ((event.code === "Escape" || event.code === "KeyP") && !current.over && current.prompt === null) {
+				event.preventDefault();
+				pausedRef.current = !pausedRef.current;
+				setPaused(pausedRef.current);
+
+				return;
+			}
+
+			if (!GAME_KEYS.has(event.code)) {
 				return;
 			}
 
@@ -122,12 +175,23 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen }: IGam
 			}
 		};
 		const up = (event: KeyboardEvent) => keysRef.current.delete(event.code);
+		// Looking away pauses the night.
+		const hidden = () => {
+			const current = worldRef.current;
+
+			if (document.hidden && current && !current.over && current.prompt === null) {
+				pausedRef.current = true;
+				setPaused(true);
+			}
+		};
 		window.addEventListener("keydown", down);
 		window.addEventListener("keyup", up);
+		document.addEventListener("visibilitychange", hidden);
 
 		return () => {
 			window.removeEventListener("keydown", down);
 			window.removeEventListener("keyup", up);
+			document.removeEventListener("visibilitychange", hidden);
 		};
 	}, []);
 
@@ -135,7 +199,7 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen }: IGam
 	useEffect(() => {
 		const canvas = canvasRef.current;
 
-		if (!canvas || view.width === 0 || night === 0) {
+		if (!canvas || view.width === 0 || !world) {
 			return;
 		}
 
@@ -149,7 +213,17 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen }: IGam
 		let frame = 0;
 		let last = performance.now();
 		let carry = 0;
-		let shown = { health: -1, time: -1, kills: -1, ammo: "" };
+		let shown = {
+			health: -1,
+			experience: -1,
+			level: -1,
+			time: -1,
+			kills: -1,
+			ammo: "",
+			boss: -1,
+			build: "",
+			prompt: null as IPrompt | null,
+		};
 
 		const input = (): IInput => {
 			const keys = keysRef.current;
@@ -190,28 +264,54 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen }: IGam
 		};
 
 		const render = (now: number) => {
-			const world = worldRef.current;
 			carry += Math.min(MAX_FRAME, (now - last) / 1000);
 			last = now;
+
+			if (pausedRef.current || world.prompt !== null) {
+				carry = 0;
+			}
 
 			while (carry >= STEP) {
 				step(world, input(), STEP, view);
 				carry -= STEP;
+
+				if (world.prompt !== null) {
+					carry = 0;
+				}
 			}
 
 			drawWorld(context, darkness, world, sprites, view);
 
 			// The counters, only touched when they change.
-			const health = Math.ceil(world.player.health);
+			const { player } = world;
+			const health = Math.ceil(player.health);
+			const experience = Math.floor((player.experience / experienceFor(player.level)) * 200);
 			const time = Math.floor(world.time);
-			const ammo = reloading(world) ? "Reloading" : `${world.player.ammo} / ${MAGAZINE}`;
+			const gun = player.weapons.find((weapon) => weapon.id === "gun");
+			const ammo =
+				!gun || gunNumbers(gun).endless
+					? ""
+					: gun.reloadUntil !== null
+						? "Reloading"
+						: `${gun.ammo} / ${gunNumbers(gun).magazine}`;
+			const boss = world.enemies.find((enemy) => enemy.boss);
+			const bossHealth = boss ? Math.ceil((boss.health / boss.maxHealth) * 200) : -1;
+			const key = buildKey(world);
 
 			if (health !== shown.health && healthRef.current) {
-				healthRef.current.style.width = `${(health / MAX_HEALTH) * 100}%`;
+				healthRef.current.style.width = `${Math.min(100, (health / world.numbers.maxHealth) * 100)}%`;
+			}
+
+			if (experience !== shown.experience && experienceRef.current) {
+				experienceRef.current.style.width = `${experience / 2}%`;
+			}
+
+			if (player.level !== shown.level && levelRef.current) {
+				levelRef.current.textContent = `Level ${player.level}`;
 			}
 
 			if (time !== shown.time && timeRef.current) {
-				timeRef.current.textContent = clock(time);
+				timeRef.current.textContent = world.dawn ? "Dawn" : clock(time);
 			}
 
 			if (world.kills !== shown.kills && killsRef.current) {
@@ -222,10 +322,34 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen }: IGam
 				ammoRef.current.textContent = ammo;
 			}
 
-			shown = { health, time, kills: world.kills, ammo };
+			if (bossHealth !== shown.boss && bossRef.current && bossHealthRef.current && bossNameRef.current) {
+				bossRef.current.style.display = boss ? "block" : "none";
+				bossNameRef.current.textContent = boss ? ENEMIES[boss.kind].name : "";
+				bossHealthRef.current.style.width = `${Math.max(0, bossHealth) / 2}%`;
+			}
+
+			if (key !== shown.build) {
+				setBuild(buildOf(world));
+			}
+
+			if (world.prompt !== shown.prompt) {
+				setPrompt(world.prompt);
+			}
+
+			shown = {
+				health,
+				experience,
+				level: player.level,
+				time,
+				kills: world.kills,
+				ammo,
+				boss: bossHealth,
+				build: key,
+				prompt: world.prompt,
+			};
 
 			if (world.over) {
-				setOver({ time: world.time, kills: world.kills });
+				setOver(true);
 
 				return;
 			}
@@ -236,12 +360,22 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen }: IGam
 		frame = requestAnimationFrame(render);
 
 		return () => cancelAnimationFrame(frame);
-	}, [view, sprites, night]);
+	}, [view, sprites, world]);
+
+	const pause = (on: boolean) => {
+		pausedRef.current = on;
+		setPaused(on);
+	};
 
 	const start = () => {
-		worldRef.current = newWorld();
-		setOver(null);
-		setNight((current) => current + 1);
+		const fresh = newWorld();
+		worldRef.current = fresh;
+		keysRef.current.clear();
+		setOver(false);
+		setPrompt(null);
+		pause(false);
+		setBuild(buildOf(fresh));
+		setWorld(fresh);
 	};
 
 	// The mouse, in the game's pixels.
@@ -252,26 +386,6 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen }: IGam
 			x: ((event.clientX - box.left) / box.width) * view.width,
 			y: ((event.clientY - box.top) / box.height) * view.height,
 		};
-	};
-
-	// A thumbstick's look follows the thumb: its base where it landed, its knob where it is.
-	const showStick = (element: HTMLDivElement | null, stick: IStick) => {
-		if (!element) {
-			return;
-		}
-
-		if (!stick) {
-			element.style.display = "none";
-
-			return;
-		}
-
-		const push = stickVector(stick);
-		element.style.display = "block";
-		element.style.left = `${stick.originX}px`;
-		element.style.top = `${stick.originY}px`;
-		element.style.setProperty("--knob-x", `${push.x * STICK_REACH}px`);
-		element.style.setProperty("--knob-y", `${push.y * STICK_REACH}px`);
 	};
 
 	const pointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -338,6 +452,23 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen }: IGam
 		}
 	};
 
+	const playing = started && !over;
+	const waiting = playing && (prompt !== null || paused);
+
+	// Sticks let go when something comes up over the game, so the elf doesn't run on.
+	useEffect(() => {
+		if (waiting) {
+			moveStickRef.current = null;
+			aimStickRef.current = null;
+			showStick(moveStickView.current, null);
+			showStick(aimStickView.current, null);
+
+			if (mouseRef.current) {
+				mouseRef.current.down = false;
+			}
+		}
+	}, [waiting]);
+
 	return (
 		<div ref={frameRef} className={classes.frame}>
 			<div
@@ -352,7 +483,7 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen }: IGam
 					ref={canvasRef}
 					className={classes.canvas}
 					role="img"
-					aria-label="Silent Night: an elf with a candy cane gun in a ring of light, in the dark, with gingerbread men coming"
+					aria-label="Silent Night: an elf in a ring of candlelight in the dark, with Krampus's horde coming"
 				/>
 				<div ref={moveStickView} className={classes.stick} />
 				<div ref={aimStickView} className={classes.stick} data-aim />
@@ -360,12 +491,50 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen }: IGam
 
 			{started && (
 				<>
-					<div className={classes.health} aria-label="Health">
-						<div ref={healthRef} className={classes.healthFill} />
+					<div className={classes.status}>
+						<div className={classes.health} aria-label="Health">
+							<div ref={healthRef} className={classes.healthFill} />
+						</div>
+						<div className={classes.experience} aria-label="Experience">
+							<div ref={experienceRef} className={classes.experienceFill} />
+						</div>
+						<span ref={levelRef} className={classes.level}>
+							Level 1
+						</span>
+						<div className={classes.carried}>
+							{build.weapons.map((weapon) => (
+								<span
+									key={weapon.id}
+									className={classes.slot}
+									title={weapon.evolved ? weaponInfo(weapon.id).evolution.name : weaponInfo(weapon.id).name}
+								>
+									<img
+										src={iconUrl(weapon.id)}
+										alt=""
+										className={weapon.evolved ? `${classes.icon} ${classes.evolved}` : classes.icon}
+									/>
+									<span className={classes.slotLevel}>{weapon.evolved ? "★" : weapon.level}</span>
+								</span>
+							))}
+						</div>
+						<div className={classes.carried}>
+							{build.passives.map((passive) => (
+								<span key={passive.id} className={classes.slot}>
+									<img src={iconUrl(passive.id)} alt="" className={classes.icon} />
+									<span className={classes.slotLevel}>{passive.level}</span>
+								</span>
+							))}
+						</div>
 					</div>
 					<div className={classes.clock}>
 						<span ref={timeRef}>0:00</span>
 						<span className={classes.clockOf}> / {clock(NIGHT_SECONDS)}</span>
+					</div>
+					<div ref={bossRef} className={classes.boss}>
+						<span ref={bossNameRef} className={classes.bossName} />
+						<div className={classes.bossHealth}>
+							<div ref={bossHealthRef} className={classes.bossHealthFill} />
+						</div>
 					</div>
 					<div className={classes.kills}>
 						<span ref={killsRef}>0</span> broken
@@ -376,17 +545,29 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen }: IGam
 				</>
 			)}
 
-			{started && touchScreen && !over && (
-				<button
-					type="button"
-					className={classes.dash}
-					onPointerDown={(event) => {
-						event.stopPropagation();
-						dashRef.current = true;
-					}}
-				>
-					Dash
-				</button>
+			{playing && touchScreen && !waiting && (
+				<>
+					<button
+						type="button"
+						className={classes.dash}
+						onPointerDown={(event) => {
+							event.stopPropagation();
+							dashRef.current = true;
+						}}
+					>
+						Dash
+					</button>
+					<ActionIcon
+						variant="transparent"
+						radius="xl"
+						size={44}
+						className={classes.pauseButton}
+						aria-label="Pause"
+						onClick={() => pause(true)}
+					>
+						<FontAwesomeIcon icon={faPause} />
+					</ActionIcon>
+				</>
 			)}
 
 			<Tooltip label={fullscreen ? "Leave full screen (Esc)" : "Play full screen"} withArrow disabled={touchScreen}>
@@ -405,23 +586,31 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen }: IGam
 				</ActionIcon>
 			</Tooltip>
 
-			{(!started || over) && (
+			{playing && prompt && <Prompt world={world} prompt={prompt} onChange={() => setPrompt(world.prompt)} />}
+
+			{playing && paused && !prompt && (
 				<div className={classes.overlay}>
-					{over ? (
-						<>
-							<p className={classes.title}>The night took you</p>
-							<p>
-								You lasted {clock(over.time)} and broke {over.kills.toLocaleString()}{" "}
-								{over.kills === 1 ? "gingerbread man" : "gingerbread men"}.
-							</p>
-						</>
-					) : (
-						<>
-							<p className={classes.title}>Silent Night</p>
-							<p>Hold out until dawn.</p>
-						</>
-					)}
-					<Button onClick={start}>{over ? "Try again" : "Start the night"}</Button>
+					<p className={classes.title}>Paused</p>
+					<Button onClick={() => pause(false)}>Carry on</Button>
+					<Button
+						variant="subtle"
+						onClick={() => {
+							worldRef.current!.over = true;
+							pause(false);
+						}}
+					>
+						Give up the night
+					</Button>
+				</div>
+			)}
+
+			{over && world && <NightOver world={world} onAgain={start} />}
+
+			{!started && (
+				<div className={classes.overlay}>
+					<p className={classes.title}>Silent Night</p>
+					<p>Hold out until dawn.</p>
+					<Button onClick={start}>Start the night</Button>
 				</div>
 			)}
 		</div>
