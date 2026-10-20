@@ -470,6 +470,11 @@ function drawSky(
 	}
 }
 
+/** The colour of the snow on the ground: grey and slushy by day (day: 0 to 1). */
+export function groundSnow(palette: IPalette, day: number): string {
+	return mix(palette.snow, DAY.slush, day * 0.7);
+}
+
 /** The snow, going grey and slushy by day (day: 0 to 1), with patches of grass showing through. */
 function drawGround(
 	context: CanvasRenderingContext2D,
@@ -480,7 +485,7 @@ function drawGround(
 	camera: ICamera,
 	day: number,
 ) {
-	context.fillStyle = mix(palette.snow, DAY.slush, day * 0.7);
+	context.fillStyle = groundSnow(palette, day);
 	context.fillRect(0, groundY, width, height - groundY);
 
 	if (day > 0) {

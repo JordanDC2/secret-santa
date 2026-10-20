@@ -84,9 +84,7 @@ export const SNOWBALL_REACH = 1.2;
 /** When the snowball wears off mid-roll, it pops the elf up this fast (m/s) to bounce on. */
 export const SNOWBALL_POP_UP = 8;
 
-const HIGH_POWER_UP_CHANCE = 1 / 6;
-
-/** One every 70–150 m, a third low over the snow and the rest up to 12 m; now and then one more far up in the high sky. */
+/** One every 70–150 m, a third low over the snow and the rest up to 12 m, with another up in the high sky. */
 export function powerUpLayout(kinds: IPowerUpKind[]): ILayout<IPowerUp> | null {
 	if (kinds.length === 0) {
 		return null;
@@ -104,16 +102,12 @@ export function powerUpLayout(kinds: IPowerUpKind[]): ILayout<IPowerUp> | null {
 				kind: kinds[Math.floor(random() * kinds.length)],
 				collectedAt: null,
 			},
-			...(random() < HIGH_POWER_UP_CHANCE
-				? [
-						{
-							x: x + 5,
-							y: between(HIGH_SKY, random),
-							kind: kinds[Math.floor(random() * kinds.length)],
-							collectedAt: null,
-						},
-					]
-				: []),
+			{
+				x: x + 5,
+				y: between(HIGH_SKY, random),
+				kind: kinds[Math.floor(random() * kinds.length)],
+				collectedAt: null,
+			},
 		],
 	};
 }

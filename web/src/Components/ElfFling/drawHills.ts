@@ -1,4 +1,4 @@
-import type { IPalette } from "Components/ElfFling/draw";
+import { groundSnow, type IPalette } from "Components/ElfFling/draw";
 import { drawOutOfFocus, hash } from "Components/ElfFling/drawForeground";
 
 /**
@@ -362,8 +362,9 @@ export function drawHills(
 
 /**
  * A big snowman: three balls of snow, a top hat, a scarf blowing, stick arms, coal buttons and a
- * carrot. `melt` (0 to 1) slumps him under the sun: his balls squash and sink, his head lolls,
- * his hat slips, his nose and arms droop, and a puddle spreads around him.
+ * carrot, standing in a drift of snow. `melt` (0 to 1) slumps him under the sun: his balls
+ * squash and sink, his head lolls, his hat slips, his nose and arms droop, and a puddle spreads
+ * around him.
  */
 function snowman(
 	context: CanvasRenderingContext2D,
@@ -376,6 +377,7 @@ function snowman(
 	scarf: string,
 	carrot: string,
 	water: string,
+	ground: string,
 	flap: number,
 	melt: number,
 ) {
@@ -388,24 +390,6 @@ function snowman(
 	// His head lolling to one side.
 	const headX = x + head * 0.8 * melt;
 	const headY = middleY - middle.high - head * (0.8 - 0.4 * melt);
-
-	// The meltwater, spreading, with the sky caught in it; and slush slumping into it.
-	if (melt > 0) {
-		context.save();
-		context.globalAlpha *= melt;
-		context.fillStyle = water;
-		context.beginPath();
-		context.ellipse(x + bottom.wide * 0.25, base, bottom.wide * (1.2 + 1.1 * melt), 3 + 6 * melt, 0, 0, Math.PI * 2);
-		context.fill();
-		context.fillStyle = snow;
-		context.globalAlpha *= 0.6;
-		context.fillRect(x + bottom.wide * 0.6, base - 1, bottom.wide * 0.9, 1.5);
-		context.globalAlpha /= 0.6;
-		context.beginPath();
-		context.ellipse(x, base - 2, bottom.wide * (1 + 0.25 * melt), 3 + 5 * melt, 0, 0, Math.PI * 2);
-		context.fill();
-		context.restore();
-	}
 
 	// Stick arms, behind the body: one raised in a wave, both drooping as he melts.
 	const droop = middle.wide * 1.8 * melt;
@@ -448,6 +432,44 @@ function snowman(
 			context.stroke();
 			context.restore();
 		}
+	}
+
+	// A drift of snow banked up round his base, so he stands in the snow rather than on it,
+	// fading into the snow on the ground at its foot.
+	const drift = bottom.wide * 1.9;
+	const mound = context.createLinearGradient(0, base - bottom.high * 0.5, 0, base + 12);
+	mound.addColorStop(0, snow);
+	mound.addColorStop(1, ground);
+	context.fillStyle = mound;
+	context.beginPath();
+	context.moveTo(x - drift, base + 30);
+	context.quadraticCurveTo(
+		x - drift * 0.55,
+		base - bottom.high * 0.05,
+		x - bottom.wide * 0.6,
+		base - bottom.high * 0.3,
+	);
+	context.quadraticCurveTo(x, base - bottom.high * 0.5, x + bottom.wide * 0.6, base - bottom.high * 0.3);
+	context.quadraticCurveTo(x + drift * 0.6, base - bottom.high * 0.05, x + drift * 1.1, base + 30);
+	context.closePath();
+	context.fill();
+
+	// The meltwater, spreading, with the sky caught in it; and slush slumping into it.
+	if (melt > 0) {
+		context.save();
+		context.globalAlpha *= melt;
+		context.fillStyle = water;
+		context.beginPath();
+		context.ellipse(x + bottom.wide * 0.25, base, bottom.wide * (1.2 + 1.1 * melt), 3 + 6 * melt, 0, 0, Math.PI * 2);
+		context.fill();
+		context.fillStyle = snow;
+		context.globalAlpha *= 0.6;
+		context.fillRect(x + bottom.wide * 0.6, base - 1, bottom.wide * 0.9, 1.5);
+		context.globalAlpha /= 0.6;
+		context.beginPath();
+		context.ellipse(x, base - 2, bottom.wide * (1 + 0.25 * melt), 3 + 5 * melt, 0, 0, Math.PI * 2);
+		context.fill();
+		context.restore();
 	}
 
 	// Drips running down him.
@@ -562,6 +584,7 @@ export function drawHillsForeground(
 				red,
 				mix("#6b3a14", "#e8823a", day),
 				mix("#3d5a6a", "#8fbcd4", day),
+				groundSnow(palette, day),
 				Math.sin(clock * 3 + index) * 4,
 				melt,
 			);
