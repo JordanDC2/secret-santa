@@ -227,7 +227,7 @@
 .dash {
 	position: absolute;
 	right: calc(20px + env(safe-area-inset-right));
-	bottom: calc(150px + env(safe-area-inset-bottom));
+	bottom: calc(min(150px, 30cqh) + env(safe-area-inset-bottom));
 	width: 64px;
 	height: 64px;
 	border: 2px solid rgba(240, 180, 76, 0.6);
@@ -290,23 +290,27 @@
 /* A level-up's choices, a patron's blessings, Krampus's bargains. */
 .cards {
 	display: flex;
-	flex-wrap: wrap;
 	justify-content: center;
 	gap: 10px;
-	max-width: 760px;
+	width: min(100%, 760px);
 }
 
+/* Each choice shares the row, up to a comfortable width. */
 .cardHolder {
 	display: flex;
+	flex: 1 1 0;
 	flex-direction: column;
 	gap: 4px;
+	min-width: 0;
+	max-width: 220px;
 }
 
 .card {
 	display: flex;
+	flex: 1;
 	flex-direction: column;
 	gap: 6px;
-	width: 220px;
+	width: 100%;
 	min-height: 96px;
 	padding: 10px 12px;
 	border: 2px solid #6e460e;
@@ -464,6 +468,48 @@
 .line {
 	font-style: italic;
 	max-width: 480px;
+}
+
+/* A short screen (a phone held sideways): everything over the game tighter, so it fits without scrolling. */
+@container (max-height: 420px) {
+	.overlay {
+		gap: 8px;
+		padding: 8px 12px;
+	}
+
+	.title {
+		font-size: 24px;
+	}
+
+	.card {
+		gap: 4px;
+		min-height: 0;
+		padding: 6px 8px;
+	}
+
+	.cardName {
+		font-size: 15px;
+	}
+
+	.cardText {
+		font-size: 12px;
+	}
+
+	.hint {
+		display: none;
+	}
+
+	.portrait {
+		height: min(52cqh, 320px);
+	}
+
+	.speaker {
+		font-size: 18px;
+	}
+
+	.line {
+		font-size: 13px;
+	}
 }
 
 /* The night's end. */

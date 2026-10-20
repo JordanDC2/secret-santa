@@ -81,6 +81,22 @@ class SilentNightTest extends TestCase
             ->assertJsonPath('entries.1.value', 700);
     }
 
+    public function test_nights_that_both_reach_dawn_rank_by_the_most_broken(): void
+    {
+        $this->player(['first_name' => 'Nick', 'last_name' => 'Frost']);
+        $this->postJson(route('silent-night.runs'), $this->night(['seconds' => 1200, 'kills' => 6000, 'won' => true]))->assertNoContent();
+
+        $this->player(['first_name' => 'Holly', 'last_name' => 'Berry']);
+        $this->postJson(route('silent-night.runs'), $this->night(['seconds' => 1200, 'kills' => 8000]))->assertNoContent();
+
+        $this->getJson(route('silent-night.leaderboard', ['board' => 'night', 'period' => 'all']))
+            ->assertJsonPath('entries.0.name', 'Holly B.')
+            ->assertJsonPath('entries.0.value', 1200)
+            ->assertJsonPath('entries.1.name', 'Nick F.')
+            ->assertJsonPath('entries.1.rank', 2)
+            ->assertJsonPath('you.rank', 1);
+    }
+
     public function test_krampus_board_counts_only_nights_won_even_without_bargains(): void
     {
         $this->player(['first_name' => 'Nick', 'last_name' => 'Frost']);

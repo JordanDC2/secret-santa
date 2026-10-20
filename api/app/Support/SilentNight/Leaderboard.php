@@ -9,12 +9,18 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * The Silent Night leaderboards, across everyone on the site, this week (Monday to Sunday, the
- * organizer's time) or all time: each player's longest night, the most of Krampus's bargains
- * they've taken and still beaten him, or the most of his horde broken in a night. Names show as
- * on Elf Fling's ("Holly B.").
+ * organizer's time) or all time: each player's longest night (the most broken breaking a tie,
+ * as every win reaches dawn), the most of Krampus's bargains they've taken and still beaten him,
+ * or the most of his horde broken in a night. Names show as on Elf Fling's ("Holly B.").
  */
 class Leaderboard
 {
+    /**
+     * The longest night's score is its seconds and kills in one number, seconds first: kills are
+     * under this (RecordRunRequest caps them at a million).
+     */
+    private const KILLS_UNDER = 10_000_000;
+
     /**
      * The top players, and where the viewer stands even if they're further down.
      *
@@ -41,7 +47,7 @@ class Leaderboard
             $entries[] = [
                 'rank' => $rank,
                 'name' => ElfFlingLeaderboard::displayName((string) $row->first_name, $row->last_name),
-                'value' => (int) $row->score,
+                'value' => self::value($board, (int) $row->score),
                 'is_you' => (int) $row->id === $viewer->id,
             ];
         }
@@ -51,7 +57,7 @@ class Leaderboard
 
         if ($mine !== null) {
             $ahead = DB::query()->fromSub(clone $scores, 'scores')->where('score', '>', $mine->score)->count();
-            $you = ['rank' => $ahead + 1, 'value' => (int) $mine->score];
+            $you = ['rank' => $ahead + 1, 'value' => self::value($board, (int) $mine->score)];
         }
 
         return ['entries' => $entries, 'you' => $you];
@@ -67,7 +73,7 @@ class Leaderboard
     private static function scores(string $board, string $period): Builder
     {
         $score = match ($board) {
-            'night' => 'max(silent_night_runs.seconds)',
+            'night' => 'max(silent_night_runs.seconds * '.self::KILLS_UNDER.' + silent_night_runs.kills)',
             'krampus' => 'max(silent_night_runs.bargains)',
             'kills' => 'max(silent_night_runs.kills)',
         };
@@ -81,5 +87,13 @@ class Leaderboard
             ->select('users.id', 'users.first_name', 'users.last_name')
             ->selectRaw("{$score} as score")
             ->when($board !== 'krampus', fn (Builder $query) => $query->havingRaw("{$score} > 0"));
+    }
+
+    /**
+     * What a board shows for a score: the longest night shows its seconds.
+     */
+    private static function value(string $board, int $score): int
+    {
+        return $board === 'night' ? intdiv($score, self::KILLS_UNDER) : $score;
     }
 }
