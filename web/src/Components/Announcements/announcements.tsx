@@ -50,6 +50,25 @@ const FINAL_STANDINGS: Array<{ title: string; places: IPodiumPlace[] }> = [
 
 export const ANNOUNCEMENTS: IAnnouncement[] = [
 	{
+		id: "elf-fling-journeys-end",
+		released: "2026-10-20T13:09:00Z",
+		paths: ["/games/elf-fling"],
+		title: "New in Elf Fling: Journey's End",
+		content: (
+			<Stack gap="md">
+				<MantineText size="sm">Here&apos;s what&apos;s new:</MantineText>
+				<BulletList size="sm">
+					<List.Item>
+						A new place to explore after the fourth sunset, with a welcome at the end of the road. Then the journey
+						starts again, your distance carried on.
+					</List.Item>
+					<List.Item>There are now as many power-ups up in the high sky as down below.</List.Item>
+				</BulletList>
+			</Stack>
+		),
+		button: "Let's go",
+	},
+	{
 		id: "elf-fling-keep-it-all",
 		released: "2026-10-19T21:59:50Z",
 		paths: ["/games/elf-fling"],
