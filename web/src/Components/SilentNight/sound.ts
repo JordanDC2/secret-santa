@@ -5,10 +5,12 @@
  * key, as a song that builds part by part (a broken music box and a cold drone, once; then a
  * bass, a heartbeat, strings and a tolling bell; then arpeggios over a light kit; then melodic
  * death metal, twin leads tremolo-picked over a galloping rhythm guitar and double kick; then a
- * climax of sweeps over blast beats), with fills leading from part to part, falling back to the
- * music box to go round again from the strings; the band in, whatever the part, while a boss is
- * about; and, as in Rogue Tower, its soft version (the music box and strings) in step while the
- * night waits on a choice.
+ * climax of sweeps over blast beats; then a long solo over it all, guitar, keys and drums each
+ * taking their turn, ending on one last hit), with fills leading from part to part, going round
+ * again from the strings, played another way each time and lifted a whole tone every other pair
+ * of times, so a night hears four different passes before any comes round again; the band in,
+ * whatever the part, while a boss is about; and, as in Rogue Tower, its soft version (the music
+ * box and strings) in step while the night waits on a choice.
  */
 
 import { audioNow, hiss, musicBus, readSoundOn, tone } from "Components/ElfFling/sound";
@@ -403,13 +405,19 @@ const CHORDS: string[][] = [
 	["C3", "Eb3", "G3"],
 ];
 
-/** A note's pitch, from its name ("Eb4"), in Hz. */
+/**
+ * How far the song is lifted while it's being arranged: 1, or a whole tone up for the passes in D
+ * minor (a key change, as metal songs lift for their last choruses). Drums don't care.
+ */
+let lift = 1;
+
+/** A note's pitch, from its name ("Eb4"), in Hz (lifted with the song). */
 function pitchOf(name: string): number {
 	const SEMITONES: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 	const [, letter, accidental, octave] = /^([A-G])(b|#)?(-?\d)$/.exec(name)!;
 	const midi = 12 * (Number(octave) + 1) + SEMITONES[letter] + (accidental === "b" ? -1 : accidental === "#" ? 1 : 0);
 
-	return 440 * 2 ** ((midi - 69) / 12);
+	return 440 * 2 ** ((midi - 69) / 12) * lift;
 }
 
 /** C minor's notes (harmonic, with the flat seventh the tune also uses), in order up the scale. */
@@ -426,10 +434,21 @@ function thirdAbove(name: string): number {
 
 /**
  * The song's parts, each once through the tune (twelve bars): the broken music box once, as the
- * night begins, then the rest over and over, building into melodic death metal and falling back to
- * the music box for the climax's last two bars before going round again from the strings.
+ * night begins, then the rest over and over, building into melodic death metal, to a climax and a
+ * long solo over everything (SOLOS), which ends on one last hit and goes round again from the strings.
  */
-const PARTS = ["musicBox", "strings", "arpeggios", "metal", "climax"] as const;
+const PARTS = [
+	"musicBox",
+	"strings",
+	"arpeggios",
+	"metal",
+	"climax",
+	"solo",
+	"keys",
+	"trade",
+	"breakdown",
+	"finale",
+] as const;
 type IPart = (typeof PARTS)[number];
 
 /** A sixteenth (a sixth of a beat in the waltz's six-eight), and a thirty-second, for picking and the drums. */
@@ -443,8 +462,8 @@ const THIRTY_SECOND = EIGHTH / 4;
  */
 type IStem = "both" | "soft" | "full";
 type IHit = { at: number; stem: IStem; bossOnly: boolean; play: (delay: number, out: IOutputs) => void };
-/** Where a hit sounds: the clean mix, or the guitars' (through the distortion). */
-type IOutputs = { clean: AudioNode; guitar: AudioNode };
+/** Where a hit sounds: the clean mix; through the guitars' distortion, the solo's (darker) or the bass guitar's; or the keys' (a lead synth, driven nearly as hard as the solo guitar so the two mesh). */
+type IOutputs = { clean: AudioNode; guitar: AudioNode; lead: AudioNode; bass: AudioNode; keys: AudioNode };
 
 /** The broken chord of a bar, for arpeggios: root, third and fifth, up an octave and another. */
 function chordTones(index: number): number[] {
@@ -463,6 +482,10 @@ const snare = (delay: number, out: AudioNode, volume = 0.1) => {
 	hiss("bandpass", 1900, 0.15, volume, delay, undefined, out);
 	tone("triangle", 220, 160, 0.08, volume * 0.6, delay, out);
 };
+const ride = (delay: number, out: AudioNode, volume = 0.016) => {
+	tone("sine", 5200, 5150, 0.25, volume * 0.6, delay, out);
+	hiss("highpass", 6500, 0.14, volume, delay, undefined, out);
+};
 const hat = (delay: number, out: AudioNode, volume = 0.018) =>
 	hiss("highpass", 9000, 0.035, volume, delay, undefined, out);
 const crash = (delay: number, out: AudioNode, volume = 0.07) => {
@@ -475,22 +498,451 @@ const tom = (delay: number, out: AudioNode, pitch: number, volume = 0.16) => {
 	hiss("lowpass", 800, 0.06, volume * 0.3, delay, undefined, out);
 };
 
-/** One time through the whole song: each part's hits, in quavers from the song's start. */
-function arrangement(): IHit[] {
+/** A note of the solo, by its step up C minor's scale from middle C (0; 7 is the C above). */
+function soloPitch(degree: number): number {
+	return pitchOf(`${SCALE[((degree % 7) + 7) % 7]}${4 + Math.floor(degree / 7)}`);
+}
+
+/** A note of a solo line: its step up the scale (soloPitch) or a note by name, its length in thirty-seconds, and how it's played (sing); null steps are rests. */
+type ISoloNote = [number | string | null, number, string?];
+/** One voice's part in a bar of the solo: the guitar's or the keys', a second guitar or keys `under` it (in steps), and how loud. */
+type ISoloLine = { voice: "guitar" | "keys"; notes: ISoloNote[]; under?: number; volume?: number };
+/**
+ * The band in a bar of the solo: the drums (double kick, blast beats, half time, building with
+ * `level`, or soloing alone at `level`) and the rhythm guitar (galloping, a held chord, one hit
+ * and then silence, or out).
+ */
+type ISoloBar = {
+	lines: ISoloLine[];
+	drums: "double" | "blast" | "half" | "build" | "break" | "none";
+	level?: number;
+	rhythm: "gallop" | "chord" | "hit" | "none";
+};
+
+/** Each step from `from` to `to` (up or down), each `length` thirty-seconds long. */
+const steps = (from: number, to: number, length = 1): ISoloNote[] =>
+	Array.from({ length: Math.abs(to - from) + 1 }, (_, i) => [from + Math.sign(to - from) * i, length]);
+/** Each of `degrees`, each `length` thirty-seconds long. */
+const each = (degrees: number[], length: number): ISoloNote[] => degrees.map((degree) => [degree, length]);
+const guitar = (notes: ISoloNote[], under?: number): ISoloLine => ({ voice: "guitar", notes, under });
+const keys = (notes: ISoloNote[], under?: number): ISoloLine => ({ voice: "keys", notes, under });
+/** The keys holding a bar's chord under the rest. */
+const pad = (degrees: number[]): ISoloLine[] =>
+	degrees.map((degree) => ({ voice: "keys", notes: [[degree, 24, "v"]], volume: 0.014 }));
+const measure = (
+	lines: ISoloLine[],
+	drums: ISoloBar["drums"],
+	rhythm: ISoloBar["rhythm"] = "gallop",
+	level?: number,
+): ISoloBar => ({
+	lines,
+	drums,
+	rhythm,
+	level,
+});
+
+/** The tune's bar `index` as the guitar sings it in the breakdown: an octave up, bent into, held notes with vibrato. */
+const sung = (index: number): ISoloNote[] =>
+	TUNE[index].map(([note, length], i) => [
+		note.replace(/\d$/, (octave) => String(Number(octave) + 1)),
+		length * 4,
+		`${i === 0 ? "b" : ""}${length >= 2 ? "v" : ""}`,
+	]);
+
+/**
+ * The guitar solo after the climax, as five parts over the tune's twelve chords, long and varied
+ * in the way of Wintersun's "Winter Madness" (its shape, not its notes): the guitar alone; the keys'
+ * turn, neoclassical; the two trading phrases, shorter and shorter, to a unison sweep; the band
+ * stopping dead for the drums alone, a half-time breakdown with the guitar singing Silent Night
+ * itself, and a build; and a finale of harmonised runs, the tune again over half time, pedal licks
+ * against the keys' sweeps, and the twin guitars' last notes diving onto the band's last hit. Every
+ * phrase runs on into the next by step or a short leap.
+ */
+const SOLOS = {
+	// The guitar: the tune's opening sung with bends ("Silent night, holy night"), a flourish up out
+	// of it; up to a bent high B and back down;
+	// to a bent high C; pedal licks off it and off G; sweeps; up to a bent high D; a lyrical hand-off.
+	solo: [
+		measure(
+			[
+				guitar([
+					[4, 6, "b"],
+					[5, 2],
+					[4, 4],
+					[2, 12, "v"],
+				]),
+			],
+			"double",
+		),
+		measure([guitar([[4, 6, "b"], [5, 2], [4, 4], [2, 8, "v"], ...each([4, 7, 9, 11], 1)])], "double"),
+		measure([guitar([[13, 8, "bv"], ...each([12, 11, 10, 9, 8, 6, 7, 8], 2)])], "double"),
+		measure([guitar([[7, 12, "v"], ...each([9, 10, 11], 2), [14, 6, "b"]])], "double"),
+		measure([guitar(each([14, 12, 14, 11, 14, 10, 14, 9, 14, 8, 14, 7], 2))], "double"),
+		measure([guitar(each([11, 9, 11, 8, 11, 7, 11, 6, 11, 7, 9, 12], 2))], "double"),
+		measure(
+			[guitar(each([14, 12, 10, 7, 5, 3, 5, 7, 10, 12, 14, 12, 14, 12, 10, 7, 5, 3, 5, 7, 10, 12, 14, 12], 1))],
+			"double",
+		),
+		measure([guitar([...each([14, 11, 9, 7, 4, 2, 0, 2, 4, 7, 9, 11], 1), [14, 12, "bv"]])], "double"),
+		measure(
+			[
+				guitar([
+					[11, 4],
+					[13, 4],
+					[15, 16, "bv"],
+				]),
+			],
+			"double",
+		),
+		measure([guitar(each([14, 12, 11, 9, 7, 6, 7, 9, 11, 12, 14, 15], 2))], "double"),
+		measure(
+			[
+				guitar([
+					[14, 6, "b"],
+					[13, 6],
+					[11, 6],
+					[10, 6, "v"],
+				]),
+			],
+			"double",
+		),
+		measure(
+			[
+				guitar([
+					[11, 12, "v"],
+					[7, 12, "v"],
+				]),
+			],
+			"double",
+		),
+	],
+	// The keys' turn: broken chords; runs up and down the scale; a trill and a turn; falling
+	// sequences; sweeps; and, over blast beats, faster runs climbing in fours to a high G.
+	keys: [
+		measure([keys(each([7, 11, 9, 11, 7, 11, 9, 11, 7, 11, 9, 11], 2))], "double"),
+		measure([keys(each([7, 11, 9, 11, 9, 14, 11, 14, 11, 16, 14, 16], 2))], "double"),
+		measure([keys([...steps(15, 4), ...steps(5, 16)])], "double"),
+		measure([keys([...steps(16, 7), ...steps(8, 15), [14, 6, "v"]])], "double"),
+		measure([keys(each([12, 10, 12, 10, 12, 10, 9, 10, 12, 14, 12, 10], 2))], "double"),
+		measure([keys(each([9, 11, 10, 9, 10, 9, 8, 9, 8, 7, 8, 7], 2))], "double"),
+		measure(
+			[keys(each([7, 10, 12, 14, 17, 14, 12, 10, 7, 5, 3, 5, 7, 10, 12, 14, 17, 14, 12, 10, 7, 5, 3, 5], 1))],
+			"double",
+		),
+		measure([keys([...each([2, 4, 7, 9, 11, 14, 16, 18, 16, 14, 11, 9], 1), [7, 12, "v"]])], "double"),
+		measure([keys([...steps(6, 17), ...steps(16, 5)])], "blast"),
+		measure(
+			[keys(each([7, 8, 9, 10, 8, 9, 10, 11, 9, 10, 11, 12, 10, 11, 12, 13, 11, 12, 13, 14, 12, 13, 14, 15], 1))],
+			"blast",
+		),
+		measure(
+			[
+				keys([
+					[13, 4],
+					[15, 4],
+					[17, 4],
+					[18, 12, "v"],
+				]),
+			],
+			"blast",
+		),
+		measure(
+			[
+				keys([[14, 24, "v"]]),
+				guitar([
+					[null, 12],
+					[9, 6, "b"],
+					[11, 6, "v"],
+				]),
+			],
+			"blast",
+		),
+	],
+	// Trading: two bars each, then a bar, then a beat each, then together in a unison sweep.
+	trade: [
+		measure(
+			[
+				guitar([
+					[11, 6, "b"],
+					[12, 2],
+					[11, 4],
+					[9, 12, "v"],
+				]),
+			],
+			"blast",
+		),
+		measure(
+			[
+				guitar([
+					[7, 4],
+					[9, 4],
+					[11, 4],
+					[14, 12, "bv"],
+				]),
+			],
+			"blast",
+		),
+		measure([keys([...steps(15, 4), ...steps(6, 17)])], "blast"),
+		measure(
+			[
+				keys([
+					[16, 6],
+					[14, 6],
+					[11, 6],
+					[14, 6, "v"],
+				]),
+			],
+			"blast",
+		),
+		measure(
+			[
+				guitar([
+					[12, 8, "bv"],
+					[10, 4],
+					[12, 4],
+					[14, 8, "v"],
+				]),
+			],
+			"blast",
+		),
+		measure([keys(each([14, 13, 11, 9, 7, 9, 11, 13, 14, 16, 14, 13], 2))], "blast"),
+		measure([guitar(each([14, 12, 14, 10, 14, 9, 14, 10, 14, 12, 14, 15], 2))], "blast"),
+		measure([keys(each([16, 14, 16, 12, 16, 11, 16, 12, 16, 14, 16, 17], 2))], "blast"),
+		measure(
+			[
+				guitar([
+					[15, 6, "b"],
+					[13, 6],
+					[null, 12],
+				]),
+				keys([
+					[null, 12],
+					[15, 4],
+					[13, 4],
+					[11, 4],
+				]),
+			],
+			"double",
+		),
+		measure(
+			[
+				guitar([
+					[12, 12, "bv"],
+					[null, 12],
+				]),
+				keys([[null, 12], ...each([14, 12, 11, 9, 7, 4], 2)]),
+			],
+			"double",
+		),
+		measure(
+			[
+				guitar(each([4, 6, 8, 10, 11, 13, 15, 13, 11, 10, 8, 6, 4, 6, 8, 10, 11, 13, 15, 17, 15, 13, 11, 10], 1)),
+				keys(each([4, 6, 8, 10, 11, 13, 15, 13, 11, 10, 8, 6, 4, 6, 8, 10, 11, 13, 15, 17, 15, 13, 11, 10], 1)),
+			],
+			"double",
+		),
+		measure([guitar([[14, 24, "bv"]]), keys([[7, 24, "v"]])], "double"),
+	],
+	// The drums alone, the band stopped dead on one hit; a half-time breakdown, the guitar singing
+	// Silent Night over held chords; and a build, the snare doubling bar by bar, the keys climbing
+	// and the guitar tremolo-picking higher.
+	breakdown: [
+		measure([], "break", "hit", 0),
+		measure([], "break", "none", 1),
+		measure([], "break", "none", 2),
+		measure([], "break", "none", 3),
+		measure([guitar(sung(4)), ...pad([3, 5, 7])], "half", "chord"),
+		measure([guitar(sung(5)), ...pad([0, 2, 4])], "half", "chord"),
+		measure([guitar(sung(6)), ...pad([3, 5, 7])], "half", "chord"),
+		measure([guitar(sung(7)), ...pad([0, 2, 4])], "half", "chord"),
+		measure(
+			[
+				guitar(Array.from({ length: 24 }, (): ISoloNote => [11, 1])),
+				keys(each([4, 8, 6, 8, 4, 8, 6, 8, 4, 8, 6, 8], 2)),
+			],
+			"build",
+			"gallop",
+			0,
+		),
+		measure(
+			[
+				guitar(Array.from({ length: 24 }, (): ISoloNote => [11, 1])),
+				keys(each([7, 11, 9, 11, 7, 11, 9, 11, 7, 11, 9, 11], 2)),
+			],
+			"build",
+			"gallop",
+			1,
+		),
+		measure(
+			[
+				guitar(Array.from({ length: 24 }, (): ISoloNote => [13, 1])),
+				keys(each([11, 15, 13, 15, 11, 15, 13, 17, 13, 15, 13, 17], 2)),
+			],
+			"build",
+			"gallop",
+			2,
+		),
+		measure(
+			[
+				guitar(Array.from({ length: 24 }, (): ISoloNote => [14, 1])),
+				keys(each([14, 18, 16, 18, 14, 18, 16, 18, 14, 18, 16, 18], 2)),
+			],
+			"build",
+			"gallop",
+			3,
+		),
+	],
+	// The finale: runs up and down with the keys a third above; the tune again over half time;
+	// pedal licks against the keys' sweeps; then the twin guitars: cascading to the B under middle C,
+	// "sleep in heavenly peace" sung long, climbing in thirds, and a bent high C diving onto the last hit.
+	finale: [
+		measure([guitar([...steps(0, 11), ...steps(12, 1)]), keys([...steps(2, 13), ...steps(14, 3)])], "blast"),
+		measure([guitar([...steps(2, 13), ...steps(14, 3)]), keys([...steps(4, 15), ...steps(16, 5)])], "blast"),
+		measure([guitar([...steps(4, 15), ...steps(16, 5)]), keys([...steps(6, 17), ...steps(18, 7)])], "blast"),
+		measure(
+			[
+				guitar([
+					[7, 4],
+					[9, 4],
+					[11, 4],
+					[14, 12, "bv"],
+				]),
+				keys([
+					[9, 4],
+					[11, 4],
+					[14, 4],
+					[16, 12, "v"],
+				]),
+			],
+			"blast",
+		),
+		measure(
+			[
+				guitar([
+					[12, 8, "bv"],
+					[12, 4],
+					[14, 6],
+					[12, 2],
+					[11, 4],
+				]),
+				...pad([3, 5, 7]),
+			],
+			"half",
+			"chord",
+		),
+		measure(
+			[
+				guitar([
+					[11, 6, "b"],
+					[12, 2],
+					[11, 4],
+					[9, 12, "v"],
+				]),
+				...pad([0, 2, 4]),
+			],
+			"half",
+			"chord",
+		),
+		measure(
+			[
+				guitar(each([14, 10, 14, 9, 14, 7, 14, 5, 14, 7, 14, 10], 2)),
+				keys(each([3, 5, 7, 10, 12, 14, 17, 14, 12, 10, 7, 5, 3, 5, 7, 10, 12, 14, 17, 14, 12, 10, 7, 5], 1)),
+			],
+			"blast",
+		),
+		measure(
+			[
+				guitar(each([11, 9, 11, 7, 11, 4, 11, 7, 11, 9, 12, 13], 2)),
+				keys(each([0, 2, 4, 7, 9, 11, 14, 11, 9, 7, 4, 2, 0, 2, 4, 7, 9, 11, 14, 11, 9, 7, 4, 2], 1)),
+			],
+			"blast",
+		),
+		measure([guitar([...steps(15, 4), ...each([5, 6, 8], 2), [6, 6, "v"]], -2), ...pad([4, 6, 8])], "blast"),
+		measure(
+			[
+				guitar(
+					[
+						[7, 12, "bv"],
+						[9, 12, "bv"],
+					],
+					-2,
+				),
+				...pad([0, 2, 4]),
+			],
+			"blast",
+		),
+		measure([guitar(each([6, 8, 7, 9, 8, 10, 9, 11, 10, 12, 11, 13], 2), -2), ...pad([4, 6, 10])], "blast"),
+		measure([guitar([[14, 24, "bvd"]], -3)], "none", "none"),
+	],
+} satisfies Record<string, ISoloBar[]>;
+type ISoloPart = keyof typeof SOLOS;
+
+/**
+ * A sung note, for the solo (the guitar's or the keys'): picked, sustained and
+ * dying away, bent up into its pitch from a tone below (`ways` "b"), with vibrato coming in as it's
+ * held ("v"), and dived an octave over its last third ("d").
+ */
+function sing(output: AudioNode, delay: number, pitch: number, length: number, volume: number, ways: string) {
+	const context = output.context;
+	const start = context.currentTime + delay;
+	const end = start + length;
+	const oscillator = context.createOscillator();
+	const gain = context.createGain();
+	oscillator.type = "sawtooth";
+	const bendTime = Math.min(0.1, length * 0.4);
+	oscillator.frequency.setValueAtTime(ways.includes("b") ? pitch * 2 ** (-2 / 12) : pitch, start);
+	oscillator.frequency.exponentialRampToValueAtTime(pitch, start + bendTime);
+
+	if (ways.includes("d")) {
+		oscillator.frequency.setValueAtTime(pitch, start + length * 0.66);
+		oscillator.frequency.exponentialRampToValueAtTime(pitch / 2, end);
+	}
+
+	if (ways.includes("v")) {
+		const wobble = context.createOscillator();
+		const depth = context.createGain();
+		wobble.frequency.value = 5.5;
+		depth.gain.setValueAtTime(0, start);
+		depth.gain.linearRampToValueAtTime(pitch * 0.015, start + Math.min(0.4, length * 0.5));
+		wobble.connect(depth).connect(oscillator.frequency);
+		wobble.start(start);
+		wobble.stop(end);
+	}
+
+	gain.gain.setValueAtTime(0.0001, start);
+	gain.gain.exponentialRampToValueAtTime(volume, start + 0.008);
+	gain.gain.exponentialRampToValueAtTime(volume * 0.55, Math.max(start + 0.01, end - 0.04));
+	gain.gain.exponentialRampToValueAtTime(0.0001, end);
+	oscillator.connect(gain).connect(output);
+	oscillator.start(start);
+	oscillator.stop(end + 0.02);
+}
+
+/**
+ * One time through the whole song: each part's hits, in quavers from the song's start. Its
+ * `variant` (0 or 1) is how it's played this time round, so the night doesn't hear the same song
+ * twice running: the second plays the strings plucked as well as held, the arpeggios falling
+ * first, the gallop pushed onto the last of each three, a ride for the hats, the twin leads a sixth
+ * apart (under the tune) with the keys doubling it high, the climax's sweeps on the keys, the
+ * guitar and keys swapping parts in the solo, and the drums' break in another order.
+ */
+function arrangement(variant: number): IHit[] {
 	const hits: IHit[] = [];
 	const add = (at: number, stem: IStem, play: IHit["play"], bossOnly = false) =>
 		hits.push({ at, stem, bossOnly, play });
 
 	PARTS.forEach((part, partIndex) => {
-		const heavy = part === "metal" || part === "climax";
+		const solo: ISoloBar[] | null = part in SOLOS ? SOLOS[part as ISoloPart] : null;
+		const heavy = part === "metal" || part === "climax" || solo !== null;
 		const atLeast = (other: IPart) => partIndex >= PARTS.indexOf(other);
 
 		TUNE.forEach((bar, index) => {
 			const start = (partIndex * TUNE.length + index) * BAR;
-			// The climax's last two bars drop back to the music box, to lead round again.
-			const fading = part === "climax" && index >= TUNE.length - 2;
-			const band = heavy && !fading;
 			const last = index === TUNE.length - 1;
+			// The song's last bar: the band's one last hit, under the solo's last note, the strings ringing on.
+			const ending = part === "finale" && last;
+			const soloBar = solo?.[index] ?? null;
+			const band = heavy && !ending;
 			const [root, ...rest] = CHORDS[index];
 			const rootPitch = pitchOf(root);
 			let at = start;
@@ -506,16 +958,22 @@ function arrangement(): IHit[] {
 					tone("sine", pitch * 3, pitch * 3, 0.25, 0.012, delay, out.clean);
 				});
 
-				// The twin lead, tremolo-picked: the tune and a third above it, distorted, an octave down.
-				if (band) {
+				// The twin lead, tremolo-picked: the tune and a third above it, distorted, an octave under
+				// the music box.
+				// (In the solo, the solo plays instead.)
+				if (band && !solo) {
 					const lead = pitch / 2;
-					const harmony = thirdAbove(note);
+					const harmony = variant === 1 ? thirdAbove(note) / 2 : thirdAbove(note);
 
 					for (let pick = 0; pick < length * 4; pick++) {
 						add(at + pick / 4, "full", (delay, out) => {
 							tone("sawtooth", lead, lead, THIRTY_SECOND * 1.1, 0.03, delay, out.guitar);
 							tone("sawtooth", harmony, harmony, THIRTY_SECOND * 1.1, 0.022, delay, out.guitar);
 						});
+					}
+
+					if (variant === 1) {
+						add(at, "full", (delay, out) => sing(out.keys, delay, pitch, time, 0.014, "v"));
 					}
 				}
 
@@ -527,21 +985,32 @@ function arrangement(): IHit[] {
 				tone("triangle", rootPitch / 2, rootPitch / 2, BAR * EIGHTH, 0.05, delay, out.clean),
 			);
 
-			if (atLeast("strings") && !fading) {
+			if (atLeast("strings")) {
 				// The strings: the chord held, swelling.
+				// (Its pitches worked out now, while the song's being arranged, so they're lifted with it.)
+				const held = rest.map(pitchOf);
 				add(start, "both", (delay, out) => {
-					for (const note of rest) {
-						const pitch = pitchOf(note);
+					for (const pitch of held) {
 						tone("sawtooth", pitch, pitch * 1.004, BAR * EIGHTH, 0.012, delay, out.clean);
 						tone("triangle", pitch, pitch, BAR * EIGHTH, 0.03, delay, out.clean);
 					}
 				});
 
+				// The strings plucked as well, the second time round: the chord's notes in turn on each quaver.
+				if (variant === 1 && !heavy) {
+					for (let eighth = 0; eighth < 6; eighth++) {
+						const pitch = pitchOf(rest[eighth % rest.length]) * 2;
+						add(start + eighth, "full", (delay, out) => tone("triangle", pitch, pitch, 0.18, 0.025, delay, out.clean));
+					}
+				}
+
 				// A bell tolling at the top of every other bar.
+				const bell = pitchOf("C4");
+
 				if (index % 2 === 0) {
 					add(start, "both", (delay, out) => {
-						tone("sine", NOTE.C4, NOTE.C4, 3, 0.06, delay, out.clean);
-						tone("sine", NOTE.C4 * 2.76, NOTE.C4 * 2.76, 1.6, 0.018, delay, out.clean);
+						tone("sine", bell, bell, 3, 0.06, delay, out.clean);
+						tone("sine", bell * 2.76, bell * 2.76, 1.6, 0.018, delay, out.clean);
 					});
 				}
 
@@ -562,21 +1031,24 @@ function arrangement(): IHit[] {
 			}
 
 			// Arpeggios: the bar's chord broken into sixteenths, up and back down, plucked.
-			if (atLeast("arpeggios") && !fading) {
+			if (atLeast("arpeggios") && !solo) {
 				const tones = chordTones(index);
 
-				[0, 1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1].forEach((step, sixteenth) => {
-					add(start + sixteenth / 2, "full", (delay, out) =>
-						tone("triangle", tones[step], tones[step] * 0.999, SIXTEENTH * 1.6, 0.035, delay, out.clean),
-					);
-				});
+				(variant === 1 ? [6, 5, 4, 3, 2, 1, 0, 1, 2, 3, 4, 5] : [0, 1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1]).forEach(
+					(step, sixteenth) => {
+						add(start + sixteenth / 2, "full", (delay, out) =>
+							tone("triangle", tones[step], tones[step] * 0.999, SIXTEENTH * 1.6, 0.035, delay, out.clean),
+						);
+					},
+				);
 			}
 
 			// The rhythm guitar: a palm-muted gallop on the bar's root and fifth (da-da-dum, da-da-dum),
 			// the bass doubling it.
 			const gallop = (bossOnly: boolean) => {
 				for (let sixteenth = 0; sixteenth < 12; sixteenth++) {
-					const accent = sixteenth % 3 === 0;
+					// Da-da-dum, or the second time round, dum-da-da.
+					const accent = sixteenth % 3 === (variant === 1 ? 2 : 0);
 					add(
 						start + sixteenth / 2,
 						"full",
@@ -597,10 +1069,20 @@ function arrangement(): IHit[] {
 					);
 				}
 
+				// The bass guitar, picked with the gallop on the root, gritty; and a sub note under it, held.
+				for (let sixteenth = 0; sixteenth < 12; sixteenth++) {
+					add(
+						start + sixteenth / 2,
+						"full",
+						(delay, out) => tone("sawtooth", rootPitch / 2, rootPitch / 2, SIXTEENTH * 0.9, 0.09, delay, out.bass),
+						bossOnly,
+					);
+				}
+
 				add(
 					start,
 					"full",
-					(delay, out) => tone("triangle", rootPitch / 2, rootPitch / 2, BAR * EIGHTH, 0.12, delay, out.clean),
+					(delay, out) => tone("sine", rootPitch / 4, rootPitch / 4, BAR * EIGHTH, 0.16, delay, out.clean),
 					bossOnly,
 				);
 			};
@@ -618,7 +1100,7 @@ function arrangement(): IHit[] {
 				}
 
 				for (let eighth = 0; eighth < 6; eighth++) {
-					add(start + eighth, "full", (delay, out) => hat(delay, out.clean), bossOnly);
+					add(start + eighth, "full", (delay, out) => (variant === 1 ? ride : hat)(delay, out.clean), bossOnly);
 				}
 
 				if (index % (blast ? 2 : 4) === 0) {
@@ -632,9 +1114,153 @@ function arrangement(): IHit[] {
 				}
 			};
 
-			if (band) {
+			// The band's power chord held through the bar, and the bass and sub under it (the solo's
+			// half time, and the hit it stops dead on for the drums).
+			const chord = (withCrash: boolean, bars = 1) =>
+				add(start, "full", (delay, out) => {
+					if (withCrash) {
+						crash(delay, out.clean, 0.1);
+						kick(delay, out.clean, 0.24);
+						snare(delay, out.clean, 0.12);
+					}
+
+					for (const pitch of [rootPitch / 2, (rootPitch / 2) * 1.5, rootPitch]) {
+						tone("sawtooth", pitch, pitch, bars * BAR * EIGHTH, 0.05, delay, out.guitar);
+					}
+
+					tone("sawtooth", rootPitch / 2, rootPitch / 2, bars * BAR * EIGHTH, 0.09, delay, out.bass);
+					tone("sine", rootPitch / 4, rootPitch / 4, bars * BAR * EIGHTH, 0.16, delay, out.clean);
+				});
+
+			// The solo's drums, as its bar says: double kick, blast beats, half time (a kick and a huge
+			// snare, a crash every bar), a build (the snare doubling at each level, to a roll), or the
+			// drums alone (`level` 0 to 3: toms rolling down; snare and toms trading; a double-kick
+			// rumble into tumbling toms; a snare roll swelling).
+			const at32 = (step: number) => start + step / 4;
+			const soloDrums = (mode: ISoloBar["drums"], level: number) => {
+				switch (mode) {
+					case "double":
+					case "blast":
+						metalDrums(false, mode === "blast");
+						break;
+					case "half":
+						for (const eighth of [0, 0.5, 3.5]) {
+							add(start + eighth, "full", (delay, out) => kick(delay, out.clean, 0.22));
+						}
+
+						add(start + 3, "full", (delay, out) => snare(delay, out.clean, 0.15));
+						add(start, "full", (delay, out) => crash(delay, out.clean, 0.08));
+
+						for (let eighth = 0; eighth < 6; eighth++) {
+							add(start + eighth, "full", (delay, out) => hat(delay, out.clean, 0.02));
+						}
+
+						break;
+					case "build": {
+						const snares = [
+							[3],
+							[0, 1, 2, 3, 4, 5],
+							Array.from({ length: 12 }, (_, i) => i / 2),
+							Array.from({ length: 24 }, (_, i) => i / 4),
+						][level];
+
+						for (let sixteenth = 0; sixteenth < 12; sixteenth++) {
+							add(start + sixteenth / 2, "full", (delay, out) => kick(delay, out.clean, 0.16));
+						}
+
+						snares.forEach((eighth, i) => {
+							add(start + eighth, "full", (delay, out) =>
+								snare(delay, out.clean, 0.06 + (level === 3 ? (i / snares.length) * 0.1 : 0.04)),
+							);
+						});
+
+						if (level === 0) {
+							add(start, "full", (delay, out) => crash(delay, out.clean));
+						}
+
+						break;
+					}
+					case "break":
+						// The cymbals over the drums alone: hats on every sixteenth, opening on the beats, a
+						// ride's bell through the snare and toms' trading, a crash halfway through the rumble.
+						for (let sixteenth = level === 0 ? 1 : 0; sixteenth < 12; sixteenth++) {
+							const open = sixteenth % 6 === 0;
+							add(start + sixteenth / 2, "full", (delay, out) =>
+								open ? hiss("highpass", 7000, 0.22, 0.03, delay, undefined, out.clean) : hat(delay, out.clean, 0.022),
+							);
+						}
+
+						if (level === 1) {
+							for (let eighth = 0; eighth < 6; eighth++) {
+								add(start + eighth, "full", (delay, out) => ride(delay, out.clean, 0.03));
+							}
+						}
+
+						if (level === 2) {
+							add(start + 3, "full", (delay, out) => crash(delay, out.clean, 0.08));
+						}
+
+						if (level === 0) {
+							[300, 280, 260, 240, 220, 200, 180, 160, 140, 120, 100].forEach((pitch, i) => {
+								add(start + (i + 1) / 2, "full", (delay, out) => {
+									tom(delay, out.clean, pitch, 0.16);
+									kick(delay, out.clean, 0.1);
+								});
+							});
+						} else if (level === 1) {
+							for (let step = 0; step < 24; step++) {
+								add(at32(step), "full", (delay, out) =>
+									step % 2 === 0
+										? snare(delay, out.clean, 0.05 + step * 0.003)
+										: tom(delay, out.clean, 260 - step * 6, 0.13),
+								);
+							}
+
+							for (let eighth = 0; eighth < 6; eighth++) {
+								add(start + eighth, "full", (delay, out) => kick(delay, out.clean, 0.18));
+							}
+						} else if (level === 2) {
+							for (let step = 0; step < 12; step++) {
+								add(at32(step), "full", (delay, out) => kick(delay, out.clean, 0.15 + step * 0.006));
+							}
+
+							[300, 270, 240, 210, 180, 160, 140, 120, 100, 85, 70, 60].forEach((pitch, i) => {
+								add(at32(12 + i), "full", (delay, out) => tom(delay, out.clean, pitch, 0.15));
+							});
+						} else {
+							for (let step = 0; step < 24; step++) {
+								add(at32(step), "full", (delay, out) => snare(delay, out.clean, 0.03 + step * 0.005));
+							}
+
+							for (let sixteenth = 6; sixteenth < 12; sixteenth++) {
+								add(start + sixteenth / 2, "full", (delay, out) => kick(delay, out.clean, 0.18));
+							}
+						}
+
+						break;
+					case "none":
+						break;
+				}
+			};
+
+			if (soloBar && !ending) {
+				// The drums' break in another order the second time round, its snare roll still last.
+				soloDrums(
+					soloBar.drums,
+					variant === 1 && soloBar.drums === "break" ? [2, 1, 0, 3][soloBar.level ?? 0] : (soloBar.level ?? 0),
+				);
+
+				if (soloBar.rhythm === "gallop") {
+					gallop(false);
+				} else if (soloBar.rhythm === "chord" || soloBar.rhythm === "hit") {
+					chord(soloBar.rhythm === "hit");
+				}
+			} else if (band) {
 				metalDrums(false, part === "climax");
 				gallop(false);
+			} else if (ending) {
+				// The last hit rings on into the silence after the song (TAIL_BARS), dying away before it goes round again.
+				chord(true, 1 + TAIL_BARS * 0.8);
 			} else {
 				// While a boss is about, the band comes in whatever part the song's at.
 				metalDrums(true, false);
@@ -691,13 +1317,47 @@ function arrangement(): IHit[] {
 				});
 			}
 
+			// The solo's lines for this bar: the guitar (through the darker lead) and the keys (a lead
+			// synth, a little brighter), each perhaps with a second voice `under` it.
+			// The second time round, in the guitar's and keys' parts and the breakdown, the two swap
+			// (the guitar taking the keys' lines an octave down).
+			const swapped = variant === 1 && (part === "solo" || part === "keys" || part === "trade" || part === "breakdown");
+
+			for (const line of soloBar?.lines ?? []) {
+				let step = start;
+				// (The keys' held chords stay on the keys.)
+				const keyed = line.volume !== undefined || (swapped ? line.voice === "guitar" : line.voice === "keys");
+				const shift = swapped && line.voice === "keys" && line.volume === undefined ? -7 : 0;
+
+				for (const [note, length, ways = ""] of line.notes) {
+					if (note !== null) {
+						const pitch = typeof note === "number" ? soloPitch(note + shift) : pitchOf(note);
+						const second =
+							typeof note === "number" && line.under !== undefined ? soloPitch(note + shift + line.under) : null;
+						const volume = line.volume ?? (keyed ? 0.035 : 0.05);
+						add(step, "full", (delay, out) => {
+							const output = keyed ? out.keys : out.lead;
+							sing(output, delay, pitch, length * THIRTY_SECOND, volume, ways);
+
+							if (second) {
+								sing(output, delay, second, length * THIRTY_SECOND, volume * 0.65, ways);
+							}
+						});
+					}
+
+					step += length / 4;
+				}
+			}
+
 			// The climax: a sweep at the end of every bar, up the chord and back, in thirty-seconds.
-			if (part === "climax" && !fading) {
+			if (part === "climax") {
 				const tones = chordTones(index);
 
 				[0, 1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1, 0].forEach((step, sweep) => {
 					add(start + 3 + sweep / 4, "full", (delay, out) =>
-						tone("sawtooth", tones[step], tones[step], THIRTY_SECOND * 1.4, 0.025, delay, out.guitar),
+						variant === 1
+							? sing(out.keys, delay, tones[step], THIRTY_SECOND * 1.4, 0.03, "")
+							: tone("sawtooth", tones[step], tones[step], THIRTY_SECOND * 1.4, 0.025, delay, out.guitar),
 					);
 				});
 			}
@@ -707,10 +1367,10 @@ function arrangement(): IHit[] {
 	return hits;
 }
 
-/** A distorted guitar sound: everything through it is driven hard, then rounded off at the top. */
-function guitarChain(context: BaseAudioContext, output: AudioNode): AudioNode {
+/** A distorted guitar sound: everything through it driven (by `gain`) into clipping, then rounded off above `cutoff` Hz. */
+function guitarChain(context: BaseAudioContext, output: AudioNode, gain = 6, cutoff = 3200, volume = 0.14): AudioNode {
 	const drive = context.createGain();
-	drive.gain.value = 6;
+	drive.gain.value = gain;
 	const shaper = context.createWaveShaper();
 	const curve = new Float32Array(1024);
 
@@ -723,13 +1383,16 @@ function guitarChain(context: BaseAudioContext, output: AudioNode): AudioNode {
 	shaper.oversample = "4x";
 	const filter = context.createBiquadFilter();
 	filter.type = "lowpass";
-	filter.frequency.value = 3200;
+	filter.frequency.value = cutoff;
 	const level = context.createGain();
-	level.gain.value = 0.14;
+	level.gain.value = volume;
 	drive.connect(shaper).connect(filter).connect(level).connect(output);
 
 	return drive;
 }
+
+/** Bars of silence after the song's last hit, for it to ring out and die away before the song goes round again. */
+const TAIL_BARS = 2;
 
 const LOOKAHEAD = 0.35;
 const TICK_MS = 120;
@@ -756,7 +1419,16 @@ export function startNightMusic(night: () => { time: number; boss: boolean; soft
 		const gain = context.createGain();
 		gain.connect(bus);
 
-		return { gain, outputs: { clean: gain, guitar: guitarChain(context, gain) } };
+		return {
+			gain,
+			outputs: {
+				clean: gain,
+				guitar: guitarChain(context, gain),
+				lead: guitarChain(context, gain, 5, 2000, 0.13),
+				bass: guitarChain(context, gain, 2.5, 650, 0.3),
+				keys: guitarChain(context, gain, 4, 2600, 0.11),
+			},
+		};
 	};
 	const stems: Record<IStem, ReturnType<typeof makeStem>> = { both: makeStem(), soft: makeStem(), full: makeStem() };
 	const crossFade = (toSoft: boolean, at: number, instantly = false) => {
@@ -771,14 +1443,29 @@ export function startNightMusic(night: () => { time: number; boss: boolean; soft
 		}
 	};
 
-	const hits = arrangement();
-	const partLength = TUNE.length * BAR * EIGHTH;
+	// Each time round the loop is played another way (arrangement's variant), and every other pair
+	// of times round a whole tone up: four different passes before any comes round again. The menu
+	// only ever plays the first. Each pass's hits are kept by bar, to find those due quickly.
+	const barLength = BAR * EIGHTH;
+	const passes = [0, 1, 2, 3].map((pass) => {
+		lift = pass >= 2 ? 2 ** (2 / 12) : 1;
+		const bars: IHit[][] = [];
+
+		for (const hit of arrangement(pass % 2)) {
+			const index = Math.floor((hit.at * EIGHTH) / barLength);
+			(bars[index] ??= []).push(hit);
+		}
+
+		lift = 1;
+
+		return bars;
+	});
+	const partLength = TUNE.length * barLength;
 	// The music box plays once, then the song goes round from the strings (the menu: the first two parts, round and round).
 	const introLength = menu ? 0 : partLength;
-	const loopLength = (menu ? 2 : PARTS.length - 1) * partLength;
-	const songTime = night().time;
-	const position = songTime < introLength ? songTime : introLength + ((songTime - introLength) % loopLength);
-	const origin = started + 0.2 - position;
+	const loopLength = menu ? 2 * partLength : (PARTS.length - 1) * partLength + TAIL_BARS * barLength;
+	// Where in the song the night is: the clock says how far it's come, so it carries on there.
+	const origin = started + 0.2 - night().time;
 	let scheduledTo = started + 0.2;
 	let soft = night().soft;
 	crossFade(soft, started, true);
@@ -798,22 +1485,25 @@ export function startNightMusic(night: () => { time: number; boss: boolean; soft
 			crossFade(soft, now);
 		}
 
-		const firstLoop = Math.max(0, Math.floor((scheduledTo - origin - introLength) / loopLength));
+		const from = Math.max(scheduledTo, now);
+		const firstLoop = Math.max(0, Math.floor((from - origin - introLength) / loopLength));
 
 		// The first time round always (it holds the intro, which comes before the loop starts).
 		for (let loop = firstLoop; loop === 0 || origin + introLength + loop * loopLength < until; loop++) {
-			for (const hit of hits) {
-				const at = hit.at * EIGHTH;
+			const bars = passes[menu ? 0 : loop % passes.length];
+			// This time round, the loop's hits sound `shift` later (the intro's only the first time).
+			const shift = loop * loopLength;
+			const earliest = Math.max(loop === 0 ? 0 : introLength, from - origin - shift);
+			const latest = Math.min(introLength + loopLength, until - origin - shift);
 
-				// The intro's hits only the first time round; the rest, each time.
-				if (at >= introLength + loopLength || (at < introLength && loop > 0)) {
-					continue;
-				}
+			for (let index = Math.floor(earliest / barLength); index * barLength < latest; index++) {
+				for (const hit of bars[index] ?? []) {
+					const time = hit.at * EIGHTH;
+					const when = origin + time + (time < introLength ? 0 : shift);
 
-				const when = origin + at + (at < introLength ? 0 : loop * loopLength);
-
-				if ((!hit.bossOnly || current.boss) && when >= scheduledTo && when < until && when >= now) {
-					hit.play(when - now, stems[hit.stem].outputs);
+					if (time >= earliest && time < latest && when >= from && (!hit.bossOnly || current.boss)) {
+						hit.play(when - now, stems[hit.stem].outputs);
+					}
 				}
 			}
 		}
