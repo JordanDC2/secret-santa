@@ -16,6 +16,8 @@ import {
 	shade,
 	type ITexture,
 	paintSwirl,
+	paintGlow,
+	dither,
 	type ISwirlItem,
 	type IPut,
 } from "Components/SilentNight/portraitKit";
@@ -24,13 +26,15 @@ const RAMPS: Record<string, string[]> = {
 	skin: ["#3a2420", "#6a4236", "#9a6a54", "#c49278", "#e2b49a", "#f6d4bc"],
 	hair: ["#2a1806", "#5a3a0c", "#8a5e14", "#b8861e", "#e0b034", "#fbd860"],
 	robe: ["#1c1a22", "#3a3642", "#6a6470", "#a09aa4", "#d0ccd0", "#f4f0ec"],
-	feather: ["#1a1820", "#38343e", "#625c68", "#948e98", "#c4bec8", "#ece8ee"],
+	feather: ["#2a2632", "#4e4a58", "#7e7888", "#aea8b8", "#d8d2e0", "#f6f2fa"],
 	gold: ["#3a2408", "#6e460e", "#a87018", "#dca02c", "#ffd060", "#fff0a8"],
 	red: ["#22050b", "#480b15", "#781323", "#ab1f31", "#d73648", "#f2666a"],
 	lip: ["#5a2a2a", "#8a4440", "#b06058", "#d08478", "#eaa898"],
 	eye: ["#080a14", "#162038", "#2a4064", "#4a6a98"],
 	white: ["#8a7a72", "#c9b8ac", "#f2e6da"],
 	star: ["#a06010", "#ffc030", "#ffe070", "#fff6c8", "#ffffff"],
+	robeWarm: ["#2a2018", "#5a4632", "#8e7254", "#c0a07a", "#e8cca2", "#fff4d8"],
+	halo: ["#3a2a40", "#5a4040", "#8a6838", "#c09a40", "#f0d070"],
 };
 // Pale light from behind them, high on the right: lilac on the robe and wings.
 const RIM: Record<string, string[]> = {
@@ -38,6 +42,7 @@ const RIM: Record<string, string[]> = {
 	hair: ["#d0a040", "#ffd060", "#fff0a0", "#ffffff"],
 	robe: ["#b8a8e0", "#e4dcff", "#ffffff", "#ffffff"],
 	feather: ["#b8a8e0", "#e4dcff", "#ffffff", "#ffffff"],
+	robeWarm: ["#ffe0a0", "#fff4d8", "#ffffff", "#ffffff"],
 	gold: ["#dca02c", "#ffd060", "#fff0a8", "#ffffff"],
 	red: ["#d04040", "#ff7060", "#ffb090", "#ffe0c0"],
 	lip: ["#d08070", "#f0a890", "#ffd0b0", "#ffe8d0"],
@@ -45,6 +50,13 @@ const RIM: Record<string, string[]> = {
 };
 
 const STAR = { x: 78, y: 92 };
+
+/** The robe's creases, falling from under their hands: a fine shadow, lit beside it. */
+const crease = (x: number, y: number) => {
+	const across = (((x - 78) % 7) + 7) % 7;
+
+	return y >= 100 ? (across === 3 ? -0.12 : across === 4 ? 0.05 : 0) : 0;
+};
 
 /** Curls: ringlets, light and shadow in little loops. */
 const curls: ITexture = (x, y) =>
@@ -81,7 +93,7 @@ export function drawChristkind(): HTMLCanvasElement {
 		return {
 			x: 78 + side * (26 + hash(index, 92) * 40) + Math.sin(fall * 9) * 6,
 			y: 52 + fall * 100,
-			size: 6 + hash(index, 93) * 4,
+			size: 4.5 + hash(index, 93) * 3,
 			angle: Math.PI / 2 + Math.sin(fall * 7 + index) * 0.9,
 			front: index % 4 === 1,
 			index,
@@ -107,13 +119,13 @@ export function drawChristkind(): HTMLCanvasElement {
 		for (let i = 0; i <= 12; i++) {
 			const t = i / 12;
 			const { x, y } = edge(t);
-			petal(x, y, 22 + t * 34, 4.6, hang(t, 0.25 + t * 0.75), "feather", -0.16 + dim);
+			petal(x, y, 22 + t * 34, 4.6, hang(t, 0.25 + t * 0.75), "feather", -0.04 + dim);
 		}
 
 		for (let i = 0; i <= 12; i++) {
 			const t = i / 12;
 			const { x, y } = edge(t);
-			petal(x, y, 12 + t * 12, 4, hang(t, 0.2 + t * 0.6), "feather", -0.02 + dim);
+			petal(x, y, 12 + t * 12, 4, hang(t, 0.2 + t * 0.6), "feather", 0.2 + dim);
 		}
 
 		for (let i = 0; i < 16; i++) {
@@ -121,6 +133,22 @@ export function drawChristkind(): HTMLCanvasElement {
 			const b2 = edge((i + 1) / 16);
 			limb(a.x, a.y, b2.x, b2.y, 3.4 - i * 0.1, 3.3 - i * 0.1, "feather", 0.1 + dim);
 		}
+	}
+
+	// Their halo: a ring of gold behind their head, the curls in front of it.
+	for (let i = 0; i < 40; i++) {
+		const a1 = (i / 40) * Math.PI * 2;
+		const a2 = ((i + 1) / 40) * Math.PI * 2;
+		limb(
+			78 + Math.cos(a1) * 19,
+			44 + Math.sin(a1) * 19,
+			78 + Math.cos(a2) * 19,
+			44 + Math.sin(a2) * 19,
+			0.9,
+			0.9,
+			"gold",
+			0.42 + 0.2 * Math.cos(a1 - 0.8),
+		);
 	}
 
 	// Golden curls behind the head, to the shoulders.
@@ -144,21 +172,55 @@ export function drawChristkind(): HTMLCanvasElement {
 		(x, y, left, right) => {
 			const across = ((x + 0.5 - left) / (right - left)) * 2 - 1;
 
-			return 0.3 + 0.16 * -across + 0.28 * Math.sqrt(Math.max(0, 1 - across * across)) + starlight(x, y);
+			return 0.3 + 0.16 * -across + 0.28 * Math.sqrt(Math.max(0, 1 - across * across)) + starlight(x, y) + crease(x, y);
 		},
 	);
 
-	// Gold brocade over the robe: little diamonds in a lattice.
-	for (let y = 74; y < 150; y++) {
-		const half = 14.5 + (y - 71) * 0.2 - 1;
+	// Where the star lights the robe, it takes its gold, dithered into the white.
+	fill(
+		66,
+		160,
+		(y) => {
+			const half = y < 71 ? 8 + (y - 66) * 1.3 : 14.5 + (y - 71) * 0.2;
 
-		for (let x = Math.ceil(78 - half); x <= 78 + half; x++) {
-			const u = (x + y) % 8;
-			const v = (x - y + 256) % 8;
-
-			if ((u === 0 && v === 0) || (u === 4 && v === 4)) {
-				put(x, y, "gold", 0.45);
+			return [78 - half, 78 + half];
+		},
+		"robeWarm",
+		(x, y, left, right) => {
+			if (starlight(x, y) * 5 < dither(x, y) + 0.12) {
+				return null;
 			}
+
+			const across = ((x + 0.5 - left) / (right - left)) * 2 - 1;
+
+			return 0.3 + 0.16 * -across + 0.28 * Math.sqrt(Math.max(0, 1 - across * across)) + starlight(x, y) + crease(x, y);
+		},
+	);
+
+	// Gold embroidery: a band of scrolling vine down either side of the robe's front, and stars
+	// stitched across it.
+	for (const side of [-1, 1]) {
+		for (let y = 72; y < 156; y++) {
+			put(78 + side * 4, y, "gold", 0.42);
+			put(Math.round(78 + side * (6 + 1.6 * Math.sin(y * 0.55))), y, "gold", 0.5 + 0.1 * Math.cos(y * 0.55));
+		}
+	}
+
+	for (const [cx, cy] of [
+		[68, 104],
+		[89, 112],
+		[70, 126],
+		[87, 134],
+		[72, 146],
+	]) {
+		for (const [dx, dy, t] of [
+			[0, 0, 0.75],
+			[-1, 0, 0.5],
+			[1, 0, 0.5],
+			[0, -1, 0.5],
+			[0, 1, 0.5],
+		]) {
+			put(cx + dx, cy + dy, "gold", t);
 		}
 	}
 
@@ -329,9 +391,13 @@ export function drawChristkind(): HTMLCanvasElement {
 			null,
 		);
 
+	// A glow round their head, behind the halo.
+	paintGlow(context, 78, 44, 30, RAMPS.halo, 0.8);
 	motes(false);
 	paintSwirl(context, things, false, drawThing, RAMPS, RIM);
 	paintFigure(context, colours);
+	// The star's light hanging in the air over their hands.
+	paintGlow(context, STAR.x, STAR.y, 14, RAMPS.star, 0.55);
 	paintSwirl(context, things, true, drawThing, RAMPS, RIM);
 
 	// The star in their hands, shining.
