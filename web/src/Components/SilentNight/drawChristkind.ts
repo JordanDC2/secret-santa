@@ -1,6 +1,6 @@
 /**
  * The Christkind of Germany and Austria, as their portrait (portraitKit.ts): a young figure in
- * a white robe brocaded with gold under a gold mantle, golden curls under a little crown, great white wings spread
+ * a white robe brocaded with gold, golden curls under a little crown, great white wings spread
  * behind them, a star cupped in their hands. A violet night behind them (set apart from Saint
  * Lucia's warm candlelight), rays of light through it, motes of gold drifting.
  */
@@ -138,30 +138,6 @@ export function drawChristkind(): HTMLCanvasElement {
 	limb(89, 72, 93, 94, 5.2, 6, "robe", -0.06);
 	limb(63, 94, 72, 96, 6, 5, "robe", 0.02, starlight);
 	limb(93, 94, 84, 96, 6, 5, "robe", -0.02, starlight);
-
-	// A short mantle of gold over the shoulders, its hem scalloped.
-	fill(
-		67,
-		82,
-		(y) => {
-			const half = y < 72 ? 9 + (y - 67) * 1.6 : 17.5;
-
-			return [78 - half, 78 + half];
-		},
-		"gold",
-		(x, y, left, right) => {
-			const across = ((x + 0.5 - left) / (right - left)) * 2 - 1;
-			const hem = 79 + Math.round(2 * Math.abs(Math.sin((x - 78) * 0.55)));
-
-			return y > hem
-				? null
-				: 0.32 +
-						0.18 * -across +
-						0.18 * Math.sqrt(Math.max(0, 1 - across * across)) -
-						(y === hem ? 0.12 : 0) +
-						starlight(x, y);
-		},
-	);
 
 	// The neckline trimmed in gold.
 	for (let x = 70; x <= 86; x++) {
