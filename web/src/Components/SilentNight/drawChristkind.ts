@@ -58,30 +58,23 @@ const starlight = (x: number, y: number) => 0.2 * clamp(1 - Math.hypot(x - STAR.
 export function drawChristkind(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, fill, light } = figure(RAMPS, RIM);
 
-	// Swirling round them: white feathers, and little gold stars.
-	const drawThing = (keep: IPut, { x, y, size, angle, front, index }: ISwirlItem) => {
-		if (index % 2 === 0) {
-			petal(x, y, size * 2.4, size * 0.5, angle, "feather", front ? 0.3 : 0.1, keep);
-			limb(
-				x,
-				y,
-				x + Math.cos(angle) * size * 2,
-				y + Math.sin(angle) * size * 2,
-				0.4,
-				0.3,
-				"feather",
-				front ? 0.05 : -0.1,
-				null,
-				keep,
-			);
-		} else {
-			const arm = size * 0.8;
-			limb(x - arm, y, x + arm, y, 0.5, 0.5, "star", front ? 0.3 : 0, null, keep);
-			limb(x, y - arm, x, y + arm, 0.5, 0.5, "star", front ? 0.3 : 0, null, keep);
-			keep(Math.round(x), Math.round(y), "star", front ? 1 : 0.6);
-		}
+	// Swirling round them: white feathers, carried along the swirl.
+	const drawThing = (keep: IPut, { x, y, size, angle, front }: ISwirlItem) => {
+		petal(x, y, size * 2, size * 0.5, angle, "feather", front ? 0.3 : 0.08, keep);
+		limb(
+			x,
+			y,
+			x + Math.cos(angle) * size * 1.7,
+			y + Math.sin(angle) * size * 1.7,
+			0.4,
+			0.3,
+			"feather",
+			front ? 0.05 : -0.1,
+			null,
+			keep,
+		);
 	};
-	const things = swirl(78, 66);
+	const things = swirl(78, 76, 62, 42, -0.15, 8);
 
 	// --- The figure, back to front. ---
 

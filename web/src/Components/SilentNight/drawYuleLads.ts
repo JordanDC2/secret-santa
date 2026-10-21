@@ -28,8 +28,7 @@ const RAMPS: Record<string, string[]> = {
 	hood: ["#0c0806", "#1e140e", "#322218", "#4a3424", "#644832", "#7e5e42"],
 	hair: ["#0c0806", "#1c120c", "#2e2016", "#443222", "#5c4630"],
 	rope: ["#2a1e10", "#4a3a20", "#6e5830", "#927a44"],
-	wood: ["#1a1008", "#3a2614", "#5e4020", "#82602e", "#a6803e"],
-	sausage: ["#2a0c08", "#541810", "#7e2a1a", "#a44228", "#c45e3a"],
+	steel: ["#1a1c22", "#34383f", "#5a5f68", "#8a909a", "#c4c8d0"],
 	wax: ["#4a3e34", "#8a7a68", "#c8b8a0", "#efe4cc", "#fff8e8"],
 	tooth: ["#4a4440", "#8a8278", "#cac0b0", "#efe6d6"],
 	eye: ["#060406", "#120c0a", "#2a1c14", "#ffe0a0"],
@@ -46,8 +45,7 @@ const RIM: Record<string, string[]> = {
 	hair: ["#a07040", "#d0a060", "#f0d090", "#fff0c8"],
 	rope: ["#c09050", "#e0c070", "#f8e0a0", "#fff4d0"],
 	wax: ["#fff0c8", "#ffffff", "#ffffff", "#ffffff"],
-	wood: ["#c08040", "#e0b060", "#f8d890", "#fff0c8"],
-	sausage: ["#d06040", "#f09060", "#ffc090", "#ffe8c8"],
+	steel: ["#d0a070", "#f0d0a0", "#fff4d8", "#ffffff"],
 	tooth: ["#fff0d0", "#ffffff", "#ffffff", "#ffffff"],
 };
 
@@ -64,45 +62,34 @@ const candlelight = (x: number, y: number) => 0.26 * clamp(1 - Math.hypot(x - CA
 export function drawYuleLads(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, fill, light } = figure(RAMPS, RIM);
 
-	// Swirling round them: what they've stolen. Spoons, sausages, candle stubs.
-	const drawThing = (keep: IPut, { x, y, size: small, angle, front, index }: ISwirlItem) => {
-		// Their loot, a size bigger than petals, to show what it is.
-		const size = small * 1.5;
+	// Swirling round them: spoons they've licked clean, glinting, carried along the swirl.
+	const drawThing = (keep: IPut, { x, y, size, angle, front }: ISwirlItem) => {
 		const along = { x: Math.cos(angle), y: Math.sin(angle) };
-
-		if (index % 3 === 0) {
-			limb(
-				x,
-				y,
-				x + along.x * size * 1.8,
-				y + along.y * size * 1.8,
-				0.6,
-				0.6,
-				"wood",
-				front ? 0.05 : -0.22,
-				null,
-				keep,
-			);
-			ellipse(x, y, size * 0.5, size * 0.35, angle, "wood", (front ? 0.05 : -0.22) + 0.05, null, keep);
-		} else if (index % 3 === 1) {
-			limb(
-				x - along.x * size * 0.8,
-				y - along.y * size * 0.8,
-				x + along.x * size * 0.8,
-				y + along.y * size * 0.8,
-				size * 0.35,
-				size * 0.35,
-				"sausage",
-				front ? 0.05 : -0.22,
-				null,
-				keep,
-			);
-		} else {
-			limb(x, y, x, y - size * 1.2, size * 0.3, size * 0.3, "wax", front ? 0.05 : -0.22, null, keep);
-			petal(x, y - size * 1.2, size * 0.9, size * 0.3, -Math.PI / 2, "flame", front ? 0.05 : -0.2, keep);
-		}
+		limb(
+			x,
+			y,
+			x - along.x * size * 1.4,
+			y - along.y * size * 1.4,
+			0.55,
+			0.45,
+			"steel",
+			front ? 0.08 : -0.18,
+			null,
+			keep,
+		);
+		ellipse(
+			x + along.x * size * 0.3,
+			y + along.y * size * 0.3,
+			size * 0.45,
+			size * 0.3,
+			angle,
+			"steel",
+			(front ? 0.08 : -0.18) + 0.1,
+			null,
+			keep,
+		);
 	};
-	const things = swirl(86, 66);
+	const things = swirl(86, 74, 60, 40, -0.15, 7);
 
 	// --- His brothers, in the dark behind him: hunched shapes, their hoods drooping. ---
 	for (const [cx, cy, size, droop] of [

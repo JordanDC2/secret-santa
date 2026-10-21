@@ -63,41 +63,30 @@ const firelight = (_x: number, y: number) => 0.12 * clamp((y - 70) / 80);
 export function drawKrampus(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, fill, light } = figure(RAMPS, RIM);
 
-	// Swirling round him: birch switches, and links of chain.
+	// Swirling round him: a chain, link after link, sweeping round him.
 	const drawThing = (keep: IPut, { x, y, size, angle, front, index }: ISwirlItem) => {
-		const along = { x: Math.cos(angle), y: Math.sin(angle) };
-
 		if (index % 2 === 0) {
-			limb(
-				x - along.x * size * 1.6,
-				y - along.y * size * 1.6,
-				x + along.x * size * 1.6,
-				y + along.y * size * 1.6,
-				0.9,
-				0.6,
-				"birch",
-				front ? 0.3 : 0.1,
-				bark,
-				keep,
-			);
-			limb(
-				x,
-				y,
-				x + Math.cos(angle - 0.6) * size,
-				y + Math.sin(angle - 0.6) * size,
-				0.6,
-				0.4,
-				"birch",
-				front ? 0.3 : 0.1,
-				bark,
-				keep,
-			);
+			// A link face on: a ring of iron.
+			ellipse(x, y, size, size * 0.62, angle, "steel", front ? 0.08 : -0.18, null, keep);
+			ellipse(x, y, Math.max(0.5, size - 1.6), Math.max(0.4, size * 0.62 - 1.4), angle, "mouth", 0, null, keep);
 		} else {
-			ellipse(x, y, size * 0.6 + 1, size * 0.4 + 1, angle, "steel", front ? 0.05 : -0.22, null, keep);
-			ellipse(x, y, Math.max(0.6, size * 0.6 - 0.6), Math.max(0.4, size * 0.4 - 0.6), angle, "mouth", 0, null, keep);
+			// A link edge on: a bar of iron through the rings either side.
+			const along = { x: Math.cos(angle), y: Math.sin(angle) };
+			limb(
+				x - along.x * size,
+				y - along.y * size,
+				x + along.x * size,
+				y + along.y * size,
+				0.8,
+				0.8,
+				"steel",
+				(front ? 0.08 : -0.18) + 0.08,
+				null,
+				keep,
+			);
 		}
 	};
-	const things = swirl(92, 66);
+	const things = swirl(92, 80, 66, 42, -0.15, 4.4, 15);
 
 	// --- The figure, back to front. ---
 

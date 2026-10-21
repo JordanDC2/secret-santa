@@ -36,7 +36,6 @@ const RAMPS: Record<string, string[]> = {
 	eye: ["#060406", "#140c0a", "#2e1c12", "#4a301c"],
 	white: ["#7a7470", "#b8b0a8", "#ece4da"],
 	gold: ["#3a2408", "#6e460e", "#a87018", "#dca02c", "#ffd060"],
-	coal: ["#050406", "#0d0b10", "#18151c", "#26222b", "#3a3440"],
 	night: ["#020608", "#05100f", "#0a1c1a", "#102a27", "#173a36", "#204c46"],
 	moon: ["#5a8a84", "#9ac8be", "#d8f4ec", "#ffffff"],
 	roof: ["#010304", "#03080a", "#060e10"],
@@ -58,7 +57,6 @@ const RIM: Record<string, string[]> = {
 	straw: ["#b0c098", "#d8e8c0", "#f8fff0"],
 	white: ["#e8fff8", "#ffffff", "#ffffff"],
 	gold: ["#dca02c", "#ffd060", "#fff0a8", "#ffffff"],
-	coal: ["#4a6a6a", "#7aa0a0", "#b8dcd8"],
 };
 
 const MOON = { x: 196, y: 32 };
@@ -81,15 +79,8 @@ const roofline = (x: number) => {
 export function drawBefana(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, fill, light } = figure(RAMPS, RIM);
 
-	// Swirling round her: wrapped sweets for the good, and lumps of coal for the rest.
+	// Swirling round her: wrapped sweets, carried along the swirl.
 	const drawThing = (keep: IPut, { x, y, size, angle, front, index }: ISwirlItem) => {
-		if (index % 3 === 2) {
-			ellipse(x, y, size * 0.6, size * 0.5, angle, "coal", front ? 0.05 : -0.22, null, keep);
-			keep(Math.round(x - size * 0.2), Math.round(y - size * 0.2), "coal", front ? 0.9 : 0.5);
-
-			return;
-		}
-
 		const material = ["candyRed", "candyGreen", "candyGold", "candyTeal"][index % 4];
 		const along = { x: Math.cos(angle), y: Math.sin(angle) };
 		ellipse(x, y, size * 0.6, size * 0.42, angle, material, front ? 0.05 : -0.22, null, keep);
@@ -107,7 +98,7 @@ export function drawBefana(): HTMLCanvasElement {
 			);
 		}
 	};
-	const things = swirl(80, 70);
+	const things = swirl(80, 74, 58, 40, -0.15, 7);
 
 	// --- The figure, back to front. ---
 

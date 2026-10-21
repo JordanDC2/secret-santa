@@ -97,7 +97,7 @@ export function drawMoroz(): HTMLCanvasElement {
 			}
 		}
 	};
-	const things = swirl(82, 70);
+	const things = swirl(82, 76, 62, 42, -0.12, 6);
 
 	// --- The figure, back to front. ---
 

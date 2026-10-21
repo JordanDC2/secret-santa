@@ -343,28 +343,60 @@ export function paintLayer(
 	}
 }
 
-/** Something swirling round a patron: where it is, how big, which way it points, and whether it's in front of them. */
+/** Something swirling round a patron: where it is, its size in pixels, which way the swirl carries it, and whether it's in front of them. */
 export type ISwirlItem = { x: number; y: number; size: number; angle: number; front: boolean; index: number };
 
 /**
- * Things swirling round a patron in the dark, as La Flor's petals swirl round her (Mort's crows
- * round her, in Death Must Die): an orbit round (cx, cy) widening as it goes, small and far off
- * behind them, a few larger and nearer in front.
+ * Things swirling round a patron in the dark, as an aura (Death Must Die's patrons have theirs):
+ * a ring round (cx, cy), `rx` across and `ry` deep, tilted by `tilt`, in three sweeping arcs that
+ * spiral outward and climb as they go. Each thing turns along the swirl, passing behind the
+ * patron at the top of the ring (smaller, dimmer) and in front at the bottom (larger). `size` is
+ * the biggest a thing gets, in pixels; `perArc`, how many things in each arc (close together, a
+ * chain).
  */
-export function swirl(cx: number, cy: number): ISwirlItem[] {
-	return Array.from({ length: 22 }, (_, index) => {
-		const angle = index * 0.83 + 0.4;
-		const radius = 36 + index * 3.4;
+export function swirl(
+	cx: number,
+	cy: number,
+	rx: number,
+	ry: number,
+	tilt: number,
+	size: number,
+	perArc = 8,
+): ISwirlItem[] {
+	const items: ISwirlItem[] = [];
+	// Up the right side and just round in front; up the left; and over the top behind. Only the
+	// ends cross in front, so it frames the patron rather than covering them.
+	const arcs = [
+		[-0.4, 0.85],
+		[2.25, 3.5],
+		[3.9, 5.6],
+	];
+	let index = 0;
 
-		return {
-			x: cx + Math.cos(angle) * radius * 1.35,
-			y: cy + Math.sin(angle) * radius * 0.62,
-			size: 2.5 + (index % 5) * 1.3,
-			angle: angle * 1.7,
-			front: index % 4 === 1,
-			index,
-		};
-	});
+	for (const [from, to] of arcs) {
+		for (let i = 0; i < perArc; i++) {
+			const along = i / (perArc - 1);
+			const t = from + (to - from) * along;
+			// Spiralling outward along each arc, and climbing as it goes.
+			const out = 0.72 + 0.5 * along;
+			const lx = Math.cos(t) * rx * out;
+			const ly = Math.sin(t) * ry * out - (along - 0.5) * ry * 0.7;
+			// Which way the swirl carries it, in the tilted ring.
+			const dx = -Math.sin(t) * rx;
+			const dy = Math.cos(t) * ry;
+			const depth = (1 + Math.sin(t)) / 2;
+			items.push({
+				x: cx + lx * Math.cos(tilt) - ly * Math.sin(tilt),
+				y: cy + lx * Math.sin(tilt) + ly * Math.cos(tilt),
+				size: size * (0.55 + 0.45 * depth) * (0.75 + 0.25 * Math.sin(along * Math.PI)),
+				angle: Math.atan2(dx * Math.sin(tilt) + dy * Math.cos(tilt), dx * Math.cos(tilt) - dy * Math.sin(tilt)),
+				front: Math.sin(t) > 0.15,
+				index: index++,
+			});
+		}
+	}
+
+	return items;
 }
 
 /**

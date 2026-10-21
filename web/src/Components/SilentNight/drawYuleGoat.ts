@@ -55,50 +55,35 @@ const backAt = (x: number) => 132 - 34 * Math.sqrt(Math.max(0, 1 - ((x - 58) / 5
 export function drawYuleGoat(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, filled, light } = figure(RAMPS, RIM);
 
-	// Swirling round him: loose stalks of straw, and curls of red ribbon.
-	const drawThing = (keep: IPut, { x, y, size, angle, front, index }: ISwirlItem) => {
+	// Swirling round him: loose straw, carried up and round on the heat.
+	const drawThing = (keep: IPut, { x, y, size, angle, front }: ISwirlItem) => {
 		const along = { x: Math.cos(angle), y: Math.sin(angle) };
-
-		if (index % 2 === 0) {
-			limb(
-				x - along.x * size,
-				y - along.y * size,
-				x + along.x * size,
-				y + along.y * size,
-				0.5,
-				0.4,
-				"straw",
-				front ? 0.15 : -0.15,
-				null,
-				keep,
-			);
-			limb(
-				x,
-				y,
-				x + Math.cos(angle + 0.4) * size * 0.8,
-				y + Math.sin(angle + 0.4) * size * 0.8,
-				0.4,
-				0.3,
-				"straw",
-				front ? 0.1 : -0.2,
-				null,
-				keep,
-			);
-		} else {
-			for (let k = 0; k < 5; k++) {
-				const t1 = k / 5;
-				const t2 = (k + 1) / 5;
-				const point = (t: number) => ({
-					x: x + along.x * (t - 0.5) * size * 2 - along.y * Math.sin(t * 6) * size * 0.3,
-					y: y + along.y * (t - 0.5) * size * 2 + along.x * Math.sin(t * 6) * size * 0.3,
-				});
-				const a = point(t1);
-				const b = point(t2);
-				limb(a.x, a.y, b.x, b.y, 0.7, 0.7, "ribbon", front ? 0.05 : -0.22, null, keep);
-			}
-		}
+		limb(
+			x - along.x * size,
+			y - along.y * size,
+			x + along.x * size,
+			y + along.y * size,
+			0.55,
+			0.4,
+			"straw",
+			front ? 0.2 : -0.1,
+			null,
+			keep,
+		);
+		limb(
+			x,
+			y,
+			x + Math.cos(angle + 0.35) * size * 0.8,
+			y + Math.sin(angle + 0.35) * size * 0.8,
+			0.45,
+			0.3,
+			"straw",
+			front ? 0.15 : -0.15,
+			null,
+			keep,
+		);
 	};
-	const things = swirl(96, 72);
+	const things = swirl(96, 80, 68, 42, -0.12, 8);
 
 	/** A red ribbon tied round a bundle: a band across the line from (x1, y1) to (x2, y2), at `t` along it, `half` wide. */
 	const band = (x1: number, y1: number, x2: number, y2: number, t: number, half: number) => {
