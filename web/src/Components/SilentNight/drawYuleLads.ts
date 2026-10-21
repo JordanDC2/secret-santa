@@ -27,7 +27,7 @@ const RAMPS: Record<string, string[]> = {
 	hood: ["#0c0806", "#1e140e", "#322218", "#4a3424", "#644832", "#7e5e42"],
 	hair: ["#0c0806", "#1c120c", "#2e2016", "#443222", "#5c4630"],
 	rope: ["#2a1e10", "#4a3a20", "#6e5830", "#927a44"],
-	steel: ["#1a1c22", "#34383f", "#5a5f68", "#8a909a", "#c4c8d0"],
+	wood: ["#1a1008", "#3a2614", "#5e4020", "#82602e", "#a6803e", "#c49c56"],
 	wax: ["#4a3e34", "#8a7a68", "#c8b8a0", "#efe4cc", "#fff8e8"],
 	tooth: ["#4a4440", "#8a8278", "#cac0b0", "#efe6d6"],
 	eye: ["#060406", "#120c0a", "#2a1c14", "#ffe0a0"],
@@ -44,7 +44,7 @@ const RIM: Record<string, string[]> = {
 	hair: ["#a07040", "#d0a060", "#f0d090", "#fff0c8"],
 	rope: ["#c09050", "#e0c070", "#f8e0a0", "#fff4d0"],
 	wax: ["#fff0c8", "#ffffff", "#ffffff", "#ffffff"],
-	steel: ["#d0a070", "#f0d0a0", "#fff4d8", "#ffffff"],
+	wood: ["#c08040", "#e0b060", "#f8d890", "#fff0c8"],
 	tooth: ["#fff0d0", "#ffffff", "#ffffff", "#ffffff"],
 };
 
@@ -61,21 +61,18 @@ const candlelight = (x: number, y: number) => 0.26 * clamp(1 - Math.hypot(x - CA
 export function drawYuleLads(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, fill, light } = figure(RAMPS, RIM);
 
-	// Spoons, licked clean and glinting, juggled in arcs over his head, tumbling end over end.
+	// Wooden spoons, licked clean, juggled in arcs over his head, tumbling end over end: a long
+	// straight handle with a knob at its end, widening at the neck into an oval bowl, hollowed.
 	const drawThing = (keep: IPut, { x, y, size, angle }: ISwirlItem) => {
 		const along = { x: Math.cos(angle), y: Math.sin(angle) };
-		limb(x, y, x - along.x * size * 1.4, y - along.y * size * 1.4, 0.55, 0.45, "steel", 0.3, null, keep);
-		ellipse(
-			x + along.x * size * 0.3,
-			y + along.y * size * 0.3,
-			size * 0.45,
-			size * 0.3,
-			angle,
-			"steel",
-			0.42,
-			null,
-			keep,
-		);
+		const at = (distance: number) => ({ x: x + along.x * distance, y: y + along.y * distance });
+		const end = at(-size * 1.3);
+		const neck = at(size * 0.35);
+		const bowl = at(size * 0.85);
+		limb(end.x, end.y, neck.x, neck.y, 0.75, 0.75, "wood", 0.2, null, keep);
+		ellipse(end.x, end.y, 1.1, 1.1, 0, "wood", 0.25, null, keep);
+		ellipse(bowl.x, bowl.y, size * 0.6, size * 0.36, angle, "wood", 0.32, null, keep);
+		ellipse(bowl.x + along.x * 0.4, bowl.y + along.y * 0.4, size * 0.34, size * 0.17, angle, "wood", 0.02, null, keep);
 	};
 	const things: ISwirlItem[] = Array.from({ length: 13 }, (_, index) => {
 		// Two arcs, one inside the other, from hand to hand.
@@ -87,7 +84,7 @@ export function drawYuleLads(): HTMLCanvasElement {
 		return {
 			x: 86 - width / 2 + width * t,
 			y: 52 - rise * Math.sin(Math.PI * t),
-			size: inner ? 7 : 8.5,
+			size: inner ? 6 : 7,
 			angle: index * 1.3,
 			front: false,
 			index,
