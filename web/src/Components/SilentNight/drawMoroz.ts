@@ -17,6 +17,7 @@ import {
 	shade,
 	type ITexture,
 	paintSwirl,
+	paintGlow,
 	type ISwirlItem,
 	type IPut,
 } from "Components/SilentNight/portraitKit";
@@ -29,6 +30,7 @@ const RAMPS: Record<string, string[]> = {
 	silver: ["#2a2e38", "#5a606c", "#9aa2ae", "#d0d6de", "#f4f6fa"],
 	wood: ["#120a06", "#24160c", "#3c2816", "#563c22", "#725232"],
 	ice: ["#1a4a7a", "#4a8ac8", "#8ac8f0", "#d0f0ff", "#ffffff"],
+	starGlow: ["#122840", "#1c3c60", "#2c5a88", "#4a84b8", "#7ab4e0"],
 	eye: ["#06080c", "#141a24", "#2a3a50", "#6a8aa8"],
 };
 // The cold light of the ice star, above him on the right.
@@ -105,7 +107,11 @@ export function drawMoroz(): HTMLCanvasElement {
 			y: STAR.y + 4 + Math.sin(turn) * reach * 0.75,
 			size: 2.4 + index * 0.17,
 			angle: turn,
-			front: index % 5 === 3 && Math.sin(turn) > 0,
+			// In front only well clear of his face and beard.
+			front:
+				index % 5 === 3 &&
+				Math.sin(turn) > 0 &&
+				(STAR.x + Math.cos(turn) * reach * 1.25 > 104 || STAR.y + 4 + Math.sin(turn) * reach * 0.75 > 112),
 			index,
 		};
 	});
@@ -114,6 +120,15 @@ export function drawMoroz(): HTMLCanvasElement {
 
 	// The staff, held upright on his left (our right), behind his arm.
 	limb(112, 24, 110, 160, 1.8, 2.2, "wood", 0.05, (x, y) => 0.06 * Math.sin(y * 0.9 + x));
+
+	// Silver bands twisted round it, and silver prongs holding the star.
+	for (let y = 34; y < 150; y += 11) {
+		const x = 112 - ((y - 24) / 136) * 2;
+		limb(x - 2, y, x + 2, y - 1, 0.7, 0.7, "silver", 0.45);
+	}
+
+	limb(112, 26, 108, 20, 0.6, 0.5, "silver", 0.55);
+	limb(112, 26, 116, 20, 0.6, 0.5, "silver", 0.4);
 
 	// His long blue shuba: broad at the shoulders, falling wide to the ground.
 	fill(
@@ -138,28 +153,46 @@ export function drawMoroz(): HTMLCanvasElement {
 		},
 	);
 
-	// Silver frost stitched over it: little six-pointed stars in rows.
-	for (let row = 0; row < 4; row++) {
-		for (let col = 0; col < 5; col++) {
-			const cx = 60 + col * 10 + (row % 2) * 5;
-			const cy = 92 + row * 14;
+	// Silver embroidery: a border of diamonds down either side of his coat's opening, and great
+	// frost-stars stitched here and there.
+	for (const side of [-1, 1]) {
+		for (let y = 72; y < 156; y++) {
+			const x = 79 + side * 6;
+			put(x, y, "silver", 0.4 + (y % 2) * 0.12);
 
-			if (Math.abs(cx - 79) < 6) {
-				continue;
-			}
-
-			for (const [dx, dy] of [
-				[0, 0],
-				[0, -2],
-				[0, 2],
-				[-2, -1],
-				[2, -1],
-				[-2, 1],
-				[2, 1],
-			]) {
-				put(cx + dx, cy + dy, "silver", dx === 0 && dy === 0 ? 0.7 : 0.45);
+			if (y % 7 === 0) {
+				for (const [dx, dy] of [
+					[side, -1],
+					[side * 2, 0],
+					[side, 1],
+				]) {
+					put(x + dx, y + dy, "silver", 0.62);
+				}
 			}
 		}
+	}
+
+	for (const [cx, cy, size] of [
+		[64, 98, 4],
+		[95, 112, 4.5],
+		[66, 128, 5],
+		[93, 140, 4],
+	]) {
+		for (let k = 0; k < 3; k++) {
+			const a = (k * Math.PI) / 3 + 0.3;
+			limb(
+				cx - Math.cos(a) * size,
+				cy - Math.sin(a) * size,
+				cx + Math.cos(a) * size,
+				cy + Math.sin(a) * size,
+				0.45,
+				0.45,
+				"silver",
+				0.5,
+			);
+		}
+
+		put(cx, cy, "silver", 0.9);
 	}
 
 	// Fur down the front and round the hem of his sleeves.
@@ -187,11 +220,13 @@ export function drawMoroz(): HTMLCanvasElement {
 			put(cx + dx, 45, "skin", 0.16);
 		}
 
-		put(cx - 1, 46, "eye", 0.1);
-		put(cx, 46, "eye", 0.85);
-		put(cx + 1, 46, "eye", 0.2);
-		put(cx, 45, "eye", 0.05);
+		put(cx - 2, 46, "skin", 0.3);
+		put(cx - 1, 46, "eye", 0.75);
+		put(cx, 46, "eye", 0.9);
+		put(cx + 1, 46, "eye", 0.3);
+		put(cx + 2, 46, "skin", 0.28);
 		put(cx - 1, 45, "eye", 0.05);
+		put(cx, 45, "eye", 0.05);
 		put(cx + 1, 45, "eye", 0.05);
 		put(cx - 1, 46, "fur", 1);
 
@@ -221,11 +256,29 @@ export function drawMoroz(): HTMLCanvasElement {
 				0.42 +
 				0.16 * -across +
 				0.18 * Math.sqrt(Math.max(0, 1 - across * across)) +
-				beard(x, y) -
+				beard(x, y) * 0.3 -
+				0.08 -
 				clamp((y - 100) / 60) * 0.12
 			);
 		},
 	);
+
+	// Locks of his beard over it, each falling in a wave from under his moustache and gathering
+	// to the point at his waist, the longest down the middle.
+	for (let i = 0; i < 11; i++) {
+		const t = i / 10;
+		const rootX = 67 + t * 23;
+		const length = 34 + 46 * Math.sin(Math.PI * t) ** 0.7;
+		const angle = Math.atan2(132 - 56, 78.5 - rootX) * 0.45 + (Math.PI / 2) * 0.55;
+		const rootY = 55 + Math.abs(t - 0.5) * 4;
+		const bias = 0.12 + (i % 3) * 0.07 - (t - 0.5) * 0.14;
+		// Each lock waves: bending one way partway down, its end the other.
+		const bend = i % 2 === 0 ? 0.16 : -0.16;
+		const kneeX = rootX + Math.cos(angle) * length * 0.55;
+		const kneeY = rootY + Math.sin(angle) * length * 0.55;
+		petal(rootX, rootY, length * 0.62, 4.4, angle, "fur", bias);
+		petal(kneeX, kneeY, length * 0.5, 3.6, angle + bend, "fur", bias - 0.04);
+	}
 
 	// His moustache, sweeping out over the beard; the mouth hidden under it.
 	petal(77, 53, 11, 3.2, Math.PI * 0.78, "fur", 0.18);
@@ -237,8 +290,15 @@ export function drawMoroz(): HTMLCanvasElement {
 	petal(76, 43, 8, 2.4, Math.PI + 0.32, "fur", 0.16);
 	petal(81, 43, 8, 2.4, -0.32, "fur", 0.12);
 
-	// His tall hat: blue velvet over a broad band of white fur, a silver star on its front.
-	ellipse(78, 22, 12.5, 14, 0, "coat", 0.04, (x, y) => (y > 30 ? -1 : chill(x, y)));
+	// His tall hat: blue velvet in panels piped with silver, over a broad band of white fur, a
+	// silver star on its front.
+	ellipse(78, 22, 12.5, 14, 0, "coat", 0.04, (x, y) => (y > 30 ? -1 : chill(x, y) + 0.05 * Math.cos((x - 78) * 0.5)));
+
+	for (const offset of [-8, -3, 3, 8]) {
+		for (let y = 10; y < 30; y++) {
+			put(Math.round(78 + offset * ((y - 8) / 22)), y, "silver", 0.38 + (offset < 0 ? 0.08 : 0));
+		}
+	}
 	fill(
 		30,
 		37,
@@ -309,6 +369,8 @@ export function drawMoroz(): HTMLCanvasElement {
 			null,
 		);
 
+	// The ice star's cold light hanging in the air round it.
+	paintGlow(context, STAR.x, STAR.y, 30, RAMPS.starGlow, 0.95);
 	snow(false);
 	paintSwirl(context, things, false, drawThing, RAMPS, RIM);
 	paintFigure(context, colours);

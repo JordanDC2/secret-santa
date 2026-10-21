@@ -16,8 +16,11 @@ import {
 	shade,
 	strands,
 	paintSwirl,
+	paintGlow,
+	dither,
 	type ISwirlItem,
 	type IPut,
+	type ITexture,
 } from "Components/SilentNight/portraitKit";
 
 const RAMPS: Record<string, string[]> = {
@@ -30,6 +33,9 @@ const RAMPS: Record<string, string[]> = {
 	wax: ["#4a3e34", "#8a7a68", "#c8b8a0", "#efe4cc", "#fff8e8"],
 	flame: ["#a03010", "#ff7a20", "#ffc040", "#fff0a0", "#fffbe8"],
 	eye: ["#0b0507", "#1e0f0a", "#3a2010", "#5a3418"],
+	gownWarm: ["#2a1e1a", "#5a4236", "#8e6e58", "#c09c80", "#e8c8a8", "#fff0dc"],
+	lace: ["#4a4644", "#8a8480", "#c8c0b8", "#f4ece2", "#ffffff"],
+	halo: ["#5a3612", "#80501a", "#b07224", "#e0a040", "#ffd070"],
 };
 // Candlelight from her crown, above and to the right of her.
 const RIM: Record<string, string[]> = {
@@ -41,6 +47,8 @@ const RIM: Record<string, string[]> = {
 	leaf: ["#5a7a3a", "#9aa850", "#d0c870", "#f0e8a0"],
 	wax: ["#fff0c8", "#ffffff", "#ffffff", "#ffffff"],
 	eye: ["#3a2010", "#5a3418", "#8a5a30", "#c08a50"],
+	lace: ["#fff0d8", "#ffffff", "#ffffff", "#ffffff"],
+	gownWarm: ["#ffd8a0", "#fff0d0", "#ffffff", "#ffffff"],
 };
 
 /** Where the crown's light is, and how much of it reaches a point. */
@@ -49,6 +57,26 @@ const glow = (x: number, y: number, size: number) => clamp(1 - Math.hypot(x - CR
 
 /** The crown's warmth on what's near it. */
 const warmth = (x: number, y: number) => 0.18 * glow(x, y, 50);
+
+/** The candle in her hands, lighting her from below. */
+const HELD = { x: 78, y: 84 };
+const underlight = (x: number, y: number) => 0.22 * clamp(1 - Math.hypot(x - HELD.x, (y - HELD.y) * 0.9) / 34);
+
+/** Her gown's folds: creases falling from the sash (a fine shadow, lit beside it), and small gathers under her collar. */
+const folds = (x: number, y: number) => {
+	const crease = (((x - 78) % 6) + 6) % 6;
+
+	return (
+		(y >= 106 ? (crease === 0 ? -0.14 : crease === 1 ? 0.06 : 0) : 0) +
+		0.05 * Math.sin(x * 1.6) * clamp((80 - y) / 8) * clamp((y - 69) / 3)
+	);
+};
+
+/** Her hair's strands, catching the crown's gold where they turn toward it. */
+const sheen: ITexture = (x, y) =>
+	strands(x, y) * 1.4 +
+	warmth(x, y) +
+	0.12 * clamp(Math.sin(x * 0.55 - y * 0.32 + 4 * fbm(x * 0.05, y * 0.05)) - 0.6) * glow(x, y, 70);
 
 export function drawLucia(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, fill, light } = figure(RAMPS, RIM);
@@ -62,9 +90,9 @@ export function drawLucia(): HTMLCanvasElement {
 		const t = index / 17;
 
 		return {
-			x: 14 + 200 * t,
-			y: 146 - 128 * t - 34 * Math.sin(Math.PI * t),
-			size: 8.5 * (1 - 0.68 * t),
+			x: 12 + 204 * t,
+			y: 146 - 126 * t - 36 * Math.sin(Math.PI * t) + Math.sin(index * 2.3) * 3,
+			size: 8.5 * (1 - 0.68 * t) * (0.85 + 0.3 * hash(index, 21)),
 			angle: 0,
 			front: t < 0.15,
 			index,
@@ -73,8 +101,7 @@ export function drawLucia(): HTMLCanvasElement {
 
 	// --- The figure, back to front. ---
 
-	// Her long fair hair behind her, falling past her shoulders.
-	// (In shadow behind her neck, so her neck stands clear of it, as La Flor's does.)
+	// Her long fair hair behind her, falling past her shoulders, in shadow behind her neck.
 	ellipse(
 		78,
 		52,
@@ -83,41 +110,95 @@ export function drawLucia(): HTMLCanvasElement {
 		0,
 		"hair",
 		-0.02,
-		(x, y) => strands(x, y) + warmth(x, y) - 0.3 * clamp(1 - Math.abs(x - 78) / 11) * clamp((y - 58) / 5),
+		(x, y) => sheen(x, y) - 0.3 * clamp(1 - Math.abs(x - 78) / 11) * clamp((y - 58) / 5),
 	);
-	ellipse(65, 80, 7.5, 24, 0.12, "hair", -0.1, strands);
-	ellipse(91, 80, 7.5, 24, -0.12, "hair", -0.08, strands);
+	ellipse(65, 80, 7.5, 24, 0.12, "hair", -0.1, sheen);
+	ellipse(91, 80, 7.5, 24, -0.12, "hair", -0.08, sheen);
+	ellipse(62, 100, 5, 12, 0.2, "hair", -0.16, sheen);
+	ellipse(94, 100, 5, 12, -0.2, "hair", -0.14, sheen);
 
-	// Her white gown, from her shoulders down, flaring out, in soft folds.
+	// Her white gown, from her shoulders down, flaring out in folds that fan from her waist, gilded
+	// at the top by her crown and lit from below by her candle.
 	fill(
 		67,
 		160,
 		(y) => {
-			const half = y < 72 ? 8 + (y - 67) * 1.3 : 14.5 + (y - 72) * 0.22;
+			const half = y < 72 ? 8 + (y - 67) * 1.3 : 14.5 + (y - 72) * 0.17;
 
 			return [78 - half, 78 + half];
 		},
 		"gown",
 		(x, y, left, right) => {
 			const across = ((x + 0.5 - left) / (right - left)) * 2 - 1;
-			const folds = 0.04 * Math.sin((x - 78) * 0.45) * clamp((y - 100) / 30) * (1 - clamp((y - 118) / 20));
 
-			return 0.3 + 0.16 * -across + 0.28 * Math.sqrt(Math.max(0, 1 - across * across)) + folds + warmth(x, y) * 0.6;
+			return (
+				0.3 +
+				0.16 * -across +
+				0.28 * Math.sqrt(Math.max(0, 1 - across * across)) +
+				folds(x, y) +
+				warmth(x, y) * 0.6 +
+				underlight(x, y)
+			);
 		},
 	);
 
-	// Long white sleeves, her arms bent to bring her hands together at her chest.
-	limb(67, 73, 62, 94, 5, 4.6, "gown", -0.02);
-	limb(89, 73, 94, 94, 5, 4.6, "gown", -0.06);
-	limb(62, 94, 73, 100, 4.6, 4, "gown", 0.02);
-	limb(94, 94, 83, 100, 4.6, 4, "gown", -0.02);
+	// Where her candle and her crown light the gown, it takes their warmth, dithered into the white.
+	fill(
+		67,
+		160,
+		(y) => {
+			const half = y < 72 ? 8 + (y - 67) * 1.3 : 14.5 + (y - 72) * 0.17;
 
-	// The red sash round her waist, its ends hanging down her right side.
+			return [78 - half, 78 + half];
+		},
+		"gownWarm",
+		(x, y, left, right) => {
+			if (underlight(x, y) * 3.6 + warmth(x, y) * 2.2 < dither(x, y) + 0.15) {
+				return null;
+			}
+
+			const across = ((x + 0.5 - left) / (right - left)) * 2 - 1;
+
+			return (
+				0.3 +
+				0.16 * -across +
+				0.28 * Math.sqrt(Math.max(0, 1 - across * across)) +
+				folds(x, y) +
+				warmth(x, y) * 0.6 +
+				underlight(x, y)
+			);
+		},
+	);
+
+	// Long white sleeves, gathered at the shoulder, her arms bent to bring her hands together at her chest.
+	limb(67, 73, 62, 94, 5, 4.6, "gown", -0.02, (x, y) => 0.05 * Math.sin((x + y) * 0.8) + underlight(x, y));
+	limb(89, 73, 94, 94, 5, 4.6, "gown", -0.06, (x, y) => 0.05 * Math.sin((x - y) * 0.8) + underlight(x, y));
+	limb(62, 94, 72, 99, 4.6, 4, "gown", 0.02, underlight);
+	limb(94, 94, 84, 99, 4.6, 4, "gown", -0.02, underlight);
+
+	// Lace at her cuffs, scalloped.
+	for (const [cx, cy, turn] of [
+		[72.5, 98.5, 0.4],
+		[83.5, 98.5, -0.4],
+	]) {
+		ellipse(
+			cx,
+			cy,
+			2.2,
+			4.2,
+			turn,
+			"lace",
+			0.3 + 0.05 * turn,
+			(x, y) => ((x + y) % 2 === 0 ? 0.08 : -0.04) + underlight(x, y),
+		);
+	}
+
+	// The red sash round her waist, tied in a bow at her right hip, its tails hanging.
 	fill(
 		104,
 		108,
 		(y) => {
-			const half = 13.8 + (y - 76) * 0.24;
+			const half = 14.5 + (y - 72) * 0.17;
 
 			return [78 - half, 78 + half];
 		},
@@ -125,41 +206,62 @@ export function drawLucia(): HTMLCanvasElement {
 		(x, y, left, right) => {
 			const across = ((x + 0.5 - left) / (right - left)) * 2 - 1;
 
-			return 0.38 - 0.18 * across + (y === 104 ? 0.08 : 0);
+			return 0.36 - 0.18 * across + (y === 104 ? 0.1 : y === 108 ? -0.1 : 0) + 0.04 * Math.sin(x * 0.9);
 		},
 	);
-	limb(85, 108, 88, 132, 2.4, 2, "red", -0.04);
-	limb(88, 108, 93, 128, 2.2, 1.8, "red", -0.1);
+	limb(87, 108, 90, 133, 2.4, 2.2, "red", -0.04, (x, y) => 0.06 * Math.sin(y * 0.7));
+	limb(89, 108, 95, 129, 2.2, 1.8, "red", -0.12, (x, y) => 0.06 * Math.sin(y * 0.7 + 1));
+	petal(88, 106, 9, 3.4, -0.5, "red", 0.06);
+	petal(88, 106, 8, 3.2, -2.4, "red", -0.02);
+	ellipse(88, 106, 2, 2, 0, "red", 0.16);
 
-	// Her neck, a little in shadow, and her head.
-	// A slim neck, deep in the shadow of her jaw, lighter lower down.
-	ellipse(78, 65.5, 3, 3.5, 0, "skin", -0.2, (_x, y) => -0.22 * clamp((67 - y) / 3));
-	// Her head, the underside of her jaw turning away from the light.
-	ellipse(78, 50, 11.5, 14.5, 0, "skin", 0.04, (x, y) => warmth(x, y) * 0.5 - 0.12 * clamp((y - 62) / 3));
+	// Her neck, slim and deep in the shadow of her jaw, and her head.
+	ellipse(78, 65.5, 3, 3.5, 0, "skin", -0.2, (x, y) => -0.22 * clamp((67 - y) / 3) + underlight(x, y) * 0.6);
+	ellipse(
+		78,
+		50,
+		11.5,
+		14.5,
+		0,
+		"skin",
+		0.06,
+		(x, y) => warmth(x, y) * 0.5 + underlight(x, y) - 0.12 * clamp((y - 62) / 3),
+	);
 
-	// Her hair over the top of her head, parted in the middle, and down past her cheeks.
+	// The lace collar of her gown round her neck, scalloped.
+	for (let x = 68; x <= 88; x++) {
+		const scallop = Math.abs(((x - 68) % 4) - 2) < 1 ? 1 : 0;
+		put(x, 67 + Math.round(Math.abs(x - 78) * 0.12), "lace", 0.62 + (x < 78 ? 0.08 : -0.04));
+		put(x, 68 + Math.round(Math.abs(x - 78) * 0.12) + scallop, "lace", 0.48);
+	}
+
+	// Her hair over the top of her head, parted in the middle, and down past her cheeks, a strand
+	// or two loose across her brow.
 	for (let y = 35; y <= 50; y++) {
 		for (let x = 62; x <= 94; x++) {
 			const dx = (x + 0.5 - 78) / 12.6;
 			const dy = (y + 0.5 - 50) / 15.4;
 
 			if (dx * dx + dy * dy <= 1 && y <= 41 + Math.abs(x + 0.5 - 78) * 0.42) {
-				put(x, y, "hair", 0.42 + (x < 78 ? 0.06 : -0.02) + strands(x, y) + warmth(x, y));
+				put(x, y, "hair", 0.44 + (x < 78 ? 0.06 : -0.02) + sheen(x, y));
 			}
 		}
 	}
 
-	ellipse(66.8, 53, 2.4, 9, 0.06, "hair", 0, strands);
-	ellipse(89.2, 53, 2.4, 9, -0.06, "hair", -0.06, strands);
+	ellipse(66.8, 53, 2.4, 9, 0.06, "hair", 0, sheen);
+	ellipse(89.2, 53, 2.4, 9, -0.06, "hair", -0.06, sheen);
+	limb(73, 41, 70, 46, 0.5, 0.4, "hair", 0.5);
+	limb(86, 42, 88, 48, 0.5, 0.4, "hair", 0.36);
 
 	// Her face: eyes closed, lowered to the candle; soft brows; a shaded nose; a gentle smile.
 	for (const [cx, out] of [
 		[73, -1],
 		[84, 1],
 	]) {
-		// The closed lid: a lashed curve, dipping in the middle, and a soft shadow over it.
+		// The closed lid: a lashed curve, dipping in the middle, a soft shadow over it, and a
+		// little light under it from the candle.
 		for (let dx = -2; dx <= 2; dx++) {
-			put(cx + dx, 48, "skin", 0.32);
+			put(cx + dx, 48, "skin", 0.34);
 			put(cx + dx, Math.abs(dx) === 2 ? 50 : 51, "eye", 0.12);
 		}
 
@@ -167,7 +269,8 @@ export function drawLucia(): HTMLCanvasElement {
 		put(cx + out * 3, 51, "eye", 0.1);
 
 		for (let dx = -1; dx <= 1; dx++) {
-			put(cx + dx, 50, "skin", 0.38);
+			put(cx + dx, 50, "skin", 0.4);
+			put(cx + dx, 52, "skin", 0.62);
 		}
 
 		// The brow: fine and gently arched, a little darker than her hair.
@@ -183,34 +286,34 @@ export function drawLucia(): HTMLCanvasElement {
 		}
 	}
 
-	// The nose: a shadow down the side away from the light, a soft tip, nostrils.
+	// The nose: a shadow down the side away from the light, a soft tip lit from below, nostrils.
 	for (let y = 51; y <= 55; y++) {
 		put(80, y, "skin", 0.24);
 	}
 
-	put(79, 56, "skin", 0.27);
-	put(78, 56, "skin", 0.62);
-	put(77, 57, "skin", 0.22);
-	put(79, 57, "skin", 0.2);
-	put(78, 58, "skin", 0.28);
+	put(79, 56, "skin", 0.3);
+	put(78, 56, "skin", 0.66);
+	put(77, 57, "skin", 0.26);
+	put(79, 57, "skin", 0.24);
+	put(78, 58, "skin", 0.5);
 
 	// The mouth: a soft, closed smile.
 	for (const [x, y, t] of [
-		[75, 60, 0.2],
-		[81, 60, 0.2],
-		[76, 61, 0.18],
-		[77, 61, 0.14],
-		[78, 61, 0.12],
-		[79, 61, 0.14],
-		[80, 61, 0.18],
-		[77, 62, 0.62],
-		[78, 62, 0.7],
-		[79, 62, 0.62],
+		[75, 60, 0.26],
+		[81, 60, 0.26],
+		[76, 61, 0.24],
+		[77, 61, 0.2],
+		[78, 61, 0.18],
+		[79, 61, 0.2],
+		[80, 61, 0.24],
+		[77, 62, 0.56],
+		[78, 62, 0.64],
+		[79, 62, 0.56],
 	]) {
 		put(x, y, "lip", t);
 	}
 
-	put(78, 63, "skin", 0.3);
+	put(78, 63, "skin", 0.5);
 
 	// A blush on each cheek.
 	for (const cx of [70, 85]) {
@@ -219,35 +322,50 @@ export function drawLucia(): HTMLCanvasElement {
 		put(cx + 2, 55, "lip", 0.8);
 	}
 
-	// The candle in her hands, and her hands round it.
-	limb(78, 86, 78, 101, 2.3, 2.3, "wax", 0.12);
-	ellipse(75.5, 99, 3.8, 3.2, -0.35, "skin", 0.06);
-	ellipse(80.5, 99, 3.8, 3.2, 0.35, "skin", 0.04);
-	put(75, 98, "skin", 0.16);
-	put(77, 99, "skin", 0.16);
-	put(79, 99, "skin", 0.16);
-	put(81, 98, "skin", 0.16);
+	// The candle in her hands, and her hands round it, lit by it.
+	limb(78, 86, 78, 101, 2.3, 2.3, "wax", 0.16);
+	put(77, 87, "wax", 0.95);
+	ellipse(75.5, 99, 3.8, 3.2, -0.35, "skin", 0.08, underlight);
+	ellipse(80.5, 99, 3.8, 3.2, 0.35, "skin", 0.06, underlight);
+	put(75, 98, "skin", 0.2);
+	put(77, 99, "skin", 0.2);
+	put(79, 99, "skin", 0.2);
+	put(81, 98, "skin", 0.2);
 
-	// Her crown: a wreath of lingonberry leaves, red berries in it, and five candles standing in it.
-	for (let i = 0; i < 16; i++) {
-		const a = (i / 16) * Math.PI * 2;
-		const x = 78 + Math.cos(a) * 13.5;
-		const y = 37 + Math.sin(a) * 3;
+	// Her crown: a full wreath of lingonberry leaves in two rows, red berries among them, and five
+	// candles standing in it, wax running down them.
+	for (let row = 0; row < 2; row++) {
+		for (let i = 0; i < 18; i++) {
+			const a = ((i + row * 0.5) / 18) * Math.PI * 2;
+			const x = 78 + Math.cos(a) * (13 + row * 1.5);
+			const y = 37 + row * 1.2 + Math.sin(a) * 3.2;
 
-		if (Math.sin(a) > -0.35) {
-			petal(x, y, 5.5, 2.2, i % 2 === 0 ? Math.PI + 0.5 : -0.4, "leaf", Math.sin(a) * 0.1 + 0.02);
+			if (Math.sin(a) > -0.4) {
+				petal(
+					x,
+					y,
+					5 + row,
+					2 + row * 0.3,
+					(i % 2 === 0 ? Math.PI + 0.5 : -0.4) + row * 0.3,
+					"leaf",
+					Math.sin(a) * 0.12 + 0.02 - row * 0.08,
+				);
+			}
 		}
 	}
 
 	for (const [x, y] of [
-		[68, 39],
-		[74, 40],
-		[83, 40],
-		[88, 39],
-		[79, 41],
+		[67, 39],
+		[71, 41],
+		[75, 40],
+		[81, 41],
+		[85, 40],
+		[89, 39],
+		[78, 42],
 	]) {
-		put(x, y, "red", 0.62);
-		put(x + 1, y, "red", 0.5);
+		put(x, y, "red", 0.66);
+		put(x + 1, y, "red", 0.52);
+		put(x, y + 1, "red", 0.4);
 	}
 
 	for (const [x, base, height] of [
@@ -258,13 +376,15 @@ export function drawLucia(): HTMLCanvasElement {
 		[90, 37, 13],
 	]) {
 		limb(x, base, x, base - height, 1.6, 1.6, "wax", 0.1 + (x - 78) * -0.004);
+		// A drip of wax running down from the top.
+		limb(x + 1, base - height + 1, x + 1, base - height + 4 + (x % 3), 0.5, 0.6, "wax", 0.4);
 	}
 
 	// --- Light: from her crown above her (and the candle she carries); a fade into the dark below. ---
 	const colours = light({
 		side: 1,
 		reach: (x, y) => clamp(1 - (y - 30) / 140) * clamp((x - 48) / 36),
-		fade: (_x, y) => clamp((y - 112) / 48) * 0.55,
+		fade: (_x, y) => clamp((y - 104) / 52) * 0.75,
 		outlineAbove: 128,
 	});
 
@@ -304,6 +424,21 @@ export function drawLucia(): HTMLCanvasElement {
 			RAMPS,
 			null,
 		);
+
+	// A halo of light round each flame of her crown, and round each candle in the procession.
+	for (const [x, y] of [
+		[66, 21],
+		[72, 18],
+		[78, 15],
+		[84, 18],
+		[90, 21],
+	]) {
+		paintGlow(context, x, y, 10, RAMPS.halo, 0.9);
+	}
+
+	for (const { x, y, size } of things) {
+		paintGlow(context, x, y - size * 1.6, size * 1.6, RAMPS.halo, 0.75);
+	}
 
 	sparks(false);
 	paintSwirl(context, things, false, drawThing, RAMPS, RIM);

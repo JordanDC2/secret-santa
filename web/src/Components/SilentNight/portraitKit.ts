@@ -367,3 +367,34 @@ export function paintSwirl(
 		paintLayer(context, (keep) => draw(keep, item), ramps, front ? rims : null, side);
 	}
 }
+
+/**
+ * A soft glow in the dark round (x, y), as candlelight hangs in the air: brightest in the middle,
+ * dithered away to nothing at `radius`, in the colours of `ramp` (darkest first), over whatever's
+ * painted there already.
+ */
+export function paintGlow(
+	context: CanvasRenderingContext2D,
+	x: number,
+	y: number,
+	radius: number,
+	ramp: string[],
+	strength = 1,
+) {
+	for (let py = Math.floor(y - radius); py <= y + radius; py++) {
+		for (let px = Math.floor(x - radius); px <= x + radius; px++) {
+			const d = Math.hypot(px + 0.5 - x, py + 0.5 - y) / radius;
+
+			if (d >= 1 || px < 0 || px >= W || py < 0 || py >= H) {
+				continue;
+			}
+
+			const t = strength * (1 - d) ** 1.8;
+
+			if (t > dither(px, py)) {
+				context.fillStyle = ramp[Math.min(ramp.length - 1, Math.floor(t * ramp.length))];
+				context.fillRect(px, py, 1, 1);
+			}
+		}
+	}
+}
