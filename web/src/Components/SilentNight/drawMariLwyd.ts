@@ -2,7 +2,8 @@
  * Mari Lwyd of Wales, as her portrait (portraitKit.ts): a horse's skull on a pole, draped in a
  * white sheet, black cloth ears, bottle-glass eyes glinting in its sockets, its jaw a little
  * open on its teeth, and ribbons of every colour streaming from its head with bells on them.
- * Moonlight from behind, on a cold, misty night, the ribbons blowing in the wind.
+ * Moonlight from behind, on a cold, misty night, the ribbons blowing in the wind, and ahead of
+ * her a cottage door, lit, where she has come to sing for her way in.
  */
 
 import {
@@ -12,6 +13,7 @@ import {
 	figure,
 	hash,
 	paintFigure,
+	paintGlow,
 	paintLayer,
 	shade,
 	type ITexture,
@@ -32,6 +34,8 @@ const RAMPS: Record<string, string[]> = {
 	gold: ["#3a2408", "#6e460e", "#a87018", "#dca02c", "#ffd060"],
 	glass: ["#0a2a1a", "#1a6a40", "#40c080", "#a0ffd0", "#ffffff"],
 	fog: ["#030405", "#080a0c", "#101418", "#1a2026", "#262e36", "#38424c"],
+	warm: ["#2a1408", "#5a2e10", "#9a5418", "#d88a2c", "#ffc860", "#fff0b0"],
+	thatch: ["#05070a", "#0c1116", "#151c24", "#202a34", "#2e3a46"],
 	snow: ["#30383e", "#6a7880", "#b0bcc4", "#e8eef2"],
 };
 // Moonlight from behind her, high on the right.
@@ -48,8 +52,20 @@ const RIM: Record<string, string[]> = {
 
 /** Old bone: pitted and stained. */
 const bone: ITexture = (x, y) => 0.08 * (fbm(x * 0.3, y * 0.3) - 0.5) + 0.05 * (hash(x, y) - 0.5);
-/** The sheet's folds, hanging down and swaying. */
-const folds: ITexture = (x, y) => 0.1 * Math.sin((x - 82) * 0.42 + y * 0.01) * (1 - clamp((y - 104) / 16));
+/** The sheet's folds, falling from under her skull and fanning out as they fall: a crease, lit along one side. */
+const folds: ITexture = (x, y) => {
+	const fan = ((x - 84) / Math.max(1, y - 46)) * 5.5 + 20;
+	const crease = fan - Math.floor(fan);
+	// Each fold its own depth.
+	const depth = 0.4 + 0.8 * hash(Math.floor(fan), 3);
+
+	return (
+		(crease < 0.1 ? -0.14 : crease < 0.2 ? 0.06 : 0.07 * Math.sin(crease * Math.PI)) * depth * clamp((y - 62) / 10)
+	);
+};
+
+/** The cottage she has come to: its wall's left edge, its door and its window. */
+const COTTAGE = { x: 186, door: { x: 202, y: 108, w: 13 }, window: { x: 230, y: 102 } };
 
 // The skull's own frame: from the back of its head (SKULL_BACK) to the tips of its teeth (SKULL_TIP).
 const SKULL_BACK = { x: 74, y: 40 };
@@ -96,19 +112,19 @@ const SKULL_BOTTOM: Array<[number, number]> = [
 const JAW_TOP: Array<[number, number]> = [
 	[0.17, 5],
 	[0.3, 9.5],
-	[0.45, 8.5],
-	[0.75, 7.5],
-	[0.95, 7.5],
-	[1, 8.5],
+	[0.45, 9.5],
+	[0.75, 10],
+	[0.95, 10.5],
+	[1, 11.5],
 ];
 const JAW_BOTTOM: Array<[number, number]> = [
 	[0.17, 14],
 	[0.22, 25],
 	[0.3, 25],
-	[0.45, 15],
-	[0.75, 12],
-	[0.95, 11.5],
-	[1, 10],
+	[0.45, 16],
+	[0.75, 14],
+	[0.95, 14],
+	[1, 13],
 ];
 
 /** The outline's [top, bottom] at u, from points along it, or null past its ends. */
@@ -182,10 +198,11 @@ export function drawMariLwyd(): HTMLCanvasElement {
 				points[i][1],
 				points[i + 1][0],
 				points[i + 1][1],
-				1.5,
-				1.4,
+				// Flat ribbon, twisting as it blows: wide face on, thin edge on, its back darker.
+				0.6 + 1.5 * Math.abs(Math.cos(i * 0.55 + index)),
+				0.6 + 1.5 * Math.abs(Math.cos((i + 1) * 0.55 + index)),
 				material,
-				bias + Math.sin(i * 0.9 + index) * 0.08,
+				bias + (Math.cos(i * 0.55 + index) > 0 ? 0.08 : -0.1),
 			);
 		}
 
@@ -201,9 +218,10 @@ export function drawMariLwyd(): HTMLCanvasElement {
 		54,
 		160,
 		(y) => {
-			const half = y < 70 ? 12 + (y - 54) * 1.1 : 29.6 + (y - 70) * 0.18;
+			// Gathered narrow under her skull, then falling wide, its edges hanging in loose waves.
+			const half = y < 68 ? 11 + (y - 54) * 1.2 : 27.8 + (y - 68) * 0.3;
 
-			return [82 - half, 82 + half];
+			return [82 - half - 2 * Math.sin(y * 0.11), 84 + half + 2 * Math.sin(y * 0.13 + 2)];
 		},
 		"sheet",
 		(x, y, left, right) => {
@@ -238,23 +256,23 @@ export function drawMariLwyd(): HTMLCanvasElement {
 		}
 	}
 
-	// The cheek teeth along the jaws, and the incisors at the end.
-	for (let u = 0.42; u < 0.68; u += 0.045) {
-		const edge = profile(u, SKULL_TOP, SKULL_BOTTOM)![1];
-		const at = skullPoint(u, edge);
-		put(Math.round(at.x), Math.round(at.y), "tooth", 0.7);
-		put(Math.round(at.x) + 1, Math.round(at.y), "tooth", 0.5);
-	}
+	// Her teeth, bared in rows along both jaws: long and square, yellowed, a dark gap between each,
+	// the incisors at the end the longest.
+	for (let u = 0.42; u < 0.99; u += 0.045) {
+		const front = u > 0.88;
+		const upper = profile(u, SKULL_TOP, SKULL_BOTTOM)![1];
+		const lower = profile(u, JAW_TOP, JAW_BOTTOM)![0];
+		const length = front ? 2.6 : 1.8;
 
-	for (const [u, v] of [
-		[0.985, 2],
-		[0.99, 4],
-		[0.975, 6],
-		[0.96, 9.5],
-		[0.95, 11.5],
-	]) {
-		const at = skullPoint(u, v);
-		put(Math.round(at.x), Math.round(at.y), "tooth", 0.75);
+		for (let v = 0; v < length; v += 0.5) {
+			for (const [edge, toward] of [
+				[upper, 1],
+				[lower, -1],
+			]) {
+				const at = skullPoint(u, edge + toward * v);
+				put(Math.round(at.x), Math.round(at.y), "tooth", 0.62 - v * 0.1 + (front ? 0.1 : 0));
+			}
+		}
 	}
 
 	// The ridge along the cheek, lit above and shadowed below; the long notch of the nostril.
@@ -295,8 +313,54 @@ export function drawMariLwyd(): HTMLCanvasElement {
 		const glow = clamp(1 - Math.hypot((x - 190) / 120, (y - 30) / 90));
 		const dark = clamp(1 - y / 230) * clamp(1 - Math.abs(x - 130) / 240);
 
+		// Snow on the ground.
+		if (y > 150 + Math.round(fbm(x * 0.05, 4) * 4)) {
+			return shade(x, y, 0.3 + clamp(1 - Math.abs(x - 208) / 40) * 0.5 + fbm(x * 0.1, y * 0.1) * 0.2, RAMPS.snow);
+		}
+
+		// The cottage: a low stone wall under a deep thatch, snow along the thatch's edge; its door
+		// open a crack, lit, and a lit window.
+		const eaves = 94 - Math.round((x - COTTAGE.x) * 0.1);
+		const thatch = 94 - (x - COTTAGE.x + 12) * 0.62;
+
+		if (x >= COTTAGE.x - 12 && y > thatch && y <= eaves) {
+			return y - thatch < 2
+				? shade(x, y, 0.75, RAMPS.snow)
+				: shade(x, y, 0.4 + fbm(x * 0.3, y * 0.6) * 0.5, RAMPS.thatch);
+		}
+
+		if (x >= COTTAGE.x && y > eaves) {
+			const { door, window } = COTTAGE;
+
+			if (x >= door.x && x < door.x + door.w && y >= door.y) {
+				// The door, open a crack at its right, light pouring out.
+				return x >= door.x + door.w - 4
+					? shade(x, y, 0.85 - (y - door.y) * 0.004, RAMPS.warm)
+					: shade(x, y, 0.2 + fbm(x * 0.6, y * 0.05) * 0.1, RAMPS.warm);
+			}
+
+			if (x >= window.x && x < window.x + 8 && y >= window.y && y < window.y + 7) {
+				return shade(x, y, x === window.x + 4 || y === window.y + 3 ? 0.2 : 0.7, RAMPS.warm);
+			}
+
+			// Rough stones.
+			const course = Math.floor(y / 4);
+			const stone = (x + (course % 2) * 3) % 6 === 0 || y % 4 === 0;
+
+			return shade(
+				x,
+				y,
+				(stone ? 0.15 : 0.32) + hash(Math.floor((x + (course % 2) * 3) / 6), course) * 0.15,
+				RAMPS.thatch,
+			);
+		}
+
 		return shade(x, y, (glow * 0.8 + mist * 0.6 - 0.12) * dark, RAMPS.fog);
 	});
+
+	// Light pouring from the cottage door and window onto the snow.
+	paintGlow(context, COTTAGE.door.x + COTTAGE.door.w - 2, 150, 22, RAMPS.warm, 0.5);
+	paintGlow(context, COTTAGE.window.x + 4, COTTAGE.window.y + 3, 10, RAMPS.warm, 0.4);
 
 	// Snow blowing through, and her glass eye glinting in the dark.
 	const snow = (front: boolean) =>

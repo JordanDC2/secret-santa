@@ -1,7 +1,7 @@
 /**
  * The Yule Goat of Scandinavia, as his portrait (portraitKit.ts): a great goat of bound straw,
  * tied round with red ribbons, his horns curling back, a straw beard; and burning, as straw
- * goats have a way of doing: charred black in places, embers glowing in the burns, flames
+ * goats have a way of doing, standing on the snow on his four bound legs: charred black in places, embers glowing in the burns, flames
  * licking along his back, his eyes like coals. Smoke and fire behind him, embers and loose straw
  * drifting up.
  */
@@ -48,8 +48,19 @@ const stalks =
 		return 0.12 * Math.sin(across * 1.7 + 2 * fbm(x * 0.05, y * 0.05)) + 0.06 * (hash(x, y) - 0.5) - 0.45 * burnt(x, y);
 	};
 
+/** His horn, root to tip, as points along it and how thick it is at each. */
+const HORN: Array<[number, number, number]> = [
+	[95, 52, 5.4],
+	[92, 38, 5],
+	[84, 27, 4.4],
+	[72, 22, 3.6],
+	[61, 25, 2.8],
+	[55, 34, 2.2],
+	[58, 42, 1.4],
+];
+
 /** The top of his body's bundle, where flames lick along his back. */
-const backAt = (x: number) => 132 - 34 * Math.sqrt(Math.max(0, 1 - ((x - 58) / 54) ** 2));
+const backAt = (x: number) => 110 - 22 * Math.sqrt(Math.max(0, 1 - ((x - 54) / 50) ** 2));
 
 export function drawYuleGoat(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, filled, light } = figure(RAMPS, RIM);
@@ -107,66 +118,80 @@ export function drawYuleGoat(): HTMLCanvasElement {
 
 	// --- The figure, back to front. ---
 
-	// The far horn, darker, curling back behind.
-	const farHorn: Array<[number, number, number]> = [
-		[103, 52, 4.8],
-		[101, 37, 4.4],
-		[93, 25, 3.6],
-		[82, 22, 3],
-		[75, 29, 2.4],
-		[77, 38, 1.4],
-	];
-
-	for (let i = 0; i < farHorn.length - 1; i++) {
-		const [x1, y1, r1] = farHorn[i];
-		const [x2, y2, r2] = farHorn[i + 1];
-		limb(x1, y1, x2, y2, r1, r2, "straw", -0.18, stalks(Math.atan2(y2 - y1, x2 - x1)));
+	// The far horn, darker, curling back behind the near one.
+	for (let i = 0; i < HORN.length - 1; i++) {
+		const [x1, y1, r1] = HORN[i];
+		const [x2, y2, r2] = HORN[i + 1];
+		limb(x1 + 8, y1 - 2, x2 + 8, y2 - 2, r1 * 0.9, r2 * 0.9, "straw", -0.2, stalks(Math.atan2(y2 - y1, x2 - x1)));
 	}
 
-	// His body, a great bundle, running off to the bottom left.
-	ellipse(58, 132, 54, 34, -0.1, "straw", -0.02, stalks(-0.1));
+	// His far legs, darker, behind.
+	for (const [x1, x2] of [
+		[26, 22],
+		[80, 78],
+	]) {
+		limb(x1, 116, x2, 148, 5, 4.2, "straw", -0.14, stalks(Math.PI / 2));
+	}
+
+	// His body, a great bundle of straw, bound lengthwise.
+	ellipse(54, 110, 50, 22, -0.04, "straw", -0.02, stalks(-0.04));
+
+	// His near legs, straw bound tight, splaying a little at the hoof.
+	for (const [x1, x2] of [
+		[36, 38],
+		[94, 97],
+	]) {
+		limb(x1, 118, x2, 148, 5.6, 4.6, "straw", 0.02, stalks(Math.PI / 2));
+		petal(x2, 146, 7, 3.4, Math.PI / 2, "straw", -0.04);
+	}
 
 	// His chest, and his neck rising short and thick to his head.
-	ellipse(88, 112, 22, 20, 0, "straw", 0, stalks(-1.2));
-	limb(84, 108, 98, 70, 17, 12.5, "straw", 0.02, stalks(Math.atan2(70 - 108, 98 - 84)));
+	ellipse(88, 104, 20, 18, 0, "straw", 0, stalks(-1.2));
+	limb(84, 100, 98, 70, 16, 12.5, "straw", 0.02, stalks(Math.atan2(70 - 100, 98 - 84)));
 
 	// His head, his snout reaching down to the right, an ear back.
 	ellipse(99, 61, 13, 11.5, 0, "straw", 0.04, stalks(0.4));
 	limb(102, 64, 130, 80, 10, 6.4, "straw", 0.06, stalks(Math.atan2(16, 28)));
 	petal(90, 60, 13, 4, Math.PI + 0.35, "straw", -0.02);
 
-	// His beard, a tuft of loose straw.
-	petal(120, 82, 15, 4.4, Math.PI / 2 + 0.25, "straw", -0.04);
+	// His beard, straggling straws hanging from his chin.
+	for (let i = 0; i < 6; i++) {
+		const x = 114 + i * 1.6;
+		limb(x, 80, x - 2 + hash(i, 77) * 3, 92 + hash(i, 78) * 6, 1, 0.5, "straw", -0.06 + (i % 2) * 0.08);
+	}
 
-	// The near horn, curling back.
-	const nearHorn: Array<[number, number, number]> = [
-		[95, 52, 5.4],
-		[90, 37, 4.8],
-		[80, 27, 4],
-		[68, 26, 3.2],
-		[61, 33, 2.4],
-		[63, 42, 1.6],
-	];
-
-	for (let i = 0; i < nearHorn.length - 1; i++) {
-		const [x1, y1, r1] = nearHorn[i];
-		const [x2, y2, r2] = nearHorn[i + 1];
+	// The near horn, sweeping up and curling back.
+	for (let i = 0; i < HORN.length - 1; i++) {
+		const [x1, y1, r1] = HORN[i];
+		const [x2, y2, r2] = HORN[i + 1];
 		limb(x1, y1, x2, y2, r1, r2, "straw", 0.04, stalks(Math.atan2(y2 - y1, x2 - x1)));
 	}
 
-	// Red ribbons bound round him: three round his neck, one round his snout, two round the horn.
+	// Red ribbons bound round him: round his neck, his snout, the root of his horn, his body and his legs.
 	for (const t of [0.25, 0.7]) {
-		band(84, 108, 98, 70, t, 16 - t * 4);
+		band(84, 100, 98, 70, t, 15 - t * 3.5);
 	}
 
 	band(102, 64, 130, 80, 0.55, 8);
-	band(95, 52, 90, 37, 0.5, 5);
-	band(80, 27, 68, 26, 0.4, 3.8);
+	band(95, 52, 90, 37, 0.3, 5);
+
+	for (const x of [24, 62]) {
+		band(x - 10, 110, x + 10, 110, 0.5, 21 - Math.abs(x - 54) * 0.12);
+	}
+
+	for (const [x1, x2] of [
+		[36, 38],
+		[94, 97],
+	]) {
+		band(x1, 118, x2, 148, 0.55, 5.6);
+	}
 
 	// A bow at his throat.
-	petal(106, 96, 9, 3.6, Math.PI * 0.85, "ribbon", 0.1);
-	petal(106, 96, 9, 3.6, Math.PI * 0.15, "ribbon", 0.04);
-	ellipse(106, 96, 2.2, 2.2, 0, "ribbon", 0.2);
+	petal(104, 92, 9, 3.6, Math.PI * 0.85, "ribbon", 0.1);
+	petal(104, 92, 9, 3.6, Math.PI * 0.15, "ribbon", 0.04);
+	limb(104, 92, 101, 102, 1.4, 1, "ribbon", 0.06);
+	limb(104, 92, 108, 101, 1.4, 1, "ribbon", 0.1);
+	ellipse(104, 92, 2.2, 2.2, 0, "ribbon", 0.2);
 
 	// His eye socket: dark, for the coal of his eye (painted over the dark, below).
 	ellipse(107, 62, 2.4, 2.2, 0, "eye", 0.02);
@@ -255,18 +280,28 @@ export function drawYuleGoat(): HTMLCanvasElement {
 			ellipse(107, 62, 1.6, 1.4, 0, "fire", -0.05, null, keep);
 			keep(106, 61, "fire", 0.7);
 
-			// A ragged blaze: tongues of every height, leaning every way, overlapping, tallest in the middle of his back.
-			for (let i = 0; i < 16; i++) {
-				const x = 8 + i * 4.4 + (hash(i, 71) - 0.5) * 4;
-				const size = 8 + 18 * Math.sin((Math.PI * (i + 0.5)) / 16) + hash(i, 72) * 8;
-				const lean = -Math.PI / 2 + (hash(i, 73) - 0.5) * 0.7;
-				petal(x, backAt(x) + 4, size, size * 0.24, lean, "fire", -0.18 + hash(i, 74) * 0.1, keep);
+			// A ragged blaze along his back: tongues of flame of every height, licking up and
+			// wavering, dark red at their edges, white-hot down at their roots.
+			for (let x = 4; x <= 104; x++) {
+				const back = backAt(x) + 4;
+				const height = 10 + 26 * clamp(1 - Math.abs(x - 50) / 54);
+
+				for (let y = Math.floor(back - height * 1.4); y <= back; y++) {
+					const tongue = 0.5 + 0.5 * Math.sin(x * 0.55 + fbm(x * 0.08, y * 0.06) * 7);
+					const up = (back - y) / (height * (0.35 + 0.75 * tongue));
+					const heat = 1 - up - 0.4 * (fbm(x * 0.2 + 3, y * 0.15) - 0.5);
+
+					if (heat > 0) {
+						keep(x, y, "fire", clamp(heat * 1.15) * 0.88);
+					}
+				}
 			}
 
-			for (let i = 0; i < 10; i++) {
-				const x = 14 + i * 6 + (hash(i, 75) - 0.5) * 4;
-				const size = 5 + 10 * Math.sin((Math.PI * (i + 0.5)) / 10);
-				petal(x, backAt(x) + 3, size, size * 0.2, -Math.PI / 2 + (hash(i, 76) - 0.5) * 0.5, "fire", 0.2, keep);
+			// Flames tearing loose above it.
+			for (let i = 0; i < 8; i++) {
+				const x = 14 + i * 11 + (hash(i, 75) - 0.5) * 6;
+				const y = backAt(x) - 22 - hash(i, 76) * 16 * clamp(1 - Math.abs(x - 50) / 54);
+				petal(x, y, 5 + hash(i, 77) * 3, 1.4, -Math.PI / 2 + (hash(i, 78) - 0.5) * 0.5, "fire", -0.1, keep);
 			}
 		},
 		RAMPS,
