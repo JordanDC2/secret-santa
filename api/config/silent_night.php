@@ -6,15 +6,15 @@
 |--------------------------------------------------------------------------
 |
 | The game runs in the browser; the server keeps each player's coal, what they've bought in
-| the Coal Cellar and which patrons and cast they've unlocked, and the nights behind the leaderboards. Prices
+| the Coal Cellar and which patrons, cast and guns they've unlocked, and the nights behind the leaderboards. Prices
 | here are the ones the server charges: keep them in step with web/src/Components/SilentNight
-| (cast.ts), which shows them. One price per level.
+| (cast.ts and guns.ts), which show them. One price per level.
 |
 */
 
 return [
 
-    // Coal earned by a night: so much per stretch of it survived, per so many broken, per boss
+    // Coal earned by a night: so much per stretch of it survived, per so many slain, per boss
     // beaten, and more for beating Krampus at dawn.
     'coal' => [
         'seconds_per_coal' => 20,
@@ -45,6 +45,17 @@ return [
         'mrsClaus' => 150,
         'snowman' => 250,
         'reindeer' => 350,
+    ],
+
+    // The guns to choose from before a night, and the coal to unlock each (all less than any of
+    // the cast); the first is free.
+    'guns' => [
+        'gun' => 0,
+        'blunderbuss' => 60,
+        'crossbow' => 80,
+        'pistols' => 80,
+        'romanCandle' => 100,
+        'snowCannon' => 120,
     ],
 
 ];

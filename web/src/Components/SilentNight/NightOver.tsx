@@ -32,8 +32,8 @@ export default function NightOver({ world, coalEarned, onAgain, onMenu }: INight
 			<p className={classes.title}>{world.won ? "Dawn" : "The night took you"}</p>
 			<p>
 				{world.won
-					? `Krampus is beaten and the sun is up. You broke ${world.kills.toLocaleString()} of his horde.`
-					: `You lasted ${clock(world.time)}, reached level ${player.level} and broke ${world.kills.toLocaleString()} of Krampus's horde.`}
+					? `Krampus is beaten and the sun is up. You slew ${world.kills.toLocaleString()} of his horde.`
+					: `You lasted ${clock(world.time)}, reached level ${player.level} and slew ${world.kills.toLocaleString()} of Krampus's horde.`}
 			</p>
 			<ul className={classes.damage}>
 				{player.weapons.map((weapon) => {

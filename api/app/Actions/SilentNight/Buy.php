@@ -10,12 +10,12 @@ use Illuminate\Validation\ValidationException;
 class Buy
 {
     /**
-     * Buys the next level of a Coal Cellar upgrade, or unlocks one of the second wave of patrons
-     * or of the cast (who's then picked to play as), with coal at the price in
+     * Buys the next level of a Coal Cellar upgrade, or unlocks one of the second wave of patrons,
+     * of the cast (who's then picked to play as) or of the guns, with coal at the price in
      * config/silent_night.php. Refused if it's not for sale, already maxed or owned, or the
      * player hasn't the coal.
      *
-     * @param  'cellar'|'patron'|'cast'  $kind
+     * @param  'cellar'|'patron'|'cast'|'gun'  $kind
      */
     public function __invoke(User $user, string $kind, string $item): SilentNightProgress
     {
@@ -26,6 +26,7 @@ class Buy
                 'cellar' => $this->cellarPrice($progress, $item),
                 'patron' => $this->patronPrice($progress, $item),
                 'cast' => $this->castPrice($progress, $item),
+                'gun' => $this->gunPrice($progress, $item),
             };
 
             if ($progress->coal < $price) {
@@ -38,9 +39,11 @@ class Buy
                 $progress->cellar = [...($progress->cellar ?? []), $item => $progress->level($item) + 1];
             } elseif ($kind === 'patron') {
                 $progress->patrons = [...($progress->patrons ?? []), $item];
-            } else {
+            } elseif ($kind === 'cast') {
                 $progress->cast = [...$progress->ownedCast(), $item];
                 $progress->character = $item;
+            } else {
+                $progress->guns = [...$progress->ownedGuns(), $item];
             }
 
             $progress->save();
@@ -86,6 +89,21 @@ class Buy
 
         if (in_array($character, $progress->ownedCast(), true)) {
             throw ValidationException::withMessages(['item' => 'You can already play as them.']);
+        }
+
+        return $price;
+    }
+
+    private function gunPrice(SilentNightProgress $progress, string $gun): int
+    {
+        $price = config("silent_night.guns.{$gun}");
+
+        if (! is_int($price)) {
+            throw ValidationException::withMessages(['item' => 'No gun by that name.']);
+        }
+
+        if (in_array($gun, $progress->ownedGuns(), true)) {
+            throw ValidationException::withMessages(['item' => 'You already have that gun.']);
         }
 
         return $price;

@@ -110,6 +110,26 @@ class SilentNightTest extends TestCase
         $this->postJson(route('silent-night.purchases'), ['kind' => 'patron', 'item' => 'laFlor'])->assertJsonValidationErrors('item');
     }
 
+    public function test_coal_unlocks_the_other_guns(): void
+    {
+        $user = $this->player();
+        SilentNightProgress::for($user)->update(['coal' => 150]);
+
+        $this->getJson(route('silent-night.progress'))->assertJsonPath('guns', ['gun']);
+
+        $this->postJson(route('silent-night.purchases'), ['kind' => 'gun', 'item' => 'crossbow'])
+            ->assertOk()
+            ->assertJsonPath('coal', 70)
+            ->assertJsonPath('guns', ['gun', 'crossbow']);
+
+        // Already theirs (the candy cane gun always is), not a gun, or more than they've coal for.
+        $this->postJson(route('silent-night.purchases'), ['kind' => 'gun', 'item' => 'crossbow'])->assertJsonValidationErrors('item');
+        $this->postJson(route('silent-night.purchases'), ['kind' => 'gun', 'item' => 'gun'])->assertJsonValidationErrors('item');
+        $this->postJson(route('silent-night.purchases'), ['kind' => 'gun', 'item' => 'cannon'])->assertJsonValidationErrors('item');
+        $this->postJson(route('silent-night.purchases'), ['kind' => 'gun', 'item' => 'snowCannon'])->assertJsonValidationErrors('item');
+        $this->assertSame(70, SilentNightProgress::for($user)->coal);
+    }
+
     public function test_a_cellar_upgrade_stops_at_its_last_level(): void
     {
         $user = $this->player();

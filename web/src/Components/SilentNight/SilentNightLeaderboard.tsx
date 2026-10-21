@@ -18,7 +18,7 @@ import elfFlingClasses from "Components/ElfFling/ElfFling.module.less";
 const BOARDS: Array<{ value: ILeaderboardBoard; label: string; short: string }> = [
 	{ value: "night", label: "Longest night", short: "Night" },
 	{ value: "krampus", label: "Krampus beaten", short: "Krampus" },
-	{ value: "kills", label: "Most broken", short: "Broken" },
+	{ value: "kills", label: "Most slain", short: "Slain" },
 ];
 
 const PERIODS: { value: ILeaderboardPeriod; label: string }[] = [
@@ -39,7 +39,7 @@ function formatValue(board: ILeaderboardBoard, value: number): string {
 
 /**
  * Everyone on the site, ranked by their longest night, the most of Krampus's bargains they've
- * taken and still beaten him, or the most broken in a night; this week (from Monday) or all time.
+ * taken and still beaten him, or the most slain in a night; this week (from Monday) or all time.
  * Names are first name and last initial; your own row is highlighted, and your rank shows below
  * even if you're outside the top.
  */

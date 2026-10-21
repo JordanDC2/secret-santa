@@ -690,7 +690,7 @@ export default function SilentNightGame({
 						</div>
 					</div>
 					<div className={classes.kills}>
-						<span ref={killsRef}>0</span> broken
+						<span ref={killsRef}>0</span> slain
 					</div>
 					<canvas ref={ammoRef} className={classes.ammo} aria-hidden />
 				</>

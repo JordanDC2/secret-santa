@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * The Silent Night leaderboards, across everyone on the site, this week (Monday to Sunday, the
- * organizer's time) or all time: each player's longest night (the most broken breaking a tie,
+ * organizer's time) or all time: each player's longest night (the most slain breaking a tie,
  * as every win reaches dawn), the most of Krampus's bargains they've taken and still beaten him,
- * or the most of his horde broken in a night. Names show as on Elf Fling's ("Holly B.").
+ * or the most of his horde slain in a night. Names show as on Elf Fling's ("Holly B.").
  */
 class Leaderboard
 {

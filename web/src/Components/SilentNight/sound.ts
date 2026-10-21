@@ -451,6 +451,20 @@ const PARTS = [
 ] as const;
 type IPart = (typeof PARTS)[number];
 
+/**
+ * The tune's bars each part plays, in order: all twelve, but for the solo, which plays the tune
+ * through to "sleep in heavenly peace" over its chords before going on from its third bar, eight
+ * bars longer.
+ */
+function partBars(part: IPart): number[] {
+	const all = TUNE.map((_, index) => index);
+
+	return part === "solo" ? [...all.slice(0, 10), ...all.slice(2)] : all;
+}
+
+/** How long the whole song is, in bars, every part played once. */
+const SONG_BARS = PARTS.reduce((total, part) => total + partBars(part).length, 0);
+
 /** A sixteenth (a sixth of a beat in the waltz's six-eight), and a thirty-second, for picking and the drums. */
 const SIXTEENTH = EIGHTH / 2;
 const THIRTY_SECOND = EIGHTH / 4;
@@ -517,11 +531,36 @@ type ISoloBar = {
 	drums: "double" | "blast" | "half" | "build" | "break" | "none";
 	level?: number;
 	rhythm: "gallop" | "chord" | "hit" | "none";
+	/** A crash on the bar's first beat, whatever the drums are doing. */
+	crash?: boolean;
 };
 
 /** Each step from `from` to `to` (up or down), each `length` thirty-seconds long. */
 const steps = (from: number, to: number, length = 1): ISoloNote[] =>
 	Array.from({ length: Math.abs(to - from) + 1 }, (_, i) => [from + Math.sign(to - from) * i, length]);
+/**
+ * A note of the tune swept into, neoclassical style: the chord (`chord`, as steps) run up from
+ * below in thirty-seconds, landing on the note and holding it (three notes of the run for a long
+ * note, one for a short; none for the shortest). Notes by name (the tune's B flat) are just played.
+ */
+const swept = (note: number | string, length: number, chord: number[], ways = ""): ISoloNote[] => {
+	if (typeof note === "string" || length < 4) {
+		return [[note, length, ways]];
+	}
+
+	const run = length >= 6 ? 3 : 1;
+	// (In order up: the octaves low to high, each chord's steps low to high.)
+	const below = [-14, -7, 0, 7]
+		.flatMap((octave) => chord.map((step) => step + octave))
+		.filter((step) => step < note)
+		.slice(-run);
+
+	return [...below.map((step): ISoloNote => [step, 1]), [note, length - run, ways]];
+};
+/** F minor and C minor, as steps from middle C, for sweeping the tune. */
+const F_MINOR = [3, 5, 7];
+const C_MINOR = [0, 2, 4];
+
 /** Each of `degrees`, each `length` thirty-seconds long. */
 const each = (degrees: number[], length: number): ISoloNote[] => degrees.map((degree) => [degree, length]);
 const guitar = (notes: ISoloNote[], under?: number): ISoloLine => ({ voice: "guitar", notes, under });
@@ -559,23 +598,136 @@ const sung = (index: number): ISoloNote[] =>
  * phrase runs on into the next by step or a short leap.
  */
 const SOLOS = {
-	// The guitar: the tune's opening sung with bends ("Silent night, holy night"), a flourish up out
-	// of it; up to a bent high B and back down;
+	// The guitar: the tune sung with bends ("Silent night, holy night, all is calm, all is bright",
+	// over its own chords: this part's eight bars longer); "round yon virgin, mother and child, holy
+	// infant so tender and mild" swept into note by note, the second line an octave up; a breakdown
+	// for "sleep in heavenly peace", a flourish up out of it, and a crash back into the solo; up to a bent high B and back down;
 	// to a bent high C; pedal licks off it and off G; sweeps; up to a bent high D; a lyrical hand-off.
+	// (A crash at the top of every bar through its sung and swept opening.)
 	solo: [
+		{
+			...measure(
+				[
+					guitar([
+						[4, 6, "b"],
+						[5, 2],
+						[4, 4],
+						[2, 12, "v"],
+					]),
+				],
+				"double",
+			),
+			crash: true,
+		},
+		{
+			...measure(
+				[
+					guitar([
+						[4, 6, "b"],
+						[5, 2],
+						[4, 4],
+						[2, 12, "v"],
+					]),
+				],
+				"double",
+			),
+			crash: true,
+		},
+		{
+			...measure(
+				[
+					guitar([
+						[8, 8, "b"],
+						[8, 4],
+						[6, 12, "v"],
+					]),
+				],
+				"double",
+			),
+			crash: true,
+		},
+		{
+			...measure(
+				[
+					guitar([
+						[7, 8, "b"],
+						[7, 4],
+						[4, 12, "v"],
+					]),
+				],
+				"double",
+			),
+			crash: true,
+		},
+		// "Round yon virgin, mother and child", every long note swept into...
+		{
+			...measure(
+				[
+					guitar([
+						...swept(5, 8, F_MINOR, "v"),
+						...swept(5, 4, F_MINOR),
+						...swept(7, 6, F_MINOR),
+						["Bb4", 2],
+						...swept(5, 4, F_MINOR),
+					]),
+				],
+				"double",
+			),
+			crash: true,
+		},
+		{
+			...measure(
+				[guitar([...swept(4, 6, C_MINOR, "b"), [5, 2], ...swept(4, 4, C_MINOR), ...swept(2, 12, C_MINOR, "v")])],
+				"double",
+			),
+			crash: true,
+		},
+		// ...and "holy infant so tender and mild" the same, an octave up.
+		{
+			...measure(
+				[
+					guitar([
+						...swept(12, 8, F_MINOR, "v"),
+						...swept(12, 4, F_MINOR),
+						...swept(14, 6, F_MINOR),
+						["Bb5", 2],
+						...swept(12, 4, F_MINOR),
+					]),
+				],
+				"double",
+			),
+			crash: true,
+		},
+		{
+			...measure(
+				[guitar([...swept(11, 6, C_MINOR, "b"), [12, 2], ...swept(11, 4, C_MINOR), ...swept(9, 12, C_MINOR, "v")])],
+				"double",
+			),
+			crash: true,
+		},
+		// A breakdown: "sleep in heavenly" over heavy held chords in half time; "peace" held over a
+		// snare roll swelling, with a flourish up into the rest of the solo.
 		measure(
 			[
 				guitar([
-					[4, 6, "b"],
-					[5, 2],
-					[4, 4],
-					[2, 12, "v"],
+					[8, 8, "b"],
+					[8, 4],
+					[10, 6, "v"],
+					[8, 2],
+					[6, 4],
 				]),
+				...pad([4, 6, 8]),
 			],
-			"double",
+			"half",
+			"chord",
 		),
-		measure([guitar([[4, 6, "b"], [5, 2], [4, 4], [2, 8, "v"], ...each([4, 7, 9, 11], 1)])], "double"),
-		measure([guitar([[13, 8, "bv"], ...each([12, 11, 10, 9, 8, 6, 7, 8], 2)])], "double"),
+		measure(
+			[guitar([[7, 12, "bv"], [9, 8, "v"], ...each([11, 9, 11, 12], 1)]), ...pad([0, 2, 4])],
+			"build",
+			"chord",
+			3,
+		),
+		{ ...measure([guitar([[13, 8, "bv"], ...each([12, 11, 10, 9, 8, 6, 7, 8], 2)])], "double"), crash: true },
 		measure([guitar([[7, 12, "v"], ...each([9, 10, 11], 2), [14, 6, "b"]])], "double"),
 		measure([guitar(each([14, 12, 14, 11, 14, 10, 14, 9, 14, 8, 14, 7], 2))], "double"),
 		measure([guitar(each([11, 9, 11, 8, 11, 7, 11, 6, 11, 7, 9, 12], 2))], "double"),
@@ -931,17 +1083,23 @@ function arrangement(variant: number): IHit[] {
 	const add = (at: number, stem: IStem, play: IHit["play"], bossOnly = false) =>
 		hits.push({ at, stem, bossOnly, play });
 
+	// Where each part starts, in quavers (they're twelve bars long, but for the solo).
+	let partStart = 0;
+
 	PARTS.forEach((part, partIndex) => {
 		const solo: ISoloBar[] | null = part in SOLOS ? SOLOS[part as ISoloPart] : null;
 		const heavy = part === "metal" || part === "climax" || solo !== null;
 		const atLeast = (other: IPart) => partIndex >= PARTS.indexOf(other);
+		const bars = partBars(part);
 
-		TUNE.forEach((bar, index) => {
-			const start = (partIndex * TUNE.length + index) * BAR;
-			const last = index === TUNE.length - 1;
+		// `index`: which of the tune's bars (its notes and chord); `position`: which bar of the part it is.
+		bars.forEach((index, position) => {
+			const bar = TUNE[index];
+			const start = partStart + position * BAR;
+			const last = position === bars.length - 1;
 			// The song's last bar: the band's one last hit, under the solo's last note, the strings ringing on.
 			const ending = part === "finale" && last;
-			const soloBar = solo?.[index] ?? null;
+			const soloBar = solo?.[position] ?? null;
 			const band = heavy && !ending;
 			const [root, ...rest] = CHORDS[index];
 			const rootPitch = pitchOf(root);
@@ -1007,7 +1165,7 @@ function arrangement(variant: number): IHit[] {
 				// A bell tolling at the top of every other bar.
 				const bell = pitchOf("C4");
 
-				if (index % 2 === 0) {
+				if (position % 2 === 0) {
 					add(start, "both", (delay, out) => {
 						tone("sine", bell, bell, 3, 0.06, delay, out.clean);
 						tone("sine", bell * 2.76, bell * 2.76, 1.6, 0.018, delay, out.clean);
@@ -1103,11 +1261,11 @@ function arrangement(variant: number): IHit[] {
 					add(start + eighth, "full", (delay, out) => (variant === 1 ? ride : hat)(delay, out.clean), bossOnly);
 				}
 
-				if (index % (blast ? 2 : 4) === 0) {
+				if (position % (blast ? 2 : 4) === 0 && !soloBar?.crash) {
 					add(start, "full", (delay, out) => crash(delay, out.clean), bossOnly);
 				}
 
-				if (index % 4 === 3 && !last) {
+				if (position % 4 === 3 && !last) {
 					[260, 220, 190, 160, 130, 110].forEach((pitch, step) => {
 						add(start + 3 + step / 2, "full", (delay, out) => tom(delay, out.clean, pitch), bossOnly);
 					});
@@ -1116,7 +1274,7 @@ function arrangement(variant: number): IHit[] {
 
 			// The band's power chord held through the bar, and the bass and sub under it (the solo's
 			// half time, and the hit it stops dead on for the drums).
-			const chord = (withCrash: boolean, bars = 1) =>
+			const chord = (withCrash: boolean, length = 1) =>
 				add(start, "full", (delay, out) => {
 					if (withCrash) {
 						crash(delay, out.clean, 0.1);
@@ -1125,11 +1283,11 @@ function arrangement(variant: number): IHit[] {
 					}
 
 					for (const pitch of [rootPitch / 2, (rootPitch / 2) * 1.5, rootPitch]) {
-						tone("sawtooth", pitch, pitch, bars * BAR * EIGHTH, 0.05, delay, out.guitar);
+						tone("sawtooth", pitch, pitch, length * BAR * EIGHTH, 0.05, delay, out.guitar);
 					}
 
-					tone("sawtooth", rootPitch / 2, rootPitch / 2, bars * BAR * EIGHTH, 0.09, delay, out.bass);
-					tone("sine", rootPitch / 4, rootPitch / 4, bars * BAR * EIGHTH, 0.16, delay, out.clean);
+					tone("sawtooth", rootPitch / 2, rootPitch / 2, length * BAR * EIGHTH, 0.09, delay, out.bass);
+					tone("sine", rootPitch / 4, rootPitch / 4, length * BAR * EIGHTH, 0.16, delay, out.clean);
 				});
 
 			// The solo's drums, as its bar says: double kick, blast beats, half time (a kick and a huge
@@ -1243,6 +1401,10 @@ function arrangement(variant: number): IHit[] {
 				}
 			};
 
+			if (soloBar?.crash) {
+				add(start, "full", (delay, out) => crash(delay, out.clean, 0.1));
+			}
+
 			if (soloBar && !ending) {
 				// The drums' break in another order the second time round, its snare roll still last.
 				soloDrums(
@@ -1278,7 +1440,7 @@ function arrangement(variant: number): IHit[] {
 					add(start + eighth, "full", (delay, out) => hat(delay, out.clean, 0.012));
 				}
 
-				if (index === 0) {
+				if (position === 0) {
 					add(start, "full", (delay, out) => crash(delay, out.clean, 0.05));
 				}
 			}
@@ -1298,7 +1460,7 @@ function arrangement(variant: number): IHit[] {
 				});
 			}
 
-			if (part === "arpeggios" && index === TUNE.length - 2) {
+			if (part === "arpeggios" && position === bars.length - 2) {
 				for (let sixteenth = 6; sixteenth < 12; sixteenth++) {
 					add(start + sixteenth / 2, "full", (delay, out) => snare(delay, out.clean, 0.03 + (sixteenth - 6) * 0.01));
 				}
@@ -1362,6 +1524,8 @@ function arrangement(variant: number): IHit[] {
 				});
 			}
 		});
+
+		partStart += bars.length * BAR;
 	});
 
 	return hits;
@@ -1463,7 +1627,7 @@ export function startNightMusic(night: () => { time: number; boss: boolean; soft
 	const partLength = TUNE.length * barLength;
 	// The music box plays once, then the song goes round from the strings (the menu: the first two parts, round and round).
 	const introLength = menu ? 0 : partLength;
-	const loopLength = menu ? 2 * partLength : (PARTS.length - 1) * partLength + TAIL_BARS * barLength;
+	const loopLength = menu ? 2 * partLength : (SONG_BARS - TUNE.length + TAIL_BARS) * barLength;
 	// Where in the song the night is: the clock says how far it's come, so it carries on there.
 	const origin = started + 0.2 - night().time;
 	let scheduledTo = started + 0.2;

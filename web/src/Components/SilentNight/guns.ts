@@ -1,6 +1,7 @@
 /**
  * The aimed guns, as in 20 Minutes Till Dawn: one is chosen before the night (with whoever
- * plays), carried from the start, and only ever levelled, never offered. Each has its own numbers
+ * plays), carried from the start, and only ever levelled, never offered. The candy cane gun is
+ * free; the rest are unlocked with coal (prices kept in step with api/config/silent_night.php). Each has its own numbers
  * at each of its eight levels, its own evolution beside a passive (from a chest), and two morphs
  * to choose between at levels 3 and 6, offered at level-ups, that change how it fires. Everything
  * here is numbers: firing them is fireGun (below), and what a shot does when it hits is
@@ -52,6 +53,8 @@ export type IMorph = { id: string; name: string; text: string; morph: (numbers: 
 export type IGunInfo = {
 	id: IGunId;
 	name: string;
+	/** Coal to unlock (0: free). */
+	price: number;
 	description: string;
 	/** What each level after the first adds. */
 	levels: string[];
@@ -78,6 +81,7 @@ const noHit = (): IShotHit => ({
 export const GUNS: IGunInfo[] = [
 	{
 		id: "gun",
+		price: 0,
 		name: "Candy cane gun",
 		description: "Aimed shots of peppermint. Reloads when it's empty.",
 		levels: [
@@ -161,6 +165,7 @@ export const GUNS: IGunInfo[] = [
 	},
 	{
 		id: "blunderbuss",
+		price: 60,
 		name: "Nutcracker's blunderbuss",
 		description: "A blast of walnut shells at close range, knocking them flying. Two shots, then a reload.",
 		levels: [
@@ -246,6 +251,7 @@ export const GUNS: IGunInfo[] = [
 	},
 	{
 		id: "crossbow",
+		price: 80,
 		name: "Icicle crossbow",
 		description: "A heavy icicle bolt, passing through a line of them and chilling them. One bolt, then a reload.",
 		levels: [
@@ -328,6 +334,7 @@ export const GUNS: IGunInfo[] = [
 	},
 	{
 		id: "pistols",
+		price: 80,
 		name: "Jingle pistols",
 		description: "A pair of little pistols, rattling off shots as fast as you like, if not so straight.",
 		levels: [
@@ -409,6 +416,7 @@ export const GUNS: IGunInfo[] = [
 	},
 	{
 		id: "romanCandle",
+		price: 100,
 		name: "Roman candle",
 		description: "Balls of fire, bursting on whatever they hit and setting it burning.",
 		levels: [
@@ -496,6 +504,7 @@ export const GUNS: IGunInfo[] = [
 	},
 	{
 		id: "snowCannon",
+		price: 120,
 		name: "Snowball cannon",
 		description: "Great snowballs rolling through them, knocking them back and slowing them.",
 		levels: [

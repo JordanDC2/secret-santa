@@ -878,9 +878,15 @@
 	font: inherit;
 	cursor: pointer;
 
-	&:hover,
+	&:hover:not(:disabled),
 	&:focus-visible {
 		border-color: #a87018;
+	}
+
+	/* A gun still to unlock, with not enough coal yet. */
+	&:disabled {
+		cursor: default;
+		opacity: 0.55;
 	}
 
 	/* The gun chosen stays lit, hovered or not (this rule comes after .chosen, so it needs its own). */

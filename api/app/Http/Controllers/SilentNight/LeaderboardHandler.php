@@ -9,7 +9,7 @@ use Illuminate\Http\JsonResponse;
 
 /**
  * A Silent Night leaderboard across everyone: the longest night, Krampus beaten with the most
- * bargains taken, or the most broken in a night; this week or all time.
+ * bargains taken, or the most slain in a night; this week or all time.
  */
 class LeaderboardHandler extends Controller
 {

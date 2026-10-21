@@ -48,17 +48,23 @@ function saveGun(gun: IGunId) {
 /**
  * The game's main menu, the first thing you see: start a night, or go down to the Coal Cellar.
  * Starting takes you to who to play as (the rest of the cast unlocked with coal) and which gun
- * they carry (remembered on this device), and the Coal Cellar:
+ * they carry (remembered on this device; the rest of the guns unlocked with coal too), and the Coal Cellar:
  * upgrades, which last from night to night, and the second wave of patrons.
  */
 export default function Menu({ progress, castImages, busy, error, onStart, onChoose, onBuy }: IMenuProps) {
 	const [view, setView] = useState<"main" | "cast" | "cellar">("main");
 	const chosen = castMember(progress.character);
-	const [gun, setGun] = useState(readGun);
+	// The gun picked, if it's theirs (one still being unlocked is picked once it is), else the candy cane gun.
+	const [picked, setPicked] = useState(readGun);
+	const gun = progress.guns.includes(picked) ? picked : "gun";
 	const chooseGun = (id: IGunId) => {
 		playSelect();
-		setGun(id);
+		setPicked(id);
 		saveGun(id);
+
+		if (!progress.guns.includes(id)) {
+			onBuy({ kind: "gun", item: id });
+		}
 	};
 	const back = (
 		<Button
@@ -143,19 +149,29 @@ export default function Menu({ progress, castImages, busy, error, onStart, onCho
 						<strong>{chosen.perk}:</strong> {chosen.perkText.toLowerCase()}.
 					</p>
 					<div className={classes.gunRow} role="radiogroup" aria-label="Gun">
-						{GUNS.map((info) => (
-							<button
-								key={info.id}
-								type="button"
-								role="radio"
-								aria-checked={info.id === gun}
-								className={info.id === gun ? `${classes.gunCard} ${classes.chosen}` : classes.gunCard}
-								onClick={() => chooseGun(info.id)}
-							>
-								<img src={iconUrl(info.id)} alt="" className={classes.gearIcon} />
-								<span className={classes.gunName}>{info.name}</span>
-							</button>
-						))}
+						{GUNS.map((info) => {
+							const owned = progress.guns.includes(info.id);
+
+							return (
+								<button
+									key={info.id}
+									type="button"
+									role="radio"
+									aria-checked={info.id === gun}
+									className={info.id === gun ? `${classes.gunCard} ${classes.chosen}` : classes.gunCard}
+									disabled={!owned && (busy || progress.coal < info.price)}
+									onClick={() => chooseGun(info.id)}
+								>
+									<img
+										src={iconUrl(info.id)}
+										alt=""
+										className={owned ? classes.gearIcon : `${classes.gearIcon} ${classes.locked}`}
+									/>
+									<span className={classes.gunName}>{info.name}</span>
+									{!owned && <span className={classes.castPrice}>Unlock: {info.price} coal</span>}
+								</button>
+							);
+						})}
 					</div>
 					<p className={classes.castPerk}>{GUNS.find((info) => info.id === gun)!.description}</p>
 					<Button onClick={() => onStart(chosen.id, gun)} disabled={busy}>
