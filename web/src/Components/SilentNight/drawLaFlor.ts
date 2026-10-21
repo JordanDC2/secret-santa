@@ -11,6 +11,7 @@ import {
 	clamp,
 	fbm,
 	figure,
+	hash,
 	paintFigure,
 	paintLayer,
 	shade,
@@ -40,7 +41,7 @@ const RIM: Record<string, string[]> = {
 
 /** Draws her portrait on a new 256 × 160 canvas. */
 export function drawLaFlor(): HTMLCanvasElement {
-	const { put, ellipse, petal, limb, light } = figure(RAMPS, RIM);
+	const { put, ellipse, petal, limb, filled, light } = figure(RAMPS, RIM);
 
 	// --- The figure, back to front. ---
 
@@ -102,7 +103,12 @@ export function drawLaFlor(): HTMLCanvasElement {
 	}
 
 	put(78, 65, "gold", 0.95);
-	ellipse(78, 44, 12, 15, 0, "skin", 0);
+	// Her face, rounded softly by the light, a shadow under her jaw.
+	ellipse(78, 44, 12, 15, 0, "skin", 0, (x, y) => {
+		const across = (x + 0.5 - 78) / 12;
+
+		return 0.06 * Math.sqrt(Math.max(0, 1 - across * across)) - 0.03 - 0.06 * clamp((y - 55) / 3);
+	});
 
 	// Her hair falling over her right shoulder.
 	ellipse(96, 74, 5.5, 15, -0.18, "hair", -0.02, strands);
@@ -174,11 +180,15 @@ export function drawLaFlor(): HTMLCanvasElement {
 		put(80, y, "skin", 0.22);
 	}
 
+	// A soft light down the bridge, on the lit side of the shadow.
+	put(79, 47, "skin", 0.42);
+	put(79, 48, "skin", 0.44);
 	put(79, 50, "skin", 0.25);
 	put(78, 50, "skin", 0.6);
-	put(77, 51, "skin", 0.2);
-	put(79, 51, "skin", 0.18);
-	put(78, 52, "skin", 0.25);
+	put(77, 51, "skin", 0.14);
+	put(79, 51, "skin", 0.12);
+	put(78, 51, "skin", 0.32);
+	put(78, 52, "skin", 0.22);
 
 	// The mouth: a soft smile, both corners turned up a little, a small upper lip with a gentle
 	// bow over a fuller, lighter lower lip.
@@ -217,12 +227,14 @@ export function drawLaFlor(): HTMLCanvasElement {
 	// Her forearms, from her elbows in front of her bodice, and her hands clasped round the stems.
 	limb(60, 93, 73, 101, 3.4, 2.7, "skin", -0.02);
 	limb(96, 93, 83, 101, 3.4, 2.7, "skin", -0.05);
-	ellipse(75.5, 101, 4, 3.2, -0.35, "skin", 0.02);
+	// Her hands meeting round the stems, each from its own side: her left over her right, its
+	// fingers wrapped across the back of the other.
+	ellipse(75.5, 101, 4, 3.2, -0.35, "skin", -0.04);
 	ellipse(80.5, 101, 4, 3.2, 0.35, "skin", 0);
-	put(75, 100, "skin", 0.12);
-	put(77, 101, "skin", 0.12);
-	put(79, 101, "skin", 0.12);
-	put(81, 100, "skin", 0.12);
+
+	for (const y of [99.4, 101.2, 103]) {
+		limb(80, y, 75.6, y + 0.4, 0.85, 0.75, "skin", 0.1);
+	}
 
 	const bloom = (cx: number, cy: number, size: number, petals: number, turn: number, bias = 0, target: IPut = put) => {
 		for (let i = 0; i < petals; i++) {
@@ -240,9 +252,20 @@ export function drawLaFlor(): HTMLCanvasElement {
 		}
 	};
 
-	bloom(73, 82, 6, 6, 0.3, 0.14);
-	bloom(84, 84, 5.5, 6, -0.2, 0.12);
-	bloom(78, 76, 7, 7, 0, 0.18);
+	// Each bloom set apart from the ones behind it by its shadow, leaves tucked between them.
+	const shadowed = (cx: number, cy: number, size: number, petals: number, turn: number, bias: number) => {
+		for (let i = 0; i < petals; i++) {
+			petal(cx, cy + 1, size + 1, (size + 1) * 0.42, turn + (i / petals) * Math.PI * 2, "red", -0.3);
+		}
+
+		bloom(cx, cy, size, petals, turn, bias);
+	};
+
+	petal(70, 78, 7, 2.6, 3.9, "leaf", 0.02);
+	petal(87, 80, 7, 2.6, -0.7, "leaf", -0.02);
+	shadowed(73, 82, 6, 6, 0.3, 0.1);
+	shadowed(84, 84, 5.5, 6, -0.2, 0.08);
+	shadowed(78, 76, 7, 7, 0, 0.18);
 
 	// Her crown: three poinsettias.
 	bloom(65, 33, 8, 7, 0.4, 0.04);
@@ -265,7 +288,8 @@ export function drawLaFlor(): HTMLCanvasElement {
 		const warm = clamp(1 - Math.hypot((x - 100) / 95, (y - 40) / 80));
 		const cold = clamp(1 - Math.hypot((x - 215) / 100, (y - 75) / 80)) * (0.6 + fog * 1.2);
 		const dark = clamp(1 - y / 200) * clamp(1 - Math.abs(x - 128) / 260);
-		const ramp = warm * 1.1 > cold ? warmBg : coldBg;
+		// Where the warm light and the cold mist meet, dithered from one to the other rather than cut.
+		const ramp = warm * 1.1 - cold > (hash(x, y) - 0.5) * 0.5 ? warmBg : coldBg;
 
 		return shade(x, y, (Math.max(warm * 0.85, cold * 0.7) + fog * 0.28 - 0.08) * dark, ramp);
 	});
@@ -276,12 +300,15 @@ export function drawLaFlor(): HTMLCanvasElement {
 	for (let i = 0; i < 22; i++) {
 		const angle = i * 0.83 + 0.4;
 		const radius = 36 + i * 3.4;
+		const x = 82 + Math.cos(angle) * radius * 1.35;
+		const y = 66 + Math.sin(angle) * radius * 0.62;
+		// The near ones kept off her, so none lands on her as a patch.
 		swirl.push({
-			x: 82 + Math.cos(angle) * radius * 1.35,
-			y: 66 + Math.sin(angle) * radius * 0.62,
+			x,
+			y,
 			size: 2.5 + (i % 5) * 1.3,
 			angle: angle * 1.7,
-			front: i % 4 === 1,
+			front: i % 4 === 1 && !filled(Math.round(x), Math.round(y)),
 		});
 	}
 
