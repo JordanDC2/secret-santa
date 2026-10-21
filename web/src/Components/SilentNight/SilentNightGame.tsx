@@ -10,6 +10,7 @@ import { drawWorld } from "Components/SilentNight/drawWorld";
 import { ENEMIES } from "Components/SilentNight/enemies";
 import { GEAR_SLOTS, RARITY_COLOURS } from "Components/SilentNight/gear";
 import { iconUrl } from "Components/SilentNight/icons";
+import Carried from "Components/SilentNight/Carried";
 import GearSlots from "Components/SilentNight/GearSlots";
 import Menu from "Components/SilentNight/Menu";
 import NightOver, { clock } from "Components/SilentNight/NightOver";
@@ -543,10 +544,10 @@ export default function SilentNightGame({
 
 	const playing = started && !over;
 	const waiting = playing && (prompt !== null || paused);
-	const musicOn = playing && !waiting && soundOn;
+	const musicOn = playing && soundOn;
 	const menuMusicOn = !started && soundOn;
 
-	// The music, while the night's going on (it starts again from the top after a pause).
+	// The music, while the night's going on: its soft version while the night waits on a choice or a pause.
 	useEffect(() => {
 		if (!musicOn) {
 			return;
@@ -555,10 +556,11 @@ export default function SilentNightGame({
 		return startNightMusic(() => ({
 			time: worldRef.current?.time ?? 0,
 			boss: worldRef.current?.enemies.some((enemy) => enemy.boss) ?? false,
+			soft: pausedRef.current || worldRef.current?.prompt != null,
 		}));
 	}, [musicOn]);
 
-	// In the menu: the tune on its music box, over the drone and the bass, as if a quarter of the way into a night.
+	// In the menu: the song's gentle start, the music box and then the strings, over and over.
 	useEffect(() => {
 		if (!menuMusicOn) {
 			return;
@@ -568,7 +570,7 @@ export default function SilentNightGame({
 		const wake = () => wakeAudio();
 		window.addEventListener("pointerdown", wake, { once: true });
 		window.addEventListener("keydown", wake, { once: true });
-		const stop = startNightMusic(() => ({ time: NIGHT_SECONDS / 4, boss: false }));
+		const stop = startNightMusic(() => ({ time: 0, boss: false, soft: false }), true);
 
 		return () => {
 			window.removeEventListener("pointerdown", wake);
@@ -762,20 +764,7 @@ export default function SilentNightGame({
 			{playing && paused && !prompt && (
 				<div className={classes.overlay}>
 					<p className={classes.title}>Paused</p>
-					<div className={classes.pauseBuild}>
-						{[...build.weapons, ...build.passives].map((item) => (
-							<span key={item.id} className={classes.slot}>
-								<img
-									src={iconUrl(item.id)}
-									alt=""
-									className={
-										"evolved" in item && item.evolved ? `${classes.gearIcon} ${classes.evolved}` : classes.gearIcon
-									}
-								/>
-								<span className={classes.slotLevel}>{"evolved" in item && item.evolved ? "★" : item.level}</span>
-							</span>
-						))}
-					</div>
+					<Carried player={world.player} />
 					<GearSlots gear={world.player.gear} />
 					<Button onClick={() => pause(false)}>Carry on</Button>
 					<Button

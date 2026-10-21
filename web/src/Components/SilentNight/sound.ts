@@ -2,12 +2,17 @@
  * Silent Night's sounds and music, made on the spot with Web Audio through Elf Fling's sound
  * (the same on/off switch, remembered per device). The sounds: soft and short, and kept from
  * piling up when hundreds of things happen at once. The music: Silent Night itself, in a minor
- * key, slow, building as the night goes on (a broken music box and a cold drone at first, then a
- * bass, then a heartbeat and strings, then a tolling bell), with drums while a boss is about.
+ * key, as a song that builds part by part (a broken music box and a cold drone, once; then a
+ * bass, a heartbeat, strings and a tolling bell; then arpeggios over a light kit; then melodic
+ * death metal, twin leads tremolo-picked over a galloping rhythm guitar and double kick; then a
+ * climax of sweeps over blast beats), with fills leading from part to part, falling back to the
+ * music box to go round again from the strings; the band in, whatever the part, while a boss is
+ * about; and, as in Rogue Tower, its soft version (the music box and strings) in step while the
+ * night waits on a choice.
  */
 
 import { audioNow, hiss, musicBus, readSoundOn, tone } from "Components/ElfFling/sound";
-import { ENEMY_KINDS, NIGHT_SECONDS } from "Components/SilentNight/constants";
+import { ENEMY_KINDS } from "Components/SilentNight/constants";
 import type { IEnemyKind, IEvents, IGunId } from "Components/SilentNight/types";
 
 /** Whether sound's on, for the sounds played outside the night's loop (the menus, a chest). */
@@ -398,105 +403,347 @@ const CHORDS: string[][] = [
 	["C3", "Eb3", "G3"],
 ];
 
-type IHit = { at: number; layer: number; play: (delay: number, output: AudioNode) => void };
+/** A note's pitch, from its name ("Eb4"), in Hz. */
+function pitchOf(name: string): number {
+	const SEMITONES: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+	const [, letter, accidental, octave] = /^([A-G])(b|#)?(-?\d)$/.exec(name)!;
+	const midi = 12 * (Number(octave) + 1) + SEMITONES[letter] + (accidental === "b" ? -1 : accidental === "#" ? 1 : 0);
 
-/** One time through the song, as hits in quavers from its start, each in a layer (0, always, to 3, late). */
+	return 440 * 2 ** ((midi - 69) / 12);
+}
+
+/** C minor's notes (harmonic, with the flat seventh the tune also uses), in order up the scale. */
+const SCALE = ["C", "D", "Eb", "F", "G", "Ab", "B"];
+
+/** The note a third above in the scale, for the twin lead's harmony: twin guitars a third apart. */
+function thirdAbove(name: string): number {
+	const [, letter, octave] = /^([A-G]b?)(\d)$/.exec(name)!;
+	const degree = Math.max(0, SCALE.indexOf(letter === "Bb" ? "B" : letter));
+	const up = degree + 2;
+
+	return pitchOf(`${SCALE[up % 7]}${Number(octave) + Math.floor(up / 7)}`);
+}
+
+/**
+ * The song's parts, each once through the tune (twelve bars): the broken music box once, as the
+ * night begins, then the rest over and over, building into melodic death metal and falling back to
+ * the music box for the climax's last two bars before going round again from the strings.
+ */
+const PARTS = ["musicBox", "strings", "arpeggios", "metal", "climax"] as const;
+type IPart = (typeof PARTS)[number];
+
+/** A sixteenth (a sixth of a beat in the waltz's six-eight), and a thirty-second, for picking and the drums. */
+const SIXTEENTH = EIGHTH / 2;
+const THIRTY_SECOND = EIGHTH / 4;
+
+/**
+ * Which of the song's two versions a hit belongs to, as in Rogue Tower: the soft one (the music
+ * box and the strings) plays while the night waits on a choice; the full one adds the band. Some
+ * hits are in both; some are the soft version's own (the music box, under the twin leads).
+ */
+type IStem = "both" | "soft" | "full";
+type IHit = { at: number; stem: IStem; bossOnly: boolean; play: (delay: number, out: IOutputs) => void };
+/** Where a hit sounds: the clean mix, or the guitars' (through the distortion). */
+type IOutputs = { clean: AudioNode; guitar: AudioNode };
+
+/** The broken chord of a bar, for arpeggios: root, third and fifth, up an octave and another. */
+function chordTones(index: number): number[] {
+	const chord = CHORDS[index].map(pitchOf);
+	const [root, third, fifth] = [chord[0] * 2, chord[1], chord[2]];
+
+	return [root, third, fifth, root * 2, third * 2, fifth * 2, root * 4];
+}
+
+// The drum kit.
+const kick = (delay: number, out: AudioNode, volume = 0.2) => {
+	tone("sine", 125, 40, 0.13, volume, delay, out);
+	tone("triangle", 62, 40, 0.1, volume * 0.5, delay, out);
+};
+const snare = (delay: number, out: AudioNode, volume = 0.1) => {
+	hiss("bandpass", 1900, 0.15, volume, delay, undefined, out);
+	tone("triangle", 220, 160, 0.08, volume * 0.6, delay, out);
+};
+const hat = (delay: number, out: AudioNode, volume = 0.018) =>
+	hiss("highpass", 9000, 0.035, volume, delay, undefined, out);
+const crash = (delay: number, out: AudioNode, volume = 0.07) => {
+	hiss("highpass", 4500, 1.6, volume, delay, undefined, out);
+	tone("sine", 3200, 3150, 0.9, volume * 0.12, delay, out);
+	tone("sine", 4470, 4400, 0.7, volume * 0.1, delay, out);
+};
+const tom = (delay: number, out: AudioNode, pitch: number, volume = 0.16) => {
+	tone("sine", pitch, pitch * 0.55, 0.22, volume, delay, out);
+	hiss("lowpass", 800, 0.06, volume * 0.3, delay, undefined, out);
+};
+
+/** One time through the whole song: each part's hits, in quavers from the song's start. */
 function arrangement(): IHit[] {
 	const hits: IHit[] = [];
+	const add = (at: number, stem: IStem, play: IHit["play"], bossOnly = false) =>
+		hits.push({ at, stem, bossOnly, play });
 
-	TUNE.forEach((bar, index) => {
-		const start = index * BAR;
-		let at = start;
+	PARTS.forEach((part, partIndex) => {
+		const heavy = part === "metal" || part === "climax";
+		const atLeast = (other: IPart) => partIndex >= PARTS.indexOf(other);
 
-		// The tune on a music box: high, plucked, dying away; a little out of tune, as if broken.
-		for (const [note, length] of bar) {
-			const pitch = NOTE[note] * 2;
-			hits.push({
-				at,
-				layer: 0,
-				play: (delay, output) => {
-					tone("sine", pitch, pitch * 0.997, Math.min(2.2, length * EIGHTH * 2), 0.07, delay, output);
-					tone("sine", pitch * 3, pitch * 3, 0.25, 0.012, delay, output);
-				},
-			});
-			at += length;
-		}
+		TUNE.forEach((bar, index) => {
+			const start = (partIndex * TUNE.length + index) * BAR;
+			// The climax's last two bars drop back to the music box, to lead round again.
+			const fading = part === "climax" && index >= TUNE.length - 2;
+			const band = heavy && !fading;
+			const last = index === TUNE.length - 1;
+			const [root, ...rest] = CHORDS[index];
+			const rootPitch = pitchOf(root);
+			let at = start;
 
-		const [root, ...rest] = CHORDS[index];
+			for (const [note, length] of bar) {
+				const pitch = pitchOf(note) * 2;
+				const time = length * EIGHTH;
 
-		// A cold drone under it all: the root, low, held through the bar.
-		hits.push({
-			at: start,
-			layer: 0,
-			play: (delay, output) => tone("triangle", NOTE[root] / 2, NOTE[root] / 2, BAR * EIGHTH, 0.05, delay, output),
-		});
+				// The tune on a music box, as it always starts: high, plucked, dying away, a little out of
+				// tune. Under the twin leads, the soft version's alone.
+				add(at, band ? "soft" : "both", (delay, out) => {
+					tone("sine", pitch, pitch * 0.997, Math.min(2.2, time * 2), 0.07, delay, out.clean);
+					tone("sine", pitch * 3, pitch * 3, 0.25, 0.012, delay, out.clean);
+				});
 
-		// The bass, on each beat.
-		for (const beat of [0, 3]) {
-			hits.push({
-				at: start + beat,
-				layer: 1,
-				play: (delay, output) => tone("triangle", NOTE[root], NOTE[root], BEAT * 0.9, 0.16, delay, output),
-			});
-		}
+				// The twin lead, tremolo-picked: the tune and a third above it, distorted, an octave down.
+				if (band) {
+					const lead = pitch / 2;
+					const harmony = thirdAbove(note);
 
-		// A heartbeat, and the strings: the chord held, swelling.
-		for (const beat of [0, 0.5, 3, 3.5]) {
-			hits.push({
-				at: start + beat,
-				layer: 2,
-				play: (delay, output) =>
-					tone("sine", beat % 3 === 0 ? 90 : 70, 40, 0.18, beat % 3 === 0 ? 0.28 : 0.18, delay, output),
-			});
-		}
-
-		hits.push({
-			at: start,
-			layer: 2,
-			play: (delay, output) => {
-				for (const note of rest) {
-					tone("sawtooth", NOTE[note], NOTE[note] * 1.004, BAR * EIGHTH, 0.012, delay, output);
-					tone("triangle", NOTE[note], NOTE[note], BAR * EIGHTH, 0.03, delay, output);
+					for (let pick = 0; pick < length * 4; pick++) {
+						add(at + pick / 4, "full", (delay, out) => {
+							tone("sawtooth", lead, lead, THIRTY_SECOND * 1.1, 0.03, delay, out.guitar);
+							tone("sawtooth", harmony, harmony, THIRTY_SECOND * 1.1, 0.022, delay, out.guitar);
+						});
+					}
 				}
-			},
+
+				at += length;
+			}
+
+			// A cold drone under it all: the root, low, held through the bar.
+			add(start, "both", (delay, out) =>
+				tone("triangle", rootPitch / 2, rootPitch / 2, BAR * EIGHTH, 0.05, delay, out.clean),
+			);
+
+			if (atLeast("strings") && !fading) {
+				// The strings: the chord held, swelling.
+				add(start, "both", (delay, out) => {
+					for (const note of rest) {
+						const pitch = pitchOf(note);
+						tone("sawtooth", pitch, pitch * 1.004, BAR * EIGHTH, 0.012, delay, out.clean);
+						tone("triangle", pitch, pitch, BAR * EIGHTH, 0.03, delay, out.clean);
+					}
+				});
+
+				// A bell tolling at the top of every other bar.
+				if (index % 2 === 0) {
+					add(start, "both", (delay, out) => {
+						tone("sine", NOTE.C4, NOTE.C4, 3, 0.06, delay, out.clean);
+						tone("sine", NOTE.C4 * 2.76, NOTE.C4 * 2.76, 1.6, 0.018, delay, out.clean);
+					});
+				}
+
+				// The bass on each beat, and a heartbeat (under the guitars, the bass gallops with them instead).
+				if (!heavy) {
+					for (const beat of [0, 3]) {
+						add(start + beat, "full", (delay, out) =>
+							tone("triangle", rootPitch, rootPitch, BEAT * 0.9, 0.16, delay, out.clean),
+						);
+					}
+
+					for (const beat of [0, 0.5, 3, 3.5]) {
+						add(start + beat, "full", (delay, out) =>
+							tone("sine", beat % 3 === 0 ? 90 : 70, 40, 0.18, beat % 3 === 0 ? 0.28 : 0.18, delay, out.clean),
+						);
+					}
+				}
+			}
+
+			// Arpeggios: the bar's chord broken into sixteenths, up and back down, plucked.
+			if (atLeast("arpeggios") && !fading) {
+				const tones = chordTones(index);
+
+				[0, 1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1].forEach((step, sixteenth) => {
+					add(start + sixteenth / 2, "full", (delay, out) =>
+						tone("triangle", tones[step], tones[step] * 0.999, SIXTEENTH * 1.6, 0.035, delay, out.clean),
+					);
+				});
+			}
+
+			// The rhythm guitar: a palm-muted gallop on the bar's root and fifth (da-da-dum, da-da-dum),
+			// the bass doubling it.
+			const gallop = (bossOnly: boolean) => {
+				for (let sixteenth = 0; sixteenth < 12; sixteenth++) {
+					const accent = sixteenth % 3 === 0;
+					add(
+						start + sixteenth / 2,
+						"full",
+						(delay, out) => {
+							for (const pitch of [rootPitch / 2, (rootPitch / 2) * 1.5]) {
+								tone(
+									"sawtooth",
+									pitch,
+									pitch,
+									SIXTEENTH * (accent ? 1.2 : 0.7),
+									accent ? 0.05 : 0.03,
+									delay,
+									out.guitar,
+								);
+							}
+						},
+						bossOnly,
+					);
+				}
+
+				add(
+					start,
+					"full",
+					(delay, out) => tone("triangle", rootPitch / 2, rootPitch / 2, BAR * EIGHTH, 0.12, delay, out.clean),
+					bossOnly,
+				);
+			};
+
+			// The drums under the band: double kick on every sixteenth, the snare cracking on the
+			// second beat (and, in the climax, blasting on every quaver), the hats on the quavers, a
+			// crash at the top of each phrase and a fill of toms rolling down at its end.
+			const metalDrums = (bossOnly: boolean, blast: boolean) => {
+				for (let sixteenth = 0; sixteenth < 12; sixteenth++) {
+					add(start + sixteenth / 2, "full", (delay, out) => kick(delay, out.clean, 0.17), bossOnly);
+				}
+
+				for (const eighth of blast ? [0, 1, 2, 3, 4, 5] : [3]) {
+					add(start + eighth, "full", (delay, out) => snare(delay, out.clean, blast ? 0.07 : 0.11), bossOnly);
+				}
+
+				for (let eighth = 0; eighth < 6; eighth++) {
+					add(start + eighth, "full", (delay, out) => hat(delay, out.clean), bossOnly);
+				}
+
+				if (index % (blast ? 2 : 4) === 0) {
+					add(start, "full", (delay, out) => crash(delay, out.clean), bossOnly);
+				}
+
+				if (index % 4 === 3 && !last) {
+					[260, 220, 190, 160, 130, 110].forEach((pitch, step) => {
+						add(start + 3 + step / 2, "full", (delay, out) => tom(delay, out.clean, pitch), bossOnly);
+					});
+				}
+			};
+
+			if (band) {
+				metalDrums(false, part === "climax");
+				gallop(false);
+			} else {
+				// While a boss is about, the band comes in whatever part the song's at.
+				metalDrums(true, false);
+				gallop(true);
+			}
+
+			// The arpeggios' drums: a kick on the beats, a snare on the second, the hats on the quavers,
+			// a crash as they come in.
+			if (part === "arpeggios") {
+				add(start, "full", (delay, out) => kick(delay, out.clean));
+				add(start + 4.5, "full", (delay, out) => kick(delay, out.clean, 0.14));
+				add(start + 3, "full", (delay, out) => snare(delay, out.clean, 0.08));
+
+				for (let eighth = 0; eighth < 6; eighth++) {
+					add(start + eighth, "full", (delay, out) => hat(delay, out.clean, 0.012));
+				}
+
+				if (index === 0) {
+					add(start, "full", (delay, out) => crash(delay, out.clean, 0.05));
+				}
+			}
+
+			// The fills leading from one part into the next, growing as the song does: a timpani roll
+			// swelling out of the music box; a tom fill out of the strings; and out of the arpeggios
+			// into the metal, a whole bar of snare rolling faster and louder and the toms tumbling down.
+			if (last && part === "musicBox") {
+				for (let step = 0; step < 12; step++) {
+					add(start + 3 + step / 4, "full", (delay, out) => tom(delay, out.clean, 70, 0.03 + step * 0.012));
+				}
+			}
+
+			if (last && part === "strings") {
+				[220, 190, 160, 140, 120, 100].forEach((pitch, step) => {
+					add(start + 3 + step / 2, "full", (delay, out) => tom(delay, out.clean, pitch, 0.12 + step * 0.01));
+				});
+			}
+
+			if (part === "arpeggios" && index === TUNE.length - 2) {
+				for (let sixteenth = 6; sixteenth < 12; sixteenth++) {
+					add(start + sixteenth / 2, "full", (delay, out) => snare(delay, out.clean, 0.03 + (sixteenth - 6) * 0.01));
+				}
+			}
+
+			if (last && part === "arpeggios") {
+				for (let step = 0; step < 12; step++) {
+					add(start + step / 4, "full", (delay, out) => snare(delay, out.clean, 0.05 + step * 0.006));
+				}
+
+				[300, 260, 220, 190, 160, 140, 120, 100, 90, 80, 70, 60].forEach((pitch, step) => {
+					add(start + 3 + step / 4, "full", (delay, out) => {
+						tom(delay, out.clean, pitch, 0.14);
+						kick(delay, out.clean, 0.1);
+					});
+				});
+			}
+
+			// The climax: a sweep at the end of every bar, up the chord and back, in thirty-seconds.
+			if (part === "climax" && !fading) {
+				const tones = chordTones(index);
+
+				[0, 1, 2, 3, 4, 5, 6, 5, 4, 3, 2, 1, 0].forEach((step, sweep) => {
+					add(start + 3 + sweep / 4, "full", (delay, out) =>
+						tone("sawtooth", tones[step], tones[step], THIRTY_SECOND * 1.4, 0.025, delay, out.guitar),
+					);
+				});
+			}
 		});
-
-		// A bell tolling at the top of every other bar.
-		if (index % 2 === 0) {
-			hits.push({
-				at: start,
-				layer: 3,
-				play: (delay, output) => {
-					tone("sine", NOTE.C4, NOTE.C4, 3, 0.07, delay, output);
-					tone("sine", NOTE.C4 * 2.76, NOTE.C4 * 2.76, 1.6, 0.02, delay, output);
-				},
-			});
-		}
-
-		// Drums while a boss is about (layer 4): toms rolling into each beat.
-		for (const beat of [0, 2, 3, 5]) {
-			hits.push({
-				at: start + beat,
-				layer: 4,
-				play: (delay, output) => {
-					tone("sine", beat % 3 === 0 ? 110 : 150, 60, 0.2, 0.2, delay, output);
-					hiss("lowpass", 600, 0.12, 0.08, delay, undefined, output);
-				},
-			});
-		}
 	});
 
 	return hits;
 }
 
+/** A distorted guitar sound: everything through it is driven hard, then rounded off at the top. */
+function guitarChain(context: BaseAudioContext, output: AudioNode): AudioNode {
+	const drive = context.createGain();
+	drive.gain.value = 6;
+	const shaper = context.createWaveShaper();
+	const curve = new Float32Array(1024);
+
+	for (let i = 0; i < curve.length; i++) {
+		const x = (i / (curve.length - 1)) * 2 - 1;
+		curve[i] = Math.tanh(x * 3);
+	}
+
+	shaper.curve = curve;
+	shaper.oversample = "4x";
+	const filter = context.createBiquadFilter();
+	filter.type = "lowpass";
+	filter.frequency.value = 3200;
+	const level = context.createGain();
+	level.gain.value = 0.14;
+	drive.connect(shaper).connect(filter).connect(level).connect(output);
+
+	return drive;
+}
+
 const LOOKAHEAD = 0.35;
 const TICK_MS = 120;
+/** How long the soft and full versions take to cross over (seconds, to about two thirds of the way). */
+const CROSSFADE = 0.4;
 
 /**
- * Starts the music, building with the night: `night()` says how far into it the player is
- * (seconds) and whether a boss is about. Returns a function that stops it, fading out.
+ * Starts the music. In the night: the music box once, then the rest of the song over and over,
+ * starting where the night's clock (`night().time`) says; the full version while playing, the soft
+ * one while the night waits on a choice (`night().soft`), crossing over in step; the band in
+ * whatever part it's at while a boss is about. In the menu (`menu`): the song's gentle start, the
+ * music box and the strings, over and over. Returns a function that stops it, fading out.
  */
-export function startNightMusic(night: () => { time: number; boss: boolean }): () => void {
+export function startNightMusic(night: () => { time: number; boss: boolean; soft: boolean }, menu = false): () => void {
 	const started = audioNow();
 	const bus = musicBus();
 
@@ -504,10 +751,37 @@ export function startNightMusic(night: () => { time: number; boss: boolean }): (
 		return () => {};
 	}
 
+	const context = bus.context;
+	const makeStem = () => {
+		const gain = context.createGain();
+		gain.connect(bus);
+
+		return { gain, outputs: { clean: gain, guitar: guitarChain(context, gain) } };
+	};
+	const stems: Record<IStem, ReturnType<typeof makeStem>> = { both: makeStem(), soft: makeStem(), full: makeStem() };
+	const crossFade = (toSoft: boolean, at: number, instantly = false) => {
+		const values = { soft: toSoft ? 1 : 0, full: toSoft ? 0 : 1 };
+
+		for (const name of ["soft", "full"] as const) {
+			if (instantly) {
+				stems[name].gain.gain.setValueAtTime(values[name], at);
+			} else {
+				stems[name].gain.gain.setTargetAtTime(values[name], at, CROSSFADE / 3);
+			}
+		}
+	};
+
 	const hits = arrangement();
-	const loopLength = TUNE.length * BAR * EIGHTH;
-	const origin = started + 0.2;
-	let scheduledTo = origin;
+	const partLength = TUNE.length * BAR * EIGHTH;
+	// The music box plays once, then the song goes round from the strings (the menu: the first two parts, round and round).
+	const introLength = menu ? 0 : partLength;
+	const loopLength = (menu ? 2 : PARTS.length - 1) * partLength;
+	const songTime = night().time;
+	const position = songTime < introLength ? songTime : introLength + ((songTime - introLength) % loopLength);
+	const origin = started + 0.2 - position;
+	let scheduledTo = started + 0.2;
+	let soft = night().soft;
+	crossFade(soft, started, true);
 
 	const schedule = () => {
 		const now = audioNow();
@@ -517,17 +791,29 @@ export function startNightMusic(night: () => { time: number; boss: boolean }): (
 		}
 
 		const until = now + LOOKAHEAD;
-		const { time, boss } = night();
-		// Layers come in a quarter of the way through the night, then halfway, then three quarters.
-		const layers = 1 + Math.floor((time / NIGHT_SECONDS) * 4);
+		const current = night();
 
-		for (let loop = Math.floor((scheduledTo - origin) / loopLength); origin + loop * loopLength < until; loop++) {
+		if (current.soft !== soft) {
+			soft = current.soft;
+			crossFade(soft, now);
+		}
+
+		const firstLoop = Math.max(0, Math.floor((scheduledTo - origin - introLength) / loopLength));
+
+		// The first time round always (it holds the intro, which comes before the loop starts).
+		for (let loop = firstLoop; loop === 0 || origin + introLength + loop * loopLength < until; loop++) {
 			for (const hit of hits) {
-				const when = origin + loop * loopLength + hit.at * EIGHTH;
-				const playing = hit.layer === 4 ? boss : hit.layer < layers;
+				const at = hit.at * EIGHTH;
 
-				if (playing && when >= scheduledTo && when < until && when >= now) {
-					hit.play(when - now, bus);
+				// The intro's hits only the first time round; the rest, each time.
+				if (at >= introLength + loopLength || (at < introLength && loop > 0)) {
+					continue;
+				}
+
+				const when = origin + at + (at < introLength ? 0 : loop * loopLength);
+
+				if ((!hit.bossOnly || current.boss) && when >= scheduledTo && when < until && when >= now) {
+					hit.play(when - now, stems[hit.stem].outputs);
 				}
 			}
 		}

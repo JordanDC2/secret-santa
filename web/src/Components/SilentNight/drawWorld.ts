@@ -177,6 +177,20 @@ export function drawWorld(
 	// Allies: minions running, snow globes circling, candle flames.
 	for (const ally of world.allies) {
 		if (ally.kind === "minion") {
+			// A ring of green light at its feet, so a friend stands out from the horde.
+			context.fillStyle = "rgba(111, 210, 122, 0.75)";
+
+			for (let i = 0; i < 16; i++) {
+				const angle = (i / 16) * Math.PI * 2;
+				context.fillRect(
+					Math.round(sx(ally.x) + Math.cos(angle) * 5),
+					Math.round(sy(ally.y) + Math.sin(angle) * 2),
+					1,
+					1,
+				);
+			}
+
+			glows.push({ x: ally.x, y: ally.y - 6, radius: 10 });
 			const frames = art.minion[Math.cos(ally.angle) >= 0 ? "right" : "left"];
 			context.drawImage(frames[Math.floor(time * 8) % 2], sx(ally.x) - 7, sy(ally.y) - 16);
 		} else if (ally.kind === "soldier") {

@@ -551,7 +551,7 @@ export type ICharacterSprites = {
 
 const BOSSES = new Set<IEnemyKind>(["mouseKing", "ghost", "yuleCat", "krampus"]);
 
-/** A friendly gingerbread minion: lighter, smiling, a green scarf, no glowing eyes, no bite out of it. */
+/** A friendly gingerbread minion: lighter, smiling, a Santa hat and a bright green scarf, no glowing eyes, no bite out of it. */
 function minion(step: 0 | 1): HTMLCanvasElement {
 	const p = new Pen(14, 17, 1);
 	const spread = step === 0 ? 2.4 : 0.8;
@@ -561,9 +561,14 @@ function minion(step: 0 | 1): HTMLCanvasElement {
 	p.l(9.5, 8.5, 12, 10, 1.5, 1.2, "cookie", 0.1);
 	p.l(4.5, 8.5, 2, 10, 1.5, 1.2, "cookie", 0);
 	p.e(7, 4.5, 3.4, 3.3, 0, "cookie", 0.14);
-	p.r(4, 7, 7, 1, "green", 0.5);
-	p.d(10, 8, "green", 0.4);
-	p.d(10, 9, "green", 0.35);
+	p.r(4, 7, 7, 1, "green", 0.85);
+	p.d(10, 8, "green", 0.8);
+	p.d(10, 9, "green", 0.75);
+	// A Santa hat: red, a white trim and bobble, flopping to one side.
+	p.r(4, 1, 6, 1, "white", 0.8);
+	p.l(5, 0.4, 9, 0.4, 0.9, 0.6, "red", 0.4);
+	p.l(9, 0.4, 11.4, 1.6, 0.6, 0.4, "red", 0.35);
+	p.d(12, 2, "white", 0.9);
 	p.d(8, 4, "dark", 0.2);
 	p.d(10, 4, "dark", 0.2);
 	p.d(8, 6, "icing", 0.6);
