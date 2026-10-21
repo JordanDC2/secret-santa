@@ -142,9 +142,9 @@ export function drawKrampus(): HTMLCanvasElement {
 		(y) => {
 			// Hulking shoulders, hunched up round his head, tapering a little below; locks of fur hanging off his sides.
 			const half = y < 82 ? 18 + Math.sqrt((y - 70) / 12) * 26 : 44 - (y - 82) * 0.07;
-			const locks = (side: number) => 2.5 * Math.sin(y * 0.45 + side) + jag(y + side * 7, 5);
+			const hanging = (side: number) => 2.5 * Math.sin(y * 0.45 + side) + jag(y + side * 7, 5);
 
-			return [92 - half - locks(-1), 92 + half + locks(1)];
+			return [92 - half - hanging(-1), 92 + half + hanging(1)];
 		},
 		"fur",
 		(x, y, left, right) => {
