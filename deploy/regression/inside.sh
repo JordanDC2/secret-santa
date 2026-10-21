@@ -126,6 +126,8 @@ check "pinball refused before the chimney" 422 "$(as nick POST /elf-fling/pinbal
 check "finding the chimney unlocks pinball" true "$(as nick POST /elf-fling/pinball/unlock | body | jq -r '.pinball_unlocked')"
 check "a pinball game is saved" 1500000 "$(as nick POST /elf-fling/pinball/scores '{"score":1500000}' | body | jq -r '.pinball_best')"
 check "pinball leaderboard" "Nick E.|1500000" "$(as nick GET '/elf-fling/leaderboard?board=pinball&period=week' | body | jq -r '.entries[0] | "\(.name)|\(.value)"')"
+check "silent night's tables made" 2 "$(db "select count(*) from sqlite_master where type = 'table' and name in ('silent_night_runs', 'silent_night_progress')")"
+check "silent night is admins only" 403 "$(as nick GET /silent-night/progress | code)"
 check "deploy announcement runs" 0 "$(php artisan app:announce-deploy test-version >/dev/null 2>&1; echo $?)"
 echo "--- queued mail jobs: $(db 'select count(*) from jobs')"
 php artisan queue:work --once --queue=default --stop-when-empty -q >/dev/null 2>&1 || true
