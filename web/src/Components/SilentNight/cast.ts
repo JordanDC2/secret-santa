@@ -1,6 +1,7 @@
 /**
- * Who can play Silent Night, and the Coal Cellar. The cast are Elf Fling's five: each starts
- * with a weapon of their own and has a perk (worked into stats.ts, weapons.ts and enemies.ts).
+ * Who can play Silent Night, and the Coal Cellar. The cast are Elf Fling's five: each carries
+ * the gun chosen before the night (guns.ts), all but the elf start with a weapon of their own as
+ * well, and each has a perk (worked into stats.ts, weapons.ts and enemies.ts).
  * The elf is free; the rest are unlocked with coal, which every night earns (the server works
  * out how much: api/config/silent_night.php, whose prices these must match). The Cellar's
  * upgrades last from night to night, and it unlocks the second wave of patrons.
@@ -11,9 +12,8 @@ import type { ICastId, IPatronId, IWeaponId } from "Components/SilentNight/types
 export type ICastMember = {
 	id: ICastId;
 	name: string;
-	weapon: IWeaponId;
-	/** The level it starts at: up a level for the cast with no gun to keep the horde off at first. */
-	weaponLevel: number;
+	/** The weapon they start with beside the gun, if any. */
+	weapon: IWeaponId | null;
 	perk: string;
 	perkText: string;
 	/** Coal to unlock (0: free). */
@@ -24,18 +24,16 @@ export const CAST: ICastMember[] = [
 	{
 		id: "elf",
 		name: "The elf",
-		weapon: "gun",
-		weaponLevel: 1,
+		weapon: null,
 		perk: "Quick hands",
 		perkText: "Reloads 30% faster",
 		price: 0,
 	},
-	{ id: "santa", name: "Santa", weapon: "blade", weaponLevel: 2, perk: "Well fed", perkText: "+30 health", price: 150 },
+	{ id: "santa", name: "Santa", weapon: "blade", perk: "Well fed", perkText: "+30 health", price: 150 },
 	{
 		id: "mrsClaus",
 		name: "Mrs. Claus",
 		weapon: "cocoa",
-		weaponLevel: 2,
 		perk: "Home cooking",
 		perkText: "Cocoa heals half as much again",
 		price: 150,
@@ -44,7 +42,6 @@ export const CAST: ICastMember[] = [
 		id: "snowman",
 		name: "The snowman",
 		weapon: "globes",
-		weaponLevel: 2,
 		perk: "Cold to the touch",
 		perkText: "Enemies that hit him are slowed",
 		price: 250,
@@ -53,7 +50,6 @@ export const CAST: ICastMember[] = [
 		id: "reindeer",
 		name: "The reindeer",
 		weapon: "bells",
-		weaponLevel: 2,
 		perk: "Fleet",
 		perkText: "Moves 12% faster and dashes more often",
 		price: 350,

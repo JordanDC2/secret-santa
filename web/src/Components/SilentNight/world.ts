@@ -20,12 +20,15 @@ import { dropCoalBomb, useSecondWave } from "Components/SilentNight/secondWave";
 import {
 	noEvents,
 	type ICastId,
+	type IEnemy,
 	type IEvents,
+	type IGunId,
 	type IInput,
 	type IPatronId,
+	type IShot,
 	type IWorld,
 } from "Components/SilentNight/types";
-import { landShells, moveAllies, newWeapon, useWeapons } from "Components/SilentNight/weapons";
+import { burst, landShells, moveAllies, newWeapon, useWeapons } from "Components/SilentNight/weapons";
 
 export { NIGHT_SECONDS, VIEW_HEIGHT } from "Components/SilentNight/constants";
 
@@ -35,12 +38,14 @@ const DASH_SPEED = 185;
 const DASH_SECONDS = 0.16;
 const DASH_COOLDOWN = 1.1;
 
-/** A new night, for `character` with the Coal Cellar's upgrades and second-wave patrons unlocked so far. */
+/** A new night, for `character` carrying `gun`, with the Coal Cellar's upgrades and second-wave patrons unlocked so far. */
 export function newWorld(
 	character: ICastId = "elf",
 	cellar: Record<string, number> = {},
 	secondWave: IPatronId[] = [],
+	gun: IGunId = "gun",
 ): IWorld {
+	const own = castMember(character).weapon;
 	const world: IWorld = {
 		time: 0,
 		numbers: undefined!,
@@ -62,7 +67,7 @@ export function newWorld(
 			lastShotAt: -1,
 			level: 1,
 			experience: 0,
-			weapons: [newWeapon(castMember(character).weapon, castMember(character).weaponLevel)],
+			weapons: [newWeapon(gun), ...(own ? [newWeapon(own)] : [])],
 			passives: {},
 			blessings: {},
 			bargains: [],
@@ -189,13 +194,78 @@ function movePlayer(world: IWorld, input: IInput, dt: number, events: IEvents) {
 	}
 }
 
-/** The elf's shots in flight: each hits enemies in its way (piercing ones, several). */
+/**
+ * The elf's shots in flight: each hits enemies in its way (piercing ones, several). A gun's shot
+ * may also turn toward the nearest enemy as it flies, burn, slow or freeze what it hits, bounce on
+ * to another enemy once it would have stopped, and burst (at every hit, or where it stops),
+ * throwing sparks.
+ */
 function moveShots(world: IWorld, grid: ReturnType<typeof gridOf>, dt: number, events: IEvents) {
+	const sparks: IShot[] = [];
+	const pop = (shot: IShot, x: number, y: number) => {
+		const { burst: blast, sparks: count } = shot.hit!;
+
+		if (!blast) {
+			return;
+		}
+
+		burst(world, grid, x, y, blast.radius, shot.damage * blast.share, shot.weapon, events);
+
+		for (let i = 0; i < count; i++) {
+			const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
+			sparks.push({
+				x,
+				y,
+				vx: Math.cos(angle) * 150,
+				vy: Math.sin(angle) * 150,
+				until: world.time + 0.25,
+				damage: shot.damage * 0.3,
+				pierce: 0,
+				radius: 1,
+				weapon: shot.weapon,
+				hostile: false,
+				kind: "spark",
+				struck: new Set(),
+			});
+		}
+	};
+
 	world.shots = world.shots.filter((shot) => {
+		const { hit } = shot;
+
+		// Turning toward the nearest enemy.
+		if (hit && hit.homing > 0 && !shot.hostile) {
+			let nearest: IEnemy | null = null;
+			let best = 90;
+			near(grid, shot.x, shot.y, best, (enemy) => {
+				const distance = Math.hypot(enemy.x - shot.x, enemy.y - shot.y);
+
+				if (!shot.struck.has(enemy.id) && distance < best) {
+					best = distance;
+					nearest = enemy;
+				}
+			});
+
+			if (nearest) {
+				const target = nearest as IEnemy;
+				const speed = Math.hypot(shot.vx, shot.vy);
+				const heading = Math.atan2(shot.vy, shot.vx);
+				const wanted = Math.atan2(target.y - target.radius * 0.8 - shot.y, target.x - shot.x);
+				const turn = Math.atan2(Math.sin(wanted - heading), Math.cos(wanted - heading));
+				const angle = heading + Math.max(-hit.homing * dt, Math.min(hit.homing * dt, turn));
+				shot.vx = Math.cos(angle) * speed;
+				shot.vy = Math.sin(angle) * speed;
+			}
+		}
+
 		shot.x += shot.vx * dt;
 		shot.y += shot.vy * dt;
 
 		if (world.time >= shot.until) {
+			if (hit && !hit.burst?.everyHit) {
+				pop(shot, shot.x, shot.y);
+			}
+
 			return false;
 		}
 
@@ -216,19 +286,90 @@ function moveShots(world: IWorld, grid: ReturnType<typeof gridOf>, dt: number, e
 
 			shot.struck.add(enemy.id);
 			const speed = Math.hypot(shot.vx, shot.vy) || 1;
-			hurtEnemy(world, grid, enemy, shot.damage, { x: shot.vx / speed, y: shot.vy / speed }, shot.weapon, events, 2);
+			hurtEnemy(
+				world,
+				grid,
+				enemy,
+				shot.damage,
+				{ x: shot.vx / speed, y: shot.vy / speed },
+				shot.weapon,
+				events,
+				hit?.knockback ?? 2,
+			);
 
-			if (shot.pierce <= 0) {
-				spent = true;
+			if (hit) {
+				if (hit.burn > 0) {
+					enemy.burnUntil = world.time + 3;
+					enemy.burnDamage = Math.max(enemy.burnDamage, hit.burn);
+				}
+
+				if (hit.slow > 0) {
+					enemy.slowUntil = world.time + 1.5;
+					enemy.slow = Math.max(enemy.slow, hit.slow);
+				}
+
+				if (!enemy.boss && Math.random() < hit.freeze) {
+					enemy.frozenUntil = world.time + 1.2;
+				}
+
+				if (hit.burst?.everyHit) {
+					pop(shot, enemy.x, enemy.y);
+				}
+			}
+
+			if (shot.pierce > 0) {
+				shot.pierce -= 1;
+
+				return;
+			}
+
+			// Bouncing on to the nearest enemy it hasn't hit yet, rather than stopping.
+			if (hit && hit.bounce > 0 && bounce(world, grid, shot)) {
+				hit.bounce -= 1;
 
 				return true;
 			}
 
-			shot.pierce -= 1;
+			if (hit && !hit.burst?.everyHit) {
+				pop(shot, shot.x, shot.y);
+			}
+
+			spent = true;
+
+			return true;
 		});
 
 		return !spent;
 	});
+
+	world.shots.push(...sparks);
+}
+
+/** Sends a shot off toward the nearest enemy it hasn't hit, if there's one near enough. */
+function bounce(world: IWorld, grid: ReturnType<typeof gridOf>, shot: IShot): boolean {
+	let nearest: IEnemy | null = null;
+	let best = 70;
+	near(grid, shot.x, shot.y, best, (enemy) => {
+		const distance = Math.hypot(enemy.x - shot.x, enemy.y - shot.y);
+
+		if (!shot.struck.has(enemy.id) && enemy.health > 0 && distance < best) {
+			best = distance;
+			nearest = enemy;
+		}
+	});
+
+	if (!nearest) {
+		return false;
+	}
+
+	const target = nearest as IEnemy;
+	const speed = Math.hypot(shot.vx, shot.vy) || 1;
+	const angle = Math.atan2(target.y - target.radius * 0.8 - shot.y, target.x - shot.x);
+	shot.vx = Math.cos(angle) * speed;
+	shot.vy = Math.sin(angle) * speed;
+	shot.until = Math.max(shot.until, world.time + 0.4);
+
+	return true;
 }
 
 /** Healing over time: Christkind's grace, and La Flor's rooted (standing still). */

@@ -10,6 +10,9 @@ import {
 	takeCursedGear,
 } from "Components/SilentNight/patrons";
 import { gearLines, RARITY_COLOURS } from "Components/SilentNight/gear";
+import { gunInfo, morphInfo } from "Components/SilentNight/guns";
+import GearSlots from "Components/SilentNight/GearSlots";
+import Treasure from "Components/SilentNight/Treasure";
 import { bargainInfo, KRAMPUS_LINE } from "Components/SilentNight/bargains";
 import { iconUrl } from "Components/SilentNight/icons";
 import { banish, choiceKey, closeChest, reroll, skip, take, takeGear } from "Components/SilentNight/levelUp";
@@ -30,6 +33,17 @@ type IPromptProps = {
 function describe(choice: IChoice): { name: string; icon: string | null; tag: string; text: string } {
 	if (choice.kind === "fruitcake") {
 		return { name: "Fruitcake", icon: iconUrl("fruitcake"), tag: "", text: "Heal 30 health." };
+	}
+
+	if (choice.kind === "morph") {
+		const morph = morphInfo(choice.gun, choice.id);
+
+		return {
+			name: morph.name,
+			icon: iconUrl(choice.gun),
+			tag: `${gunInfo(choice.gun).name} morph`,
+			text: morph.text,
+		};
 	}
 
 	if (choice.kind === "weapon") {
@@ -143,10 +157,6 @@ export default function Prompt({ world, prompt, onChange }: IPromptProps) {
 			if (pick >= 0 && pick < cards.length) {
 				cards[pick]();
 				onChange();
-			} else if (prompt.kind === "chest" && (event.key === "Enter" || event.key === " ")) {
-				event.preventDefault();
-				closeChest(world);
-				onChange();
 			}
 		};
 		window.addEventListener("keydown", down);
@@ -155,13 +165,7 @@ export default function Prompt({ world, prompt, onChange }: IPromptProps) {
 	});
 
 	if (prompt.kind === "chest") {
-		return (
-			<div className={classes.overlay}>
-				<p className={classes.title}>Treasure</p>
-				<p className={classes.rewards}>{prompt.rewards.join("\n")}</p>
-				<Button onClick={() => act(() => closeChest(world))}>Carry on</Button>
-			</div>
-		);
+		return <Treasure rewards={prompt.rewards} onDone={() => act(() => closeChest(world))} />;
 	}
 
 	if (prompt.kind === "gear") {
@@ -170,6 +174,7 @@ export default function Prompt({ world, prompt, onChange }: IPromptProps) {
 		return (
 			<div className={classes.overlay}>
 				<p className={classes.title}>Gear</p>
+				<GearSlots gear={world.player.gear} incoming={prompt.gear} />
 				<div className={classes.cards}>
 					<div className={classes.cardHolder}>
 						<button type="button" className={classes.card} onClick={() => act(cards[0])}>
@@ -206,7 +211,11 @@ export default function Prompt({ world, prompt, onChange }: IPromptProps) {
 
 						return (
 							<div key={choiceKey(choice)} className={classes.cardHolder}>
-								<button type="button" className={classes.card} onClick={() => act(cards[index])}>
+								<button
+									type="button"
+									className={choice.kind === "morph" ? `${classes.card} ${classes.morph}` : classes.card}
+									onClick={() => act(cards[index])}
+								>
 									<span className={classes.cardHead}>
 										{icon && <img src={icon} alt="" className={classes.icon} />}
 										<span className={classes.cardName}>{name}</span>

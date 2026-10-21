@@ -405,3 +405,18 @@ export function startNightMusic(night: () => { time: number; boss: boolean }): (
 		window.setTimeout(() => bus.disconnect(), 1500);
 	};
 }
+
+/** A chest's reel clicking round as it spins. */
+export function playReelTick() {
+	if (ready("reelTick", 0.06)) {
+		tone("square", 1800, 1400, 0.025, 0.025);
+	}
+}
+
+/** A reel landing on what it found: a bright chime, grander for an evolution. */
+export function playReelStop(evolved: boolean) {
+	tone("triangle", NOTE.G4, NOTE.G4, 0.12, 0.08);
+	(evolved ? ["C5", "Eb5", "G5", "C6"] : ["C5", "G5"]).forEach((note, i) =>
+		tone("sine", NOTE[note], NOTE[note], 0.5, 0.1, 0.04 + i * 0.07),
+	);
+}

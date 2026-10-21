@@ -7,7 +7,10 @@ import type { IStats } from "Components/SilentNight/stats";
 
 export type IVector = { x: number; y: number };
 
-export type IWeaponId = "gun" | "blade" | "grenades" | "whip" | "globes" | "bells" | "mortar" | "cocoa" | "minions";
+/** The aimed guns (guns.ts), one chosen before the night: "gun" is the candy cane gun. */
+export type IGunId = "gun" | "blunderbuss" | "crossbow" | "pistols" | "romanCandle" | "snowCannon";
+
+export type IWeaponId = IGunId | "blade" | "grenades" | "whip" | "globes" | "bells" | "mortar" | "cocoa" | "minions";
 
 export type IPassiveId =
 	| "peppermint"
@@ -90,6 +93,8 @@ export type IWeapon = {
 	reloadUntil: number | null;
 	/** Damage it's done this night, for the summary. */
 	damage: number;
+	/** A gun's morphs taken (guns.ts), by id. */
+	morphs: string[];
 };
 
 export type IPlayer = {
@@ -186,9 +191,39 @@ export type IShot = {
 	weapon: IWeaponId | null;
 	/** Fired at the elf, by an enemy. */
 	hostile: boolean;
-	kind: "peppermint" | "shard" | "ice" | "orb" | "chain";
+	kind:
+		| "peppermint"
+		| "shard"
+		| "ice"
+		| "orb"
+		| "chain"
+		| "pellet"
+		| "bolt"
+		| "jingle"
+		| "fireball"
+		| "snowball"
+		| "spark";
 	/** Enemies it's already hit (so piercing shots hit each once). */
 	struck: Set<number>;
+	/** What a gun's shot does to what it hits (guns.ts); other shots just hurt. */
+	hit?: IShotHit;
+};
+
+/** What a gun's shot does to what it hits, beyond hurting it. */
+export type IShotHit = {
+	knockback: number;
+	/** A burst, `share` of the shot's damage: at every hit, or only where the shot stops. */
+	burst: { radius: number; share: number; everyHit: boolean } | null;
+	/** Burning (damage a second), slowing (0 to 1), and the chance of freezing solid. */
+	burn: number;
+	slow: number;
+	freeze: number;
+	/** How many more enemies it bounces on to, once it would have stopped. */
+	bounce: number;
+	/** How fast it turns toward the nearest enemy (radians a second). */
+	homing: number;
+	/** Sparks thrown out all round by each burst. */
+	sparks: number;
 };
 
 /** Something happening for a moment: a sweep of the blade, a blast, a lash of tinsel... */
@@ -261,14 +296,18 @@ export type IShrine = {
 /** What the night's waiting on the player for: a level-up choice, a chest, a shrine, an altar. */
 export type IPrompt =
 	| { kind: "levelUp"; choices: IChoice[] }
-	| { kind: "chest"; rewards: string[] }
+	| { kind: "chest"; rewards: IReward[] }
 	| { kind: "shrine"; patron: IPatronId; choices: string[] }
 	| { kind: "altar"; choices: string[]; gear: IGear | null }
 	| { kind: "gear"; gear: IGear };
 
+/** One thing found in a chest: what it is (a weapon's id or a passive's), and what it did. */
+export type IReward = { id: IWeaponId | IPassiveId; text: string; evolved: boolean };
+
 /** One choice at a level-up. */
 export type IChoice =
 	| { kind: "weapon"; id: IWeaponId; level: number }
+	| { kind: "morph"; gun: IGunId; id: string }
 	| { kind: "passive"; id: IPassiveId; level: number }
 	| { kind: "fruitcake" };
 

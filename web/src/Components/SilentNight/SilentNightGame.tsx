@@ -10,14 +10,24 @@ import { drawWorld } from "Components/SilentNight/drawWorld";
 import { ENEMIES } from "Components/SilentNight/enemies";
 import { GEAR_SLOTS, RARITY_COLOURS } from "Components/SilentNight/gear";
 import { iconUrl } from "Components/SilentNight/icons";
+import GearSlots from "Components/SilentNight/GearSlots";
 import Menu from "Components/SilentNight/Menu";
 import NightOver, { clock } from "Components/SilentNight/NightOver";
 import Prompt from "Components/SilentNight/Prompt";
 import { addEvents, playNightEvents, startNightMusic } from "Components/SilentNight/sound";
 import { makeSprites } from "Components/SilentNight/sprites";
 import { PASSIVES } from "Components/SilentNight/stats";
-import { noEvents, type ICastId, type IInput, type IPrompt, type IWorld } from "Components/SilentNight/types";
-import { gunNumbers, weaponInfo } from "Components/SilentNight/weapons";
+import {
+	noEvents,
+	type ICastId,
+	type IGunId,
+	type IInput,
+	type IPrompt,
+	type IWorld,
+} from "Components/SilentNight/types";
+import { drawAmmo } from "Components/SilentNight/ammo";
+import { gunNumbers, gunOf, isGun } from "Components/SilentNight/guns";
+import { weaponInfo } from "Components/SilentNight/weapons";
 import type { IProgress, IPurchase, IRun } from "Components/SilentNight/hooks";
 import { NIGHT_SECONDS, newWorld, step, VIEW_HEIGHT } from "Components/SilentNight/world";
 import classes from "Components/SilentNight/SilentNight.module.less";
@@ -159,7 +169,7 @@ export default function SilentNightGame({
 	const levelRef = useRef<HTMLSpanElement>(null);
 	const timeRef = useRef<HTMLSpanElement>(null);
 	const killsRef = useRef<HTMLSpanElement>(null);
-	const ammoRef = useRef<HTMLSpanElement>(null);
+	const ammoRef = useRef<HTMLCanvasElement>(null);
 	const bossRef = useRef<HTMLDivElement>(null);
 	const bossNameRef = useRef<HTMLSpanElement>(null);
 	const bossHealthRef = useRef<HTMLDivElement>(null);
@@ -337,13 +347,13 @@ export default function SilentNightGame({
 			const health = Math.ceil(player.health);
 			const experience = Math.floor((player.experience / experienceFor(player.level)) * 200);
 			const time = Math.floor(world.time);
-			const gun = player.weapons.find((weapon) => weapon.id === "gun");
-			const ammo =
-				!gun || gunNumbers(gun).endless
-					? ""
-					: gun.reloadUntil !== null
-						? "Reloading"
-						: `${gun.ammo} / ${gunNumbers(gun).magazine}`;
+			// The gun's rounds: those loaded, or as many as the reload's got back so far.
+			const gun = player.weapons.find((weapon) => isGun(weapon.id))!;
+			const gunStats = gunNumbers(gun);
+			const reloading =
+				gun.reloadUntil === null ? 1 : 1 - (gun.reloadUntil - world.time) / (gunStats.reload * world.numbers.reload);
+			const loaded = gun.reloadUntil === null ? gun.ammo : Math.floor(Math.max(0, reloading) * gunStats.magazine);
+			const ammo = gunStats.endless ? "" : `${gun.id}:${loaded}/${gunStats.magazine}`;
 			const boss = world.enemies.find((enemy) => enemy.boss);
 			const bossHealth = boss ? Math.ceil((boss.health / boss.maxHealth) * 200) : -1;
 			const key = buildKey(world);
@@ -369,7 +379,11 @@ export default function SilentNightGame({
 			}
 
 			if (ammo !== shown.ammo && ammoRef.current) {
-				ammoRef.current.textContent = ammo;
+				ammoRef.current.style.display = ammo ? "block" : "none";
+
+				if (ammo) {
+					drawAmmo(ammoRef.current, gun.id as IGunId, loaded, gunStats.magazine);
+				}
 			}
 
 			if (bossHealth !== shown.boss && bossRef.current && bossHealthRef.current && bossNameRef.current) {
@@ -420,13 +434,24 @@ export default function SilentNightGame({
 		return () => cancelAnimationFrame(frame);
 	}, [view, sprites, world]);
 
+	// Leaving full screen in the middle of a night (the browser's own Escape, where the game can't
+	// have it) pauses it.
+	useEffect(() => {
+		const current = worldRef.current;
+
+		if (!fullscreen && current && !current.over && current.prompt === null) {
+			pausedRef.current = true;
+			setPaused(true);
+		}
+	}, [fullscreen]);
+
 	const pause = (on: boolean) => {
 		pausedRef.current = on;
 		setPaused(on);
 	};
 
-	const start = (character: ICastId) => {
-		const fresh = newWorld(character, progress.cellar, progress.patrons);
+	const start = (character: ICastId, gun: IGunId) => {
+		const fresh = newWorld(character, progress.cellar, progress.patrons, gun);
 		worldRef.current = fresh;
 		keysRef.current.clear();
 		setOver(false);
@@ -659,35 +684,39 @@ export default function SilentNightGame({
 					<div className={classes.kills}>
 						<span ref={killsRef}>0</span> broken
 					</div>
-					<div className={classes.ammo}>
-						<span ref={ammoRef} />
-					</div>
+					<canvas ref={ammoRef} className={classes.ammo} aria-hidden />
 				</>
 			)}
 
 			{playing && touchScreen && !waiting && (
-				<>
-					<button
-						type="button"
-						className={classes.dash}
-						onPointerDown={(event) => {
-							event.stopPropagation();
-							dashRef.current = true;
-						}}
-					>
-						Dash
-					</button>
+				<button
+					type="button"
+					className={classes.dash}
+					onPointerDown={(event) => {
+						event.stopPropagation();
+						dashRef.current = true;
+					}}
+				>
+					Dash
+				</button>
+			)}
+
+			{playing && !waiting && (
+				<Tooltip label="Pause (Esc)" withArrow disabled={touchScreen}>
 					<ActionIcon
 						variant="transparent"
 						radius="xl"
-						size={44}
+						size={touchScreen ? 44 : 36}
 						className={classes.pauseButton}
 						aria-label="Pause"
-						onClick={() => pause(true)}
+						onClick={(event) => {
+							pause(true);
+							event.currentTarget.blur();
+						}}
 					>
 						<FontAwesomeIcon icon={faPause} />
 					</ActionIcon>
-				</>
+				</Tooltip>
 			)}
 
 			<Tooltip label={soundOn ? "Sound off" : "Sound on"} withArrow disabled={touchScreen}>
@@ -727,6 +756,21 @@ export default function SilentNightGame({
 			{playing && paused && !prompt && (
 				<div className={classes.overlay}>
 					<p className={classes.title}>Paused</p>
+					<div className={classes.pauseBuild}>
+						{[...build.weapons, ...build.passives].map((item) => (
+							<span key={item.id} className={classes.slot}>
+								<img
+									src={iconUrl(item.id)}
+									alt=""
+									className={
+										"evolved" in item && item.evolved ? `${classes.gearIcon} ${classes.evolved}` : classes.gearIcon
+									}
+								/>
+								<span className={classes.slotLevel}>{"evolved" in item && item.evolved ? "★" : item.level}</span>
+							</span>
+						))}
+					</div>
+					<GearSlots gear={world.player.gear} />
 					<Button onClick={() => pause(false)}>Carry on</Button>
 					<Button
 						variant="subtle"
@@ -744,7 +788,7 @@ export default function SilentNightGame({
 				<NightOver
 					world={world}
 					coalEarned={coalEarned}
-					onAgain={() => start(world.player.character)}
+					onAgain={() => start(world.player.character, gunOf(world.player))}
 					onMenu={backToMenu}
 				/>
 			)}

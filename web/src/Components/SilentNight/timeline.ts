@@ -8,7 +8,7 @@ import { NIGHT_SECONDS } from "Components/SilentNight/constants";
 import { spawnEnemy } from "Components/SilentNight/enemies";
 import { placeShrine } from "Components/SilentNight/patrons";
 import { bargain } from "Components/SilentNight/stats";
-import type { IEnemyKind, IEvents, IWorld } from "Components/SilentNight/types";
+import type { IEnemyKind, IEvents, IVector, IWorld } from "Components/SilentNight/types";
 
 type IMix = Array<[IEnemyKind, number]>;
 
@@ -109,14 +109,17 @@ function pick(mix: IMix): IEnemyKind {
 
 /** How many enemies come a second at this point in the night (fewer while a boss is about; twice as many with Krampus's Sack). */
 export function spawnRate(world: IWorld): number {
-	const rate = Math.min(14, 0.8 + world.time * 0.01) * (bargain(world.player, "sack") ? 2 : 1);
+	const rate =
+		Math.min(20, 0.8 + world.time * 0.01 + (world.time / 400) ** 2) * (bargain(world.player, "sack") ? 2 : 1);
 
 	return world.enemies.some((enemy) => enemy.boss) ? rate * 0.5 : rate;
 }
 
-/** Just beyond the edge of the view, any way round. */
-function offscreen(world: IWorld, view: { width: number; height: number }) {
-	const angle = Math.random() * Math.PI * 2;
+/** Just beyond the edge of the view, any way round (or, given `toward`, somewhere ahead that way). */
+function offscreen(world: IWorld, view: { width: number; height: number }, toward?: IVector) {
+	const angle = toward
+		? Math.atan2(toward.y, toward.x) + (Math.random() - 0.5) * Math.PI * 0.7
+		: Math.random() * Math.PI * 2;
 	const distance = Math.hypot(view.width, view.height) / 2 + 12;
 
 	return { x: world.player.x + Math.cos(angle) * distance, y: world.player.y + Math.sin(angle) * distance };
@@ -130,6 +133,17 @@ export function runTimeline(world: IWorld, dt: number, view: { width: number; he
 			act();
 		}
 	};
+
+	// Enemies left far behind come round again, ahead of the elf, so running away for ever doesn't work.
+	const behind = Math.hypot(view.width, view.height) * 0.9;
+
+	for (const enemy of world.enemies) {
+		if (!enemy.boss && Math.hypot(enemy.x - world.player.x, enemy.y - world.player.y) > behind) {
+			const at = offscreen(world, view, world.player.heading);
+			enemy.x = at.x;
+			enemy.y = at.y;
+		}
+	}
 
 	// Ordinary enemies, from the mix for now.
 	if (!world.dawn || world.enemies.length < 60) {

@@ -27,7 +27,7 @@ import classes from "Components/SilentNight/SilentNight.module.less";
  */
 export default function SilentNightPage() {
 	const stageRef = useRef<HTMLDivElement>(null);
-	const { fullscreen, enter, exit } = useFullscreen(stageRef);
+	const { fullscreen, enter, exit } = useFullscreen(stageRef, "landscape", true);
 	const touchScreen = useTouchScreen();
 	useWakeLock(fullscreen && touchScreen);
 	const progressQuery = useProgressQuery();

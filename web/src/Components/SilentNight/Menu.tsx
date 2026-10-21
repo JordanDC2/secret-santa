@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { Alert, Button, SegmentedControl } from "@mantine/core";
+import { Alert, Button } from "@mantine/core";
+import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { CAST, castMember, CELLAR, SECOND_WAVE } from "Components/SilentNight/cast";
 import type { IProgress, IPurchase } from "Components/SilentNight/hooks";
 import { PATRONS } from "Components/SilentNight/patrons";
 import { portraitUrl } from "Components/SilentNight/portraits";
 import { iconUrl } from "Components/SilentNight/icons";
-import type { ICastId } from "Components/SilentNight/types";
+import { GUNS, isGun } from "Components/SilentNight/guns";
+import type { ICastId, IGunId } from "Components/SilentNight/types";
 import { weaponInfo } from "Components/SilentNight/weapons";
 import classes from "Components/SilentNight/SilentNight.module.less";
 
@@ -15,32 +18,83 @@ type IMenuProps = {
 	castImages: Record<ICastId, string>;
 	busy: boolean;
 	error: string | null;
-	onStart: (character: ICastId) => void;
+	onStart: (character: ICastId, gun: IGunId) => void;
 	onChoose: (character: ICastId) => void;
 	onBuy: (purchase: IPurchase) => void;
 };
 
+const GUN_KEY = "silent-night-gun";
+
+/** The gun last chosen on this device (the candy cane gun the first time). */
+function readGun(): IGunId {
+	try {
+		const saved = window.localStorage.getItem(GUN_KEY) ?? "";
+
+		return isGun(saved) ? saved : "gun";
+	} catch {
+		return "gun";
+	}
+}
+
+function saveGun(gun: IGunId) {
+	try {
+		window.localStorage.setItem(GUN_KEY, gun);
+	} catch {
+		// Not remembered this time; it's still chosen for this night.
+	}
+}
+
 /**
- * Before a night: who to play as (the rest of the cast unlocked with coal), and the Coal Cellar:
+ * The game's main menu, the first thing you see: start a night, or go down to the Coal Cellar.
+ * Starting takes you to who to play as (the rest of the cast unlocked with coal) and which gun
+ * they carry (remembered on this device), and the Coal Cellar:
  * upgrades, which last from night to night, and the second wave of patrons.
  */
 export default function Menu({ progress, castImages, busy, error, onStart, onChoose, onBuy }: IMenuProps) {
-	const [view, setView] = useState<"cast" | "cellar">("cast");
+	const [view, setView] = useState<"main" | "cast" | "cellar">("main");
 	const chosen = castMember(progress.character);
+	const [gun, setGun] = useState(readGun);
+	const chooseGun = (id: IGunId) => {
+		setGun(id);
+		saveGun(id);
+	};
+	const back = (
+		<Button
+			variant="subtle"
+			size="compact-sm"
+			leftSection={<FontAwesomeIcon icon={faArrowLeft} />}
+			onClick={() => setView("main")}
+			disabled={busy}
+		>
+			Back
+		</Button>
+	);
+
+	if (view === "main") {
+		return (
+			<div className={`${classes.overlay} ${classes.menu}`}>
+				<p className={`${classes.title} ${classes.mainTitle}`}>Silent Night</p>
+				<p className={classes.line}>
+					The longest night of the year, and Krampus&apos;s horde has come out of the dark.
+				</p>
+				<div className={classes.mainButtons}>
+					<Button size="md" onClick={() => setView("cast")}>
+						Start the longest night
+					</Button>
+					<Button size="md" variant="default" onClick={() => setView("cellar")}>
+						Coal Cellar
+					</Button>
+				</div>
+				<span className={classes.coal}>{progress.coal.toLocaleString()} coal</span>
+			</div>
+		);
+	}
 
 	return (
 		<div className={`${classes.overlay} ${classes.menu}`}>
-			<p className={classes.title}>Silent Night</p>
 			<div className={classes.menuBar}>
-				<SegmentedControl
-					size="xs"
-					value={view}
-					onChange={(value) => setView(value as "cast" | "cellar")}
-					data={[
-						{ value: "cast", label: "Who plays" },
-						{ value: "cellar", label: "Coal Cellar" },
-					]}
-				/>
+				{back}
+				<p className={classes.title}>{view === "cast" ? "Who plays?" : "Coal Cellar"}</p>
 				<span className={classes.coal}>{progress.coal.toLocaleString()} coal</span>
 			</div>
 
@@ -70,10 +124,31 @@ export default function Menu({ progress, castImages, busy, error, onStart, onCho
 						})}
 					</div>
 					<p className={classes.castPerk}>
-						<img src={iconUrl(chosen.weapon)} alt="" className={classes.icon} />
-						{weaponInfo(chosen.weapon).name}. <strong>{chosen.perk}:</strong> {chosen.perkText.toLowerCase()}.
+						{chosen.weapon && (
+							<>
+								<img src={iconUrl(chosen.weapon)} alt="" className={classes.icon} />
+								{weaponInfo(chosen.weapon).name}.
+							</>
+						)}{" "}
+						<strong>{chosen.perk}:</strong> {chosen.perkText.toLowerCase()}.
 					</p>
-					<Button onClick={() => onStart(chosen.id)} disabled={busy}>
+					<div className={classes.gunRow} role="radiogroup" aria-label="Gun">
+						{GUNS.map((info) => (
+							<button
+								key={info.id}
+								type="button"
+								role="radio"
+								aria-checked={info.id === gun}
+								className={info.id === gun ? `${classes.gunCard} ${classes.chosen}` : classes.gunCard}
+								onClick={() => chooseGun(info.id)}
+							>
+								<img src={iconUrl(info.id)} alt="" className={classes.gearIcon} />
+								<span className={classes.gunName}>{info.name}</span>
+							</button>
+						))}
+					</div>
+					<p className={classes.castPerk}>{GUNS.find((info) => info.id === gun)!.description}</p>
+					<Button onClick={() => onStart(chosen.id, gun)} disabled={busy}>
 						Start the night
 					</Button>
 				</>

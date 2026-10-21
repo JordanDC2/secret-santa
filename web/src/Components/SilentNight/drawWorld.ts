@@ -9,10 +9,11 @@
 import { PROP_CELL, propAt, snuffed } from "Components/SilentNight/candles";
 import type { IEnemyArt } from "Components/SilentNight/characters";
 import { RARITY_COLOURS } from "Components/SilentNight/gear";
+import { isGun } from "Components/SilentNight/guns";
 import { PATRONS } from "Components/SilentNight/patrons";
 import { hash, threshold } from "Components/SilentNight/pixelArt";
 import { CANDLE_LIGHT_RADIUS, CAST_FEET, GUN_GRIP, LIGHT_RADIUS, type ISprites } from "Components/SilentNight/sprites";
-import type { IEffect, IEnemy, IWorld } from "Components/SilentNight/types";
+import type { IEffect, IEnemy, IGunId, IWorld } from "Components/SilentNight/types";
 import { cocoaReach } from "Components/SilentNight/weapons";
 import { dashing } from "Components/SilentNight/world";
 
@@ -478,6 +479,59 @@ function drawShot(
 			context.fillStyle = "#c4c8d0";
 			context.fillRect(bx(3), by(3), 2, 2);
 			break;
+		case "pellet":
+			// A walnut shell.
+			context.fillStyle = "#a07040";
+			context.fillRect(x, y, 2, 2);
+			context.fillStyle = "#5a3a1c";
+			context.fillRect(bx(2), by(2), 1, 1);
+			break;
+		case "bolt":
+			// An icicle, long and pale, trailing cold.
+			context.fillStyle = "#e8f8ff";
+			context.fillRect(x, y, 1, 1);
+			context.fillRect(bx(1), by(1), 1, 1);
+			context.fillStyle = "#9ad0f0";
+			context.fillRect(bx(2), by(2), 1, 1);
+			context.fillRect(bx(3), by(3), 1, 1);
+			context.fillStyle = "#4a88b8";
+			context.fillRect(bx(5), by(5), 1, 1);
+			break;
+		case "jingle":
+			context.fillStyle = "#ffd060";
+			context.fillRect(x, y, 1, 1);
+			context.fillStyle = "#a87018";
+			context.fillRect(bx(2), by(2), 1, 1);
+			break;
+		case "fireball":
+			context.fillStyle = "#e0502a";
+			context.fillRect(bx(3) - 1, by(3) - 1, 2, 2);
+			context.fillStyle = "#ffa040";
+			context.fillRect(x - 2, y - 1, 4, 3);
+			context.fillRect(x - 1, y - 2, 3, 4);
+			context.fillStyle = "#fff0a0";
+			context.fillRect(x - 1, y - 1, 2, 2);
+			glows.push({ x: shot.x, y: shot.y, radius: 12 });
+			break;
+		case "snowball": {
+			// A ball of snow, lit on top, its size its own.
+			const r = Math.max(1, Math.round(shot.radius));
+
+			for (let dy = -r; dy <= r; dy++) {
+				const half = Math.round(Math.sqrt(r * r - dy * dy));
+				// Shaded on its underside, row by row.
+				context.fillStyle = dy > r * 0.4 ? "#7a8a9c" : dy > -r * 0.3 ? "#c8d4e0" : "#eef4f8";
+				context.fillRect(x - half, y + dy, half * 2 + 1, 1);
+			}
+
+			break;
+		}
+		case "spark":
+			context.fillStyle = "#ffc040";
+			context.fillRect(x, y, 1, 1);
+			context.fillStyle = "#e0502a";
+			context.fillRect(bx(1), by(1), 1, 1);
+			break;
 	}
 }
 
@@ -698,30 +752,37 @@ function drawElf(context: CanvasRenderingContext2D, world: IWorld, sprites: ISpr
 		context.fillRect(x + 11, y - 2, 1, 1);
 	}
 
-	if (!player.weapons.some((weapon) => weapon.id === "gun")) {
+	const gun = player.weapons.find((weapon) => isGun(weapon.id));
+
+	if (!gun) {
 		return;
 	}
 
-	// The gun, in its hand, pointing where it aims (or ahead), turned over when aiming left.
+	// The gun, in its hand, pointing where it aims (or ahead), turned over when aiming left; the
+	// jingle pistols, one in each hand.
 	const aim = player.aim ?? { x: player.facing, y: 0 };
-	context.save();
-	context.translate(sx(player.x) + player.facing * 2, sy(player.y) - 8);
-	context.rotate(Math.atan2(aim.y, aim.x));
+	const hands = gun.id === "pistols" ? [-2, 2] : [0];
 
-	if (aim.x < 0) {
-		context.scale(1, -1);
+	for (const offset of hands) {
+		context.save();
+		context.translate(sx(player.x) + player.facing * 2, sy(player.y) - 8 + offset);
+		context.rotate(Math.atan2(aim.y, aim.x));
+
+		if (aim.x < 0) {
+			context.scale(1, -1);
+		}
+
+		context.drawImage(sprites.guns[gun.id as IGunId], -GUN_GRIP.x, -GUN_GRIP.y);
+
+		if (time - player.lastShotAt < 0.05) {
+			context.fillStyle = "#ffd060";
+			context.fillRect(12, 1, 3, 3);
+			context.fillStyle = "#fff4e8";
+			context.fillRect(13, 2, 1, 1);
+		}
+
+		context.restore();
 	}
-
-	context.drawImage(sprites.gun, -GUN_GRIP.x, -GUN_GRIP.y);
-
-	if (time - player.lastShotAt < 0.05) {
-		context.fillStyle = "#ffd060";
-		context.fillRect(12, 1, 3, 3);
-		context.fillStyle = "#fff4e8";
-		context.fillRect(13, 2, 1, 1);
-	}
-
-	context.restore();
 }
 
 /** An arrow at the edge of the view toward each shrine out of sight, in its patron's colour. */

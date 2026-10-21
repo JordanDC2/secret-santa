@@ -9,13 +9,13 @@ import { fbm, flipped, hash, shade, Sprite, threshold } from "Components/SilentN
 
 import { makeCharacters, type ICharacterSprites } from "Components/SilentNight/characters";
 import { OUTLINE, RAMPS, RIMS } from "Components/SilentNight/palette";
-import type { ICastId } from "Components/SilentNight/types";
+import type { ICastId, IGunId } from "Components/SilentNight/types";
 
 export type ISprites = {
 	/** Each of the cast, facing right and left, in two steps of their walk. */
 	cast: Record<ICastId, { right: HTMLCanvasElement[]; left: HTMLCanvasElement[] }>;
-	/** The candy cane gun, pointing right, held at (gunGrip.x, gunGrip.y). */
-	gun: HTMLCanvasElement;
+	/** Each gun (guns.ts), pointing right, held at (GUN_GRIP.x, GUN_GRIP.y). */
+	guns: Record<IGunId, HTMLCanvasElement>;
 	characters: ICharacterSprites;
 	ground: HTMLCanvasElement;
 	fog: HTMLCanvasElement;
@@ -188,6 +188,64 @@ function gun(): Sprite {
 	return sprite;
 }
 
+/** The Nutcracker's blunderbuss: a wooden stock, a steel barrel flaring at the mouth. */
+function blunderbuss(): Sprite {
+	const sprite = new Sprite(14, 6);
+	sprite.limb(0.6, 3.6, 5, 2.6, 1.3, 1.1, "cookie", 0);
+	sprite.limb(5, 2.4, 11, 2.4, 1, 1, "steel", 0.05);
+	sprite.limb(11, 2.4, 13, 2.4, 1, 1.9, "steel", 0.12);
+	sprite.put(6, 2, "gold", 0.6);
+
+	return sprite;
+}
+
+/** The icicle crossbow: a wooden stock, a bow of ice across it, an icicle bolt laid on it. */
+function crossbow(): Sprite {
+	const sprite = new Sprite(14, 7);
+	sprite.limb(1, 3, 10, 3, 1, 0.9, "cookie", 0);
+	sprite.limb(10, 0.6, 9, 3, 0.7, 0.8, "frost", 0.1);
+	sprite.limb(9, 3, 10, 5.6, 0.8, 0.7, "frost", 0.05);
+	sprite.limb(4, 2.4, 13, 2.4, 0.5, 0.4, "glass", 0.3);
+
+	return sprite;
+}
+
+/** One of the jingle pistols: a little gold pistol, a bell at its grip. */
+function pistols(): Sprite {
+	const sprite = new Sprite(14, 6);
+	sprite.limb(3, 2.4, 10, 2.4, 1, 0.9, "gold", 0.05);
+	sprite.limb(3, 2.4, 2, 5, 1, 0.9, "gold", -0.05);
+	sprite.put(1, 5, "gold", 0.8);
+
+	return sprite;
+}
+
+/** The Roman candle: a red paper tube banded with gold, sparking at its mouth. */
+function romanCandle(): Sprite {
+	const sprite = new Sprite(14, 6);
+	sprite.limb(1, 2.6, 12, 2.6, 1.4, 1.4, "red", 0.05);
+
+	for (const x of [4, 8]) {
+		sprite.limb(x, 1.2, x, 4, 0.5, 0.5, "gold", 0.3);
+	}
+
+	sprite.put(13, 2, "glow", 0.9);
+
+	return sprite;
+}
+
+/** The snowball cannon: a fat iron barrel, a snowball in its mouth. */
+function snowCannon(): Sprite {
+	const sprite = new Sprite(14, 7);
+	sprite.limb(1, 3.2, 10, 3.2, 1.8, 2.2, "coal", 0.25);
+	sprite.ellipse(11.4, 3.2, 1.8, 1.8, 0, "white", 0.2);
+	sprite.put(4, 1, "steel", 0.5);
+
+	return sprite;
+}
+
+const GUN_DRAWINGS: Record<IGunId, () => Sprite> = { gun, blunderbuss, crossbow, pistols, romanCandle, snowCannon };
+
 /** A tile of night snow, trodden and sooty, to cover the ground: 128 pixels square, seamless. */
 function ground(): HTMLCanvasElement {
 	const size = 128;
@@ -280,7 +338,9 @@ export function makeSprites(): ISprites {
 
 	return {
 		cast,
-		gun: gun().render(RAMPS, RIMS, OUTLINE, 1, 0.6),
+		guns: Object.fromEntries(
+			Object.entries(GUN_DRAWINGS).map(([id, draw]) => [id, draw().render(RAMPS, RIMS, OUTLINE, 1, 0.6)]),
+		) as ISprites["guns"],
 		characters: makeCharacters(),
 		ground: ground(),
 		fog: fog(),

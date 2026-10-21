@@ -1,12 +1,13 @@
 /**
  * Silent Night's weapons: what each does, how it grows over its eight levels, and what it
- * evolves into beside its passive (opened from a chest, as in Vampire Survivors). Only the candy
- * cane gun is aimed; everything else fires on its own. Damage goes through combat.ts, so the
+ * evolves into beside its passive (opened from a chest, as in Vampire Survivors). Only the gun
+ * chosen before the night (guns.ts) is aimed; everything else fires on its own. Damage goes through combat.ts, so the
  * patrons' blessings and Krampus's bargains apply to all of them.
  */
 
 import { knockCandles } from "Components/SilentNight/candles";
 import { hurtEnemy, near, touches, heal, type IGrid } from "Components/SilentNight/combat";
+import { fireGun, GUNS, gunNumbers, isGun, past } from "Components/SilentNight/guns";
 import { byRank } from "Components/SilentNight/stats";
 import type { IStats } from "Components/SilentNight/stats";
 import type {
@@ -30,25 +31,8 @@ export type IWeaponInfo = {
 };
 
 export const WEAPONS: IWeaponInfo[] = [
-	{
-		id: "gun",
-		name: "Candy cane gun",
-		description: "Aimed shots of peppermint. Reloads when it's empty.",
-		levels: [
-			"+4 damage",
-			"+6 shots in the magazine",
-			"Shots pass through 1 more",
-			"Fires faster",
-			"+4 damage",
-			"Reloads faster",
-			"Shots pass through 1 more, +4 damage",
-		],
-		evolution: {
-			passive: "sleighBells",
-			name: "Peppermint Gatling",
-			description: "Never reloads, fires twice as fast, and pierces.",
-		},
-	},
+	// The aimed guns, one chosen before the night.
+	...GUNS,
 	{
 		id: "blade",
 		name: "Candy cane blade",
@@ -167,32 +151,12 @@ export function weaponInfo(id: IWeaponId): IWeaponInfo {
 	return WEAPONS.find((weapon) => weapon.id === id)!;
 }
 
-/** How many of the levels up to `level` are at or past each of `marks` (each counting once). */
-const past = (level: number, ...marks: number[]) => marks.filter((mark) => level >= mark).length;
-
-/** The gun's numbers at a level. */
-export function gunNumbers(weapon: IWeapon) {
-	const { level, evolved } = weapon;
-
-	return {
-		damage: 10 + 4 * past(level, 2, 6, 8) + (evolved ? 4 : 0),
-		magazine: 14 + 6 * past(level, 3),
-		pierce: past(level, 4, 8) + (evolved ? 1 : 0),
-		interval: (level >= 5 ? 0.11 : 0.14) * (evolved ? 0.5 : 1),
-		reload: level >= 7 ? 0.7 : 1,
-		/** The Gatling never reloads. */
-		endless: evolved,
-	};
-}
-
 export function newWeapon(id: IWeaponId, level = 1): IWeapon {
-	const weapon: IWeapon = { id, level, evolved: false, readyAt: 0, ammo: 0, reloadUntil: null, damage: 0 };
-	weapon.ammo = gunNumbers(weapon).magazine;
+	const weapon: IWeapon = { id, level, evolved: false, readyAt: 0, ammo: 0, reloadUntil: null, damage: 0, morphs: [] };
+	weapon.ammo = isGun(id) ? gunNumbers(weapon).magazine : 0;
 
 	return weapon;
 }
-
-const SHOT_SPEED = 240;
 
 /** Each weapon's turn, each step. */
 export function useWeapons(world: IWorld, input: IInput, grid: IGrid, events: IEvents) {
@@ -201,7 +165,12 @@ export function useWeapons(world: IWorld, input: IInput, grid: IGrid, events: IE
 	for (const weapon of world.player.weapons) {
 		switch (weapon.id) {
 			case "gun":
-				gun(world, weapon, input, numbers, events);
+			case "blunderbuss":
+			case "crossbow":
+			case "pistols":
+			case "romanCandle":
+			case "snowCannon":
+				fireGun(world, weapon, input, numbers, events, twice(world));
 				break;
 			case "blade":
 				blade(world, weapon, input, grid, numbers, events);
@@ -234,61 +203,6 @@ export function useWeapons(world: IWorld, input: IInput, grid: IGrid, events: IE
 /** The Yule Lads' Candle-Beggar: a chance to throw or fire twice. */
 function twice(world: IWorld): boolean {
 	return Math.random() < byRank(world.player, "candleBeggar", [0.1, 0.15, 0.2]);
-}
-
-function gun(world: IWorld, weapon: IWeapon, input: IInput, numbers: IStats, events: IEvents) {
-	const { player } = world;
-	const gunStats = gunNumbers(weapon);
-
-	if (weapon.reloadUntil !== null && world.time >= weapon.reloadUntil) {
-		weapon.reloadUntil = null;
-		weapon.ammo = gunStats.magazine;
-		events.reloaded = true;
-	}
-
-	if (
-		!gunStats.endless &&
-		weapon.reloadUntil === null &&
-		(weapon.ammo <= 0 || (input.reload && weapon.ammo < gunStats.magazine))
-	) {
-		weapon.reloadUntil = world.time + gunStats.reload * world.numbers.reload;
-	}
-
-	if (!input.firing || !input.aim || weapon.reloadUntil !== null || world.time < weapon.readyAt) {
-		return;
-	}
-
-	const streams = 1 + numbers.projectiles;
-	const volleys = twice(world) ? 2 : 1;
-
-	for (let volley = 0; volley < volleys; volley++) {
-		for (let stream = 0; stream < streams; stream++) {
-			const fan = (stream - (streams - 1) / 2) * 0.12;
-			const angle = Math.atan2(input.aim.y, input.aim.x) + fan + (Math.random() - 0.5) * 0.1;
-			world.shots.push({
-				x: player.x + Math.cos(angle) * 8,
-				y: player.y - 8 + Math.sin(angle) * 8,
-				vx: Math.cos(angle) * SHOT_SPEED,
-				vy: Math.sin(angle) * SHOT_SPEED,
-				until: world.time + 0.8,
-				damage: gunStats.damage,
-				pierce: gunStats.pierce,
-				radius: 1.5,
-				weapon: "gun",
-				hostile: false,
-				kind: "peppermint",
-				struck: new Set(),
-			});
-		}
-	}
-
-	if (!gunStats.endless) {
-		weapon.ammo -= 1;
-	}
-
-	weapon.readyAt = world.time + gunStats.interval * numbers.cooldown;
-	player.lastShotAt = world.time;
-	events.shots += 1;
 }
 
 /** Hits every enemy for whom `inside` is true, once. */

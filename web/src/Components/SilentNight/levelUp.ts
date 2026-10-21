@@ -8,12 +8,15 @@
 import { heal } from "Components/SilentNight/combat";
 import { MAX_WEAPON_LEVEL, PASSIVE_SLOTS, WEAPON_SLOTS } from "Components/SilentNight/constants";
 import { wear } from "Components/SilentNight/gear";
+import { isGun, morphsOffered } from "Components/SilentNight/guns";
 import { level, PASSIVES, rank, stats } from "Components/SilentNight/stats";
 import {
 	noEvents,
 	type IChoice,
 	type IEvents,
+	type IGunId,
 	type IPassiveId,
+	type IReward,
 	type IWeaponId,
 	type IWorld,
 } from "Components/SilentNight/types";
@@ -36,9 +39,18 @@ function candidates(world: IWorld): Array<{ choice: IChoice; weight: number }> {
 			continue;
 		}
 
+		// A gun's morphs, once it's reached their level: chosen between, so weighted well up.
+		if (carried) {
+			for (const morph of morphsOffered(carried)) {
+				if (!player.banished.includes(morph.id)) {
+					found.push({ choice: { kind: "morph", gun: carried.id as IGunId, id: morph.id }, weight: 2 });
+				}
+			}
+		}
+
 		if (carried && carried.level < MAX_WEAPON_LEVEL) {
 			found.push({ choice: { kind: "weapon", id: info.id, level: carried.level + 1 }, weight: 1.5 });
-		} else if (!carried && player.weapons.length < WEAPON_SLOTS) {
+		} else if (!carried && !isGun(info.id) && player.weapons.length < WEAPON_SLOTS) {
 			found.push({ choice: { kind: "weapon", id: info.id, level: 1 }, weight: 1 });
 		}
 	}
@@ -89,7 +101,9 @@ export function nextLevelUp(world: IWorld) {
 export function take(world: IWorld, choice: IChoice) {
 	const { player } = world;
 
-	if (choice.kind === "weapon") {
+	if (choice.kind === "morph") {
+		player.weapons.find((weapon) => weapon.id === choice.gun)!.morphs.push(choice.id);
+	} else if (choice.kind === "weapon") {
 		const carried = player.weapons.find((weapon) => weapon.id === choice.id);
 
 		if (carried) {
@@ -144,7 +158,7 @@ function finishLevelUp(world: IWorld) {
 /** A chest: evolve what can be evolved, otherwise level things up (more from bosses). */
 export function openChest(world: IWorld, value: number, events: IEvents) {
 	const { player } = world;
-	const rewards: string[] = [];
+	const rewards: IReward[] = [];
 	events.chest = true;
 
 	const evolving = player.weapons.find((weapon) => {
@@ -159,7 +173,11 @@ export function openChest(world: IWorld, value: number, events: IEvents) {
 
 	if (evolving) {
 		evolving.evolved = true;
-		rewards.push(`${weaponInfo(evolving.id).name} evolved into ${weaponInfo(evolving.id).evolution.name}!`);
+		rewards.push({
+			id: evolving.id,
+			text: `${weaponInfo(evolving.id).name} evolved into ${weaponInfo(evolving.id).evolution.name}!`,
+			evolved: true,
+		});
 	}
 
 	const levels = evolving ? value - 1 : value + (Math.random() < 0.15 * (stats(player).luck - 1) ? 1 : 0);
@@ -177,10 +195,16 @@ export function openChest(world: IWorld, value: number, events: IEvents) {
 			})),
 		];
 
+		// Nothing left to level: fruitcake for the rest, as one reward.
 		if (upgradable.length === 0) {
-			heal(world, 30, events);
-			rewards.push("A slice of fruitcake: 30 health");
-			continue;
+			const slices = levels - i;
+			heal(world, 30 * slices, events);
+			rewards.push({
+				id: "fruitcake",
+				text: slices === 1 ? "A slice of fruitcake: 30 health" : `${slices} slices of fruitcake: ${30 * slices} health`,
+				evolved: false,
+			});
+			break;
 		}
 
 		const pick = upgradable[Math.floor(Math.random() * upgradable.length)];
@@ -188,11 +212,19 @@ export function openChest(world: IWorld, value: number, events: IEvents) {
 		if (pick.kind === "weapon") {
 			const weapon = player.weapons.find((carried) => carried.id === pick.id)!;
 			weapon.level += 1;
-			rewards.push(`${weaponInfo(weapon.id as IWeaponId).name}: level ${weapon.level}`);
+			rewards.push({
+				id: weapon.id,
+				text: `${weaponInfo(weapon.id as IWeaponId).name}: level ${weapon.level}`,
+				evolved: false,
+			});
 		} else {
 			const id = pick.id as IPassiveId;
 			player.passives[id] = level(player, id) + 1;
-			rewards.push(`${PASSIVES.find((passive) => passive.id === id)!.name}: level ${player.passives[id]}`);
+			rewards.push({
+				id,
+				text: `${PASSIVES.find((passive) => passive.id === id)!.name}: level ${player.passives[id]}`,
+				evolved: false,
+			});
 		}
 	}
 

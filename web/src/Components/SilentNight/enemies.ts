@@ -65,7 +65,7 @@ export const ENEMIES: Record<IEnemyKind, IEnemyInfo> = {
 	mouseKing: {
 		kind: "mouseKing",
 		name: "The Mouse King",
-		health: 1600,
+		health: 2000,
 		speed: [26, 26],
 		damage: 10,
 		radius: 12,
@@ -75,7 +75,7 @@ export const ENEMIES: Record<IEnemyKind, IEnemyInfo> = {
 	ghost: {
 		kind: "ghost",
 		name: "The Ghost of Christmas Yet to Come",
-		health: 4200,
+		health: 9000,
 		speed: [20, 20],
 		damage: 16,
 		radius: 11,
@@ -85,7 +85,7 @@ export const ENEMIES: Record<IEnemyKind, IEnemyInfo> = {
 	yuleCat: {
 		kind: "yuleCat",
 		name: "The Yule Cat",
-		health: 8500,
+		health: 22000,
 		speed: [34, 34],
 		damage: 18,
 		radius: 13,
@@ -95,7 +95,7 @@ export const ENEMIES: Record<IEnemyKind, IEnemyInfo> = {
 	krampus: {
 		kind: "krampus",
 		name: "Krampus",
-		health: 18000,
+		health: 60000,
 		speed: [28, 28],
 		damage: 20,
 		radius: 14,
@@ -104,9 +104,13 @@ export const ENEMIES: Record<IEnemyKind, IEnemyInfo> = {
 	},
 };
 
-/** Ordinary enemies grow tougher and quicker as the night goes on. */
+/** Ordinary enemies grow tougher, harder-hitting and quicker as the night goes on, faster toward dawn. */
 function toughness(time: number) {
-	return { health: 1 + time / 400, speed: 1 + Math.min(0.4, time / 1500) };
+	return {
+		health: 1 + time / 400 + (time / 500) ** 2 + (time / 700) ** 3,
+		damage: 1 + 0.5 * (time / 600) ** 2,
+		speed: 1 + Math.min(0.5, time / 1200),
+	};
 }
 
 /** Elites: an ordinary enemy grown huge, worth a chest. */
@@ -114,7 +118,7 @@ export const ELITE = { health: 8, damage: 1.5, size: 1.5, experience: 10 };
 
 export function spawnEnemy(world: IWorld, kind: IEnemyKind, x: number, y: number, elite = false): IEnemy {
 	const info = ENEMIES[kind];
-	const tough = info.boss ? { health: 1, speed: 1 } : toughness(world.time);
+	const tough = info.boss ? { health: 1, damage: 1, speed: 1 } : toughness(world.time);
 	// Krampus grows stronger for every bargain the elf took from him.
 	const bargains = kind === "krampus" ? world.player.bargains.length : 0;
 	const health = info.health * tough.health * (elite ? ELITE.health : 1) * (1 + 0.4 * bargains);
@@ -126,7 +130,7 @@ export function spawnEnemy(world: IWorld, kind: IEnemyKind, x: number, y: number
 		health,
 		maxHealth: health,
 		speed: (info.speed[0] + Math.random() * (info.speed[1] - info.speed[0])) * tough.speed,
-		damage: info.damage * (elite ? ELITE.damage : 1) * (1 + 0.15 * bargains),
+		damage: info.damage * tough.damage * (elite ? ELITE.damage : 1) * (1 + 0.15 * bargains),
 		radius: info.radius * (elite ? ELITE.size : 1),
 		facing: 1,
 		hitAt: -1,
