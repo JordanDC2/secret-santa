@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\SilentNightProgress;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -28,19 +29,73 @@ class SilentNightTest extends TestCase
      */
     private function night(array $overrides = []): array
     {
-        return [...['seconds' => 400, 'kills' => 900, 'level' => 20, 'bargains' => 0, 'won' => false], ...$overrides];
+        return [...['seconds' => 400, 'kills' => 900, 'level' => 20, 'bargains' => 0, 'won' => false, 'bosses' => 1], ...$overrides];
     }
 
     public function test_a_finished_night_is_kept(): void
     {
         $user = $this->player();
 
-        $this->postJson(route('silent-night.runs'), $this->night(['won' => true, 'seconds' => 1200, 'bargains' => 2]))->assertNoContent();
+        $this->postJson(route('silent-night.runs'), $this->night(['won' => true, 'seconds' => 1200, 'bargains' => 2]))->assertOk();
 
         $run = $user->silentNightRuns()->sole();
         $this->assertSame(1200, $run->seconds);
         $this->assertSame(2, $run->bargains);
         $this->assertTrue($run->won);
+    }
+
+    public function test_a_night_banks_coal_for_its_time_kills_bosses_and_a_win(): void
+    {
+        $user = $this->player();
+
+        // 400 seconds (20), 900 broken (22), one boss (20).
+        $this->postJson(route('silent-night.runs'), $this->night())
+            ->assertJsonPath('coal_earned', 62)
+            ->assertJsonPath('progress.coal', 62);
+
+        // Dawn: 60 + 200 + 4 bosses (80) + the win (60).
+        $this->postJson(route('silent-night.runs'), $this->night(['seconds' => 1200, 'kills' => 8000, 'bosses' => 4, 'won' => true]))
+            ->assertJsonPath('coal_earned', 400)
+            ->assertJsonPath('progress.coal', 462);
+        $this->assertSame(462, SilentNightProgress::for($user)->coal);
+    }
+
+    public function test_the_coal_cellar_sells_upgrades_a_level_at_a_time_and_unlocks_the_cast(): void
+    {
+        $user = $this->player();
+        SilentNightProgress::for($user)->update(['coal' => 200]);
+
+        $this->getJson(route('silent-night.progress'))
+            ->assertOk()
+            ->assertJsonPath('cast', ['elf'])
+            ->assertJsonPath('character', 'elf')
+            ->assertJsonPath('cellar.wool', 0);
+
+        $this->postJson(route('silent-night.purchases'), ['kind' => 'cellar', 'item' => 'wool'])
+            ->assertOk()
+            ->assertJsonPath('coal', 170)
+            ->assertJsonPath('cellar.wool', 1);
+
+        // Santa: unlocked and picked to play as.
+        $this->postJson(route('silent-night.purchases'), ['kind' => 'cast', 'item' => 'santa'])
+            ->assertJsonPath('coal', 20)
+            ->assertJsonPath('cast', ['elf', 'santa'])
+            ->assertJsonPath('character', 'santa');
+
+        $this->postJson(route('silent-night.purchases'), ['kind' => 'cast', 'item' => 'santa'])->assertJsonValidationErrors('item');
+        $this->postJson(route('silent-night.purchases'), ['kind' => 'cellar', 'item' => 'canes'])->assertJsonValidationErrors('item');
+        $this->postJson(route('silent-night.purchases'), ['kind' => 'cellar', 'item' => 'sleigh'])->assertJsonValidationErrors('item');
+
+        $this->patchJson(route('silent-night.character'), ['character' => 'elf'])->assertJsonPath('character', 'elf');
+        $this->patchJson(route('silent-night.character'), ['character' => 'reindeer'])->assertJsonValidationErrors('character');
+    }
+
+    public function test_a_cellar_upgrade_stops_at_its_last_level(): void
+    {
+        $user = $this->player();
+        SilentNightProgress::for($user)->update(['coal' => 10000, 'cellar' => ['boots' => 3]]);
+
+        $this->postJson(route('silent-night.purchases'), ['kind' => 'cellar', 'item' => 'boots'])->assertJsonValidationErrors('item');
     }
 
     public function test_nights_past_dawn_or_with_more_bargains_than_krampus_has_are_refused(): void
@@ -51,17 +106,18 @@ class SilentNightTest extends TestCase
         $this->postJson(route('silent-night.runs'), $this->night(['bargains' => 6]))->assertJsonValidationErrors('bargains');
         $this->postJson(route('silent-night.runs'), $this->night(['level' => 0]))->assertJsonValidationErrors('level');
         $this->postJson(route('silent-night.runs'), $this->night(['kills' => -1]))->assertJsonValidationErrors('kills');
+        $this->postJson(route('silent-night.runs'), $this->night(['bosses' => 5]))->assertJsonValidationErrors('bosses');
     }
 
     public function test_the_boards_rank_each_players_best_this_week_and_all_time(): void
     {
         $nick = $this->player(['first_name' => 'Nick', 'last_name' => 'Frost']);
-        $this->postJson(route('silent-night.runs'), $this->night(['seconds' => 1100, 'kills' => 5000]))->assertNoContent();
+        $this->postJson(route('silent-night.runs'), $this->night(['seconds' => 1100, 'kills' => 5000]))->assertOk();
         $this->travel(8)->days();
 
         $holly = $this->player(['first_name' => 'Holly', 'last_name' => 'Berry']);
-        $this->postJson(route('silent-night.runs'), $this->night(['seconds' => 300, 'kills' => 700]))->assertNoContent();
-        $this->postJson(route('silent-night.runs'), $this->night(['seconds' => 650, 'kills' => 400]))->assertNoContent();
+        $this->postJson(route('silent-night.runs'), $this->night(['seconds' => 300, 'kills' => 700]))->assertOk();
+        $this->postJson(route('silent-night.runs'), $this->night(['seconds' => 650, 'kills' => 400]))->assertOk();
 
         // Nick's night was last week: only Holly's best this week, both all time.
         $this->getJson(route('silent-night.leaderboard', ['board' => 'night', 'period' => 'week']))
@@ -84,10 +140,10 @@ class SilentNightTest extends TestCase
     public function test_nights_that_both_reach_dawn_rank_by_the_most_broken(): void
     {
         $this->player(['first_name' => 'Nick', 'last_name' => 'Frost']);
-        $this->postJson(route('silent-night.runs'), $this->night(['seconds' => 1200, 'kills' => 6000, 'won' => true]))->assertNoContent();
+        $this->postJson(route('silent-night.runs'), $this->night(['seconds' => 1200, 'kills' => 6000, 'won' => true]))->assertOk();
 
         $this->player(['first_name' => 'Holly', 'last_name' => 'Berry']);
-        $this->postJson(route('silent-night.runs'), $this->night(['seconds' => 1200, 'kills' => 8000]))->assertNoContent();
+        $this->postJson(route('silent-night.runs'), $this->night(['seconds' => 1200, 'kills' => 8000]))->assertOk();
 
         $this->getJson(route('silent-night.leaderboard', ['board' => 'night', 'period' => 'all']))
             ->assertJsonPath('entries.0.name', 'Holly B.')
@@ -100,11 +156,11 @@ class SilentNightTest extends TestCase
     public function test_krampus_board_counts_only_nights_won_even_without_bargains(): void
     {
         $this->player(['first_name' => 'Nick', 'last_name' => 'Frost']);
-        $this->postJson(route('silent-night.runs'), $this->night(['seconds' => 1200, 'won' => true]))->assertNoContent();
+        $this->postJson(route('silent-night.runs'), $this->night(['seconds' => 1200, 'won' => true]))->assertOk();
 
         $this->player(['first_name' => 'Holly', 'last_name' => 'Berry']);
-        $this->postJson(route('silent-night.runs'), $this->night(['seconds' => 1200, 'bargains' => 5]))->assertNoContent();
-        $this->postJson(route('silent-night.runs'), $this->night(['seconds' => 1200, 'bargains' => 3, 'won' => true]))->assertNoContent();
+        $this->postJson(route('silent-night.runs'), $this->night(['seconds' => 1200, 'bargains' => 5]))->assertOk();
+        $this->postJson(route('silent-night.runs'), $this->night(['seconds' => 1200, 'bargains' => 3, 'won' => true]))->assertOk();
 
         $this->getJson(route('silent-night.leaderboard', ['board' => 'krampus', 'period' => 'all']))
             ->assertJsonCount(2, 'entries')
@@ -127,5 +183,6 @@ class SilentNightTest extends TestCase
     {
         $this->postJson(route('silent-night.runs'), $this->night())->assertUnauthorized();
         $this->getJson(route('silent-night.leaderboard', ['board' => 'night', 'period' => 'all']))->assertUnauthorized();
+        $this->getJson(route('silent-night.progress'))->assertUnauthorized();
     }
 }

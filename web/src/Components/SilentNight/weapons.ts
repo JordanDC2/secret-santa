@@ -185,8 +185,8 @@ export function gunNumbers(weapon: IWeapon) {
 	};
 }
 
-export function newWeapon(id: IWeaponId): IWeapon {
-	const weapon: IWeapon = { id, level: 1, evolved: false, readyAt: 0, ammo: 0, reloadUntil: null, damage: 0 };
+export function newWeapon(id: IWeaponId, level = 1): IWeapon {
+	const weapon: IWeapon = { id, level, evolved: false, readyAt: 0, ammo: 0, reloadUntil: null, damage: 0 };
 	weapon.ammo = gunNumbers(weapon).magazine;
 
 	return weapon;
@@ -251,7 +251,7 @@ function gun(world: IWorld, weapon: IWeapon, input: IInput, numbers: IStats, eve
 		weapon.reloadUntil === null &&
 		(weapon.ammo <= 0 || (input.reload && weapon.ammo < gunStats.magazine))
 	) {
-		weapon.reloadUntil = world.time + gunStats.reload;
+		weapon.reloadUntil = world.time + gunStats.reload * world.numbers.reload;
 	}
 
 	if (!input.firing || !input.aim || weapon.reloadUntil !== null || world.time < weapon.readyAt) {
@@ -475,7 +475,7 @@ function globes(world: IWorld, weapon: IWeapon, numbers: IStats) {
 		return;
 	}
 
-	const lasts = (3 + (level >= 6 ? 1.5 : 0)) * (evolved ? 1000 : 1);
+	const lasts = (4 + (level >= 6 ? 1.5 : 0)) * (evolved ? 1000 : 1);
 
 	for (let i = 0; i < count; i++) {
 		world.allies.push({
@@ -490,7 +490,7 @@ function globes(world: IWorld, weapon: IWeapon, numbers: IStats) {
 		});
 	}
 
-	weapon.readyAt = world.time + lasts + 2.5 * numbers.cooldown;
+	weapon.readyAt = world.time + lasts + 2 * numbers.cooldown;
 }
 
 function bells(world: IWorld, weapon: IWeapon, grid: IGrid, numbers: IStats, events: IEvents) {
@@ -724,7 +724,7 @@ export function moveAllies(world: IWorld, grid: IGrid, dt: number, events: IEven
 		}
 
 		if (ally.kind === "globe" && globeWeapon) {
-			const radius = 30 * (1 + 0.2 * past(globeWeapon.level, 4)) * numbers.area;
+			const radius = 24 * (1 + 0.25 * past(globeWeapon.level, 4)) * numbers.area;
 			ally.angle += (globeWeapon.level >= 8 ? 4 : 3) * dt;
 			ally.x = player.x + Math.cos(ally.angle) * radius;
 			ally.y = player.y - 6 + Math.sin(ally.angle) * radius;

@@ -354,6 +354,17 @@
 	line-height: 1.35;
 }
 
+/* The gear already worn, beside a new piece: for comparing, not choosing. */
+.worn {
+	border-style: dashed;
+	cursor: default;
+
+	&:hover {
+		background-color: rgba(14, 8, 16, 0.92);
+		border-color: #6e460e;
+	}
+}
+
 .bargain {
 	border-color: #781323;
 
@@ -452,6 +463,17 @@
 	.card {
 		width: auto;
 		min-height: 0;
+		gap: 2px;
+		padding: 6px 10px;
+	}
+
+	.cardName {
+		font-size: 15px;
+	}
+
+	.cardText {
+		gap: 0;
+		font-size: 13px;
 	}
 }
 
@@ -570,4 +592,131 @@
 	gap: 4px 12px;
 	max-width: 520px;
 	font-size: 13px;
+}
+
+/* The menu before a night: who plays, and the Coal Cellar. */
+.menu {
+	background-color: rgba(3, 2, 8, 0.85);
+}
+
+.menuBar {
+	display: flex;
+	align-items: center;
+	gap: 16px;
+}
+
+.coal {
+	font-family: "IM Fell English SC", Georgia, serif;
+	font-size: 18px;
+	color: #f0b44c;
+}
+
+.castRow {
+	display: flex;
+	justify-content: center;
+	gap: 8px;
+	width: min(100%, 640px);
+}
+
+.castCard {
+	display: flex;
+	flex: 1 1 0;
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+	min-width: 0;
+	padding: 6px 4px;
+	border: 2px solid #3a2408;
+	border-radius: 4px;
+	background-color: rgba(14, 8, 16, 0.92);
+	color: #e9e1d4;
+	font: inherit;
+	cursor: pointer;
+
+	&:hover:not(:disabled),
+	&:focus-visible {
+		border-color: #a87018;
+	}
+
+	&:disabled {
+		cursor: default;
+		opacity: 0.55;
+	}
+}
+
+.chosen {
+	border-color: #ffd060;
+	background-color: rgba(40, 22, 30, 0.95);
+}
+
+.castImage {
+	height: 66px;
+	image-rendering: pixelated;
+}
+
+.locked {
+	filter: brightness(0.25);
+}
+
+.castName {
+	font-family: "IM Fell English SC", Georgia, serif;
+	font-size: 14px;
+	white-space: nowrap;
+}
+
+.castPrice {
+	font-size: 11px;
+	color: #f0b44c;
+}
+
+.castPerk {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 14px;
+}
+
+.cellar {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	width: min(100%, 560px);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+
+	li {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		font-size: 14px;
+	}
+}
+
+.cellarName {
+	flex: 1;
+	text-align: left;
+}
+
+.pips {
+	color: #f0b44c;
+	letter-spacing: 1px;
+}
+
+@container (max-height: 420px) {
+	.castImage {
+		height: 40px;
+	}
+
+	.castName {
+		font-size: 12px;
+	}
+
+	.cellar {
+		gap: 2px;
+
+		li {
+			font-size: 12px;
+		}
+	}
 }

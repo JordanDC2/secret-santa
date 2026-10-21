@@ -259,7 +259,7 @@ export function moveEnemies(world: IWorld, grid: IGrid, dt: number, events: IEve
 		enemy.facing = dx >= 0 ? 1 : -1;
 
 		if (Math.hypot(enemy.x - player.x, enemy.y - player.y) < PLAYER_RADIUS + enemy.radius) {
-			hurtPlayer(world, enemy.damage, events);
+			hurtPlayer(world, enemy.damage, events, enemy);
 		}
 	}
 }
@@ -483,6 +483,6 @@ function moveBoss(world: IWorld, boss: IEnemy, dt: number, events: IEvents) {
 
 function touch(world: IWorld, enemy: IEnemy, events: IEvents) {
 	if (Math.hypot(enemy.x - world.player.x, enemy.y - world.player.y) < PLAYER_RADIUS + enemy.radius) {
-		hurtPlayer(world, enemy.damage, events);
+		hurtPlayer(world, enemy.damage, events, enemy);
 	}
 }

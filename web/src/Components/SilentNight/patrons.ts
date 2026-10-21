@@ -9,6 +9,7 @@
 
 import { BARGAINS } from "Components/SilentNight/bargains";
 import { lowestWeapon } from "Components/SilentNight/combat";
+import { newGear, wear } from "Components/SilentNight/gear";
 import { MAX_WEAPON_LEVEL } from "Components/SilentNight/constants";
 import { nextLevelUp } from "Components/SilentNight/levelUp";
 import { rank, stats } from "Components/SilentNight/stats";
@@ -37,7 +38,7 @@ export const PATRONS: Record<IPatronId, IPatron> = {
 		name: "Christkind",
 		from: "Germany and Austria",
 		line: "No harm shall find you that I can turn aside.",
-		colour: "#f2e6c8",
+		colour: "#c9b2f2",
 	},
 	yuleLads: {
 		id: "yuleLads",
@@ -271,7 +272,12 @@ export function visitShrines(world: IWorld, events: IEvents) {
 
 	if (reached.kind === "altar") {
 		const open = BARGAINS.filter((bargain) => !world.player.bargains.includes(bargain.id));
-		world.prompt = { kind: "altar", choices: shuffle(open.map((bargain) => bargain.id)).slice(0, 2) };
+		// Two bargains, and a cursed piece of gear: strong, with a price of its own.
+		world.prompt = {
+			kind: "altar",
+			choices: shuffle(open.map((bargain) => bargain.id)).slice(0, 2),
+			gear: newGear(world.numbers.luck, true, true),
+		};
 
 		return;
 	}
@@ -334,6 +340,15 @@ export function takeBlessing(world: IWorld, id: string) {
 		}
 		default:
 			break;
+	}
+
+	closeShrine(world);
+}
+
+/** Krampus's cursed gear, put on. */
+export function takeCursedGear(world: IWorld) {
+	if (world.prompt?.kind === "altar" && world.prompt.gear) {
+		wear(world.player, world.prompt.gear);
 	}
 
 	closeShrine(world);

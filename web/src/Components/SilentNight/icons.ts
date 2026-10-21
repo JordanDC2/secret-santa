@@ -5,9 +5,9 @@
 
 import { Pen } from "Components/SilentNight/characters";
 import { OUTLINE, RAMPS, RIMS } from "Components/SilentNight/palette";
-import type { IPassiveId, IWeaponId } from "Components/SilentNight/types";
+import type { IGearSlot, IPassiveId, IWeaponId } from "Components/SilentNight/types";
 
-type IIconId = IWeaponId | IPassiveId;
+type IIconId = IWeaponId | IPassiveId | IGearSlot;
 
 const DRAWINGS: Record<IIconId, (p: Pen) => void> = {
 	gun(p) {
@@ -142,6 +142,40 @@ const DRAWINGS: Record<IIconId, (p: Pen) => void> = {
 		p.d(9, 5, "white", 0.8);
 		p.d(8, 6, "white", 0.85);
 		p.l(8, 1, 8, 3, 0.6, 0.6, "red", 0.2);
+	},
+	hat(p) {
+		p.e(8, 9, 5.5, 4.6, 0, "red", 0.1);
+		p.r(2, 10, 12, 3, "white", 0.55);
+		p.e(8, 3.4, 2.2, 2.2, 0, "white", 0.7);
+	},
+	scarf(p) {
+		p.l(3, 5, 13, 5, 2, 2, "green", 0.15);
+		p.l(10, 6, 11, 14, 2, 1.8, "green", 0.1);
+
+		for (const [x, y] of [
+			[5, 5],
+			[9, 5],
+			[11, 9],
+			[11, 12],
+		]) {
+			p.d(x, y, "red", 0.5);
+		}
+	},
+	mittens(p) {
+		p.e(8, 8, 4, 4.6, 0, "red", 0.1);
+		p.e(4, 7, 1.6, 2.4, -0.5, "red", 0.15);
+		p.r(4, 12, 8, 2.6, "white", 0.55);
+	},
+	boots(p) {
+		p.l(6, 3, 6, 11, 3, 3, "cookie", 0.15);
+		p.l(6, 11, 12, 12, 3, 2.6, "cookie", 0.1);
+		p.r(3, 3, 6, 2, "white", 0.6);
+	},
+	charm(p) {
+		p.e(8, 8, 4.4, 4.6, 0, "steel", 0.2);
+		p.d(8, 12, "steel", 0.8);
+		p.l(8, 1, 8, 4, 0.6, 0.6, "red", 0.3);
+		p.d(6, 6, "white", 0.9);
 	},
 	candle(p) {
 		p.r(5.5, 6, 5, 9, "white", 0.5);

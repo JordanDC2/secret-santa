@@ -1,6 +1,7 @@
 /**
  * What the elf picks up: crystals of frost (experience), mugs of cocoa (health), the Christmas
- * star (pulls in every crystal there is), and chests from elites and bosses. Things within the
+ * star (pulls in every crystal there is), and chests and gear from elites and bosses (gear waits
+ * for the player to choose whether to wear it). Things within the
  * elf's reach (stats.ts) fly to it. Too many crystals lying about merge into big ones.
  */
 
@@ -23,7 +24,7 @@ export function movePickups(world: IWorld, dt: number, events: IEvents) {
 		const dy = player.y - 4 - pickup.y;
 		const distance = Math.hypot(dx, dy);
 
-		if (pickup.kind !== "chest" && distance < reach) {
+		if (pickup.kind !== "chest" && pickup.kind !== "gear" && distance < reach) {
 			pickup.pulled = true;
 		}
 
@@ -37,7 +38,12 @@ export function movePickups(world: IWorld, dt: number, events: IEvents) {
 			return true;
 		}
 
-		collect(world, pickup.kind, pickup.value, events);
+		if (pickup.gear) {
+			world.prompt = { kind: "gear", gear: pickup.gear };
+			events.chest = true;
+		} else {
+			collect(world, pickup.kind, pickup.value, events);
+		}
 
 		return false;
 	});
@@ -63,7 +69,7 @@ function collect(world: IWorld, kind: string, value: number, events: IEvents) {
 
 			break;
 		case "cocoa":
-			heal(world, value, events);
+			heal(world, value * world.numbers.cocoa, events);
 			break;
 		case "star":
 			for (const pickup of world.pickups) {

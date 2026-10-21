@@ -541,6 +541,8 @@ export type ICharacterSprites = {
 	cocoa: HTMLCanvasElement;
 	star: HTMLCanvasElement;
 	chest: HTMLCanvasElement;
+	/** Gear, lying in the snow: a parcel in brown paper, tied with string. */
+	gear: HTMLCanvasElement;
 	shrine: HTMLCanvasElement;
 	altar: HTMLCanvasElement;
 };
@@ -676,6 +678,13 @@ export function makeCharacters(): ICharacterSprites {
 			p.r(0, 6, 12, 1, "gold", 0.5);
 			p.e(4.4, 1.2, 1.6, 1.1, -0.4, "gold", 0.2);
 			p.e(7.6, 1.2, 1.6, 1.1, 0.4, "gold", 0.3);
+		}),
+		gear: small(10, 9, (p) => {
+			p.r(1, 2, 8, 7, "cookie", 0.45);
+			p.r(4.5, 2, 1, 7, "white", 0.6);
+			p.r(1, 5, 8, 1, "white", 0.55);
+			p.d(4, 1, "white", 0.7);
+			p.d(5, 1, "white", 0.6);
 		}),
 		shrine: small(16, 24, (p) => {
 			p.r(2, 21, 12, 3, "stone", 0.3);

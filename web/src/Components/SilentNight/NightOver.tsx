@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
 import { Button } from "@mantine/core";
 import { bargainInfo } from "Components/SilentNight/bargains";
+import { RARITY_COLOURS } from "Components/SilentNight/gear";
 import { iconUrl } from "Components/SilentNight/icons";
 import { blessingInfo, PATRONS } from "Components/SilentNight/patrons";
 import type { IPatronId, IWorld } from "Components/SilentNight/types";
@@ -15,13 +15,14 @@ export function clock(seconds: number): string {
 
 type INightOverProps = {
 	world: IWorld;
+	/** The coal the night earned, once it's saved. */
+	coalEarned: number | null;
 	onAgain: () => void;
-	/** The night's place on the boards, once it's saved. */
-	children?: ReactNode;
+	onMenu: () => void;
 };
 
 /** The night's end, won or lost: how long, how many, what the elf carried, and what each weapon did. */
-export default function NightOver({ world, onAgain, children }: INightOverProps) {
+export default function NightOver({ world, coalEarned, onAgain, onMenu }: INightOverProps) {
 	const { player } = world;
 	const most = Math.max(1, ...player.weapons.map((weapon) => weapon.damage));
 	const blessings = Object.entries(player.blessings);
@@ -77,8 +78,24 @@ export default function NightOver({ world, onAgain, children }: INightOverProps)
 					))}
 				</p>
 			)}
-			{children}
-			<Button onClick={onAgain}>Another night</Button>
+			{Object.keys(player.gear).length > 0 && (
+				<p className={classes.blessings}>
+					{Object.values(player.gear).map((piece) => (
+						<span key={piece.slot} style={{ color: RARITY_COLOURS[piece.rarity] }}>
+							{piece.name}
+						</span>
+					))}
+				</p>
+			)}
+			<p className={classes.coal}>
+				{coalEarned === null ? "Counting your coal..." : `+${coalEarned.toLocaleString()} coal`}
+			</p>
+			<div className={classes.promptButtons}>
+				<Button onClick={onAgain}>Another night</Button>
+				<Button variant="subtle" onClick={onMenu}>
+					Back to the menu
+				</Button>
+			</div>
 		</div>
 	);
 }

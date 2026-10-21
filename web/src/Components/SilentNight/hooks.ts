@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ICastId } from "Components/SilentNight/types";
 import { apiClient } from "Data/Api/Client";
 
 export type ILeaderboardBoard = "night" | "krampus" | "kills";
@@ -16,17 +17,52 @@ type ILeaderboardResponse = {
 };
 
 /** A finished night, as the server keeps it. */
-export type IRun = { seconds: number; kills: number; level: number; bargains: number; won: boolean };
+export type IRun = { seconds: number; kills: number; level: number; bargains: number; won: boolean; bosses: number };
 
+/** What's kept between nights: coal, the Coal Cellar's levels, who's unlocked and who was last played. */
+export type IProgress = { coal: number; cellar: Record<string, number>; cast: ICastId[]; character: ICastId };
+
+const PROGRESS_KEY = ["silent-night", "progress"];
 const LEADERBOARD_KEY = ["silent-night", "leaderboard"];
 
-/** A finished night, kept for the leaderboards (which then show it). */
+export function useProgressQuery() {
+	return useQuery({
+		queryKey: PROGRESS_KEY,
+		queryFn: () => apiClient.get<IProgress>("/silent-night/progress"),
+	});
+}
+
+/** Buying in the Coal Cellar: an upgrade's next level, or one of the cast unlocked. */
+export function useBuyMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (purchase: { kind: "cellar" | "cast"; item: string }) =>
+			apiClient.post<IProgress>("/silent-night/purchases", purchase),
+		onSuccess: (progress) => queryClient.setQueryData(PROGRESS_KEY, progress),
+	});
+}
+
+/** Who to play as (remembered for next time). */
+export function useChooseCharacterMutation() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (character: ICastId) => apiClient.patch<IProgress>("/silent-night/progress/character", { character }),
+		onSuccess: (progress) => queryClient.setQueryData(PROGRESS_KEY, progress),
+	});
+}
+
+/** A finished night, kept for the leaderboards (which then show it), and its coal banked. */
 export function useRecordRunMutation() {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: (run: IRun) => apiClient.post("/silent-night/runs", run),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: LEADERBOARD_KEY }),
+		mutationFn: (run: IRun) => apiClient.post<{ coal_earned: number; progress: IProgress }>("/silent-night/runs", run),
+		onSuccess: (result) => {
+			queryClient.setQueryData(PROGRESS_KEY, result.progress);
+			queryClient.invalidateQueries({ queryKey: LEADERBOARD_KEY });
+		},
 	});
 }
 

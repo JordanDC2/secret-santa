@@ -8,9 +8,10 @@
 
 import { PROP_CELL, propAt, snuffed } from "Components/SilentNight/candles";
 import type { IEnemyArt } from "Components/SilentNight/characters";
+import { RARITY_COLOURS } from "Components/SilentNight/gear";
 import { PATRONS } from "Components/SilentNight/patrons";
 import { hash, threshold } from "Components/SilentNight/pixelArt";
-import { CANDLE_LIGHT_RADIUS, ELF_FEET, GUN_GRIP, LIGHT_RADIUS, type ISprites } from "Components/SilentNight/sprites";
+import { CANDLE_LIGHT_RADIUS, CAST_FEET, GUN_GRIP, LIGHT_RADIUS, type ISprites } from "Components/SilentNight/sprites";
 import type { IEffect, IEnemy, IWorld } from "Components/SilentNight/types";
 import { cocoaReach } from "Components/SilentNight/weapons";
 import { dashing } from "Components/SilentNight/world";
@@ -136,8 +137,14 @@ export function drawWorld(
 		const bob = pickup.kind === "chest" ? 0 : Math.round(Math.sin(time * 4 + pickup.id));
 		context.drawImage(image, sx(pickup.x) - Math.floor(image.width / 2), sy(pickup.y) - image.height + bob);
 
-		if (pickup.kind === "chest" || pickup.kind === "star") {
+		if (pickup.kind === "chest" || pickup.kind === "star" || pickup.kind === "gear") {
 			glows.push({ x: pickup.x, y: pickup.y - 4, radius: 16 });
+		}
+
+		// Gear: a spark over it in its rarity's colour.
+		if (pickup.gear) {
+			context.fillStyle = RARITY_COLOURS[pickup.gear.rarity];
+			context.fillRect(sx(pickup.x), sy(pickup.y) - image.height - 3 - Math.round(Math.sin(time * 3) + 1), 1, 2);
 		}
 	}
 
@@ -611,9 +618,13 @@ function drawElf(context: CanvasRenderingContext2D, world: IWorld, sprites: ISpr
 		return;
 	}
 
-	const image = sprites.elf[player.facing === 1 ? "right" : "left"][player.moving ? Math.floor(time * 8) % 2 : 1];
-	const x = sx(player.x) - ELF_FEET.x;
-	const y = sy(player.y) - ELF_FEET.y;
+	const image =
+		sprites.cast[player.character][player.facing === 1 ? "right" : "left"][
+			player.moving ? Math.floor(time * 8) % 2 : 1
+		];
+	const feet = CAST_FEET[player.character];
+	const x = sx(player.x) - (player.facing === 1 ? feet.x : image.width - feet.x);
+	const y = sy(player.y) - feet.y;
 
 	if (dashing(world)) {
 		context.globalAlpha = 0.3;

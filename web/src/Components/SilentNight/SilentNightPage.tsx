@@ -7,7 +7,13 @@ import { useWakeLock } from "Components/ElfFling/useWakeLock";
 import BackToGroups from "Components/Layout/BackToGroups";
 import Page from "Components/Layout/Page";
 import PageTitle from "Components/Layout/PageTitle";
-import { useRecordRunMutation } from "Components/SilentNight/hooks";
+import LoadingText from "Components/Common/LoadingText";
+import {
+	useBuyMutation,
+	useChooseCharacterMutation,
+	useProgressQuery,
+	useRecordRunMutation,
+} from "Components/SilentNight/hooks";
 import SilentNightGame from "Components/SilentNight/SilentNightGame";
 import SilentNightLeaderboard from "Components/SilentNight/SilentNightLeaderboard";
 import { apiErrorMessage } from "Data/Api/Client";
@@ -16,14 +22,19 @@ import classes from "Components/SilentNight/SilentNight.module.less";
 /**
  * Silent Night: the longest night of the year, and Krampus's horde has come. Hold out until
  * dawn, with the patrons' blessings (and, if you dare, Krampus's bargains), and beat him when he
- * comes for you himself. Each night is kept for the leaderboards.
+ * comes for you himself. Each night is kept for the leaderboards and earns coal, spent in the
+ * Coal Cellar (in the game's menu) on upgrades and the rest of the cast.
  */
 export default function SilentNightPage() {
 	const stageRef = useRef<HTMLDivElement>(null);
 	const { fullscreen, enter, exit } = useFullscreen(stageRef);
 	const touchScreen = useTouchScreen();
 	useWakeLock(fullscreen && touchScreen);
+	const progressQuery = useProgressQuery();
 	const recordRun = useRecordRunMutation();
+	const buy = useBuyMutation();
+	const choose = useChooseCharacterMutation();
+	const menuError = buy.error ?? choose.error;
 
 	return (
 		<Page>
@@ -31,17 +42,33 @@ export default function SilentNightPage() {
 				<BackToGroups to="/games" label="Back to games" />
 				<PageTitle icon={<GiftBoxIcon />}>Silent Night</PageTitle>
 				<MantineText>
-					The longest night of the year, and Krampus&apos;s horde has come out of the dark. Keep the elf alive in its
-					ring of light until dawn, when Krampus comes for it himself. Patrons from Christmases around the world will
-					bless you at their shrines; Krampus will offer you bargains at his altars.
+					The longest night of the year, and Krampus&apos;s horde has come out of the dark. Stay alive in your ring of
+					light until dawn, when Krampus comes for you himself. Patrons from Christmases around the world will bless you
+					at their shrines; Krampus will offer you bargains at his altars. Every night earns coal for the Coal Cellar.
 				</MantineText>
-				<div ref={stageRef} className={fullscreen ? `${classes.stage} ${classes.fullscreen}` : classes.stage}>
-					<SilentNightGame
-						fullscreen={fullscreen}
-						onToggleFullscreen={fullscreen ? exit : enter}
-						onNightOver={(run) => recordRun.mutate(run)}
-					/>
-				</div>
+				{progressQuery.isPending && <LoadingText>Loading Silent Night...</LoadingText>}
+				{progressQuery.isError && <Alert color="red">{apiErrorMessage(progressQuery.error)}</Alert>}
+				{progressQuery.data && (
+					<div ref={stageRef} className={fullscreen ? `${classes.stage} ${classes.fullscreen}` : classes.stage}>
+						<SilentNightGame
+							fullscreen={fullscreen}
+							onToggleFullscreen={fullscreen ? exit : enter}
+							progress={progressQuery.data}
+							busy={buy.isPending || choose.isPending}
+							error={menuError ? apiErrorMessage(menuError) : null}
+							onBuy={(purchase) => {
+								choose.reset();
+								buy.mutate(purchase);
+							}}
+							onChoose={(character) => {
+								buy.reset();
+								choose.mutate(character);
+							}}
+							onNightOver={(run) => recordRun.mutate(run)}
+							coalEarned={recordRun.isPending ? null : (recordRun.data?.coal_earned ?? null)}
+						/>
+					</div>
+				)}
 				{recordRun.isError && (
 					<Alert color="red">Your night couldn&apos;t be saved: {apiErrorMessage(recordRun.error)}</Alert>
 				)}

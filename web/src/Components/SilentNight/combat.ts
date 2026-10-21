@@ -6,6 +6,7 @@
  */
 
 import { CELL, ENEMY_KINDS, PLAYER_RADIUS } from "Components/SilentNight/constants";
+import { newGear } from "Components/SilentNight/gear";
 import { bargain, byRank, rank } from "Components/SilentNight/stats";
 import type { IEnemy, IEvents, IVector, IWeaponId, IWorld } from "Components/SilentNight/types";
 
@@ -257,6 +258,7 @@ function kill(world: IWorld, grid: IGrid, enemy: IEnemy, events: IEvents) {
 		});
 	}
 
+	// Elites and bosses leave a chest; bosses a piece of gear beside it, and elites half the time.
 	if (enemy.elite || enemy.boss) {
 		world.pickups.push({
 			id: world.nextId++,
@@ -267,6 +269,23 @@ function kill(world: IWorld, grid: IGrid, enemy: IEnemy, events: IEvents) {
 			pulled: false,
 			at: world.time,
 		});
+	}
+
+	if (enemy.boss || (enemy.elite && Math.random() < 0.5)) {
+		world.pickups.push({
+			id: world.nextId++,
+			kind: "gear",
+			x: enemy.x + 14,
+			y: enemy.y,
+			value: 0,
+			pulled: false,
+			at: world.time,
+			gear: newGear(world.numbers.luck, enemy.boss),
+		});
+	}
+
+	if (enemy.boss) {
+		world.bosses += 1;
 	}
 
 	// Saint Lucia's spreading flame.
@@ -320,9 +339,15 @@ export function dropCrystal(world: IWorld, x: number, y: number, value: number) 
 	});
 }
 
-/** An enemy (or its shot, or a boss's attack) hurts the elf, unless it's safe. */
-export function hurtPlayer(world: IWorld, amount: number, events: IEvents) {
+/** An enemy (or its shot, or a boss's attack) hurts the elf, unless it's safe. `from`: the enemy that touched it. */
+export function hurtPlayer(world: IWorld, amount: number, events: IEvents, from?: IEnemy) {
 	const { player } = world;
+
+	// The snowman's cold to the touch.
+	if (from && player.character === "snowman") {
+		from.slowUntil = world.time + 2;
+		from.slow = Math.max(from.slow, 0.5);
+	}
 
 	if (world.time < player.dashUntil || world.time < player.hurtUntil) {
 		return;

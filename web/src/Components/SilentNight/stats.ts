@@ -1,10 +1,12 @@
 /**
  * The elf's numbers, worked out from everything it's picked up: passives from level-ups, the
- * patrons' blessings (patrons.ts) and Krampus's bargains (bargains.ts). Everything that asks
+ * patrons' blessings (patrons.ts), Krampus's bargains (bargains.ts) and gear (gear.ts); and
+ * from who's playing (cast.ts) and the Coal Cellar. Everything that asks
  * "how fast", "how hard" or "how far" asks here.
  */
 
-import type { IPassiveId, IPlayer } from "Components/SilentNight/types";
+import { gearTotal, wearing } from "Components/SilentNight/gear";
+import type { IGearStat, IPassiveId, IPlayer } from "Components/SilentNight/types";
 
 export type IPassive = { id: IPassiveId; name: string; description: string; maxLevel: number; effect: string };
 
@@ -95,6 +97,10 @@ export type IStats = {
 	experience: number;
 	healing: number;
 	dashCooldown: number;
+	/** How long the gun takes to reload (the elf's quick hands). */
+	reload: number;
+	/** How much cocoa heals (Mrs. Claus's home cooking). */
+	cocoa: number;
 };
 
 const BASE_HEALTH = 100;
@@ -118,33 +124,57 @@ export const byRank = (player: IPlayer, id: string, values: [number, number, num
 	rank(player, id) === 0 ? 0 : values[rank(player, id) - 1];
 
 export function stats(player: IPlayer): IStats {
+	const { character } = player;
+	const cellar = (id: string) => player.cellar[id] ?? 0;
+	const gear = (stat: IGearStat) => gearTotal(player, stat);
 	const maxHealth =
-		(BASE_HEALTH + 20 * level(player, "fruitcake") + byRank(player, "rooted", [10, 20, 30])) *
+		(BASE_HEALTH +
+			20 * level(player, "fruitcake") +
+			byRank(player, "rooted", [10, 20, 30]) +
+			10 * cellar("wool") +
+			(character === "santa" ? 30 : 0) +
+			gear("maxHealth")) *
 		(bargain(player, "naughtyList") ? 0.7 : 1);
-	const luck = 1 + 0.1 * level(player, "mistletoe");
+	const luck = 1 + 0.1 * level(player, "mistletoe") + gear("luck");
 
 	return {
-		maxHealth,
-		speed: 1 + 0.1 * level(player, "woolSocks"),
-		damage: (1 + 0.1 * level(player, "peppermint")) * (bargain(player, "birchRod") ? 2 : 1),
-		area: 1 + 0.1 * level(player, "tinsel"),
-		cooldown: 1 - 0.08 * level(player, "eggnog"),
-		projectiles: level(player, "sleighBells"),
-		reach: BASE_REACH * (1 + 0.25 * level(player, "stocking")),
+		maxHealth: Math.max(10, maxHealth),
+		speed:
+			(1 + 0.1 * level(player, "woolSocks") + 0.04 * cellar("boots") + gear("speed")) *
+			(character === "reindeer" ? 1.12 : 1),
+		damage:
+			(1 + 0.1 * level(player, "peppermint") + 0.05 * cellar("canes") + gear("damage")) *
+			(bargain(player, "birchRod") ? 2 : 1),
+		area: 1 + 0.1 * level(player, "tinsel") + gear("area"),
+		cooldown: Math.max(0.4, 1 - 0.08 * level(player, "eggnog") + gear("cooldown")),
+		projectiles: level(player, "sleighBells") + (wearing(player, "twinStitched") ? 1 : 0),
+		reach: BASE_REACH * (1 + 0.25 * level(player, "stocking") + gear("reach")),
 		luck,
 		light: Math.max(
 			0.5,
 			1 +
 				0.12 * level(player, "candle") +
 				0.2 * rank(player, "crownOfCandles") -
-				(bargain(player, "krampusBell") ? 0.3 : 0),
+				(bargain(player, "krampusBell") ? 0.3 : 0) +
+				gear("light"),
 		),
-		regen: byRank(player, "grace", [0.6, 1.2, 1.8]),
-		armour: byRank(player, "frostArmour", [0.08, 0.14, 0.2]),
-		vulnerability: bargain(player, "birchRod") ? 2 : 1,
-		crit: 0.05 * luck + byRank(player, "windowPeeper", [0.08, 0.14, 0.2]) + (bargain(player, "naughtyList") ? 0.25 : 0),
-		experience: (1 + 0.25 * rank(player, "smallThings")) * (bargain(player, "sack") ? 1.5 : 1),
-		healing: bargain(player, "chains") ? 0 : 1 + 0.5 * rank(player, "gentleHands"),
-		dashCooldown: bargain(player, "krampusBell") ? 0.5 : 1,
+		regen: byRank(player, "grace", [0.6, 1.2, 1.8]) + gear("regen") + (wearing(player, "mended") ? 0.5 : 0),
+		armour: Math.min(0.6, byRank(player, "frostArmour", [0.08, 0.14, 0.2]) + gear("armour")),
+		vulnerability: (bargain(player, "birchRod") ? 2 : 1) * (1 + gear("vulnerability")),
+		crit:
+			0.05 * luck +
+			byRank(player, "windowPeeper", [0.08, 0.14, 0.2]) +
+			(bargain(player, "naughtyList") ? 0.25 : 0) +
+			gear("crit"),
+		experience: (1 + 0.25 * rank(player, "smallThings") + gear("experience")) * (bargain(player, "sack") ? 1.5 : 1),
+		healing: bargain(player, "chains")
+			? 0
+			: (1 + 0.5 * rank(player, "gentleHands") + (wearing(player, "warmHearted") ? 0.5 : 0)) * (1 + gear("healing")),
+		dashCooldown:
+			(bargain(player, "krampusBell") ? 0.5 : 1) *
+			(wearing(player, "fleetFooted") ? 0.75 : 1) *
+			(character === "reindeer" ? 0.8 : 1),
+		reload: character === "elf" ? 0.7 : 1,
+		cocoa: character === "mrsClaus" ? 1.5 : 1,
 	};
 }

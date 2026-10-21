@@ -8,15 +8,17 @@ import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
 import { experienceFor } from "Components/SilentNight/constants";
 import { drawWorld } from "Components/SilentNight/drawWorld";
 import { ENEMIES } from "Components/SilentNight/enemies";
+import { GEAR_SLOTS, RARITY_COLOURS } from "Components/SilentNight/gear";
 import { iconUrl } from "Components/SilentNight/icons";
+import Menu from "Components/SilentNight/Menu";
 import NightOver, { clock } from "Components/SilentNight/NightOver";
 import Prompt from "Components/SilentNight/Prompt";
 import { addEvents, playNightEvents, startNightMusic } from "Components/SilentNight/sound";
 import { makeSprites } from "Components/SilentNight/sprites";
 import { PASSIVES } from "Components/SilentNight/stats";
-import { noEvents, type IInput, type IPrompt, type IWorld } from "Components/SilentNight/types";
+import { noEvents, type ICastId, type IInput, type IPrompt, type IWorld } from "Components/SilentNight/types";
 import { gunNumbers, weaponInfo } from "Components/SilentNight/weapons";
-import type { IRun } from "Components/SilentNight/hooks";
+import type { IProgress, IRun } from "Components/SilentNight/hooks";
 import { NIGHT_SECONDS, newWorld, step, VIEW_HEIGHT } from "Components/SilentNight/world";
 import classes from "Components/SilentNight/SilentNight.module.less";
 
@@ -32,8 +34,16 @@ type IStick = { id: number; originX: number; originY: number; x: number; y: numb
 type IGameProps = {
 	fullscreen: boolean;
 	onToggleFullscreen: () => void;
+	/** What's kept between nights, and buying and choosing in the menu (Menu.tsx). */
+	progress: IProgress;
+	busy: boolean;
+	error: string | null;
+	onBuy: (purchase: { kind: "cellar" | "cast"; item: string }) => void;
+	onChoose: (character: ICastId) => void;
 	/** A night's over, won or lost (or given up). */
-	onNightOver?: (run: IRun) => void;
+	onNightOver: (run: IRun) => void;
+	/** The coal the last night earned, once it's saved. */
+	coalEarned: number | null;
 };
 
 /** A stick's push as a vector of length up to 1. */
@@ -79,12 +89,16 @@ function buildOf(world: IWorld) {
 			id: passive.id,
 			level: world.player.passives[passive.id]!,
 		})),
+		gear: GEAR_SLOTS.flatMap((slot) => world.player.gear[slot] ?? []),
 	};
 }
 
 const buildKey = (world: IWorld) =>
 	world.player.weapons.map((weapon) => `${weapon.id}${weapon.level}${weapon.evolved}`).join() +
-	JSON.stringify(world.player.passives);
+	JSON.stringify(world.player.passives) +
+	Object.values(world.player.gear)
+		.map((piece) => piece.name)
+		.join();
 
 /**
  * Silent Night itself: the night drawn on a canvas at the game's own resolution and scaled up
@@ -93,11 +107,28 @@ const buildKey = (world: IWorld) =>
  * fire, Space to dash, R to reload, Esc to pause) or, on a touch screen, a thumbstick on each half
  * of the screen (left to move, right to aim and fire) and a dash button.
  */
-export default function SilentNightGame({ fullscreen, onToggleFullscreen, onNightOver }: IGameProps) {
+export default function SilentNightGame({
+	fullscreen,
+	onToggleFullscreen,
+	progress,
+	busy,
+	error,
+	onBuy,
+	onChoose,
+	onNightOver,
+	coalEarned,
+}: IGameProps) {
 	const { ref: frameRef, width, height } = useElementSize();
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const touchScreen = useTouchScreen();
 	const sprites = useMemo(() => makeSprites(), []);
+	const castImages = useMemo(
+		() =>
+			Object.fromEntries(
+				Object.entries(sprites.cast).map(([id, frames]) => [id, frames.right[1].toDataURL()]),
+			) as Record<ICastId, string>,
+		[sprites],
+	);
 	// The night being played (null before the first), and the same for the loop and handlers.
 	const [world, setWorld] = useState<IWorld | null>(null);
 	const worldRef = useRef<IWorld | null>(null);
@@ -106,7 +137,7 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen, onNigh
 	const [prompt, setPrompt] = useState<IPrompt | null>(null);
 	const [paused, setPaused] = useState(false);
 	const pausedRef = useRef(false);
-	const [build, setBuild] = useState<IBuild>({ weapons: [], passives: [] });
+	const [build, setBuild] = useState<IBuild>({ weapons: [], passives: [], gear: [] });
 	const [soundOn, setSoundOn] = useState(readSoundOn);
 	// The latest callback, for the loop.
 	const onNightOverRef = useRef(onNightOver);
@@ -369,12 +400,13 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen, onNigh
 
 			if (world.over) {
 				setOver(true);
-				onNightOverRef.current?.({
+				onNightOverRef.current({
 					seconds: Math.min(NIGHT_SECONDS, Math.floor(world.time)),
 					kills: world.kills,
 					level: player.level,
 					bargains: player.bargains.length,
 					won: world.won,
+					bosses: world.bosses,
 				});
 
 				return;
@@ -393,8 +425,8 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen, onNigh
 		setPaused(on);
 	};
 
-	const start = () => {
-		const fresh = newWorld();
+	const start = (character: ICastId) => {
+		const fresh = newWorld(character, progress.cellar);
 		worldRef.current = fresh;
 		keysRef.current.clear();
 		setOver(false);
@@ -481,6 +513,7 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen, onNigh
 	const playing = started && !over;
 	const waiting = playing && (prompt !== null || paused);
 	const musicOn = playing && !waiting && soundOn;
+	const menuMusicOn = !started && soundOn;
 
 	// The music, while the night's going on (it starts again from the top after a pause).
 	useEffect(() => {
@@ -493,6 +526,32 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen, onNigh
 			boss: worldRef.current?.enemies.some((enemy) => enemy.boss) ?? false,
 		}));
 	}, [musicOn]);
+
+	// In the menu: the tune on its music box, over the drone and the bass, as if a quarter of the way into a night.
+	useEffect(() => {
+		if (!menuMusicOn) {
+			return;
+		}
+
+		// Browsers hold sound back until the page is touched: wake it at the first touch or key.
+		const wake = () => wakeAudio();
+		window.addEventListener("pointerdown", wake, { once: true });
+		window.addEventListener("keydown", wake, { once: true });
+		const stop = startNightMusic(() => ({ time: NIGHT_SECONDS / 4, boss: false }));
+
+		return () => {
+			window.removeEventListener("pointerdown", wake);
+			window.removeEventListener("keydown", wake);
+			stop();
+		};
+	}, [menuMusicOn]);
+
+	const backToMenu = () => {
+		worldRef.current = null;
+		setOver(false);
+		setPrompt(null);
+		setWorld(null);
+	};
 
 	const toggleSound = () => {
 		if (!soundOn) {
@@ -571,6 +630,18 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen, onNigh
 								<span key={passive.id} className={classes.slot}>
 									<img src={iconUrl(passive.id)} alt="" className={classes.icon} />
 									<span className={classes.slotLevel}>{passive.level}</span>
+								</span>
+							))}
+						</div>
+						<div className={classes.carried}>
+							{build.gear.map((piece) => (
+								<span
+									key={piece.slot}
+									className={classes.slot}
+									style={{ borderColor: RARITY_COLOURS[piece.rarity] }}
+									title={piece.name}
+								>
+									<img src={iconUrl(piece.slot)} alt="" className={classes.icon} />
 								</span>
 							))}
 						</div>
@@ -669,14 +740,25 @@ export default function SilentNightGame({ fullscreen, onToggleFullscreen, onNigh
 				</div>
 			)}
 
-			{over && world && <NightOver world={world} onAgain={start} />}
+			{over && world && (
+				<NightOver
+					world={world}
+					coalEarned={coalEarned}
+					onAgain={() => start(world.player.character)}
+					onMenu={backToMenu}
+				/>
+			)}
 
 			{!started && (
-				<div className={classes.overlay}>
-					<p className={classes.title}>Silent Night</p>
-					<p>Hold out until dawn.</p>
-					<Button onClick={start}>Start the night</Button>
-				</div>
+				<Menu
+					progress={progress}
+					castImages={castImages}
+					busy={busy}
+					error={error}
+					onStart={start}
+					onChoose={onChoose}
+					onBuy={onBuy}
+				/>
 			)}
 		</div>
 	);

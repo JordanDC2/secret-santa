@@ -35,6 +35,40 @@ export type IEnemyKind =
 
 export type IPatronId = "laFlor" | "lucia" | "moroz" | "christkind" | "yuleLads";
 
+/** Who's playing: the cast of Elf Fling (cast.ts). */
+export type ICastId = "elf" | "santa" | "mrsClaus" | "snowman" | "reindeer";
+
+/** Gear (gear.ts): one piece in each slot, of a rarity, each adding to the elf's numbers. */
+export type IGearSlot = "hat" | "scarf" | "mittens" | "boots" | "charm";
+export type IRarity = "plain" | "festive" | "gilded" | "cursed";
+export type IGearStat =
+	| "maxHealth"
+	| "damage"
+	| "area"
+	| "cooldown"
+	| "speed"
+	| "reach"
+	| "luck"
+	| "light"
+	| "regen"
+	| "armour"
+	| "crit"
+	| "experience"
+	| "vulnerability"
+	| "healing";
+export type IGearSpecial = "twinStitched" | "mended" | "fleetFooted" | "warmHearted";
+
+export type IGear = {
+	slot: IGearSlot;
+	rarity: IRarity;
+	name: string;
+	bonuses: Array<{ stat: IGearStat; amount: number }>;
+	/** A gilded piece's special effect. */
+	special: IGearSpecial | null;
+	/** A cursed piece's price. */
+	curse: { stat: IGearStat; amount: number } | null;
+};
+
 /** A weapon the elf carries: its level (1 to 8), whether it's evolved, and its own timers. */
 export type IWeapon = {
 	id: IWeaponId;
@@ -50,6 +84,10 @@ export type IWeapon = {
 };
 
 export type IPlayer = {
+	character: ICastId;
+	/** The Coal Cellar's upgrades bought, by id, at their level. */
+	cellar: Record<string, number>;
+	gear: Partial<Record<IGearSlot, IGear>>;
 	x: number;
 	y: number;
 	health: number;
@@ -167,7 +205,7 @@ export type IEffect = {
 	data: number[];
 };
 
-export type IPickupKind = "crystal" | "bigCrystal" | "cocoa" | "star" | "chest";
+export type IPickupKind = "crystal" | "bigCrystal" | "cocoa" | "star" | "chest" | "gear";
 
 export type IPickup = {
 	id: number;
@@ -178,6 +216,8 @@ export type IPickup = {
 	/** Being pulled in by the elf's reach. */
 	pulled: boolean;
 	at: number;
+	/** The piece, if it's gear. */
+	gear?: IGear;
 };
 
 /** A minion of gingerbread, or a candle flame, or an orbiting snow globe: things that move with the elf. */
@@ -207,7 +247,8 @@ export type IPrompt =
 	| { kind: "levelUp"; choices: IChoice[] }
 	| { kind: "chest"; rewards: string[] }
 	| { kind: "shrine"; patron: IPatronId; choices: string[] }
-	| { kind: "altar"; choices: string[] };
+	| { kind: "altar"; choices: string[]; gear: IGear | null }
+	| { kind: "gear"; gear: IGear };
 
 /** One choice at a level-up. */
 export type IChoice =
@@ -227,6 +268,8 @@ export type IWorld = {
 	allies: IAlly[];
 	shrines: IShrine[];
 	kills: number;
+	/** Bosses beaten this night. */
+	bosses: number;
 	spawnOwed: number;
 	nextId: number;
 	/** Level-ups owed but not yet chosen (they queue if several come at once). */

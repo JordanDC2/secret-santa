@@ -7,6 +7,7 @@
 
 import { heal } from "Components/SilentNight/combat";
 import { MAX_WEAPON_LEVEL, PASSIVE_SLOTS, WEAPON_SLOTS } from "Components/SilentNight/constants";
+import { wear } from "Components/SilentNight/gear";
 import { level, PASSIVES, rank, stats } from "Components/SilentNight/stats";
 import {
 	noEvents,
@@ -199,7 +200,18 @@ export function openChest(world: IWorld, value: number, events: IEvents) {
 	world.prompt = { kind: "chest", rewards };
 }
 
-/** Closing the chest. */
+/** Wearing the gear just found (in place of whatever was in its slot), or leaving it. */
+export function takeGear(world: IWorld) {
+	if (world.prompt?.kind === "gear") {
+		wear(world.player, world.prompt.gear);
+		world.numbers = stats(world.player);
+		world.player.health = Math.min(world.player.health, world.numbers.maxHealth);
+	}
+
+	closeChest(world);
+}
+
+/** Closing the chest (or leaving the gear). */
 export function closeChest(world: IWorld) {
 	world.prompt = null;
 	nextLevelUp(world);

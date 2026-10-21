@@ -12,9 +12,9 @@ class RecordRunRequest extends FormRequest
     }
 
     /**
-     * A night lasts twenty minutes to dawn, and Krampus offers five bargains in all
-     * (web/src/Components/SilentNight: constants.ts and bargains.ts). Kills and levels are only
-     * kept within what any night could reach.
+     * A night lasts twenty minutes to dawn, has four bosses, and Krampus offers five bargains in
+     * all (web/src/Components/SilentNight: constants.ts, timeline.ts and bargains.ts). Kills and
+     * levels are only kept within what any night could reach.
      *
      * @return array<string, mixed>
      */
@@ -26,6 +26,7 @@ class RecordRunRequest extends FormRequest
             'level' => ['required', 'integer', 'min:1', 'max:1000'],
             'bargains' => ['required', 'integer', 'min:0', 'max:5'],
             'won' => ['required', 'boolean'],
+            'bosses' => ['required', 'integer', 'min:0', 'max:4'],
         ];
     }
 }

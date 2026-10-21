@@ -7,13 +7,15 @@ import {
 	PATRONS,
 	takeBargain,
 	takeBlessing,
+	takeCursedGear,
 } from "Components/SilentNight/patrons";
+import { gearLines, RARITY_COLOURS } from "Components/SilentNight/gear";
 import { bargainInfo, KRAMPUS_LINE } from "Components/SilentNight/bargains";
 import { iconUrl } from "Components/SilentNight/icons";
-import { banish, choiceKey, closeChest, reroll, skip, take } from "Components/SilentNight/levelUp";
+import { banish, choiceKey, closeChest, reroll, skip, take, takeGear } from "Components/SilentNight/levelUp";
 import { portraitUrl, type IPortraitId } from "Components/SilentNight/portraits";
 import { PASSIVES } from "Components/SilentNight/stats";
-import type { IChoice, IPatronId, IPrompt, IWorld } from "Components/SilentNight/types";
+import type { IChoice, IGear, IPatronId, IPrompt, IWorld } from "Components/SilentNight/types";
 import { weaponInfo } from "Components/SilentNight/weapons";
 import classes from "Components/SilentNight/SilentNight.module.less";
 
@@ -86,10 +88,33 @@ function Dialogue({
 	);
 }
 
+/** A piece of gear's name (in its rarity's colour) and what it does. */
+function GearDetails({ gear, label, replacing }: { gear: IGear; label?: string; replacing?: IGear }) {
+	return (
+		<>
+			<span className={classes.cardHead}>
+				<img src={iconUrl(gear.slot)} alt="" className={classes.icon} />
+				<span className={classes.cardName} style={{ color: RARITY_COLOURS[gear.rarity] }}>
+					{gear.name}
+				</span>
+				{label && <span className={classes.cardTag}>{label}</span>}
+			</span>
+			<span className={classes.cardText}>
+				{gearLines(gear).map((line) => (
+					<span key={line.text} className={line.bad ? classes.price : undefined}>
+						{line.text}
+					</span>
+				))}
+				{replacing && <span className={classes.dim}>In place of your {replacing.name.toLowerCase()}</span>}
+			</span>
+		</>
+	);
+}
+
 /**
  * Whatever the night's waiting on the player for, over the game: a level-up's choices, a chest's
- * treasure, a patron's blessings at their shrine, Krampus's bargains at his altar. On a keyboard,
- * the number keys pick a card.
+ * treasure, a piece of gear, a patron's blessings at their shrine, Krampus's bargains (and cursed
+ * gear) at his altar. On a keyboard, the number keys pick a card.
  */
 export default function Prompt({ world, prompt, onChange }: IPromptProps) {
 	const act = (action: () => void) => {
@@ -103,8 +128,13 @@ export default function Prompt({ world, prompt, onChange }: IPromptProps) {
 			: prompt.kind === "shrine"
 				? prompt.choices.map((id) => () => takeBlessing(world, id))
 				: prompt.kind === "altar"
-					? prompt.choices.map((id) => () => takeBargain(world, id))
-					: [];
+					? [
+							...prompt.choices.map((id) => () => takeBargain(world, id)),
+							...(prompt.gear ? [() => takeCursedGear(world)] : []),
+						]
+					: prompt.kind === "gear"
+						? [() => takeGear(world), () => closeChest(world)]
+						: [];
 
 	useEffect(() => {
 		const down = (event: KeyboardEvent) => {
@@ -130,6 +160,36 @@ export default function Prompt({ world, prompt, onChange }: IPromptProps) {
 				<p className={classes.title}>Treasure</p>
 				<p className={classes.rewards}>{prompt.rewards.join("\n")}</p>
 				<Button onClick={() => act(() => closeChest(world))}>Carry on</Button>
+			</div>
+		);
+	}
+
+	if (prompt.kind === "gear") {
+		const worn = world.player.gear[prompt.gear.slot];
+
+		return (
+			<div className={classes.overlay}>
+				<p className={classes.title}>Gear</p>
+				<div className={classes.cards}>
+					<div className={classes.cardHolder}>
+						<button type="button" className={classes.card} onClick={() => act(cards[0])}>
+							<GearDetails gear={prompt.gear} label="New" />
+						</button>
+					</div>
+					{worn && (
+						<div className={classes.cardHolder}>
+							<div className={`${classes.card} ${classes.worn}`}>
+								<GearDetails gear={worn} label="Wearing" />
+							</div>
+						</div>
+					)}
+				</div>
+				<div className={classes.promptButtons}>
+					<Button onClick={() => act(cards[0])}>{worn ? "Wear it instead" : "Wear it"}</Button>
+					<Button variant="subtle" onClick={() => act(cards[1])}>
+						Leave it
+					</Button>
+				</div>
 			</div>
 		);
 	}
@@ -252,6 +312,15 @@ export default function Prompt({ world, prompt, onChange }: IPromptProps) {
 						</button>
 					);
 				})}
+				{prompt.gear && (
+					<button
+						type="button"
+						className={`${classes.card} ${classes.bargain}`}
+						onClick={() => act(cards[prompt.choices.length])}
+					>
+						<GearDetails gear={prompt.gear} replacing={world.player.gear[prompt.gear.slot]} />
+					</button>
+				)}
 				<Button variant="subtle" onClick={() => act(() => closeShrine(world))}>
 					Refuse
 				</Button>

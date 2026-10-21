@@ -42,6 +42,7 @@ use App\Http\Controllers\Group\StartNewDrawHandler;
 use App\Http\Controllers\GroupController;
 use App\Http\Controllers\SantaChat\SantaChatController;
 use App\Http\Controllers\SilentNight\LeaderboardHandler as SilentNightLeaderboardHandler;
+use App\Http\Controllers\SilentNight\ProgressController as SilentNightProgressController;
 use App\Http\Controllers\SilentNight\RecordRunHandler as SilentNightRecordRunHandler;
 use App\Http\Controllers\Wishlist\ClaimHandler;
 use App\Http\Controllers\Wishlist\LinkPreviewHandler;
@@ -164,8 +165,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('leaderboard', ElfFlingLeaderboardHandler::class)->name('leaderboard');
     });
 
-    // Silent Night: each finished night, and the leaderboards.
+    // Silent Night: each player's coal and Coal Cellar, each finished night, and the leaderboards.
     Route::prefix('silent-night')->name('silent-night.')->group(function () {
+        Route::get('progress', [SilentNightProgressController::class, 'show'])->name('progress');
+
+        Route::patch('progress/character', [SilentNightProgressController::class, 'choose'])->name('character');
+
+        Route::post('purchases', [SilentNightProgressController::class, 'buy'])->name('purchases');
+
         Route::post('runs', SilentNightRecordRunHandler::class)->middleware('throttle:silent-night-runs')->name('runs');
 
         Route::get('leaderboard', SilentNightLeaderboardHandler::class)->name('leaderboard');

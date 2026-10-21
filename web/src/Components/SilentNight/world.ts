@@ -7,6 +7,7 @@
  * beat him and the night is won.
  */
 
+import { castMember } from "Components/SilentNight/cast";
 import { knockCandles } from "Components/SilentNight/candles";
 import { gridOf, near, hurtEnemy, heal } from "Components/SilentNight/combat";
 import { moveEnemies, moveHostileShots } from "Components/SilentNight/enemies";
@@ -15,7 +16,7 @@ import { visitShrines } from "Components/SilentNight/patrons";
 import { movePickups } from "Components/SilentNight/pickups";
 import { byRank, stats } from "Components/SilentNight/stats";
 import { runTimeline } from "Components/SilentNight/timeline";
-import { noEvents, type IEvents, type IInput, type IWorld } from "Components/SilentNight/types";
+import { noEvents, type ICastId, type IEvents, type IInput, type IWorld } from "Components/SilentNight/types";
 import { landShells, moveAllies, newWeapon, useWeapons } from "Components/SilentNight/weapons";
 
 export { NIGHT_SECONDS, VIEW_HEIGHT } from "Components/SilentNight/constants";
@@ -26,11 +27,15 @@ const DASH_SPEED = 185;
 const DASH_SECONDS = 0.16;
 const DASH_COOLDOWN = 1.1;
 
-export function newWorld(): IWorld {
+/** A new night, for `character` with the Coal Cellar's upgrades bought so far. */
+export function newWorld(character: ICastId = "elf", cellar: Record<string, number> = {}): IWorld {
 	const world: IWorld = {
 		time: 0,
 		numbers: undefined!,
 		player: {
+			character,
+			cellar,
+			gear: {},
 			x: 0,
 			y: 0,
 			health: 100,
@@ -45,12 +50,12 @@ export function newWorld(): IWorld {
 			lastShotAt: -1,
 			level: 1,
 			experience: 0,
-			weapons: [newWeapon("gun")],
+			weapons: [newWeapon(castMember(character).weapon, castMember(character).weaponLevel)],
 			passives: {},
 			blessings: {},
 			bargains: [],
-			rerolls: 2,
-			banishes: 2,
+			rerolls: 2 + (cellar.dice ?? 0),
+			banishes: 2 + (cellar.fire ?? 0),
 			banished: [],
 			haloReadyAt: null,
 			guardianReadyAt: 0,
@@ -64,6 +69,7 @@ export function newWorld(): IWorld {
 		allies: [],
 		shrines: [],
 		kills: 0,
+		bosses: 0,
 		spawnOwed: 0,
 		nextId: 1,
 		levelUpsOwed: 0,
@@ -74,6 +80,7 @@ export function newWorld(): IWorld {
 		won: false,
 	};
 	world.numbers = stats(world.player);
+	world.player.health = world.numbers.maxHealth;
 
 	return world;
 }
