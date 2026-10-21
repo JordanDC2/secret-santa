@@ -1,7 +1,7 @@
 /**
  * Krampus, of the Alps, as his portrait at his altars (portraitKit.ts): a black-furred demon
- * with great ridged horns, eyes burning, fangs bared round a long red tongue, chains across his
- * chest and a bundle of birch switches in his claw. Lit from below by fire, with embers rising
+ * with great ridged horns, eyes burning, fangs bared round a long red tongue, a chain coiling
+ * round him, a cowbell at his hip and a bundle of birch switches raised in his claw. Lit from below by fire, with embers rising
  * through the smoke.
  */
 
@@ -28,6 +28,7 @@ const RAMPS: Record<string, string[]> = {
 	tooth: ["#4a4440", "#8a8278", "#cac0b0", "#efe6d6"],
 	steel: ["#1a1c22", "#34383f", "#5a5f68", "#8a909a", "#c4c8d0"],
 	birch: ["#1a1814", "#3a362e", "#6e6658", "#a8a090", "#d8d2c4"],
+	brass: ["#140c04", "#2e1e0a", "#523812", "#7a561c", "#a27a2c", "#c89c44"],
 	ribbon: ["#22050b", "#480b15", "#781323", "#ab1f31", "#d73648"],
 	mouth: ["#040102", "#0c0204", "#1a0406"],
 	burning: ["#a01010", "#ff4020", "#ffb040", "#fff0a0"],
@@ -42,12 +43,25 @@ const RIM: Record<string, string[]> = {
 	tooth: ["#ffd8b0", "#fff0e0", "#ffffff", "#ffffff"],
 	steel: ["#d08050", "#f0b080", "#ffe0c0", "#ffffff"],
 	birch: ["#d0a070", "#f0c890", "#fff0d0", "#ffffff"],
+	brass: ["#d08030", "#f0b050", "#ffd890", "#fff4d0"],
 	ribbon: ["#d04040", "#ff7060", "#ffb090", "#ffe0c0"],
 };
 
 /** Shaggy fur: matted locks hanging in clumps. */
 const shag: ITexture = (x, y) =>
 	0.11 * Math.sin(x * 0.7 + 4 * fbm(x * 0.06, y * 0.03)) + 0.06 * fbm(x * 0.3, y * 0.15) + 0.04 * (hash(x, y) - 0.5);
+/** His pelt: long locks of goat hair hanging in overlapping rows, each tapering to a point. */
+const locks: ITexture = (x, y) => {
+	const shifted = x + 1.5 * Math.sin(y * 0.15);
+	const column = Math.floor(shifted / 6);
+	const along = y + hash(column, 9) * 13;
+	const row = Math.floor(along / 13);
+	const across = 2 * Math.abs((shifted % 6) / 6 - 0.5);
+	const down = (along % 13) / 13;
+	const tone = 0.06 * (hash(column, row) - 0.5);
+
+	return (across < 1 - down * 0.7 ? 0.08 * (1 - across) - 0.05 * down : -0.07) + tone + 0.6 * shag(x, y);
+};
 /** A ragged edge: a jag of up to `size` pixels, changing every couple of rows. */
 const jag = (y: number, size: number) => (hash(Math.floor(y / 2), 41) - 0.5) * size;
 
@@ -55,6 +69,9 @@ const jag = (y: number, size: number) => (hash(Math.floor(y / 2), 41) - 0.5) * s
 const ridges: ITexture = (x, y) => 0.1 * Math.sin((x + y) * 0.9) + 0.04 * (hash(x, y) - 0.5);
 /** Birch bark: pale, with dark marks across it. */
 const bark: ITexture = (x, y) => (hash(Math.floor(x / 2), Math.floor(y / 3)) > 0.8 ? -0.35 : 0);
+
+/** Where his claw grips the birch switches. */
+const GRIP = { x: 150, y: 84 };
 
 /** The fire below brightening what it reaches. */
 const firelight = (_x: number, y: number) => 0.12 * clamp((y - 70) / 80);
@@ -123,18 +140,36 @@ export function drawKrampus(): HTMLCanvasElement {
 		70,
 		160,
 		(y) => {
-			const half = y < 84 ? 18 + (y - 70) * 1.8 : 43.2 + (y - 84) * 0.1;
+			// Hulking shoulders, hunched up round his head, tapering a little below; locks of fur hanging off his sides.
+			const half = y < 82 ? 18 + Math.sqrt((y - 70) / 12) * 26 : 44 - (y - 82) * 0.07;
+			const locks = (side: number) => 2.5 * Math.sin(y * 0.45 + side) + jag(y + side * 7, 5);
 
-			return [92 - half + jag(y, 4), 92 + half + jag(y + 7, 4)];
+			return [92 - half - locks(-1), 92 + half + locks(1)];
 		},
 		"fur",
 		(x, y, left, right) => {
 			const across = ((x + 0.5 - left) / (right - left)) * 2 - 1;
 
-			return 0.28 + 0.12 * across + 0.24 * Math.sqrt(Math.max(0, 1 - across * across)) + shag(x, y) + firelight(x, y);
+			return 0.28 + 0.12 * across + 0.24 * Math.sqrt(Math.max(0, 1 - across * across)) + locks(x, y) + firelight(x, y);
 		},
 	);
 	ellipse(92, 60, 22, 24, 0, "fur", 0.02, shag);
+
+	// His mane, bristling out round his face in shaggy locks.
+	for (let i = 0; i < 15; i++) {
+		const angle = Math.PI * (0.92 + (i / 14) * 1.16) + (hash(i, 81) - 0.5) * 0.15;
+		const length = 9 + hash(i, 82) * 6;
+		petal(
+			92 + Math.cos(angle) * 18,
+			60 + Math.sin(angle) * 20,
+			length,
+			3.4,
+			angle + (hash(i, 83) - 0.5) * 0.4,
+			"fur",
+			0.06 + hash(i, 84) * 0.06,
+			shag,
+		);
+	}
 
 	// His pointed ears, out to the sides.
 	petal(80, 52, 13, 3.6, Math.PI + 0.35, "face", -0.02);
@@ -152,7 +187,13 @@ export function drawKrampus(): HTMLCanvasElement {
 		}
 	}
 
-	// His snout and nostrils.
+	// Deep sockets under the brow.
+	for (const side of [-1, 1]) {
+		ellipse(92 + side * 5, 56.5, 4.4, 2.4, -side * 0.25, "face", -0.08);
+	}
+
+	// His snout, a ridge down to the nostrils.
+	limb(92, 56, 92, 62, 1.6, 2.6, "face", 0.1, firelight);
 	ellipse(92, 63, 5, 4, 0, "face", 0.12, firelight);
 	put(90, 64, "mouth", 0.2);
 	put(94, 64, "mouth", 0.2);
@@ -186,49 +227,75 @@ export function drawKrampus(): HTMLCanvasElement {
 	// A goatee of black fur under his jaw.
 	petal(92, 72, 16, 5, Math.PI / 2 + 0.05, "fur", 0.04);
 
-	// Chains across his chest, heavy links.
-	for (let i = 0; i <= 18; i++) {
-		const t = i / 18;
-		const x = 54 + t * 76;
-		const y = 96 + t * 22 + Math.sin(t * Math.PI) * 8;
-		ellipse(x, y, i % 2 === 0 ? 3 : 1.6, i % 2 === 0 ? 2 : 2.6, 0.3, "steel", 0.1);
+	// A cowbell hanging at his hip on a leather strap, as the Krampus runs ring them: its mouth
+	// flared and dark, its clapper hanging out of it.
+	limb(74, 90, 66, 120, 1.5, 1.5, "horn", 0.12);
+	limb(66, 120, 64, 124, 1.5, 1.5, "horn", 0.12);
+	fill(
+		123,
+		139,
+		(y) => {
+			const half = 4.5 + (y - 123) * 0.28 + (y > 136 ? (y - 136) * 0.6 : 0);
 
-		if (i % 2 === 0) {
-			put(Math.round(x), Math.round(y), "fur", 0.1);
+			return [64 - half, 64 + half];
+		},
+		"brass",
+		(x, y, left, right) => {
+			const across = ((x + 0.5 - left) / (right - left)) * 2 - 1;
+
+			return 0.22 + 0.22 * across + 0.18 * Math.sqrt(Math.max(0, 1 - across * across)) + 0.05 * (hash(x, y) - 0.5);
+		},
+	);
+	ellipse(64, 123, 4.6, 1.4, 0, "brass", 0.2);
+	ellipse(64, 139.5, 7, 1.6, 0, "mouth", 0.1);
+	limb(64, 138, 64, 142, 0.6, 0.6, "steel", 0.2);
+	ellipse(64, 143, 1.6, 1.5, 0, "steel", 0.28);
+
+	// His claw raised on the right, gripping a bundle of birch switches tied with red.
+	limb(124, 82, 146, 104, 8, 6.4, "fur", 0.04, (x, y) => shag(x, y) + firelight(x, y));
+	limb(146, 104, 150, 88, 6.4, 5, "fur", 0.08, (x, y) => shag(x, y) + firelight(x, y));
+
+	// Shaggy locks hanging off his arm.
+	for (const [x, y] of [
+		[136, 98],
+		[144, 106],
+		[150, 106],
+	]) {
+		petal(x, y, 9, 2.6, Math.PI / 2 + 0.2, "fur", 0.06, shag);
+	}
+
+	// The switches: a bundle of thin birch twigs, of different lengths, crooked, splaying from his
+	// grip, some with a fork of a side twig.
+	for (let i = 0; i < 14; i++) {
+		const spread = (i - 6.5) * 0.045 + (hash(i, 51) - 0.5) * 0.05;
+		const length = 40 + hash(i, 52) * 22;
+		let x = GRIP.x + (i - 6.5) * 0.3;
+		let y = GRIP.y;
+
+		for (let segment = 0; segment < 3; segment++) {
+			const turn = spread * (1 + segment * 0.5) + (hash(i, 53 + segment) - 0.5) * 0.12;
+			const nx = x + Math.sin(turn) * length * 0.34;
+			const ny = y - Math.cos(turn) * length * 0.34;
+			const thick = 0.9 - segment * 0.2;
+			limb(x, y, nx, ny, thick, thick - 0.15, "birch", (i % 3) * 0.05 - segment * 0.03, bark);
+
+			if (segment === 1 && i % 3 === 0) {
+				const side = turn + (i % 2 === 0 ? 0.5 : -0.5);
+				limb(nx, ny, nx + Math.sin(side) * 8, ny - Math.cos(side) * 8, 0.5, 0.4, "birch", 0.02, bark);
+			}
+
+			x = nx;
+			y = ny;
 		}
 	}
 
-	// His claw raised on the right, gripping a bundle of birch switches tied with red.
-	limb(124, 90, 134, 104, 7, 6, "fur", 0.04, (x, y) => shag(x, y) + firelight(x, y));
-	limb(134, 104, 138, 86, 6, 5, "fur", 0.06, shag);
+	// Tied with a red ribbon, and his claw round them: knuckles, and long black claws curling over the front.
+	ellipse(GRIP.x, GRIP.y - 3, 4.4, 2.2, 0, "ribbon", 0.12);
+	limb(GRIP.x + 3, GRIP.y - 3, GRIP.x + 9, GRIP.y + 3, 1.2, 0.8, "ribbon", 0.06);
+	ellipse(GRIP.x, GRIP.y + 3, 5.4, 4.6, 0, "face", 0.02, firelight);
 
-	// The switches: a dozen thin twigs, of different lengths, bending a little as they splay.
-	for (let i = 0; i < 13; i++) {
-		const spread = (i - 6) * 0.05 + (hash(i, 51) - 0.5) * 0.06;
-		const length = 46 + hash(i, 52) * 18;
-		const bend = (hash(i, 53) - 0.5) * 6;
-		const midX = 138 + Math.sin(spread) * length * 0.5 + 3;
-		const midY = 84 - Math.cos(spread) * length * 0.5;
-		limb(138, 84, midX, midY, 1, 0.8, "birch", 0.05 + (i % 3) * 0.06, bark);
-		limb(
-			midX,
-			midY,
-			midX + Math.sin(spread) * length * 0.5 + bend + 3,
-			midY - Math.cos(spread) * length * 0.5,
-			0.8,
-			0.5,
-			"birch",
-			0.08 + (i % 3) * 0.06,
-			bark,
-		);
-	}
-
-	ellipse(138, 82, 4.2, 2.4, 0, "ribbon", 0.1);
-	ellipse(138, 86, 5, 4.4, 0, "face", 0.02, firelight);
-
-	for (const dx of [-3, -1, 1, 3]) {
-		put(138 + dx, 89, "horn", 0.6);
-		put(138 + dx, 90, "horn", 0.4);
+	for (const dy of [0, 2.5, 5]) {
+		limb(GRIP.x - 3, GRIP.y + 1 + dy, GRIP.x - 6, GRIP.y + 3 + dy, 1, 0.5, "horn", 0.08);
 	}
 
 	// --- Light: firelight, from below on the right; a fade into the dark at the very bottom. ---

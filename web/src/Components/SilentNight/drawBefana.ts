@@ -12,6 +12,7 @@ import {
 	figure,
 	hash,
 	paintFigure,
+	paintGlow,
 	paintLayer,
 	shade,
 	strands,
@@ -24,6 +25,7 @@ import {
 const RAMPS: Record<string, string[]> = {
 	skin: ["#2a1810", "#4e2c1e", "#76462e", "#9c6244", "#bc805c", "#d49e78"],
 	scarf: ["#1e0610", "#3a0c1c", "#5a1428", "#7c2036", "#9c3046", "#b84858"],
+	skirt: ["#0c0606", "#1c0e0c", "#2e1814", "#42241c", "#583226", "#704232"],
 	shawl: ["#08060a", "#141016", "#221c24", "#322a34", "#443a46", "#5a4e5a"],
 	patchTeal: ["#082220", "#10403a", "#1c605a", "#2c847a"],
 	patchOchre: ["#2a1a06", "#503410", "#7a5418", "#a07424"],
@@ -38,6 +40,8 @@ const RAMPS: Record<string, string[]> = {
 	night: ["#020608", "#05100f", "#0a1c1a", "#102a27", "#173a36", "#204c46"],
 	moon: ["#5a8a84", "#9ac8be", "#d8f4ec", "#ffffff"],
 	roof: ["#010304", "#03080a", "#060e10"],
+	window: ["#3a1c08", "#7a4010", "#c07020", "#ffb040", "#ffe090"],
+	stitch: ["#3a2e1a", "#6e5a34", "#a08a5a"],
 	candyRed: ["#4a0810", "#9a1828", "#e04050", "#ff8a90"],
 	candyGreen: ["#08300e", "#1a6a28", "#38a848", "#80e080"],
 	candyGold: ["#4a3008", "#a07018", "#f0c040", "#fff0a0"],
@@ -47,6 +51,7 @@ const RAMPS: Record<string, string[]> = {
 const RIM: Record<string, string[]> = {
 	skin: ["#7aa8a0", "#b8dcd4", "#e8fff8", "#ffffff"],
 	scarf: ["#a07888", "#d0a8b4", "#f0d8e0", "#ffffff"],
+	skirt: ["#6a6a62", "#a0a092", "#d8dccc", "#f8fff0"],
 	shawl: ["#4a6a6a", "#7aa0a0", "#b8dcd8", "#e8fff8"],
 	patchTeal: ["#6ac0b4", "#a8e8dc", "#e8fff8"],
 	patchOchre: ["#b8b080", "#e0d8b0", "#fff8e0"],
@@ -64,6 +69,25 @@ const MOON = { x: 196, y: 32 };
 const weave: ITexture = (x, y) => 0.05 * Math.sin(x * 1.4 + (y % 2) * 1.6) + 0.06 * (hash(x, y) - 0.5);
 /** Twigs: the broom's bristles, streaked. */
 const twigs: ITexture = (x, y) => 0.12 * Math.sin(x * 1.9 - y * 0.12) + 0.06 * (hash(x, y) - 0.5);
+
+/** The folds of her shawl, falling from her shoulders: a crease every so often, fanning out as it falls. */
+const folds = (x: number, y: number) => {
+	const fan = ((x - 78) / Math.max(1, y - 50)) * 9 + 20;
+	const crease = fan - Math.floor(fan);
+
+	return (crease < 0.12 ? -0.13 : crease < 0.24 ? 0.06 : 0) * clamp((y - 74) / 8);
+};
+
+/** Where her shawl's fringed hem hangs to, lowest at its point in front. */
+const hem = (x: number) => 104 + 10 * clamp(1 - Math.abs(x - 78) / 30);
+
+/** Whether a patch, its corner at (px, py), `w` by `h`, sewn on a little askew by `tilt`, covers (x, y). */
+const onPatch = (x: number, y: number, px: number, py: number, w: number, h: number, tilt: number) => {
+	const u = x - px - (y - py) * tilt;
+	const v = y - py + (x - px) * tilt;
+
+	return u >= 0 && u < w && v >= 0 && v < h ? { u, v } : null;
+};
 
 // Each house a pitched roof (some taller), with a chimney on its slope.
 const roofline = (x: number) => {
@@ -102,7 +126,7 @@ export function drawBefana(): HTMLCanvasElement {
 		const scatter = 6 + t * 26;
 
 		return {
-			x: 118 - 104 * t + (hash(index, 94) - 0.5) * scatter,
+			x: 126 - 112 * t + (hash(index, 94) - 0.5) * scatter,
 			y: 92 - 64 * Math.sin(Math.PI * Math.min(1, t * 1.1)) + 30 * t + (hash(index, 95) - 0.5) * scatter,
 			size: 7 - t * 2,
 			angle: index * 1.7,
@@ -129,33 +153,69 @@ export function drawBefana(): HTMLCanvasElement {
 		(x, y, left, right) => {
 			const across = ((x + 0.5 - left) / (right - left)) * 2 - 1;
 
+			return 0.3 + 0.16 * -across + 0.24 * Math.sqrt(Math.max(0, 1 - across * across)) + weave(x, y) + folds(x, y);
+		},
+	);
+
+	// Her skirt below the shawl's hem, of old brown wool, falling straight in heavy folds.
+	fill(
+		100,
+		160,
+		(y) => {
+			const half = 24 + (y - 72) * 0.12;
+
+			return [78 - half, 78 + half];
+		},
+		"skirt",
+		(x, y, left, right) => {
+			if (y < hem(x)) {
+				return null;
+			}
+
+			const across = ((x + 0.5 - left) / (right - left)) * 2 - 1;
+			const crease = (((x - 70) % 7) + 7) % 7;
+
 			return (
 				0.3 +
 				0.16 * -across +
 				0.24 * Math.sqrt(Math.max(0, 1 - across * across)) +
 				weave(x, y) +
-				0.05 * Math.sin((x - 78) * 0.5 + y * 0.05)
+				(crease === 0 ? -0.12 : crease === 1 ? 0.06 : 0) -
+				(y - hem(x) < 2 ? 0.14 : 0)
 			);
 		},
 	);
 
-	// Patches sewn on in every colour, with big stitches.
-	for (const [px, py, w, h, material] of [
-		[62, 86, 8, 7, "patchTeal"],
-		[86, 98, 9, 8, "patchOchre"],
-		[66, 112, 7, 9, "patchRed"],
-		[90, 122, 8, 7, "patchTeal"],
-		[72, 132, 9, 6, "patchOchre"],
+	// The fringe along the shawl's hem, hanging in tassels.
+	for (let x = 56; x <= 100; x += 2) {
+		const length = 3 + Math.round(hash(x, 13) * 3);
+		limb(x, hem(x), x + 0.4, hem(x) + length, 0.6, 0.5, "shawl", 0.22);
+	}
+
+	// Patches sewn on in every colour, a little askew, following her folds, with big stitches of
+	// coarse thread round them.
+	for (const [px, py, w, h, tilt, material] of [
+		[61, 86, 8, 7, 0.12, "patchTeal"],
+		[86, 98, 9, 8, -0.1, "patchOchre"],
+		[65, 112, 7, 9, -0.08, "patchRed"],
+		[90, 121, 8, 7, 0.1, "patchTeal"],
+		[71, 132, 9, 6, 0.06, "patchOchre"],
 	] as const) {
-		for (let y = py; y < py + h; y++) {
-			for (let x = px; x < px + w; x++) {
-				const edge = x === px || y === py || x === px + w - 1 || y === py + h - 1;
-				put(
-					x,
-					y,
-					edge && (x + y) % 2 === 0 ? "white" : material,
-					edge && (x + y) % 2 === 0 ? 0.3 : 0.32 + weave(x, y) + (x - px) * -0.01,
-				);
+		for (let y = py - 2; y < py + h + 2; y++) {
+			for (let x = px - 2; x < px + w + 2; x++) {
+				const at = onPatch(x, y, px, py, w, h, tilt);
+
+				if (!at) {
+					continue;
+				}
+
+				const edge = at.u < 1 || at.v < 1 || at.u >= w - 1 || at.v >= h - 1;
+
+				if (edge && (x + y) % 3 === 0) {
+					put(x, y, "stitch", 0.55);
+				} else {
+					put(x, y, material, 0.3 + weave(x, y) - (at.u / w) * 0.12 + folds(x, y) - (edge ? 0.06 : 0));
+				}
 			}
 		}
 	}
@@ -164,8 +224,12 @@ export function drawBefana(): HTMLCanvasElement {
 	ellipse(67.5, 47, 2.2, 4, 0.2, "grey", 0.1, strands);
 	ellipse(88.5, 47, 2.2, 4, -0.2, "grey", 0.02, strands);
 
-	// Her face: long and lined.
-	ellipse(78, 50, 10.5, 13, 0, "skin", 0.14, (_x, y) => -0.1 * clamp((y - 62.5) / 2));
+	// Her face: long and lined, rounded by the light, shadowed under her jaw.
+	ellipse(78, 50, 10.5, 13, 0, "skin", 0.1, (x, y) => {
+		const across = (x + 0.5 - 78) / 10.5;
+
+		return 0.04 * across + 0.08 * Math.sqrt(Math.max(0, 1 - across * across)) - 0.1 * clamp((y - 61.5) / 2);
+	});
 
 	// Her headscarf over her head, its edge low on her brow, knotted under her chin.
 	for (let y = 32; y <= 52; y++) {
@@ -294,17 +358,30 @@ export function drawBefana(): HTMLCanvasElement {
 	// --- The scene: a teal night, the moon, the rooftops and chimneys of the town asleep. ---
 	const { canvas, context } = canvasWith((x, y) => {
 		if (y > roofline(x)) {
-			// The moon catches the tops of the roofs.
-			const edge = y - roofline(x) < 2 ? 0.55 : 0;
+			// Snow on the roofs, catching the moon; and a window lit here and there, where someone is still up.
+			if (y - roofline(x) < 2) {
+				return shade(x, y, 0.75 + fbm(x * 0.2, y * 0.2) * 0.3, RAMPS.night);
+			}
 
-			return shade(x, y, edge + 0.4 + fbm(x * 0.2, y * 0.2) * 0.3, edge ? RAMPS.night : RAMPS.roof);
+			const house = Math.floor(x / 30);
+			const across = x - house * 30;
+			const eaves = 120 - Math.round(hash(house, 41) * 12);
+
+			if (hash(house, 43) > 0.55 && across >= 18 && across < 22 && y >= eaves + 4 && y < eaves + 9) {
+				return shade(x, y, across === 20 || y === eaves + 6 ? 0.15 : 0.7, RAMPS.window);
+			}
+
+			return shade(x, y, 0.4 + fbm(x * 0.2, y * 0.2) * 0.3, RAMPS.roof);
 		}
 
 		const mist = fbm(x * 0.03 + 31, y * 0.06);
 		const glow = clamp(1 - Math.hypot((x - MOON.x) / 120, (y - MOON.y) / 90));
 		const dark = clamp(1 - Math.abs(x - 140) / 240);
 
-		return shade(x, y, (glow * 0.8 + mist * 0.26 - 0.06) * dark, RAMPS.night);
+		// A paler band of sky down at the rooftops, for the town to stand dark against.
+		const horizon = 0.22 * clamp(1 - (roofline(x) - y) / 30);
+
+		return shade(x, y, (glow * 0.8 + mist * 0.26 - 0.06) * dark + horizon, RAMPS.night);
 	});
 
 	// The moon.
@@ -312,6 +389,42 @@ export function drawBefana(): HTMLCanvasElement {
 		context,
 		(keep) => {
 			ellipse(MOON.x, MOON.y, 14, 14, 0, "moon", 0.3, (x, y) => -0.15 * fbm(x * 0.3, y * 0.3), keep);
+		},
+		RAMPS,
+		null,
+	);
+
+	// The lit windows' glow, and smoke curling from the chimneys of the houses still warm.
+	for (let house = 0; house < 9; house++) {
+		const eaves = 120 - Math.round(hash(house, 41) * 12);
+
+		if (hash(house, 43) > 0.55) {
+			paintGlow(context, house * 30 + 20, eaves + 6.5, 8, RAMPS.window, 0.4);
+		}
+	}
+
+	paintLayer(
+		context,
+		(keep) => {
+			for (let house = 0; house < 9; house++) {
+				if (hash(house, 44) < 0.5) {
+					continue;
+				}
+
+				const top = roofline(house * 30 + 10);
+
+				for (let i = 0; i < 26; i++) {
+					const y = top - 1 - i;
+					const x = house * 30 + 10 + Math.sin(i * 0.3 + house) * (1 + i * 0.25) + i * 0.4;
+					const t = 0.5 - i * 0.016;
+
+					for (let dx = -1; dx <= 1; dx++) {
+						if (hash(Math.round(x) + dx, y) < 0.7 - i * 0.02) {
+							keep(Math.round(x) + dx, y, "night", t + 0.2);
+						}
+					}
+				}
+			}
 		},
 		RAMPS,
 		null,
