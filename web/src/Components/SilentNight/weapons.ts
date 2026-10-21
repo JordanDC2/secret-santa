@@ -300,7 +300,7 @@ function hitWhere(
 	reach: number,
 	inside: (enemy: IEnemy) => boolean,
 	damage: number,
-	weapon: IWeaponId,
+	weapon: IWeaponId | null,
 	events: IEvents,
 	knockback = 3,
 ) {
@@ -628,14 +628,15 @@ export function landShells(world: IWorld, grid: IGrid, events: IEvents) {
 	}
 }
 
-function burst(
+/** A burst at (x, y) (from `weapon`, or a blessing's): its flash, knocking candles over, hurting everything in it. */
+export function burst(
 	world: IWorld,
 	grid: IGrid,
 	x: number,
 	y: number,
 	radius: number,
 	damage: number,
-	weapon: IWeaponId,
+	weapon: IWeaponId | null,
 	events: IEvents,
 ) {
 	world.effects.push({

@@ -7,16 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * One player's Silent Night progress: coal to spend, the Coal Cellar's upgrade levels, and the
- * cast they've unlocked (the first in config/silent_night.php is always theirs) and last played as.
+ * One player's Silent Night progress: coal to spend, the Coal Cellar's upgrade levels, the
+ * second-wave patrons unlocked, and the cast they've unlocked (the first in
+ * config/silent_night.php is always theirs) and last played as.
  *
  * @property int $user_id
  * @property int $coal
  * @property array<string, int>|null $cellar
  * @property array<int, string>|null $cast
+ * @property array<int, string>|null $patrons
  * @property string $character
  */
-#[Fillable(['user_id', 'coal', 'cellar', 'cast', 'character'])]
+#[Fillable(['user_id', 'coal', 'cellar', 'cast', 'patrons', 'character'])]
 class SilentNightProgress extends Model
 {
     protected $table = 'silent_night_progress';
@@ -27,6 +29,7 @@ class SilentNightProgress extends Model
             'coal' => 'integer',
             'cellar' => 'array',
             'cast' => 'array',
+            'patrons' => 'array',
         ];
     }
 

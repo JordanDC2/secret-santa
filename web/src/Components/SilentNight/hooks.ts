@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ICastId } from "Components/SilentNight/types";
+import type { ICastId, IPatronId } from "Components/SilentNight/types";
 import { apiClient } from "Data/Api/Client";
 
 export type ILeaderboardBoard = "night" | "krampus" | "kills";
@@ -19,8 +19,14 @@ type ILeaderboardResponse = {
 /** A finished night, as the server keeps it. */
 export type IRun = { seconds: number; kills: number; level: number; bargains: number; won: boolean; bosses: number };
 
-/** What's kept between nights: coal, the Coal Cellar's levels, who's unlocked and who was last played. */
-export type IProgress = { coal: number; cellar: Record<string, number>; cast: ICastId[]; character: ICastId };
+/** What's kept between nights: coal, the Coal Cellar's levels, the second-wave patrons and cast unlocked, and who was last played. */
+export type IProgress = {
+	coal: number;
+	cellar: Record<string, number>;
+	patrons: IPatronId[];
+	cast: ICastId[];
+	character: ICastId;
+};
 
 const PROGRESS_KEY = ["silent-night", "progress"];
 const LEADERBOARD_KEY = ["silent-night", "leaderboard"];
@@ -32,13 +38,15 @@ export function useProgressQuery() {
 	});
 }
 
-/** Buying in the Coal Cellar: an upgrade's next level, or one of the cast unlocked. */
+/** Something bought in the Coal Cellar: an upgrade's next level, or a patron or one of the cast unlocked. */
+export type IPurchase = { kind: "cellar" | "patron" | "cast"; item: string };
+
+/** Buying in the Coal Cellar. */
 export function useBuyMutation() {
 	const queryClient = useQueryClient();
 
 	return useMutation({
-		mutationFn: (purchase: { kind: "cellar" | "cast"; item: string }) =>
-			apiClient.post<IProgress>("/silent-night/purchases", purchase),
+		mutationFn: (purchase: IPurchase) => apiClient.post<IProgress>("/silent-night/purchases", purchase),
 		onSuccess: (progress) => queryClient.setQueryData(PROGRESS_KEY, progress),
 	});
 }

@@ -90,6 +90,23 @@ class SilentNightTest extends TestCase
         $this->patchJson(route('silent-night.character'), ['character' => 'reindeer'])->assertJsonValidationErrors('character');
     }
 
+    public function test_the_coal_cellar_unlocks_the_second_wave_of_patrons(): void
+    {
+        $user = $this->player();
+        SilentNightProgress::for($user)->update(['coal' => 250]);
+
+        $this->getJson(route('silent-night.progress'))->assertJsonPath('patrons', []);
+
+        $this->postJson(route('silent-night.purchases'), ['kind' => 'patron', 'item' => 'befana'])
+            ->assertOk()
+            ->assertJsonPath('coal', 50)
+            ->assertJsonPath('patrons', ['befana']);
+
+        $this->postJson(route('silent-night.purchases'), ['kind' => 'patron', 'item' => 'befana'])->assertJsonValidationErrors('item');
+        $this->postJson(route('silent-night.purchases'), ['kind' => 'patron', 'item' => 'mariLwyd'])->assertJsonValidationErrors('item');
+        $this->postJson(route('silent-night.purchases'), ['kind' => 'patron', 'item' => 'laFlor'])->assertJsonValidationErrors('item');
+    }
+
     public function test_a_cellar_upgrade_stops_at_its_last_level(): void
     {
         $user = $this->player();

@@ -18,7 +18,7 @@ import { makeSprites } from "Components/SilentNight/sprites";
 import { PASSIVES } from "Components/SilentNight/stats";
 import { noEvents, type ICastId, type IInput, type IPrompt, type IWorld } from "Components/SilentNight/types";
 import { gunNumbers, weaponInfo } from "Components/SilentNight/weapons";
-import type { IProgress, IRun } from "Components/SilentNight/hooks";
+import type { IProgress, IPurchase, IRun } from "Components/SilentNight/hooks";
 import { NIGHT_SECONDS, newWorld, step, VIEW_HEIGHT } from "Components/SilentNight/world";
 import classes from "Components/SilentNight/SilentNight.module.less";
 
@@ -38,7 +38,7 @@ type IGameProps = {
 	progress: IProgress;
 	busy: boolean;
 	error: string | null;
-	onBuy: (purchase: { kind: "cellar" | "cast"; item: string }) => void;
+	onBuy: (purchase: IPurchase) => void;
 	onChoose: (character: ICastId) => void;
 	/** A night's over, won or lost (or given up). */
 	onNightOver: (run: IRun) => void;
@@ -426,7 +426,7 @@ export default function SilentNightGame({
 	};
 
 	const start = (character: ICastId) => {
-		const fresh = newWorld(character, progress.cellar);
+		const fresh = newWorld(character, progress.cellar, progress.patrons);
 		worldRef.current = fresh;
 		keysRef.current.clear();
 		setOver(false);

@@ -23,7 +23,7 @@ class ProgressController extends Controller
 
     public function buy(Buy $buy, BuyRequest $request): SilentNightProgressResource
     {
-        /** @var 'cellar'|'cast' $kind */
+        /** @var 'cellar'|'patron'|'cast' $kind */
         $kind = $request->string('kind')->value();
 
         return new SilentNightProgressResource($buy($request->user(), $kind, $request->string('item')->value()));

@@ -8,7 +8,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * A player's Silent Night progress for the game: their coal, every Coal Cellar upgrade's level,
- * and who they've unlocked and last played as.
+ * the second-wave patrons unlocked, and who they've unlocked and last played as.
  *
  * @mixin SilentNightProgress
  */
@@ -23,6 +23,7 @@ class SilentNightProgressResource extends JsonResource
             'coal' => $this->coal,
             'cellar' => $this->levels(),
             'cast' => $this->ownedCast(),
+            'patrons' => $this->patrons ?? [],
             'character' => $this->character,
         ];
     }

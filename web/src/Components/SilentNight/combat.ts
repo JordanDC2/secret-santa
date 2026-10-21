@@ -100,6 +100,11 @@ export function hurtEnemy(
 		damage *= 1 + byRank(player, "shatter", [0.5, 1, 1.5]);
 	}
 
+	// Mari Lwyd's wassail: harder on those close round the elf, in her song.
+	if (rank(player, "wassail") > 0 && Math.hypot(enemy.x - player.x, enemy.y - player.y) < numbers.song) {
+		damage *= 1 + byRank(player, "wassail", [0.1, 0.2, 0.3]);
+	}
+
 	// La Flor: the lowest-level weapon hits harder.
 	if (weapon && rank(player, "humbleBeginnings") > 0 && lowestWeapon(world) === weapon) {
 		damage *= 1 + byRank(player, "humbleBeginnings", [0.3, 0.6, 0.9]);
@@ -122,7 +127,7 @@ export function hurtEnemy(
 
 	if (direction && knockback > 0) {
 		const slam = Math.random() < byRank(player, "doorSlammer", [0.08, 0.12, 0.16]) && !enemy.boss;
-		const push = knockback * heavy * (slam ? 4 : 1) * 30;
+		const push = knockback * heavy * (slam ? 4 : 1) * 30 * (1 + byRank(player, "horns", [0.25, 0.5, 0.75]));
 		enemy.push.x += direction.x * push;
 		enemy.push.y += direction.y * push;
 
@@ -243,6 +248,26 @@ function kill(world: IWorld, grid: IGrid, enemy: IEnemy, events: IEvents) {
 			pulled: false,
 			at: world.time,
 		});
+	}
+
+	// La Befana's gifts for the good: cocoa or a big crystal.
+	if (Math.random() < byRank(player, "giftsForGood", [0.02, 0.04, 0.06])) {
+		const cocoa = Math.random() < 0.5;
+		world.pickups.push({
+			id: world.nextId++,
+			kind: cocoa ? "cocoa" : "bigCrystal",
+			x: enemy.x - 4,
+			y: enemy.y,
+			value: cocoa ? 20 : 10 * world.numbers.experience,
+			pulled: false,
+			at: world.time,
+		});
+	}
+
+	// Mari Lwyd and the Christkind: each that falls in the song heals the elf a little.
+	if (rank(player, "carolAtTheDoor") > 0 && Math.hypot(enemy.x - player.x, enemy.y - player.y) < world.numbers.song) {
+		heal(world, 0.5, events);
+		events.healed = false;
 	}
 
 	// Rarely, the Christmas star: pulls in every crystal there is.
@@ -375,6 +400,20 @@ export function hurtPlayer(world: IWorld, amount: number, events: IEvents, from?
 	player.health -= amount * numbers.vulnerability * (1 - numbers.armour);
 	player.hurtUntil = world.time + 0.6;
 	events.hurt = true;
+
+	// The Yule Goat's straw catches: a burst of burning straw round the elf (secondWave.ts sets it off).
+	if (rank(player, "strawBurns") > 0) {
+		world.effects.push({
+			kind: "coal",
+			x: player.x,
+			y: player.y,
+			at: world.time,
+			until: world.time,
+			radius: 30 * numbers.area,
+			angle: 0,
+			data: [player.x, player.y, byRank(player, "strawBurns", [20, 30, 40]), 0, 1],
+		});
+	}
 
 	// Christkind's guardian: brought back from the brink.
 	if (

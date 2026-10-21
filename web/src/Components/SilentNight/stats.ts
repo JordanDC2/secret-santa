@@ -101,6 +101,10 @@ export type IStats = {
 	reload: number;
 	/** How much cocoa heals (Mrs. Claus's home cooking). */
 	cocoa: number;
+	/** How long a dash lasts (La Befana's broomstick). */
+	dashLength: number;
+	/** How far Mari Lwyd's song reaches round the elf (0: no song). */
+	song: number;
 };
 
 const BASE_HEALTH = 100;
@@ -132,10 +136,18 @@ export function stats(player: IPlayer): IStats {
 			20 * level(player, "fruitcake") +
 			byRank(player, "rooted", [10, 20, 30]) +
 			10 * cellar("wool") +
+			byRank(player, "stubborn", [15, 30, 45]) +
 			(character === "santa" ? 30 : 0) +
 			gear("maxHealth")) *
 		(bargain(player, "naughtyList") ? 0.7 : 1);
 	const luck = 1 + 0.1 * level(player, "mistletoe") + gear("luck");
+	const area = 1 + 0.1 * level(player, "tinsel") + gear("area");
+	const song =
+		rank(player, "fright") > 0
+			? byRank(player, "fright", [30, 38, 46])
+			: rank(player, "wassail") + rank(player, "carolAtTheDoor") > 0
+				? 30
+				: 0;
 
 	return {
 		maxHealth: Math.max(10, maxHealth),
@@ -145,10 +157,12 @@ export function stats(player: IPlayer): IStats {
 		damage:
 			(1 + 0.1 * level(player, "peppermint") + 0.05 * cellar("canes") + gear("damage")) *
 			(bargain(player, "birchRod") ? 2 : 1),
-		area: 1 + 0.1 * level(player, "tinsel") + gear("area"),
+		area,
 		cooldown: Math.max(0.4, 1 - 0.08 * level(player, "eggnog") + gear("cooldown")),
 		projectiles: level(player, "sleighBells") + (wearing(player, "twinStitched") ? 1 : 0),
-		reach: BASE_REACH * (1 + 0.25 * level(player, "stocking") + gear("reach")),
+		reach:
+			BASE_REACH *
+			(1 + 0.25 * level(player, "stocking") + gear("reach") + byRank(player, "goodWitch", [0.2, 0.4, 0.6])),
 		luck,
 		light: Math.max(
 			0.5,
@@ -159,12 +173,18 @@ export function stats(player: IPlayer): IStats {
 				gear("light"),
 		),
 		regen: byRank(player, "grace", [0.6, 1.2, 1.8]) + gear("regen") + (wearing(player, "mended") ? 0.5 : 0),
-		armour: Math.min(0.6, byRank(player, "frostArmour", [0.08, 0.14, 0.2]) + gear("armour")),
+		armour: Math.min(
+			0.6,
+			byRank(player, "frostArmour", [0.08, 0.14, 0.2]) +
+				byRank(player, "thickFleece", [0.06, 0.1, 0.14]) +
+				gear("armour"),
+		),
 		vulnerability: (bargain(player, "birchRod") ? 2 : 1) * (1 + gear("vulnerability")),
 		crit:
 			0.05 * luck +
 			byRank(player, "windowPeeper", [0.08, 0.14, 0.2]) +
 			(bargain(player, "naughtyList") ? 0.25 : 0) +
+			byRank(player, "ribbons", [0.05, 0.1, 0.15]) +
 			gear("crit"),
 		experience: (1 + 0.25 * rank(player, "smallThings") + gear("experience")) * (bargain(player, "sack") ? 1.5 : 1),
 		healing: bargain(player, "chains")
@@ -173,7 +193,10 @@ export function stats(player: IPlayer): IStats {
 		dashCooldown:
 			(bargain(player, "krampusBell") ? 0.5 : 1) *
 			(wearing(player, "fleetFooted") ? 0.75 : 1) *
-			(character === "reindeer" ? 0.8 : 1),
+			(character === "reindeer" ? 0.8 : 1) *
+			(1 - byRank(player, "broomstick", [0.1, 0.2, 0.3])),
+		dashLength: 1 + byRank(player, "broomstick", [0.3, 0.6, 0.9]),
+		song: song * area,
 		reload: character === "elf" ? 0.7 : 1,
 		cocoa: character === "mrsClaus" ? 1.5 : 1,
 	};

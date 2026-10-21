@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Alert, Button, SegmentedControl } from "@mantine/core";
-import { CAST, castMember, CELLAR } from "Components/SilentNight/cast";
-import type { IProgress } from "Components/SilentNight/hooks";
+import { CAST, castMember, CELLAR, SECOND_WAVE } from "Components/SilentNight/cast";
+import type { IProgress, IPurchase } from "Components/SilentNight/hooks";
+import { PATRONS } from "Components/SilentNight/patrons";
+import { portraitUrl } from "Components/SilentNight/portraits";
 import { iconUrl } from "Components/SilentNight/icons";
 import type { ICastId } from "Components/SilentNight/types";
 import { weaponInfo } from "Components/SilentNight/weapons";
@@ -15,12 +17,12 @@ type IMenuProps = {
 	error: string | null;
 	onStart: (character: ICastId) => void;
 	onChoose: (character: ICastId) => void;
-	onBuy: (purchase: { kind: "cellar" | "cast"; item: string }) => void;
+	onBuy: (purchase: IPurchase) => void;
 };
 
 /**
- * Before a night: who to play as (the rest of the cast unlocked with coal), and the Coal Cellar's
- * upgrades, which last from night to night.
+ * Before a night: who to play as (the rest of the cast unlocked with coal), and the Coal Cellar:
+ * upgrades, which last from night to night, and the second wave of patrons.
  */
 export default function Menu({ progress, castImages, busy, error, onStart, onChoose, onBuy }: IMenuProps) {
 	const [view, setView] = useState<"cast" | "cellar">("cast");
@@ -77,6 +79,32 @@ export default function Menu({ progress, castImages, busy, error, onStart, onCho
 				</>
 			) : (
 				<ul className={classes.cellar}>
+					{SECOND_WAVE.map(({ id, price }) => {
+						const patron = PATRONS[id];
+						const unlocked = progress.patrons.includes(id);
+
+						return (
+							<li key={id}>
+								<img src={portraitUrl(id)} alt="" className={classes.cellarPortrait} />
+								<span className={classes.cellarName}>
+									<span style={{ color: patron.colour }}>{patron.name}</span>
+									<span className={classes.dim}> of {patron.from}: their shrines appear in the night</span>
+								</span>
+								{unlocked ? (
+									<span className={classes.dim}>Unlocked</span>
+								) : (
+									<Button
+										size="compact-xs"
+										variant="default"
+										disabled={busy || progress.coal < price}
+										onClick={() => onBuy({ kind: "patron", item: id })}
+									>
+										{price} coal
+									</Button>
+								)}
+							</li>
+						);
+					})}
 					{CELLAR.map((upgrade) => {
 						const level = progress.cellar[upgrade.id] ?? 0;
 						const price = upgrade.prices[level];

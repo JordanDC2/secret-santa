@@ -3,11 +3,14 @@
  * time it's needed, and kept as an image URL.
  */
 
+import { drawBefana } from "Components/SilentNight/drawBefana";
 import { drawChristkind } from "Components/SilentNight/drawChristkind";
 import { drawKrampus } from "Components/SilentNight/drawKrampus";
 import { drawLaFlor } from "Components/SilentNight/drawLaFlor";
 import { drawLucia } from "Components/SilentNight/drawLucia";
+import { drawMariLwyd } from "Components/SilentNight/drawMariLwyd";
 import { drawMoroz } from "Components/SilentNight/drawMoroz";
+import { drawYuleGoat } from "Components/SilentNight/drawYuleGoat";
 import { drawYuleLads } from "Components/SilentNight/drawYuleLads";
 import type { IPatronId } from "Components/SilentNight/types";
 
@@ -19,6 +22,9 @@ const DRAWINGS: Record<IPortraitId, () => HTMLCanvasElement> = {
 	moroz: drawMoroz,
 	christkind: drawChristkind,
 	yuleLads: drawYuleLads,
+	befana: drawBefana,
+	yuleGoat: drawYuleGoat,
+	mariLwyd: drawMariLwyd,
 	krampus: drawKrampus,
 };
 

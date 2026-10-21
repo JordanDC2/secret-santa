@@ -12,11 +12,19 @@ import { knockCandles } from "Components/SilentNight/candles";
 import { gridOf, near, hurtEnemy, heal } from "Components/SilentNight/combat";
 import { moveEnemies, moveHostileShots } from "Components/SilentNight/enemies";
 import { nextLevelUp } from "Components/SilentNight/levelUp";
-import { visitShrines } from "Components/SilentNight/patrons";
+import { FIRST_WAVE, visitShrines } from "Components/SilentNight/patrons";
 import { movePickups } from "Components/SilentNight/pickups";
 import { byRank, stats } from "Components/SilentNight/stats";
 import { runTimeline } from "Components/SilentNight/timeline";
-import { noEvents, type ICastId, type IEvents, type IInput, type IWorld } from "Components/SilentNight/types";
+import { dropCoalBomb, useSecondWave } from "Components/SilentNight/secondWave";
+import {
+	noEvents,
+	type ICastId,
+	type IEvents,
+	type IInput,
+	type IPatronId,
+	type IWorld,
+} from "Components/SilentNight/types";
 import { landShells, moveAllies, newWeapon, useWeapons } from "Components/SilentNight/weapons";
 
 export { NIGHT_SECONDS, VIEW_HEIGHT } from "Components/SilentNight/constants";
@@ -27,8 +35,12 @@ const DASH_SPEED = 185;
 const DASH_SECONDS = 0.16;
 const DASH_COOLDOWN = 1.1;
 
-/** A new night, for `character` with the Coal Cellar's upgrades bought so far. */
-export function newWorld(character: ICastId = "elf", cellar: Record<string, number> = {}): IWorld {
+/** A new night, for `character` with the Coal Cellar's upgrades and second-wave patrons unlocked so far. */
+export function newWorld(
+	character: ICastId = "elf",
+	cellar: Record<string, number> = {},
+	secondWave: IPatronId[] = [],
+): IWorld {
 	const world: IWorld = {
 		time: 0,
 		numbers: undefined!,
@@ -61,6 +73,8 @@ export function newWorld(character: ICastId = "elf", cellar: Record<string, numb
 			guardianReadyAt: 0,
 			stillSince: 0,
 			slowedUntil: 0,
+			chantAt: 0,
+			charged: new Set(),
 		},
 		enemies: [],
 		shots: [],
@@ -68,6 +82,7 @@ export function newWorld(character: ICastId = "elf", cellar: Record<string, numb
 		pickups: [],
 		allies: [],
 		shrines: [],
+		patrons: [...FIRST_WAVE, ...secondWave],
 		kills: 0,
 		bosses: 0,
 		spawnOwed: 0,
@@ -104,6 +119,7 @@ export function step(world: IWorld, input: IInput, dt: number, view: { width: nu
 	runTimeline(world, dt, view, events);
 	const grid = gridOf(world.enemies);
 	useWeapons(world, input, grid, events);
+	useSecondWave(world, grid, dt, events);
 	moveAllies(world, grid, dt, events);
 	moveEnemies(world, grid, dt, events);
 	moveShots(world, grid, dt, events);
@@ -112,7 +128,8 @@ export function step(world: IWorld, input: IInput, dt: number, view: { width: nu
 	world.enemies = world.enemies.filter((enemy) => enemy.health > 0);
 	byDepth(world.enemies);
 	world.effects = world.effects.filter(
-		(effect) => world.time < effect.until || (effect.kind === "shell" && effect.data[3] !== 1),
+		(effect) =>
+			world.time < effect.until || ((effect.kind === "shell" || effect.kind === "coal") && effect.data[3] !== 1),
 	);
 	movePickups(world, dt, events);
 	visitShrines(world, events);
@@ -148,7 +165,9 @@ function movePlayer(world: IWorld, input: IInput, dt: number, events: IEvents) {
 
 	if (input.dash && world.time >= player.dashReadyAt) {
 		player.dash = player.moving ? { ...player.heading } : { x: player.facing, y: 0 };
-		player.dashUntil = world.time + DASH_SECONDS;
+		player.dashUntil = world.time + DASH_SECONDS * numbers.dashLength;
+		player.charged.clear();
+		dropCoalBomb(world);
 		player.dashReadyAt = world.time + DASH_COOLDOWN * numbers.dashCooldown;
 		events.dashed = true;
 	}

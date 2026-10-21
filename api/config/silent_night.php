@@ -6,7 +6,7 @@
 |--------------------------------------------------------------------------
 |
 | The game runs in the browser; the server keeps each player's coal, what they've bought in
-| the Coal Cellar and who they've unlocked, and the nights behind the leaderboards. Prices
+| the Coal Cellar and which patrons and cast they've unlocked, and the nights behind the leaderboards. Prices
 | here are the ones the server charges: keep them in step with web/src/Components/SilentNight
 | (cast.ts), which shows them. One price per level.
 |
@@ -29,6 +29,13 @@ return [
         'boots' => [40, 90, 160],
         'dice' => [50, 120, 220],
         'fire' => [50, 120, 220],
+    ],
+
+    // The second wave of patrons, and the coal to unlock each (the first five are always there).
+    'patrons' => [
+        'befana' => 200,
+        'yuleGoat' => 200,
+        'mariLwyd' => 200,
     ],
 
     // Who can play, and the coal to unlock each; the first is free.

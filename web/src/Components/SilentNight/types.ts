@@ -33,7 +33,16 @@ export type IEnemyKind =
 	| "yuleCat"
 	| "krampus";
 
-export type IPatronId = "laFlor" | "lucia" | "moroz" | "christkind" | "yuleLads";
+export type IPatronId =
+	| "laFlor"
+	| "lucia"
+	| "moroz"
+	| "christkind"
+	| "yuleLads"
+	// The second wave, unlocked in the Coal Cellar.
+	| "befana"
+	| "yuleGoat"
+	| "mariLwyd";
 
 /** Who's playing: the cast of Elf Fling (cast.ts). */
 export type ICastId = "elf" | "santa" | "mrsClaus" | "snowman" | "reindeer";
@@ -121,6 +130,10 @@ export type IPlayer = {
 	stillSince: number;
 	/** Slowed (by a caroller's song) until. */
 	slowedUntil: number;
+	/** Mari Lwyd's chant: when it next rings out. */
+	chantAt: number;
+	/** Enemies the Yule Goat's charge has already hit this dash. */
+	charged: Set<number>;
 };
 
 export type IEnemy = {
@@ -194,7 +207,10 @@ export type IEffect = {
 		| "chains"
 		| "pounce"
 		| "heal"
-		| "levelUp";
+		| "levelUp"
+		// La Befana's coal bomb on the snow (data: x, y, damage, gone off, straw-fire), and Mari Lwyd's chant.
+		| "coal"
+		| "chant";
 	x: number;
 	y: number;
 	at: number;
@@ -267,6 +283,8 @@ export type IWorld = {
 	pickups: IPickup[];
 	allies: IAlly[];
 	shrines: IShrine[];
+	/** The patrons whose shrines can appear (the second wave once unlocked). */
+	patrons: IPatronId[];
 	kills: number;
 	/** Bosses beaten this night. */
 	bosses: number;

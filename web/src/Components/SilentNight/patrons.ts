@@ -1,10 +1,10 @@
 /**
- * The patrons of Silent Night, from Christmases around the world, and their blessings (the
- * first wave of the design doc's eight). Every couple of minutes a shrine appears out in the
- * dark; reach it and its patron offers three of their blessings. Blessings rank up to three
- * times, and two from different patrons can combine into a duo blessing. Krampus's altars appear
- * too, offering his bargains (bargains.ts). The blessings' effects are worked into stats.ts,
- * combat.ts and weapons.ts by id.
+ * The patrons of Silent Night, from Christmases around the world, and their blessings: five
+ * from the start, and a second wave of three unlocked in the Coal Cellar. Every couple of
+ * minutes a shrine appears out in the dark; reach it and its patron offers three of their
+ * blessings. Blessings rank up to three times, and two from different patrons can combine into a
+ * duo blessing. Krampus's altars appear too, offering his bargains (bargains.ts). The blessings'
+ * effects are worked into stats.ts, combat.ts, weapons.ts and secondWave.ts by id.
  */
 
 import { BARGAINS } from "Components/SilentNight/bargains";
@@ -47,7 +47,31 @@ export const PATRONS: Record<IPatronId, IPatron> = {
 		line: "Thirteen of us, and every one a thief. Fancy a trick?",
 		colour: "#9ad07a",
 	},
+	befana: {
+		id: "befana",
+		name: "La Befana",
+		from: "Italy",
+		line: "Good children get sweets, and the rest get coal. You'll have both.",
+		colour: "#5fb8a8",
+	},
+	yuleGoat: {
+		id: "yuleGoat",
+		name: "The Yule Goat",
+		from: "Scandinavia",
+		line: "Straw and stubbornness. Lower your head, and charge.",
+		colour: "#e0883a",
+	},
+	mariLwyd: {
+		id: "mariLwyd",
+		name: "Mari Lwyd",
+		from: "Wales",
+		line: "Let us in, or answer our song.",
+		colour: "#e8e4dc",
+	},
 };
+
+/** The first wave, whose shrines always appear; the rest are unlocked in the Coal Cellar. */
+export const FIRST_WAVE: IPatronId[] = ["laFlor", "lucia", "moroz", "christkind", "yuleLads"];
 
 export type IBlessing = {
 	id: string;
@@ -197,6 +221,86 @@ export const BLESSINGS: IBlessing[] = [
 		ranks: ["Throws and shots have a 10% chance to go twice", "15% chance", "20% chance"],
 	},
 	{ id: "stubby", patron: "yuleLads", name: "Stubby", ranks: ["+1 reroll at level-ups", "+1 more", "+1 more"] },
+	// La Befana: her broom and her coal.
+	{
+		id: "broomstick",
+		patron: "befana",
+		name: "Broomstick",
+		ranks: ["Dash 30% further and 10% more often", "60% further, 20% more often", "90% further, 30% more often"],
+	},
+	{
+		id: "coalBombs",
+		patron: "befana",
+		name: "Coal in the Stocking",
+		ranks: ["Dashing leaves a coal bomb that bursts for 30", "Bursts for 45", "Bursts for 60"],
+	},
+	{
+		id: "giftsForGood",
+		patron: "befana",
+		name: "Gifts for the Good",
+		ranks: ["2% chance an enemy leaves a gift: cocoa or a big crystal", "4% chance", "6% chance"],
+	},
+	{
+		id: "goodWitch",
+		patron: "befana",
+		name: "Good Witch",
+		ranks: ["Pick things up 20% further away", "40% further", "60% further"],
+	},
+	// The Yule Goat: horns.
+	{
+		id: "horns",
+		patron: "yuleGoat",
+		name: "Horns",
+		ranks: ["Knock enemies back 25% further", "50% further", "75% further"],
+	},
+	{
+		id: "thickFleece",
+		patron: "yuleGoat",
+		name: "Thick Fleece",
+		ranks: ["Take 6% less damage", "10% less", "14% less"],
+	},
+	{
+		id: "goatCharge",
+		patron: "yuleGoat",
+		name: "Charge",
+		ranks: ["Dashing through enemies hurts them for 20 and throws them aside", "For 35", "For 50"],
+	},
+	{
+		id: "strawBurns",
+		patron: "yuleGoat",
+		name: "Straw Goat",
+		ranks: ["When you're hit, burning straw bursts round you for 20, setting enemies alight", "For 30", "For 40"],
+	},
+	{ id: "stubborn", patron: "yuleGoat", name: "Stubborn", ranks: ["+15 health", "+30 health", "+45 health"] },
+	// Mari Lwyd: the horse skull's song.
+	{
+		id: "fright",
+		patron: "mariLwyd",
+		name: "Frightful Song",
+		ranks: ["A song round you drives enemies back", "A wider song", "Wider still"],
+	},
+	{
+		id: "wassail",
+		patron: "mariLwyd",
+		name: "Wassail",
+		ranks: ["Enemies close round you take 10% more damage", "20% more", "30% more"],
+	},
+	{
+		id: "pwnco",
+		patron: "mariLwyd",
+		name: "Pwnco",
+		ranks: [
+			"Every 6 seconds a chant rings out, hurting everything near for 20 and stunning it",
+			"Every 5 seconds",
+			"Every 4 seconds",
+		],
+	},
+	{
+		id: "ribbons",
+		patron: "mariLwyd",
+		name: "Ribbons and Bells",
+		ranks: ["+5% chance of critical hits", "+10%", "+15%"],
+	},
 	// Duos.
 	{
 		id: "steamBurst",
@@ -211,6 +315,27 @@ export const BLESSINGS: IBlessing[] = [
 		needs: ["laFlor", "lucia"],
 		name: "Bloom of Light",
 		ranks: ["Crystals fly to you from anywhere in your light"],
+	},
+	{
+		id: "burningCoal",
+		patron: ["befana", "lucia"],
+		needs: ["befana", "lucia"],
+		name: "Burning Coal",
+		ranks: ["Your coal bombs set everything they hit burning"],
+	},
+	{
+		id: "frozenCharge",
+		patron: ["yuleGoat", "moroz"],
+		needs: ["yuleGoat", "moroz"],
+		name: "Frozen Charge",
+		ranks: ["Your charge freezes what it hits"],
+	},
+	{
+		id: "carolAtTheDoor",
+		patron: ["mariLwyd", "christkind"],
+		needs: ["mariLwyd", "christkind"],
+		name: "Carol at the Door",
+		ranks: ["Each enemy that falls close round you heals you a little"],
 	},
 ];
 
@@ -235,7 +360,7 @@ export function placeShrine(world: IWorld, kind: "shrine" | "altar") {
 		}
 	}
 
-	const patrons = (Object.keys(PATRONS) as IPatronId[]).filter((id) => id !== lastPatron);
+	const patrons = world.patrons.filter((id) => id !== lastPatron);
 	const patron = kind === "shrine" ? patrons[Math.floor(Math.random() * patrons.length)] : null;
 
 	if (patron) {

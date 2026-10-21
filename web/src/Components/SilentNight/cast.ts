@@ -3,10 +3,10 @@
  * with a weapon of their own and has a perk (worked into stats.ts, weapons.ts and enemies.ts).
  * The elf is free; the rest are unlocked with coal, which every night earns (the server works
  * out how much: api/config/silent_night.php, whose prices these must match). The Cellar's
- * upgrades last from night to night.
+ * upgrades last from night to night, and it unlocks the second wave of patrons.
  */
 
-import type { ICastId, IWeaponId } from "Components/SilentNight/types";
+import type { ICastId, IPatronId, IWeaponId } from "Components/SilentNight/types";
 
 export type ICastMember = {
 	id: ICastId;
@@ -63,6 +63,13 @@ export const CAST: ICastMember[] = [
 export function castMember(id: ICastId): ICastMember {
 	return CAST.find((member) => member.id === id)!;
 }
+
+/** The second wave of patrons, and the coal to unlock each. */
+export const SECOND_WAVE: Array<{ id: IPatronId; price: number }> = [
+	{ id: "befana", price: 200 },
+	{ id: "yuleGoat", price: 200 },
+	{ id: "mariLwyd", price: 200 },
+];
 
 export type ICellarUpgrade = { id: string; name: string; effect: string; prices: number[] };
 

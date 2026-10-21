@@ -161,6 +161,7 @@ export function drawWorld(
 	context.fillRect(sx(player.x) - 4, sy(player.y) - 1, 8, 2);
 	drawTelegraphs(context, world, sx, sy);
 	drawCocoa(context, world, sx, sy);
+	drawSong(context, world, sx, sy);
 
 	// The enemies, back to front (the world keeps them in order of depth), then the elf over
 	// them all, so it's never lost in a crowd.
@@ -334,6 +335,37 @@ function drawEnemy(
 }
 
 /** The hot cocoa aura: a warm haze round the elf, its edge simmering, steam rising inside. */
+/** Mari Lwyd's song round the elf: a faint ring, notes drifting round it. */
+function drawSong(context: CanvasRenderingContext2D, world: IWorld, sx: IToScreen, sy: IToScreen) {
+	const reach = world.numbers.song;
+
+	if (reach <= 0) {
+		return;
+	}
+
+	const { player, time } = world;
+	const x = sx(player.x);
+	const y = sy(player.y) - 3;
+	const dots = Math.round(reach * 0.8);
+	context.fillStyle = "rgba(232, 228, 220, 0.22)";
+
+	for (let i = 0; i < dots; i++) {
+		const angle = (i / dots) * Math.PI * 2 - time * 0.6;
+		context.fillRect(Math.round(x + Math.cos(angle) * reach), Math.round(y + Math.sin(angle) * reach * 0.7), 1, 1);
+	}
+
+	// Notes, three of them, going round.
+	context.fillStyle = "rgba(232, 228, 220, 0.6)";
+
+	for (let i = 0; i < 3; i++) {
+		const angle = time * 1.2 + (i / 3) * Math.PI * 2;
+		const nx = Math.round(x + Math.cos(angle) * reach * 0.8);
+		const ny = Math.round(y + Math.sin(angle) * reach * 0.56);
+		context.fillRect(nx, ny, 2, 1);
+		context.fillRect(nx + 1, ny - 3, 1, 3);
+	}
+}
+
 function drawCocoa(context: CanvasRenderingContext2D, world: IWorld, sx: IToScreen, sy: IToScreen) {
 	const weapon = world.player.weapons.find((carried) => carried.id === "cocoa");
 
@@ -580,6 +612,28 @@ function drawEffect(
 
 			break;
 		}
+		case "coal": {
+			// A lump of coal on the snow, its fuse sparking, until it goes off.
+			if (effect.data[3] === 1 || effect.data[4] === 1) {
+				break;
+			}
+
+			context.fillStyle = "#18151c";
+			context.fillRect(x - 2, y - 3, 4, 3);
+			context.fillStyle = "#3a3440";
+			context.fillRect(x - 1, y - 3, 1, 1);
+			context.fillStyle = Math.floor(time * 20) % 2 === 0 ? "#ffd060" : "#e0502a";
+			context.fillRect(x + 1, y - 5, 1, 1);
+			glows.push({ x: effect.x, y: effect.y - 4, radius: 8 });
+			break;
+		}
+		case "chant":
+			context.strokeStyle = `rgba(232, 228, 220, ${(0.8 * (1 - t)).toFixed(3)})`;
+			context.lineWidth = 1;
+			context.beginPath();
+			context.ellipse(x, y, effect.radius * t, effect.radius * t * 0.7, 0, 0, Math.PI * 2);
+			context.stroke();
+			break;
 		case "chains":
 			context.strokeStyle = "rgba(196, 200, 208, 0.8)";
 			context.lineWidth = 1;

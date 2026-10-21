@@ -8,7 +8,8 @@ return new class extends Migration
 {
     /**
      * Each player's Silent Night progress, kept between nights: their coal, the Coal Cellar's
-     * upgrades bought, and who they've unlocked and last played as.
+     * upgrades bought, the second-wave patrons unlocked, and who they've unlocked and last
+     * played as.
      */
     public function up(): void
     {
@@ -18,6 +19,7 @@ return new class extends Migration
             $table->unsignedInteger('coal')->default(0);
             $table->json('cellar')->nullable();
             $table->json('cast')->nullable();
+            $table->json('patrons')->nullable();
             $table->string('character', 20);
             $table->timestamps();
         });
