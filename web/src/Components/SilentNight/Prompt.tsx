@@ -1,5 +1,4 @@
 import { useEffect, type CSSProperties, type ReactNode } from "react";
-import { Button } from "@mantine/core";
 import {
 	BLESSINGS,
 	blessingInfo,
@@ -9,6 +8,7 @@ import {
 	takeBlessing,
 	takeCursedGear,
 } from "Components/SilentNight/patrons";
+import GameButton from "Components/SilentNight/GameButton";
 import { gearLines, RARITY_COLOURS } from "Components/SilentNight/gear";
 import { gunInfo, morphInfo } from "Components/SilentNight/guns";
 import GearSlots from "Components/SilentNight/GearSlots";
@@ -210,10 +210,10 @@ export default function Prompt({ world, prompt, onChange }: IPromptProps) {
 					)}
 				</div>
 				<div className={classes.promptButtons}>
-					<Button onClick={() => act(cards[0], null)}>{worn ? "Wear it instead" : "Wear it"}</Button>
-					<Button variant="subtle" onClick={() => act(cards[1], null)}>
+					<GameButton onClick={() => act(cards[0], null)}>{worn ? "Wear it instead" : "Wear it"}</GameButton>
+					<GameButton variant="quiet" onClick={() => act(cards[1], null)}>
 						Leave it
-					</Button>
+					</GameButton>
 				</div>
 			</div>
 		);
@@ -253,12 +253,12 @@ export default function Prompt({ world, prompt, onChange }: IPromptProps) {
 					})}
 				</div>
 				<div className={classes.promptButtons}>
-					<Button variant="default" disabled={player.rerolls === 0} onClick={() => act(() => reroll(world))}>
+					<GameButton variant="plain" disabled={player.rerolls === 0} onClick={() => act(() => reroll(world))}>
 						Reroll ({player.rerolls})
-					</Button>
-					<Button variant="subtle" onClick={() => act(() => skip(world))}>
+					</GameButton>
+					<GameButton variant="quiet" onClick={() => act(() => skip(world))}>
 						Skip
-					</Button>
+					</GameButton>
 				</div>
 				{player.banishes > 0 && (
 					<p className={classes.hint}>Banishing takes it out of every level-up this night ({player.banishes} left).</p>
@@ -301,9 +301,9 @@ export default function Prompt({ world, prompt, onChange }: IPromptProps) {
 						</button>
 					);
 				})}
-				<Button variant="subtle" onClick={() => act(() => closeShrine(world))}>
+				<GameButton variant="quiet" onClick={() => act(() => closeShrine(world))}>
 					Leave
-				</Button>
+				</GameButton>
 			</Dialogue>
 		);
 	}
@@ -339,9 +339,9 @@ export default function Prompt({ world, prompt, onChange }: IPromptProps) {
 					<GearDetails gear={prompt.gear} replacing={world.player.gear[prompt.gear.slot]} />
 				</button>
 			)}
-			<Button variant="subtle" onClick={() => act(() => closeShrine(world))}>
+			<GameButton variant="quiet" onClick={() => act(() => closeShrine(world))}>
 				Refuse
-			</Button>
+			</GameButton>
 			<p className={classes.hint}>He'll be stronger at dawn for every bargain taken.</p>
 		</Dialogue>
 	);

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActionIcon, Button, Tooltip } from "@mantine/core";
+import { ActionIcon, Tooltip } from "@mantine/core";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCompress, faExpand, faPause, faVolumeHigh, faVolumeXmark } from "@fortawesome/free-solid-svg-icons";
 import { useElementSize } from "@mantine/hooks";
 import { readSoundOn, saveSoundOn, wakeAudio } from "Components/ElfFling/sound";
 import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
+import GameButton from "Components/SilentNight/GameButton";
 import { experienceFor } from "Components/SilentNight/constants";
 import { drawWorld } from "Components/SilentNight/drawWorld";
 import { ENEMIES } from "Components/SilentNight/enemies";
@@ -766,16 +767,16 @@ export default function SilentNightGame({
 					<p className={classes.title}>Paused</p>
 					<Carried player={world.player} />
 					<GearSlots gear={world.player.gear} />
-					<Button onClick={() => pause(false)}>Carry on</Button>
-					<Button
-						variant="subtle"
+					<GameButton onClick={() => pause(false)}>Carry on</GameButton>
+					<GameButton
+						variant="quiet"
 						onClick={() => {
 							worldRef.current!.over = true;
 							pause(false);
 						}}
 					>
 						Give up the night
-					</Button>
+					</GameButton>
 				</div>
 			)}
 

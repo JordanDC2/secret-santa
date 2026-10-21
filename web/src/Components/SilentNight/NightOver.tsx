@@ -1,4 +1,4 @@
-import { Button } from "@mantine/core";
+import GameButton from "Components/SilentNight/GameButton";
 import { bargainInfo } from "Components/SilentNight/bargains";
 import { RARITY_COLOURS } from "Components/SilentNight/gear";
 import { iconUrl } from "Components/SilentNight/icons";
@@ -91,10 +91,10 @@ export default function NightOver({ world, coalEarned, onAgain, onMenu }: INight
 				{coalEarned === null ? "Counting your coal..." : `+${coalEarned.toLocaleString()} coal`}
 			</p>
 			<div className={classes.promptButtons}>
-				<Button onClick={onAgain}>Another night</Button>
-				<Button variant="subtle" onClick={onMenu}>
+				<GameButton onClick={onAgain}>Another night</GameButton>
+				<GameButton variant="quiet" onClick={onMenu}>
 					Back to the menu
-				</Button>
+				</GameButton>
 			</div>
 		</div>
 	);

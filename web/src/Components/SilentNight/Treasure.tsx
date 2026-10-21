@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button } from "@mantine/core";
+import GameButton from "Components/SilentNight/GameButton";
 import { iconUrl } from "Components/SilentNight/icons";
 import { playReelStop, playReelTick } from "Components/SilentNight/sound";
 import { PASSIVES } from "Components/SilentNight/stats";
@@ -99,7 +99,7 @@ export default function Treasure({ rewards, onDone }: { rewards: IReward[]; onDo
 					);
 				})}
 			</div>
-			<Button onClick={next}>{spinning ? "Skip" : "Carry on"}</Button>
+			<GameButton onClick={next}>{spinning ? "Skip" : "Carry on"}</GameButton>
 		</div>
 	);
 }

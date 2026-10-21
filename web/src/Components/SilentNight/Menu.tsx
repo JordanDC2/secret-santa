@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Alert, Button } from "@mantine/core";
+import { Alert } from "@mantine/core";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { CAST, castMember, CELLAR, SECOND_WAVE } from "Components/SilentNight/cast";
+import GameButton from "Components/SilentNight/GameButton";
 import type { IProgress, IPurchase } from "Components/SilentNight/hooks";
 import { PATRONS } from "Components/SilentNight/patrons";
 import { portraitUrl } from "Components/SilentNight/portraits";
@@ -67,15 +68,15 @@ export default function Menu({ progress, castImages, busy, error, onStart, onCho
 		}
 	};
 	const back = (
-		<Button
-			variant="subtle"
-			size="compact-sm"
-			leftSection={<FontAwesomeIcon icon={faArrowLeft} />}
+		<GameButton
+			variant="quiet"
+			small
+			icon={<FontAwesomeIcon icon={faArrowLeft} />}
 			onClick={() => setView("main")}
 			disabled={busy}
 		>
 			Back
-		</Button>
+		</GameButton>
 	);
 
 	if (view === "main") {
@@ -86,12 +87,10 @@ export default function Menu({ progress, castImages, busy, error, onStart, onCho
 					The longest night of the year, and Krampus&apos;s horde has come out of the dark.
 				</p>
 				<div className={classes.mainButtons}>
-					<Button size="md" onClick={() => setView("cast")}>
-						Start the longest night
-					</Button>
-					<Button size="md" variant="default" onClick={() => setView("cellar")}>
+					<GameButton onClick={() => setView("cast")}>Start the longest night</GameButton>
+					<GameButton variant="plain" onClick={() => setView("cellar")}>
 						Coal Cellar
-					</Button>
+					</GameButton>
 				</div>
 				<span className={classes.coal}>{progress.coal.toLocaleString()} coal</span>
 			</div>
@@ -174,9 +173,9 @@ export default function Menu({ progress, castImages, busy, error, onStart, onCho
 						})}
 					</div>
 					<p className={classes.castPerk}>{GUNS.find((info) => info.id === gun)!.description}</p>
-					<Button onClick={() => onStart(chosen.id, gun)} disabled={busy}>
+					<GameButton onClick={() => onStart(chosen.id, gun)} disabled={busy}>
 						Start the night
-					</Button>
+					</GameButton>
 				</>
 			) : (
 				<ul className={classes.cellar}>
@@ -194,14 +193,14 @@ export default function Menu({ progress, castImages, busy, error, onStart, onCho
 								{unlocked ? (
 									<span className={classes.dim}>Unlocked</span>
 								) : (
-									<Button
-										size="compact-xs"
-										variant="default"
+									<GameButton
+										variant="plain"
+										small
 										disabled={busy || progress.coal < price}
 										onClick={() => onBuy({ kind: "patron", item: id })}
 									>
 										{price} coal
-									</Button>
+									</GameButton>
 								)}
 							</li>
 						);
@@ -223,14 +222,14 @@ export default function Menu({ progress, castImages, busy, error, onStart, onCho
 								{price === undefined ? (
 									<span className={classes.dim}>All bought</span>
 								) : (
-									<Button
-										size="compact-xs"
-										variant="default"
+									<GameButton
+										variant="plain"
+										small
 										disabled={busy || progress.coal < price}
 										onClick={() => onBuy({ kind: "cellar", item: upgrade.id })}
 									>
 										{price} coal
-									</Button>
+									</GameButton>
 								)}
 							</li>
 						);
