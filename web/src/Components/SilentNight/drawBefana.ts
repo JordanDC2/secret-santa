@@ -16,6 +16,10 @@ import {
 	shade,
 	strands,
 	type ITexture,
+	paintSwirl,
+	swirl,
+	type ISwirlItem,
+	type IPut,
 } from "Components/SilentNight/portraitKit";
 
 const RAMPS: Record<string, string[]> = {
@@ -32,6 +36,7 @@ const RAMPS: Record<string, string[]> = {
 	eye: ["#060406", "#140c0a", "#2e1c12", "#4a301c"],
 	white: ["#7a7470", "#b8b0a8", "#ece4da"],
 	gold: ["#3a2408", "#6e460e", "#a87018", "#dca02c", "#ffd060"],
+	coal: ["#050406", "#0d0b10", "#18151c", "#26222b", "#3a3440"],
 	night: ["#020608", "#05100f", "#0a1c1a", "#102a27", "#173a36", "#204c46"],
 	moon: ["#5a8a84", "#9ac8be", "#d8f4ec", "#ffffff"],
 	roof: ["#010304", "#03080a", "#060e10"],
@@ -53,6 +58,7 @@ const RIM: Record<string, string[]> = {
 	straw: ["#b0c098", "#d8e8c0", "#f8fff0"],
 	white: ["#e8fff8", "#ffffff", "#ffffff"],
 	gold: ["#dca02c", "#ffd060", "#fff0a8", "#ffffff"],
+	coal: ["#4a6a6a", "#7aa0a0", "#b8dcd8"],
 };
 
 const MOON = { x: 196, y: 32 };
@@ -74,6 +80,34 @@ const roofline = (x: number) => {
 
 export function drawBefana(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, fill, light } = figure(RAMPS, RIM);
+
+	// Swirling round her: wrapped sweets for the good, and lumps of coal for the rest.
+	const drawThing = (keep: IPut, { x, y, size, angle, front, index }: ISwirlItem) => {
+		if (index % 3 === 2) {
+			ellipse(x, y, size * 0.6, size * 0.5, angle, "coal", front ? 0.05 : -0.22, null, keep);
+			keep(Math.round(x - size * 0.2), Math.round(y - size * 0.2), "coal", front ? 0.9 : 0.5);
+
+			return;
+		}
+
+		const material = ["candyRed", "candyGreen", "candyGold", "candyTeal"][index % 4];
+		const along = { x: Math.cos(angle), y: Math.sin(angle) };
+		ellipse(x, y, size * 0.6, size * 0.42, angle, material, front ? 0.05 : -0.22, null, keep);
+
+		for (const end of [-1, 1]) {
+			petal(
+				x + along.x * size * 0.5 * end,
+				y + along.y * size * 0.5 * end,
+				size * 0.7,
+				size * 0.35,
+				angle + (end === 1 ? 0 : Math.PI),
+				material,
+				(front ? 0.05 : -0.22) + 0.1,
+				keep,
+			);
+		}
+	};
+	const things = swirl(80, 70);
 
 	// --- The figure, back to front. ---
 
@@ -271,7 +305,7 @@ export function drawBefana(): HTMLCanvasElement {
 		return shade(x, y, (glow * 0.8 + mist * 0.26 - 0.06) * dark, RAMPS.night);
 	});
 
-	// The moon, and wrapped sweets tumbling through the dark, the far ones dim.
+	// The moon.
 	paintLayer(
 		context,
 		(keep) => {
@@ -281,39 +315,9 @@ export function drawBefana(): HTMLCanvasElement {
 		null,
 	);
 
-	const sweets = (front: boolean) =>
-		paintLayer(
-			context,
-			(keep) => {
-				const kinds = ["candyRed", "candyGreen", "candyGold", "candyTeal"];
-
-				for (let i = 0; i < 18; i++) {
-					if ((i % 4 === 1) !== front) {
-						continue;
-					}
-
-					const angle = i * 0.9 + 0.3;
-					const radius = 40 + i * 3.6;
-					const x = Math.round(80 + Math.cos(angle) * radius * 1.4);
-					const y = Math.round(70 + Math.sin(angle) * radius * 0.6);
-					const material = kinds[i % 4];
-					const t = front ? 0.6 : 0.3;
-					// A sweet: its middle, and its wrapper twisted at each end.
-					keep(x, y, material, t + 0.2);
-					keep(x + 1, y, material, t);
-					keep(x, y + 1, material, t - 0.1);
-					keep(x + 1, y + 1, material, t - 0.1);
-					keep(x - 1, y - 1, material, t + 0.1);
-					keep(x + 2, y + 2, material, t + 0.1);
-				}
-			},
-			RAMPS,
-			null,
-		);
-
-	sweets(false);
+	paintSwirl(context, things, false, drawThing, RAMPS, RIM);
 	paintFigure(context, colours);
-	sweets(true);
+	paintSwirl(context, things, true, drawThing, RAMPS, RIM);
 
 	return canvas;
 }

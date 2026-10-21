@@ -15,6 +15,10 @@ import {
 	paintLayer,
 	shade,
 	type ITexture,
+	paintSwirl,
+	swirl,
+	type ISwirlItem,
+	type IPut,
 } from "Components/SilentNight/portraitKit";
 
 const RAMPS: Record<string, string[]> = {
@@ -131,6 +135,30 @@ const EYE = skullPoint(0.24, -4);
 
 export function drawMariLwyd(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, fill, light } = figure(RAMPS, RIM);
+
+	// Swirling round her: ribbons torn loose, fluttering, and bells.
+	const drawThing = (keep: IPut, { x, y, size, angle, front, index }: ISwirlItem) => {
+		if (index % 3 === 0) {
+			ellipse(x, y, size * 0.5, size * 0.55, 0, "gold", front ? 0.05 : -0.22, null, keep);
+			keep(Math.round(x), Math.round(y + size * 0.55), "socket", 0.1);
+
+			return;
+		}
+
+		const material = ["red", "green", "blue", "gold"][index % 4];
+		const along = { x: Math.cos(angle), y: Math.sin(angle) };
+		const point = (t: number) => ({
+			x: x + along.x * (t - 0.5) * size * 2.6 - along.y * Math.sin(t * 7) * size * 0.35,
+			y: y + along.y * (t - 0.5) * size * 2.6 + along.x * Math.sin(t * 7) * size * 0.35,
+		});
+
+		for (let k = 0; k < 6; k++) {
+			const a = point(k / 6);
+			const b = point((k + 1) / 6);
+			limb(a.x, a.y, b.x, b.y, 0.7, 0.7, material, front ? 0.05 : -0.22, null, keep);
+		}
+	};
+	const things = swirl(96, 62);
 
 	// --- The figure, back to front. ---
 
@@ -289,7 +317,9 @@ export function drawMariLwyd(): HTMLCanvasElement {
 		);
 
 	snow(false);
+	paintSwirl(context, things, false, drawThing, RAMPS, RIM);
 	paintFigure(context, colours);
+	paintSwirl(context, things, true, drawThing, RAMPS, RIM);
 	paintLayer(
 		context,
 		(keep) => {

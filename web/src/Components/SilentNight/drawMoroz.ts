@@ -16,6 +16,10 @@ import {
 	paintLayer,
 	shade,
 	type ITexture,
+	paintSwirl,
+	swirl,
+	type ISwirlItem,
+	type IPut,
 } from "Components/SilentNight/portraitKit";
 
 const RAMPS: Record<string, string[]> = {
@@ -48,6 +52,52 @@ const chill = (x: number, y: number) => 0.14 * clamp(1 - Math.hypot(x - STAR.x, 
 
 export function drawMoroz(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, fill, light } = figure(RAMPS, RIM);
+
+	// Swirling round him: snowflakes, six-armed, the bigger ones branched.
+	const drawThing = (keep: IPut, { x, y, size, angle, front }: ISwirlItem) => {
+		const arm = size * 1.1;
+		const bias = front ? 0.1 : -0.35;
+
+		for (let k = 0; k < 3; k++) {
+			const a = angle + (k * Math.PI) / 3;
+			limb(
+				x - Math.cos(a) * arm,
+				y - Math.sin(a) * arm,
+				x + Math.cos(a) * arm,
+				y + Math.sin(a) * arm,
+				0.6,
+				0.6,
+				"ice",
+				bias,
+				null,
+				keep,
+			);
+		}
+
+		if (size > 5) {
+			for (let k = 0; k < 6; k++) {
+				const a = angle + (k * Math.PI) / 3;
+				const bx = x + Math.cos(a) * arm * 0.6;
+				const by = y + Math.sin(a) * arm * 0.6;
+
+				for (const turn of [-1, 1]) {
+					limb(
+						bx,
+						by,
+						bx + Math.cos(a + turn) * arm * 0.35,
+						by + Math.sin(a + turn) * arm * 0.35,
+						0.5,
+						0.5,
+						"ice",
+						bias,
+						null,
+						keep,
+					);
+				}
+			}
+		}
+	};
+	const things = swirl(82, 70);
 
 	// --- The figure, back to front. ---
 
@@ -249,7 +299,9 @@ export function drawMoroz(): HTMLCanvasElement {
 		);
 
 	snow(false);
+	paintSwirl(context, things, false, drawThing, RAMPS, RIM);
 	paintFigure(context, colours);
+	paintSwirl(context, things, true, drawThing, RAMPS, RIM);
 
 	// The star of ice on his staff, shining.
 	paintLayer(

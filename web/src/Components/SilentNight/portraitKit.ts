@@ -185,6 +185,7 @@ export function figure(ramps: Record<string, string[]>, rims: Record<string, str
 		material: string,
 		bias = 0,
 		texture: ITexture | null = null,
+		target: IPut = put,
 	) => {
 		const lx = x2 - x1;
 		const ly = y2 - y1;
@@ -204,7 +205,7 @@ export function figure(ramps: Record<string, string[]>, rims: Record<string, str
 				if (d <= 1) {
 					const nx = dx / radius;
 					const ny = dy / radius;
-					put(x, y, material, lit(nx, ny, Math.sqrt(Math.max(0, 1 - d * d))) + bias + (texture ? texture(x, y) : 0));
+					target(x, y, material, lit(nx, ny, Math.sqrt(Math.max(0, 1 - d * d))) + bias + (texture ? texture(x, y) : 0));
 				}
 			}
 		}
@@ -339,5 +340,47 @@ export function paintLayer(
 		const open = !layer.has(`${x + side},${y}`) || !layer.has(`${x},${y - 1}`);
 		context.fillStyle = open && rims?.[m] ? shade(x, y, rimT, rims[m]) : shade(x, y, t, ramps[m]);
 		context.fillRect(x, y, 1, 1);
+	}
+}
+
+/** Something swirling round a patron: where it is, how big, which way it points, and whether it's in front of them. */
+export type ISwirlItem = { x: number; y: number; size: number; angle: number; front: boolean; index: number };
+
+/**
+ * Things swirling round a patron in the dark, as La Flor's petals swirl round her (Mort's crows
+ * round her, in Death Must Die): an orbit round (cx, cy) widening as it goes, small and far off
+ * behind them, a few larger and nearer in front.
+ */
+export function swirl(cx: number, cy: number): ISwirlItem[] {
+	return Array.from({ length: 22 }, (_, index) => {
+		const angle = index * 0.83 + 0.4;
+		const radius = 36 + index * 3.4;
+
+		return {
+			x: cx + Math.cos(angle) * radius * 1.35,
+			y: cy + Math.sin(angle) * radius * 0.62,
+			size: 2.5 + (index % 5) * 1.3,
+			angle: angle * 1.7,
+			front: index % 4 === 1,
+			index,
+		};
+	});
+}
+
+/**
+ * Paints the swirl's things behind the patron (`front` false, before the figure) or in front
+ * (after it, lit at their edges by `rims`), each drawn by `draw` into its own layer.
+ */
+export function paintSwirl(
+	context: CanvasRenderingContext2D,
+	items: ISwirlItem[],
+	front: boolean,
+	draw: (keep: IPut, item: ISwirlItem) => void,
+	ramps: Record<string, string[]>,
+	rims: Record<string, string[]>,
+	side: 1 | -1 = 1,
+) {
+	for (const item of items.filter((candidate) => candidate.front === front)) {
+		paintLayer(context, (keep) => draw(keep, item), ramps, front ? rims : null, side);
 	}
 }

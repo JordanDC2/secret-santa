@@ -15,6 +15,10 @@ import {
 	paintLayer,
 	shade,
 	type ITexture,
+	paintSwirl,
+	swirl,
+	type ISwirlItem,
+	type IPut,
 } from "Components/SilentNight/portraitKit";
 
 const RAMPS: Record<string, string[]> = {
@@ -58,6 +62,42 @@ const firelight = (_x: number, y: number) => 0.12 * clamp((y - 70) / 80);
 
 export function drawKrampus(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, fill, light } = figure(RAMPS, RIM);
+
+	// Swirling round him: birch switches, and links of chain.
+	const drawThing = (keep: IPut, { x, y, size, angle, front, index }: ISwirlItem) => {
+		const along = { x: Math.cos(angle), y: Math.sin(angle) };
+
+		if (index % 2 === 0) {
+			limb(
+				x - along.x * size * 1.6,
+				y - along.y * size * 1.6,
+				x + along.x * size * 1.6,
+				y + along.y * size * 1.6,
+				0.9,
+				0.6,
+				"birch",
+				front ? 0.3 : 0.1,
+				bark,
+				keep,
+			);
+			limb(
+				x,
+				y,
+				x + Math.cos(angle - 0.6) * size,
+				y + Math.sin(angle - 0.6) * size,
+				0.6,
+				0.4,
+				"birch",
+				front ? 0.3 : 0.1,
+				bark,
+				keep,
+			);
+		} else {
+			ellipse(x, y, size * 0.6 + 1, size * 0.4 + 1, angle, "steel", front ? 0.05 : -0.22, null, keep);
+			ellipse(x, y, Math.max(0.6, size * 0.6 - 0.6), Math.max(0.4, size * 0.4 - 0.6), angle, "mouth", 0, null, keep);
+		}
+	};
+	const things = swirl(92, 66);
 
 	// --- The figure, back to front. ---
 
@@ -233,7 +273,9 @@ export function drawKrampus(): HTMLCanvasElement {
 		);
 
 	embers(false);
+	paintSwirl(context, things, false, drawThing, RAMPS, RIM);
 	paintFigure(context, colours);
+	paintSwirl(context, things, true, drawThing, RAMPS, RIM);
 
 	// His eyes, burning: slanted slits.
 	paintLayer(

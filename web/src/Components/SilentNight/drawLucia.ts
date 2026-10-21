@@ -15,6 +15,10 @@ import {
 	paintLayer,
 	shade,
 	strands,
+	paintSwirl,
+	swirl,
+	type ISwirlItem,
+	type IPut,
 } from "Components/SilentNight/portraitKit";
 
 const RAMPS: Record<string, string[]> = {
@@ -49,6 +53,17 @@ const warmth = (x: number, y: number) => 0.18 * glow(x, y, 50);
 
 export function drawLucia(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, fill, light } = figure(RAMPS, RIM);
+
+	// Swirling round her: candle flames, loose and flickering, and lingonberry leaves with their berries.
+	const drawThing = (keep: IPut, { x, y, size, angle, front, index }: ISwirlItem) => {
+		if (index % 2 === 0) {
+			petal(x, y, size * 2, size * 0.55, -Math.PI / 2 + Math.sin(angle) * 0.4, "flame", front ? 0.05 : -0.2, keep);
+		} else {
+			petal(x, y, size * 1.8, size * 0.6, angle, "leaf", front ? 0.05 : -0.22, keep);
+			ellipse(x, y, Math.max(1, size * 0.3), Math.max(1, size * 0.3), 0, "red", front ? 0.2 : -0.1, null, keep);
+		}
+	};
+	const things = swirl(78, 66);
 
 	// --- The figure, back to front. ---
 
@@ -285,7 +300,9 @@ export function drawLucia(): HTMLCanvasElement {
 		);
 
 	sparks(false);
+	paintSwirl(context, things, false, drawThing, RAMPS, RIM);
 	paintFigure(context, colours);
+	paintSwirl(context, things, true, drawThing, RAMPS, RIM);
 
 	// The flames: on the five candles of her crown and the one in her hands, bright in the dark.
 	paintLayer(
