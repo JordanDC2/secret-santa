@@ -13,11 +13,14 @@ class SilentNightTest extends TestCase
     use RefreshDatabase;
 
     /**
+     * A player, signed in: an admin, since only admins can play while the game's being finished.
+     *
      * @param  array<string, mixed>  $attributes
      */
     private function player(array $attributes = []): User
     {
         $user = User::factory()->create($attributes);
+        config(['app.admin_emails' => [...(array) config('app.admin_emails'), $user->email]]);
         Sanctum::actingAs($user);
 
         return $user;
@@ -194,6 +197,15 @@ class SilentNightTest extends TestCase
         $this->player();
 
         $this->getJson(route('silent-night.leaderboard', ['board' => 'night', 'period' => 'all']))->assertJsonCount(0, 'entries');
+    }
+
+    public function test_only_admins_can_play_while_its_being_finished(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+
+        $this->getJson(route('silent-night.progress'))->assertForbidden();
+        $this->postJson(route('silent-night.runs'), $this->night())->assertForbidden();
+        $this->getJson(route('silent-night.leaderboard', ['board' => 'night', 'period' => 'all']))->assertForbidden();
     }
 
     public function test_only_signed_in_players_record_nights_or_see_the_boards(): void

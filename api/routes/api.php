@@ -166,7 +166,8 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Silent Night: each player's coal and Coal Cellar, each finished night, and the leaderboards.
-    Route::prefix('silent-night')->name('silent-night.')->group(function () {
+    // Admins only while it's being finished.
+    Route::prefix('silent-night')->name('silent-night.')->middleware('can:admin')->group(function () {
         Route::get('progress', [SilentNightProgressController::class, 'show'])->name('progress');
 
         Route::patch('progress/character', [SilentNightProgressController::class, 'choose'])->name('character');

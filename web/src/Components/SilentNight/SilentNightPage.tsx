@@ -1,5 +1,7 @@
 import { useRef } from "react";
 import { Alert, Stack, Text as MantineText } from "@mantine/core";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "Components/Auth/AuthContext";
 import GiftBoxIcon from "Components/Common/FestiveIcons/GiftBoxIcon";
 import { useFullscreen } from "Components/ElfFling/useFullscreen";
 import { useTouchScreen } from "Components/ElfFling/useTouchScreen";
@@ -26,6 +28,21 @@ import classes from "Components/SilentNight/SilentNight.module.less";
  * Coal Cellar (in the game's menu) on upgrades and the rest of the cast.
  */
 export default function SilentNightPage() {
+	const { user } = useAuth();
+
+	// Admins only while it's being finished.
+	if (!user) {
+		return null;
+	}
+
+	if (!user.isAdmin) {
+		return <Navigate to="/games" replace />;
+	}
+
+	return <SilentNight />;
+}
+
+function SilentNight() {
 	const stageRef = useRef<HTMLDivElement>(null);
 	const { fullscreen, enter, exit } = useFullscreen(stageRef, "landscape", true);
 	const touchScreen = useTouchScreen();

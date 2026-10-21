@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Alert, Button, SimpleGrid, Stack, Text as MantineText } from "@mantine/core";
 import { Link } from "react-router-dom";
+import { useAuth } from "Components/Auth/AuthContext";
 import ConfirmButtons from "Components/Common/ConfirmButtons";
 import GiftBoxIcon from "Components/Common/FestiveIcons/GiftBoxIcon";
 import { useProgressQuery, useUnlockPinballMutation } from "Components/ElfFling/hooks";
@@ -14,6 +15,7 @@ import PageTitle from "Components/Layout/PageTitle";
 export default function GamesPage() {
 	// Pinball is found down a chimney in Elf Fling before it can be played (or even named) here.
 	const pinballUnlocked = useProgressQuery().data?.pinballUnlocked ?? false;
+	const isAdmin = useAuth().user?.isAdmin ?? false;
 
 	return (
 		<Page>
@@ -33,19 +35,25 @@ export default function GamesPage() {
 							Help a reindeer bat a little elf as far as it can fly. Time the swing for the sweet spot.
 						</MantineText>
 					</SectionCard>
-					<SectionCard
-						title="Silent Night"
-						action={
-							<Button component={Link} to="/games/silent-night" variant="secondary" size="xs">
-								Play
-							</Button>
-						}
-					>
-						<MantineText size="sm">
-							Survive the longest night of the year against Krampus&apos;s horde, blessed by patrons from Christmases
-							around the world, until he comes for you at dawn.
-						</MantineText>
-					</SectionCard>
+					{/* Admins only while it's being finished. */}
+					{isAdmin && (
+						<SectionCard
+							title="Silent Night"
+							action={
+								<Button component={Link} to="/games/silent-night" variant="secondary" size="xs">
+									Play
+								</Button>
+							}
+						>
+							<MantineText size="sm">
+								Survive the longest night of the year against Krampus&apos;s horde, blessed by patrons from Christmases
+								around the world, until he comes for you at dawn.
+							</MantineText>
+							<MantineText size="xs" c="dimmed">
+								Only admins can see this for now.
+							</MantineText>
+						</SectionCard>
+					)}
 					{/* Kept a mystery until it's found down a chimney in Elf Fling. */}
 					{pinballUnlocked ? (
 						<SectionCard
