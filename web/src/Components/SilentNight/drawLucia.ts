@@ -114,7 +114,7 @@ export function drawLucia(): HTMLCanvasElement {
 	// A slim neck, deep in the shadow of her jaw, lighter lower down.
 	ellipse(78, 65.5, 3, 3.5, 0, "skin", -0.2, (_x, y) => -0.22 * clamp((67 - y) / 3));
 	// Her head, the underside of her jaw turning away from the light.
-	ellipse(78, 50, 11.5, 14.5, 0, "skin", 0.04, (x, y) => warmth(x, y) * 0.5 - 0.12 * clamp((y - 59) / 5));
+	ellipse(78, 50, 11.5, 14.5, 0, "skin", 0.04, (x, y) => warmth(x, y) * 0.5 - 0.12 * clamp((y - 62) / 3));
 
 	// Her hair over the top of her head, parted in the middle, and down past her cheeks.
 	for (let y = 35; y <= 50; y++) {

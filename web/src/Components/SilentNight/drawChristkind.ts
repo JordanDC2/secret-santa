@@ -1,8 +1,8 @@
 /**
  * The Christkind of Germany and Austria, as their portrait (portraitKit.ts): a young figure in
- * a white robe trimmed with gold, golden curls under a little crown, great white wings spread
- * behind them, a star cupped in their hands. Lit warm from behind, as if from a church window,
- * with motes of gold drifting in the dark.
+ * a white robe brocaded with gold under a gold mantle, golden curls under a little crown, great white wings spread
+ * behind them, a star cupped in their hands. A violet night behind them (set apart from Saint
+ * Lucia's warm candlelight), rays of light through it, motes of gold drifting.
  */
 
 import {
@@ -29,12 +29,12 @@ const RAMPS: Record<string, string[]> = {
 	white: ["#8a7a72", "#c9b8ac", "#f2e6da"],
 	star: ["#a06010", "#ffc030", "#ffe070", "#fff6c8", "#ffffff"],
 };
-// Warm light from behind them, high on the right.
+// Pale light from behind them, high on the right: lilac on the robe and wings.
 const RIM: Record<string, string[]> = {
 	skin: ["#c0704a", "#f0a070", "#ffd0a0", "#fff0d8"],
 	hair: ["#d0a040", "#ffd060", "#fff0a0", "#ffffff"],
-	robe: ["#e0c8a0", "#fff0d8", "#ffffff", "#ffffff"],
-	feather: ["#e0c8a0", "#fff0d8", "#ffffff", "#ffffff"],
+	robe: ["#b8a8e0", "#e4dcff", "#ffffff", "#ffffff"],
+	feather: ["#b8a8e0", "#e4dcff", "#ffffff", "#ffffff"],
 	gold: ["#dca02c", "#ffd060", "#fff0a8", "#ffffff"],
 	red: ["#d04040", "#ff7060", "#ffb090", "#ffe0c0"],
 	lip: ["#d08070", "#f0a890", "#ffd0b0", "#ffe8d0"],
@@ -114,6 +114,20 @@ export function drawChristkind(): HTMLCanvasElement {
 		},
 	);
 
+	// Gold brocade over the robe: little diamonds in a lattice.
+	for (let y = 74; y < 150; y++) {
+		const half = 14.5 + (y - 71) * 0.2 - 1;
+
+		for (let x = Math.ceil(78 - half); x <= 78 + half; x++) {
+			const u = (x + y) % 8;
+			const v = (x - y + 256) % 8;
+
+			if ((u === 0 && v === 0) || (u === 4 && v === 4)) {
+				put(x, y, "gold", 0.45);
+			}
+		}
+	}
+
 	// Gold trim down the front of the robe.
 	for (let y = 68; y < 160; y++) {
 		put(78, y, "gold", 0.5);
@@ -125,6 +139,30 @@ export function drawChristkind(): HTMLCanvasElement {
 	limb(63, 94, 72, 96, 6, 5, "robe", 0.02, starlight);
 	limb(93, 94, 84, 96, 6, 5, "robe", -0.02, starlight);
 
+	// A short mantle of gold over the shoulders, its hem scalloped.
+	fill(
+		67,
+		82,
+		(y) => {
+			const half = y < 72 ? 9 + (y - 67) * 1.6 : 17.5;
+
+			return [78 - half, 78 + half];
+		},
+		"gold",
+		(x, y, left, right) => {
+			const across = ((x + 0.5 - left) / (right - left)) * 2 - 1;
+			const hem = 79 + Math.round(2 * Math.abs(Math.sin((x - 78) * 0.55)));
+
+			return y > hem
+				? null
+				: 0.32 +
+						0.18 * -across +
+						0.18 * Math.sqrt(Math.max(0, 1 - across * across)) -
+						(y === hem ? 0.12 : 0) +
+						starlight(x, y);
+		},
+	);
+
 	// The neckline trimmed in gold.
 	for (let x = 70; x <= 86; x++) {
 		put(x, 66 + Math.round(Math.abs(x - 78) * -0.25 + 2), "gold", 0.6);
@@ -134,7 +172,7 @@ export function drawChristkind(): HTMLCanvasElement {
 	// A slim neck, deep in the shadow of the jaw, lighter lower down.
 	ellipse(78, 64.5, 3, 3.5, 0, "skin", -0.2, (_x, y) => -0.22 * clamp((66 - y) / 3));
 	// The head, the underside of the jaw turning away from the light.
-	ellipse(78, 49, 11, 13.5, 0, "skin", 0.18, (x, y) => starlight(x, y) - 0.14 * clamp((y - 57) / 5));
+	ellipse(78, 49, 11, 13.5, 0, "skin", 0.18, (x, y) => starlight(x, y) - 0.14 * clamp((y - 59.5) / 3));
 
 	// Curls over the top of the head, swept to the sides, and down past the cheeks.
 	for (let y = 34; y <= 49; y++) {
@@ -185,26 +223,26 @@ export function drawChristkind(): HTMLCanvasElement {
 		}
 	}
 
-	for (let y = 49; y <= 52; y++) {
+	for (let y = 49; y <= 51; y++) {
 		put(80, y, "skin", 0.26);
 	}
 
-	put(79, 53, "skin", 0.28);
-	put(78, 53, "skin", 0.64);
-	put(77, 54, "skin", 0.24);
-	put(79, 54, "skin", 0.22);
+	put(79, 52, "skin", 0.28);
+	put(78, 52, "skin", 0.64);
+	put(77, 53, "skin", 0.24);
+	put(79, 53, "skin", 0.22);
 
 	for (const [x, y, t] of [
-		[75, 57, 0.2],
-		[81, 57, 0.2],
-		[76, 58, 0.18],
-		[77, 58, 0.14],
-		[78, 58, 0.12],
-		[79, 58, 0.14],
-		[80, 58, 0.18],
-		[77, 59, 0.62],
-		[78, 59, 0.7],
-		[79, 59, 0.62],
+		[75, 56, 0.2],
+		[81, 56, 0.2],
+		[76, 57, 0.18],
+		[77, 57, 0.14],
+		[78, 57, 0.12],
+		[79, 57, 0.14],
+		[80, 57, 0.18],
+		[77, 58, 0.62],
+		[78, 58, 0.7],
+		[79, 58, 0.62],
 	]) {
 		put(x, y, "lip", t);
 	}
@@ -244,8 +282,8 @@ export function drawChristkind(): HTMLCanvasElement {
 		outlineAbove: 128,
 	});
 
-	// --- The scene: a warm glow behind them, rays of it through the dark, motes of gold drifting. ---
-	const warmBg = ["#050308", "#100a0a", "#20140c", "#36220e", "#523410", "#744c16"];
+	// --- The scene: a violet glow behind them, rays of it through the dark, motes of gold drifting. ---
+	const violetBg = ["#05030a", "#0c0818", "#16102a", "#221840", "#302258", "#423070"];
 	const { canvas, context } = canvasWith((x, y) => {
 		const haze = fbm(x * 0.03 + 21, y * 0.05);
 		const glow = clamp(1 - Math.hypot((x - 80) / 120, (y - 50) / 95));
@@ -253,7 +291,7 @@ export function drawChristkind(): HTMLCanvasElement {
 		const rays = 0.1 * Math.max(0, Math.sin(angle * 9)) * glow;
 		const dark = clamp(1 - y / 210) * clamp(1 - Math.abs(x - 110) / 250);
 
-		return shade(x, y, (glow * 0.85 + rays + haze * 0.22 - 0.1) * dark, warmBg);
+		return shade(x, y, (glow * 0.85 + rays + haze * 0.22 - 0.1) * dark, violetBg);
 	});
 
 	const motes = (front: boolean) =>
