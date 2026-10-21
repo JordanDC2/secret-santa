@@ -53,13 +53,22 @@ const CURSES: Array<{ stat: IGearStat; amount: number }> = [
 	{ stat: "healing", amount: -0.5 },
 ];
 
+/** What each curse undoes, so a cursed piece never has both (two bonuses rule out at most two of the five). */
+const CONTRADICTS: Partial<Record<IGearStat, IGearStat>> = {
+	maxHealth: "maxHealth",
+	speed: "speed",
+	light: "light",
+	vulnerability: "armour",
+	healing: "regen",
+};
+
 const SPECIALS: IGearSpecial[] = ["twinStitched", "mended", "fleetFooted", "warmHearted"];
 
 export const SPECIAL_TEXT: Record<IGearSpecial, string> = {
 	twinStitched: "One more of everything you throw or fire",
 	mended: "Heal half a point a second",
 	fleetFooted: "Dash a quarter more often",
-	warmHearted: "Healing heals half as much again",
+	warmHearted: "Healing heals 50% more",
 };
 
 export const RARITY_COLOURS: Record<IRarity, string> = {
@@ -100,7 +109,11 @@ export function newGear(luck: number, boss: boolean, cursed = false, slot: IGear
 		name: adjective ? `${adjective}${item}` : item.charAt(0).toUpperCase() + item.slice(1),
 		bonuses,
 		special: rarity === "gilded" ? pick(SPECIALS) : null,
-		curse: rarity === "cursed" ? pick(CURSES) : null,
+		// A curse on nothing the piece also helps with (never "+15 health" and "−20 health").
+		curse:
+			rarity === "cursed"
+				? pick(CURSES.filter((curse) => !bonuses.some((bonus) => CONTRADICTS[curse.stat] === bonus.stat)))
+				: null,
 	};
 }
 

@@ -135,7 +135,7 @@ export const GUNS: IGunInfo[] = [
 				{
 					id: "hardCandy",
 					name: "Hard candy",
-					text: "Half as hard again, knocking them further back; fires a little slower.",
+					text: "Hits 50% harder, knocking them further back; fires a little slower.",
 					morph: (numbers) => {
 						numbers.damage *= 1.5;
 						numbers.hit.knockback = 5;
@@ -451,7 +451,7 @@ export const GUNS: IGunInfo[] = [
 		evolution: {
 			passive: "candle",
 			name: "Bonfire Night",
-			description: "Bursts half as wide again, leaving them burning twice as hot.",
+			description: "Bursts 50% wider, leaving them burning twice as hot.",
 			morph: (numbers) => {
 				numbers.hit.burst = numbers.hit.burst && { ...numbers.hit.burst, radius: numbers.hit.burst.radius * 1.5 };
 				numbers.hit.burn *= 2;
@@ -546,7 +546,7 @@ export const GUNS: IGunInfo[] = [
 				{
 					id: "snowmansHead",
 					name: "Snowman's head",
-					text: "Half as big again, rolling through 4 more; fires slower.",
+					text: "50% bigger, rolling through 4 more; fires slower.",
 					morph: (numbers) => {
 						numbers.radius *= 1.5;
 						numbers.pierce += 4;

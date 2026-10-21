@@ -35,7 +35,7 @@ export const CAST: ICastMember[] = [
 		name: "Mrs. Claus",
 		weapon: "cocoa",
 		perk: "Home cooking",
-		perkText: "Cocoa heals half as much again",
+		perkText: "Cocoa heals 50% more",
 		price: 150,
 	},
 	{

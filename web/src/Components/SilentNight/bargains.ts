@@ -14,7 +14,7 @@ export const BARGAINS: IBargain[] = [
 		price: "Nothing heals you",
 	},
 	{ id: "birchRod", name: "The Birch Rod", gift: "Double damage", price: "You take double damage" },
-	{ id: "sack", name: "The Sack", gift: "Half as much experience again", price: "Twice as many enemies" },
+	{ id: "sack", name: "The Sack", gift: "50% more experience", price: "Twice as many enemies" },
 	{ id: "naughtyList", name: "The Naughty List", gift: "+25% chance of critical hits", price: "30% less health" },
 	{ id: "krampusBell", name: "Krampus's Bell", gift: "Dash twice as often", price: "Your light shrinks by a third" },
 ];
