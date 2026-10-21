@@ -69,10 +69,10 @@ export function drawLucia(): HTMLCanvasElement {
 
 	// Her white gown, from her shoulders down, flaring out, in soft folds.
 	fill(
-		70,
+		67,
 		160,
 		(y) => {
-			const half = y < 76 ? 9 + (y - 70) * 0.8 : 13.8 + (y - 76) * 0.24;
+			const half = y < 72 ? 8 + (y - 67) * 1.3 : 14.5 + (y - 72) * 0.22;
 
 			return [78 - half, 78 + half];
 		},
@@ -86,8 +86,8 @@ export function drawLucia(): HTMLCanvasElement {
 	);
 
 	// Long white sleeves, her arms bent to bring her hands together at her chest.
-	limb(68, 76, 62, 94, 5, 4.6, "gown", -0.02);
-	limb(88, 76, 94, 94, 5, 4.6, "gown", -0.06);
+	limb(67, 73, 62, 94, 5, 4.6, "gown", -0.02);
+	limb(89, 73, 94, 94, 5, 4.6, "gown", -0.06);
 	limb(62, 94, 73, 100, 4.6, 4, "gown", 0.02);
 	limb(94, 94, 83, 100, 4.6, 4, "gown", -0.02);
 
@@ -112,7 +112,7 @@ export function drawLucia(): HTMLCanvasElement {
 
 	// Her neck, a little in shadow, and her head.
 	// A slim neck, deep in the shadow of her jaw, lighter lower down.
-	ellipse(78, 67, 3, 5.5, 0, "skin", -0.2, (_x, y) => -0.22 * clamp((68 - y) / 4));
+	ellipse(78, 65.5, 3, 3.5, 0, "skin", -0.2, (_x, y) => -0.22 * clamp((67 - y) / 3));
 	// Her head, the underside of her jaw turning away from the light.
 	ellipse(78, 50, 11.5, 14.5, 0, "skin", 0.04, (x, y) => warmth(x, y) * 0.5 - 0.12 * clamp((y - 59) / 5));
 

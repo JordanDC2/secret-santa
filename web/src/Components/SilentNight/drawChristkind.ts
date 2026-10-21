@@ -99,10 +99,10 @@ export function drawChristkind(): HTMLCanvasElement {
 
 	// The white robe, from the shoulders down, its sleeves wide.
 	fill(
-		70,
+		66,
 		160,
 		(y) => {
-			const half = y < 76 ? 9 + (y - 70) * 0.8 : 13.8 + (y - 76) * 0.22;
+			const half = y < 71 ? 8 + (y - 66) * 1.3 : 14.5 + (y - 71) * 0.2;
 
 			return [78 - half, 78 + half];
 		},
@@ -115,24 +115,24 @@ export function drawChristkind(): HTMLCanvasElement {
 	);
 
 	// Gold trim down the front of the robe.
-	for (let y = 74; y < 160; y++) {
+	for (let y = 68; y < 160; y++) {
 		put(78, y, "gold", 0.5);
 		put(79, y, "gold", 0.36);
 	}
 
-	limb(68, 76, 63, 94, 5.2, 6, "robe", -0.02);
-	limb(88, 76, 93, 94, 5.2, 6, "robe", -0.06);
+	limb(67, 72, 63, 94, 5.2, 6, "robe", -0.02);
+	limb(89, 72, 93, 94, 5.2, 6, "robe", -0.06);
 	limb(63, 94, 72, 96, 6, 5, "robe", 0.02, starlight);
 	limb(93, 94, 84, 96, 6, 5, "robe", -0.02, starlight);
 
 	// The neckline trimmed in gold.
 	for (let x = 70; x <= 86; x++) {
-		put(x, 70 + Math.round(Math.abs(x - 78) * -0.25 + 2), "gold", 0.6);
+		put(x, 66 + Math.round(Math.abs(x - 78) * -0.25 + 2), "gold", 0.6);
 	}
 
 	// Neck and face.
 	// A slim neck, deep in the shadow of the jaw, lighter lower down.
-	ellipse(78, 66, 3, 5, 0, "skin", -0.2, (_x, y) => -0.22 * clamp((67 - y) / 4));
+	ellipse(78, 64.5, 3, 3.5, 0, "skin", -0.2, (_x, y) => -0.22 * clamp((66 - y) / 3));
 	// The head, the underside of the jaw turning away from the light.
 	ellipse(78, 49, 11, 13.5, 0, "skin", 0.18, (x, y) => starlight(x, y) - 0.14 * clamp((y - 57) / 5));
 
