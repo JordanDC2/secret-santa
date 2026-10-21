@@ -136,6 +136,13 @@ export function drawYuleGoat(): HTMLCanvasElement {
 	// His body, a great bundle of straw, bound lengthwise.
 	ellipse(54, 110, 50, 22, -0.04, "straw", -0.02, stalks(-0.04));
 
+	// Straw sprung loose along his back as the binding burns, bristling up out of the bundle.
+	for (let x = 8; x <= 86; x += 2.5) {
+		const length = 4 + hash(Math.round(x), 79) * 7;
+		const lean = -Math.PI / 2 + (hash(Math.round(x), 80) - 0.5) * 1.1;
+		petal(x, backAt(x) + 3, length, 1.3, lean, "straw", -0.12 + hash(Math.round(x), 81) * 0.14);
+	}
+
 	// His near legs, straw bound tight, splaying a little at the hoof.
 	for (const [x1, x2] of [
 		[36, 38],
@@ -281,10 +288,11 @@ export function drawYuleGoat(): HTMLCanvasElement {
 			keep(106, 61, "fire", 0.7);
 
 			// A ragged blaze along his back: tongues of flame of every height, licking up and
-			// wavering, dark red at their edges, white-hot down at their roots.
-			for (let x = 4; x <= 104; x++) {
-				const back = backAt(x) + 4;
-				const height = 10 + 26 * clamp(1 - Math.abs(x - 50) / 54);
+			// wavering, dark red at their edges, white-hot down at their roots, rooted a little down in
+			// the straw and dying away before his rump and his shoulders so as not to trace his outline.
+			for (let x = 6; x <= 84; x++) {
+				const back = backAt(x) + 5 + Math.round(hash(Math.floor(x / 3), 82) * 4);
+				const height = (6 + 30 * clamp(1 - Math.abs(x - 46) / 46)) * clamp((x - 6) / 14) * clamp((84 - x) / 16);
 
 				for (let y = Math.floor(back - height * 1.4); y <= back; y++) {
 					const tongue = 0.5 + 0.5 * Math.sin(x * 0.55 + fbm(x * 0.08, y * 0.06) * 7);
@@ -299,8 +307,8 @@ export function drawYuleGoat(): HTMLCanvasElement {
 
 			// Flames tearing loose above it.
 			for (let i = 0; i < 8; i++) {
-				const x = 14 + i * 11 + (hash(i, 75) - 0.5) * 6;
-				const y = backAt(x) - 22 - hash(i, 76) * 16 * clamp(1 - Math.abs(x - 50) / 54);
+				const x = 16 + i * 9 + (hash(i, 75) - 0.5) * 6;
+				const y = backAt(x) - 22 - hash(i, 76) * 16 * clamp(1 - Math.abs(x - 46) / 46);
 				petal(x, y, 5 + hash(i, 77) * 3, 1.4, -Math.PI / 2 + (hash(i, 78) - 0.5) * 0.5, "fire", -0.1, keep);
 			}
 		},
