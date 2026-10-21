@@ -586,35 +586,112 @@
 	font-size: 10px;
 }
 
-/* Meeting a patron (or Krampus): them speaking on one side, their offer on the other (one above
-   the other on a screen held upright). */
+/* Meeting a patron (or Krampus), as Death Must Die does it: letterboxed, their portrait large
+   down the left fading into the night, which shows dimmed behind on the right, and on the right
+   their name plate over a framed box with their words, and their offer under it. On a screen held
+   upright, the portrait on top fading down into the rest. */
 .meeting {
 	flex-direction: row;
-	gap: 24px;
+	justify-content: flex-end;
+	padding: 0;
+	overflow: hidden;
+	background: linear-gradient(to right, rgba(3, 2, 8, 0.96) 0%, rgba(3, 2, 8, 0.85) 45%, rgba(3, 2, 8, 0.45) 100%);
+
+	&::before,
+	&::after {
+		content: "";
+		position: absolute;
+		z-index: 2;
+		left: 0;
+		right: 0;
+		height: 6%;
+		background-color: #000;
+		pointer-events: none;
+	}
+
+	&::before {
+		top: 0;
+	}
+
+	&::after {
+		bottom: 0;
+	}
 
 	@container (orientation: portrait) {
 		flex-direction: column;
+		justify-content: flex-end;
+		padding-bottom: 9%;
+	}
+}
+
+.scene {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 62%;
+	height: 100%;
+	object-fit: cover;
+	object-position: 22% center;
+	image-rendering: pixelated;
+	mask-image: linear-gradient(to right, #000 55%, transparent 100%);
+
+	@container (orientation: portrait) {
+		width: 100%;
+		height: 50%;
+		object-position: 25% center;
+		mask-image: linear-gradient(to bottom, #000 60%, transparent 100%);
 	}
 }
 
 .dialogue {
+	position: relative;
+	z-index: 1;
 	display: flex;
 	flex-direction: column;
-	align-items: center;
-	gap: 4px;
-	max-width: 50%;
+	gap: 8px;
+	width: min(44%, 440px);
+	max-height: 86%;
+	margin-right: 4%;
+	overflow-y: auto;
+	scrollbar-width: thin;
+	scrollbar-color: #6e460e transparent;
+	text-align: left;
 
 	@container (orientation: portrait) {
-		max-width: none;
+		width: calc(100% - 32px);
+		max-height: 58%;
+		margin-right: 0;
 	}
 }
 
-.portrait {
-	height: min(62cqh, 320px);
-	max-width: 100%;
-	object-fit: contain;
-	image-rendering: pixelated;
-	border: 2px solid #3a2408;
+/* The name plate: deep red, edged in the speaker's colour, sitting on the box below. */
+.namePlate {
+	align-self: flex-start;
+	margin: 0 0 -9px 10px;
+	padding: 4px 14px;
+	border: 1px solid var(--speaker);
+	background: linear-gradient(#4a0b15, #22050b);
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+	color: #f2e6da;
+	font-family: "IM Fell English SC", Georgia, serif;
+	font-size: 20px;
+	line-height: 1.2;
+}
+
+/* The box of their words: near black, in a bronze frame with a fine second line inside it. */
+.textBox {
+	padding: 16px 16px 12px;
+	border: 2px solid #6e460e;
+	background-color: rgba(6, 3, 8, 0.94);
+	box-shadow:
+		inset 0 0 0 3px rgba(6, 3, 8, 0.94),
+		inset 0 0 0 4px rgba(168, 112, 24, 0.45),
+		0 4px 16px rgba(0, 0, 0, 0.6);
+
+	.line {
+		max-width: none;
+		font-size: 15px;
+	}
 }
 
 .offer {
@@ -622,11 +699,6 @@
 	flex-direction: column;
 	align-items: stretch;
 	gap: 8px;
-	width: min(300px, 45cqw);
-
-	@container (orientation: portrait) {
-		width: min(300px, 100%);
-	}
 
 	.card {
 		width: auto;
@@ -643,11 +715,6 @@
 		gap: 0;
 		font-size: 13px;
 	}
-}
-
-.speaker {
-	font-family: "IM Fell English SC", Georgia, serif;
-	font-size: 22px;
 }
 
 .speakerFrom {
@@ -694,12 +761,44 @@
 		display: none;
 	}
 
-	.portrait {
-		height: min(52cqh, 320px);
+	.namePlate {
+		font-size: 16px;
 	}
 
-	.speaker {
-		font-size: 18px;
+	.textBox {
+		padding: 12px 12px 6px;
+
+		.line {
+			font-size: 13px;
+		}
+	}
+
+	.dialogue {
+		gap: 6px;
+		width: min(58%, 540px);
+	}
+
+	/* The cards two by two, so a whole offer fits without scrolling (anything else under them, across both). */
+	.offer {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 5px;
+
+		> :not(.card) {
+			grid-column: 1 / -1;
+		}
+
+		.card {
+			padding: 4px 8px;
+		}
+
+		.cardName {
+			font-size: 14px;
+		}
+
+		.cardText {
+			font-size: 12px;
+		}
 	}
 
 	.line {

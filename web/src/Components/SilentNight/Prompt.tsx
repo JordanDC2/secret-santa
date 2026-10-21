@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, type CSSProperties, type ReactNode } from "react";
 import { Button } from "@mantine/core";
 import {
 	BLESSINGS,
@@ -81,30 +81,39 @@ function blessingPatron(id: string): IPatronId {
 	return Array.isArray(patron) ? patron[0] : patron;
 }
 
-/** A speaker's portrait and words, over a set of cards. */
+/**
+ * Meeting someone, as Death Must Die shows it: their portrait large down the left, fading into the
+ * night (still there, dimmed, behind on the right); their name on a plate in their colour over a
+ * framed box with their words; and what they offer (`children`) under it.
+ */
 function Dialogue({
 	portrait,
 	name,
 	from,
 	line,
 	colour,
+	children,
 }: {
 	portrait: IPortraitId;
 	name: string;
 	from: string;
 	line: string;
 	colour: string;
+	children: ReactNode;
 }) {
-	const url = portraitUrl(portrait);
-
 	return (
-		<div className={classes.dialogue}>
-			<img src={url} alt="" className={classes.portrait} />
-			<p className={classes.speaker} style={{ color: colour }}>
-				{name}
-				<span className={classes.speakerFrom}> of {from}</span>
-			</p>
-			<p className={classes.line}>“{line}”</p>
+		<div className={`${classes.overlay} ${classes.meeting}`} style={{ "--speaker": colour } as CSSProperties}>
+			<img src={portraitUrl(portrait)} alt="" className={classes.scene} />
+			<div className={classes.dialogue}>
+				<p className={classes.namePlate}>
+					{name}
+					<span className={classes.speakerFrom}> of {from}</span>
+				</p>
+				<div className={classes.textBox}>
+					<p className={classes.line}>“{line}”</p>
+				</div>
+				<div className={classes.offer}>{children}</div>
+			</div>
 		</div>
 	);
 }
@@ -262,90 +271,78 @@ export default function Prompt({ world, prompt, onChange }: IPromptProps) {
 		const patron = PATRONS[prompt.patron];
 
 		return (
-			<div className={`${classes.overlay} ${classes.meeting}`}>
-				<Dialogue
-					portrait={patron.id}
-					name={patron.name}
-					from={patron.from}
-					line={patron.line}
-					colour={patron.colour}
-				/>
-				<div className={classes.offer}>
-					{prompt.choices.map((id, index) => {
-						const blessing = BLESSINGS.find((each) => each.id === id)!;
-						const now = world.player.blessings[id] ?? 0;
-						const colour = PATRONS[blessingPatron(id)].colour;
-
-						return (
-							<button
-								key={id}
-								type="button"
-								className={classes.card}
-								style={{ borderColor: colour }}
-								onClick={() => act(cards[index], null)}
-							>
-								<span className={classes.cardHead}>
-									<span className={classes.cardName} style={{ color: colour }}>
-										{blessing.name}
-									</span>
-									<span className={classes.cardTag}>
-										{blessing.needs
-											? "Duo"
-											: blessing.ranks.length > 1
-												? `Rank ${now + 1} of ${blessing.ranks.length}`
-												: ""}
-									</span>
-								</span>
-								<span className={classes.cardText}>{blessing.ranks[now]}</span>
-							</button>
-						);
-					})}
-					<Button variant="subtle" onClick={() => act(() => closeShrine(world))}>
-						Leave
-					</Button>
-				</div>
-			</div>
-		);
-	}
-
-	return (
-		<div className={`${classes.overlay} ${classes.meeting}`}>
-			<Dialogue portrait="krampus" name="Krampus" from="the Alps" line={KRAMPUS_LINE} colour="#e04040" />
-			<div className={classes.offer}>
+			<Dialogue portrait={patron.id} name={patron.name} from={patron.from} line={patron.line} colour={patron.colour}>
 				{prompt.choices.map((id, index) => {
-					const bargain = bargainInfo(id);
+					const blessing = BLESSINGS.find((each) => each.id === id)!;
+					const now = world.player.blessings[id] ?? 0;
+					const colour = PATRONS[blessingPatron(id)].colour;
 
 					return (
 						<button
 							key={id}
 							type="button"
-							className={`${classes.card} ${classes.bargain}`}
+							className={classes.card}
+							style={{ borderColor: colour }}
 							onClick={() => act(cards[index], null)}
 						>
 							<span className={classes.cardHead}>
-								<span className={classes.cardName}>{bargain.name}</span>
+								<span className={classes.cardName} style={{ color: colour }}>
+									{blessing.name}
+								</span>
+								<span className={classes.cardTag}>
+									{blessing.needs
+										? "Duo"
+										: blessing.ranks.length > 1
+											? `Rank ${now + 1} of ${blessing.ranks.length}`
+											: ""}
+								</span>
 							</span>
-							<span className={classes.cardText}>
-								<span className={classes.gift}>+ {bargain.gift}</span>
-								<span className={classes.price}>− {bargain.price}</span>
-							</span>
+							<span className={classes.cardText}>{blessing.ranks[now]}</span>
 						</button>
 					);
 				})}
-				{prompt.gear && (
+				<Button variant="subtle" onClick={() => act(() => closeShrine(world))}>
+					Leave
+				</Button>
+			</Dialogue>
+		);
+	}
+
+	return (
+		<Dialogue portrait="krampus" name="Krampus" from="the Alps" line={KRAMPUS_LINE} colour="#e04040">
+			{prompt.choices.map((id, index) => {
+				const bargain = bargainInfo(id);
+
+				return (
 					<button
+						key={id}
 						type="button"
 						className={`${classes.card} ${classes.bargain}`}
-						onClick={() => act(cards[prompt.choices.length], null)}
+						onClick={() => act(cards[index], null)}
 					>
-						<GearDetails gear={prompt.gear} replacing={world.player.gear[prompt.gear.slot]} />
+						<span className={classes.cardHead}>
+							<span className={classes.cardName}>{bargain.name}</span>
+						</span>
+						<span className={classes.cardText}>
+							<span className={classes.gift}>+ {bargain.gift}</span>
+							<span className={classes.price}>− {bargain.price}</span>
+						</span>
 					</button>
-				)}
-				<Button variant="subtle" onClick={() => act(() => closeShrine(world))}>
-					Refuse
-				</Button>
-				<p className={classes.hint}>He'll be stronger at dawn for every bargain taken.</p>
-			</div>
-		</div>
+				);
+			})}
+			{prompt.gear && (
+				<button
+					type="button"
+					className={`${classes.card} ${classes.bargain}`}
+					onClick={() => act(cards[prompt.choices.length], null)}
+				>
+					<GearDetails gear={prompt.gear} replacing={world.player.gear[prompt.gear.slot]} />
+				</button>
+			)}
+			<Button variant="subtle" onClick={() => act(() => closeShrine(world))}>
+				Refuse
+			</Button>
+			<p className={classes.hint}>He'll be stronger at dawn for every bargain taken.</p>
+		</Dialogue>
 	);
 }
