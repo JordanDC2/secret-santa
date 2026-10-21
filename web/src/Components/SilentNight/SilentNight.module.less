@@ -1136,3 +1136,49 @@
 	padding: 2px 10px;
 	font-size: 14px;
 }
+
+/* The curtain rising as a night begins (ENTERING_MS in SilentNightGame.tsx): the menu's dark,
+   holding a moment with its words, then lifting off the top, softly edged, onto the night. */
+.curtain {
+	position: absolute;
+	inset: 0 0 -60px;
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: linear-gradient(rgba(3, 2, 8, 0.97) calc(100% - 60px), rgba(3, 2, 8, 0));
+	pointer-events: none;
+	animation: curtainRises 2.4s ease-in forwards;
+
+	.title {
+		margin: 0;
+		animation: curtainWords 2.4s ease-in forwards;
+	}
+}
+
+@keyframes curtainRises {
+	0%,
+	30% {
+		transform: translateY(0);
+	}
+
+	100% {
+		transform: translateY(-110%);
+	}
+}
+
+@keyframes curtainWords {
+	0% {
+		opacity: 0;
+	}
+
+	15%,
+	40% {
+		opacity: 1;
+	}
+
+	80%,
+	100% {
+		opacity: 0;
+	}
+}

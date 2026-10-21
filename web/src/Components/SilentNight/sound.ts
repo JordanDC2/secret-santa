@@ -1744,3 +1744,52 @@ export function playPause(paused: boolean) {
 		tone("sine", paused ? 660 : 330, paused ? 330 : 660, 0.14, 0.05);
 	}
 }
+
+/**
+ * The night beginning, as the curtain rises (about three seconds, before the night's own music):
+ * a low drone and a C minor chord swelling up out of nothing, a broken chord falling slowly from
+ * high to low on a music box, and a bell tolling twice.
+ */
+export function playNightBegins() {
+	const bus = soundOn ? musicBus() : null;
+
+	if (!bus) {
+		return;
+	}
+
+	const context = bus.context;
+	const now = context.currentTime + 0.05;
+	// A note that swells in and dies away (`tone` only dies away).
+	const swell = (wave: OscillatorType, pitch: number, start: number, length: number, volume: number) => {
+		const oscillator = context.createOscillator();
+		const gain = context.createGain();
+		oscillator.type = wave;
+		oscillator.frequency.value = pitch;
+		gain.gain.setValueAtTime(0.0001, now + start);
+		gain.gain.exponentialRampToValueAtTime(volume, now + start + length * 0.45);
+		gain.gain.exponentialRampToValueAtTime(0.0001, now + start + length);
+		oscillator.connect(gain).connect(bus);
+		oscillator.start(now + start);
+		oscillator.stop(now + start + length + 0.05);
+	};
+
+	swell("sine", NOTE.C2, 0, 3.4, 0.2);
+	swell("triangle", NOTE.C3, 0.1, 3.2, 0.06);
+
+	for (const note of ["C4", "Eb4", "G4"]) {
+		swell("sawtooth", NOTE[note], 0.2, 3, 0.012);
+		swell("triangle", NOTE[note], 0.2, 3, 0.03);
+	}
+
+	["G5", "Eb5", "C5", "G4", "Eb4", "C4"].forEach((note, i) =>
+		tone("sine", NOTE[note], NOTE[note] * 0.997, 1.6, 0.06, 0.3 + i * 0.28, bus),
+	);
+
+	for (const at of [0, 1.9]) {
+		tone("sine", NOTE.C3, NOTE.C3, 3, 0.12, at, bus);
+		tone("sine", NOTE.C3 * 2.76, NOTE.C3 * 2.76, 1.8, 0.03, at, bus);
+		tone("sine", NOTE.C3 * 5.4, NOTE.C3 * 5.4, 1, 0.015, at, bus);
+	}
+
+	window.setTimeout(() => bus.disconnect(), 4000);
+}

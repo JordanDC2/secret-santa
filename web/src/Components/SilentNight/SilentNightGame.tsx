@@ -16,7 +16,14 @@ import GearSlots from "Components/SilentNight/GearSlots";
 import Menu from "Components/SilentNight/Menu";
 import NightOver, { clock } from "Components/SilentNight/NightOver";
 import Prompt from "Components/SilentNight/Prompt";
-import { addEvents, enableSounds, playNightEvents, playPause, startNightMusic } from "Components/SilentNight/sound";
+import {
+	addEvents,
+	enableSounds,
+	playNightBegins,
+	playNightEvents,
+	playPause,
+	startNightMusic,
+} from "Components/SilentNight/sound";
 import { makeSprites } from "Components/SilentNight/sprites";
 import { PASSIVES } from "Components/SilentNight/stats";
 import {
@@ -37,6 +44,8 @@ import classes from "Components/SilentNight/SilentNight.module.less";
 /** The rules run in steps this long, however fast the screen refreshes, and never more than MAX_FRAME at once. */
 const STEP = 1 / 120;
 const MAX_FRAME = 0.1;
+/** How long the curtain takes to rise on a night (ms): it holds, then lifts off the top (SilentNight.module.less). */
+const ENTERING_MS = 2400;
 /** A thumbstick's reach on screen, in CSS pixels, and how far it has to go to count. */
 const STICK_REACH = 52;
 const STICK_DEADZONE = 0.2;
@@ -149,6 +158,9 @@ export default function SilentNightGame({
 	const [prompt, setPrompt] = useState<IPrompt | null>(null);
 	const [paused, setPaused] = useState(false);
 	const pausedRef = useRef(false);
+	// The curtain rising as a night begins.
+	const [entering, setEntering] = useState(false);
+	const enteringRef = useRef(false);
 	const [build, setBuild] = useState<IBuild>({ weapons: [], passives: [], gear: [] });
 	const [soundOn, setSoundOn] = useState(readSoundOn);
 	// The latest callback, for the loop.
@@ -207,7 +219,12 @@ export default function SilentNightGame({
 				return;
 			}
 
-			if ((event.code === "Escape" || event.code === "KeyP") && !current.over && current.prompt === null) {
+			if (
+				(event.code === "Escape" || event.code === "KeyP") &&
+				!current.over &&
+				current.prompt === null &&
+				!enteringRef.current
+			) {
 				event.preventDefault();
 				pausedRef.current = !pausedRef.current;
 				setPaused(pausedRef.current);
@@ -324,7 +341,7 @@ export default function SilentNightGame({
 			carry += Math.min(MAX_FRAME, (now - last) / 1000);
 			last = now;
 
-			if (pausedRef.current || world.prompt !== null) {
+			if (pausedRef.current || world.prompt !== null || enteringRef.current) {
 				carry = 0;
 			}
 
@@ -467,6 +484,14 @@ export default function SilentNightGame({
 		pause(false);
 		setBuild(buildOf(fresh));
 		setWorld(fresh);
+		// The curtain rises on the night (the night waiting until it's gone), to its own few bars.
+		enteringRef.current = true;
+		setEntering(true);
+		playNightBegins();
+		window.setTimeout(() => {
+			enteringRef.current = false;
+			setEntering(false);
+		}, ENTERING_MS);
 	};
 
 	// The mouse, in the game's pixels.
@@ -545,7 +570,7 @@ export default function SilentNightGame({
 
 	const playing = started && !over;
 	const waiting = playing && (prompt !== null || paused);
-	const musicOn = playing && soundOn;
+	const musicOn = playing && soundOn && !entering;
 	const menuMusicOn = !started && soundOn;
 
 	// The music, while the night's going on: its soft version while the night waits on a choice or a pause.
@@ -710,7 +735,7 @@ export default function SilentNightGame({
 				</button>
 			)}
 
-			{playing && !waiting && (
+			{playing && !waiting && !entering && (
 				<Tooltip label="Pause (Esc)" withArrow disabled={touchScreen}>
 					<ActionIcon
 						variant="transparent"
@@ -787,6 +812,12 @@ export default function SilentNightGame({
 					onAgain={() => start(world.player.character, gunOf(world.player))}
 					onMenu={backToMenu}
 				/>
+			)}
+
+			{entering && (
+				<div className={classes.curtain} aria-hidden>
+					<p className={classes.title}>The longest night begins.</p>
+				</div>
 			)}
 
 			{!started && (
