@@ -534,6 +534,8 @@ export type ICharacterSprites = {
 	enemies: Record<IEnemyKind, IEnemyArt>;
 	elites: Partial<Record<IEnemyKind, IEnemyArt>>;
 	minion: { right: HTMLCanvasElement[]; left: HTMLCanvasElement[] };
+	/** A toy soldier standing guard, facing right and left. */
+	soldier: { right: HTMLCanvasElement; left: HTMLCanvasElement };
 	globe: HTMLCanvasElement;
 	flame: HTMLCanvasElement;
 	crystal: HTMLCanvasElement;
@@ -573,6 +575,35 @@ function minion(step: 0 | 1): HTMLCanvasElement {
 	return p.sprite.render(RAMPS, RIMS, OUTLINE, 1);
 }
 
+/** A nutcracker toy soldier at attention: a tall black busby, a white face with a big jaw, a red coat crossed with a white sash, black boots, his musket held across him. */
+function soldier(): HTMLCanvasElement {
+	const p = new Pen(14, 19, 1);
+	// Legs and boots.
+	p.l(6, 13, 6, 17.5, 1.1, 1.1, "blackFur", 0.1);
+	p.l(8, 13, 8, 17.5, 1.1, 1.1, "blackFur", 0.15);
+	p.r(5, 12, 4, 2, "white", 0.55);
+	// His red coat, gold buttons, the white sash across it.
+	p.e(7, 9.5, 2.8, 3.6, 0, "red", 0.1);
+	p.l(5, 7, 9, 12, 0.6, 0.6, "white", 0.6);
+	p.d(7, 9, "gold", 0.8);
+	p.d(7, 11, "gold", 0.8);
+	// His head: a white face, a big wooden jaw, a black moustache and eyes, rosy cheeks.
+	p.e(7, 5.4, 2.2, 2.2, 0, "porcelain", 0.25);
+	p.r(5.5, 6.4, 3, 1.4, "white", 0.4);
+	p.r(6, 6, 2, 1, "dark", 0.15);
+	p.d(6, 5, "dark", 0.1);
+	p.d(8, 5, "dark", 0.1);
+	p.d(5, 6, "pink", 0.5);
+	// The tall busby, a gold plate on its front.
+	p.r(4.6, 0.4, 4.8, 3.8, "fur", 0.35);
+	p.d(7, 2, "gold", 0.85);
+	// The musket, held across him, pointing ahead.
+	p.l(4, 10, 12.6, 7.2, 0.6, 0.5, "steel", 0.2);
+	p.l(4, 10, 6, 9.4, 0.8, 0.8, "cookie", 0.05);
+
+	return p.sprite.render(RAMPS, RIMS, OUTLINE, 1);
+}
+
 function small(width: number, height: number, draw: (pen: Pen) => void, rim = 1): HTMLCanvasElement {
 	const pen = new Pen(width, height, 1);
 	draw(pen);
@@ -594,11 +625,13 @@ export function makeCharacters(): ICharacterSprites {
 	}
 
 	const minionRight = [minion(0), minion(1)];
+	const soldierRight = soldier();
 
 	return {
 		enemies,
 		elites,
 		minion: { right: minionRight, left: minionRight.map(flipped) },
+		soldier: { right: soldierRight, left: flipped(soldierRight) },
 		globe: small(9, 11, (p) => {
 			p.e(4.5, 4.6, 4, 4, 0, "glass", 0.1);
 			p.d(4, 3, "green", 0.5);

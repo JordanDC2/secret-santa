@@ -208,6 +208,32 @@ const DRAWINGS: Record<IIconId, (p: Pen) => void> = {
 		p.l(8, 1, 8, 4, 0.6, 0.6, "red", 0.3);
 		p.d(6, 6, "white", 0.9);
 	},
+	soldiers(p) {
+		// A nutcracker's head and shoulders: the tall busby, the white face, the red coat.
+		p.r(4.5, 1, 7, 5, "fur", 0.4);
+		p.r(4.5, 5, 7, 1, "gold", 0.6);
+		p.d(8, 3, "gold", 0.9);
+		p.e(8, 8, 3, 2.6, 0, "porcelain", 0.25);
+		p.r(6, 9, 4, 1.4, "white", 0.4);
+		p.r(7, 8.5, 2, 1, "dark", 0.15);
+		p.d(7, 7, "dark", 0.1);
+		p.d(9, 7, "dark", 0.1);
+		p.e(8, 13, 5, 2.6, 0, "red", 0.1);
+		p.d(8, 13, "gold", 0.8);
+	},
+	advent(p) {
+		// A calendar of little doors, one open, gold showing through.
+		p.r(2.5, 3, 11, 11, "red", 0.35);
+		p.r(2.5, 3, 11, 2, "green", 0.4);
+
+		for (let row = 0; row < 3; row++) {
+			for (let column = 0; column < 3; column++) {
+				p.d(4.5 + column * 3.5, 6.5 + row * 2.6, "white", 0.55);
+			}
+		}
+
+		p.d(8, 9.1, "gold", 0.95);
+	},
 	candle(p) {
 		p.r(5.5, 6, 5, 9, "white", 0.5);
 		p.d(8, 5, "dark", 0.2);

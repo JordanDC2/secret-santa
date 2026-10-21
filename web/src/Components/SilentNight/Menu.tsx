@@ -8,6 +8,7 @@ import { PATRONS } from "Components/SilentNight/patrons";
 import { portraitUrl } from "Components/SilentNight/portraits";
 import { iconUrl } from "Components/SilentNight/icons";
 import { GUNS, isGun } from "Components/SilentNight/guns";
+import { playSelect } from "Components/SilentNight/sound";
 import type { ICastId, IGunId } from "Components/SilentNight/types";
 import { weaponInfo } from "Components/SilentNight/weapons";
 import classes from "Components/SilentNight/SilentNight.module.less";
@@ -55,6 +56,7 @@ export default function Menu({ progress, castImages, busy, error, onStart, onCho
 	const chosen = castMember(progress.character);
 	const [gun, setGun] = useState(readGun);
 	const chooseGun = (id: IGunId) => {
+		playSelect();
 		setGun(id);
 		saveGun(id);
 	};
@@ -110,7 +112,15 @@ export default function Menu({ progress, castImages, busy, error, onStart, onCho
 									type="button"
 									className={member.id === chosen.id ? `${classes.castCard} ${classes.chosen}` : classes.castCard}
 									disabled={busy || (!owned && progress.coal < member.price)}
-									onClick={() => (owned ? onChoose(member.id) : onBuy({ kind: "cast", item: member.id }))}
+									onClick={() => {
+										playSelect();
+
+										if (owned) {
+											onChoose(member.id);
+										} else {
+											onBuy({ kind: "cast", item: member.id });
+										}
+									}}
 								>
 									<img
 										src={castImages[member.id]}

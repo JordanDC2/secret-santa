@@ -11,6 +11,7 @@ import { fireGun, GUNS, gunNumbers, isGun, past } from "Components/SilentNight/g
 import { byRank } from "Components/SilentNight/stats";
 import type { IStats } from "Components/SilentNight/stats";
 import type {
+	IAlly,
 	IEnemy,
 	IEvents,
 	IInput,
@@ -145,6 +146,25 @@ export const WEAPONS: IWeaponInfo[] = [
 		levels: ["+1 minion", "+4 damage", "Bite sooner", "+1 minion", "+4 damage", "Run faster", "+1 minion, +6 damage"],
 		evolution: { passive: "candle", name: "The Gingerbread Army", description: "Twice as many, biting harder." },
 	},
+	{
+		id: "soldiers",
+		name: "Toy soldiers",
+		description: "Every so often a nutcracker soldier marches out and stands guard, firing at the nearest enemy.",
+		levels: [
+			"+3 damage",
+			"+1 soldier",
+			"Stand guard longer",
+			"+3 damage",
+			"March out sooner",
+			"+1 soldier, stand guard longer",
+			"+3 damage",
+		],
+		evolution: {
+			passive: "advent",
+			name: "The Night Watch",
+			description: "Soldiers stand guard twice as long, and fire in volleys.",
+		},
+	},
 ];
 
 export function weaponInfo(id: IWeaponId): IWeaponInfo {
@@ -195,6 +215,9 @@ export function useWeapons(world: IWorld, input: IInput, grid: IGrid, events: IE
 				break;
 			case "minions":
 				minions(world, weapon, numbers);
+				break;
+			case "soldiers":
+				soldiers(world, weapon, numbers);
 				break;
 		}
 	}
@@ -627,11 +650,88 @@ function minions(world: IWorld, weapon: IWeapon, numbers: IStats) {
 	}
 }
 
-/** The things that move with the elf: snow globes circling, minions running, Saint Lucia's flames. */
+/** Toy soldiers marching out, every so often, to stand guard round where the elf is. */
+function soldiers(world: IWorld, weapon: IWeapon, numbers: IStats) {
+	if (world.time < weapon.readyAt) {
+		return;
+	}
+
+	const { level, evolved } = weapon;
+	const count = 1 + past(level, 3, 7) + numbers.projectiles;
+	const guard = (8 + 2 * past(level, 4, 7)) * (evolved ? 2 : 1);
+
+	for (let i = 0; i < count; i++) {
+		const angle = (i / count) * Math.PI * 2 + Math.random() * Math.PI;
+		world.allies.push({
+			kind: "soldier",
+			x: world.player.x + Math.cos(angle) * 16,
+			y: world.player.y + Math.sin(angle) * 10,
+			angle: 0,
+			targetId: null,
+			until: world.time + guard,
+			readyAt: world.time + 0.4,
+			hits: new Map(),
+		});
+	}
+
+	weapon.readyAt = world.time + (level >= 6 ? 4.5 : 6) * numbers.cooldown;
+}
+
+/** A toy soldier on guard: turning to the nearest enemy in range, firing walnut shot at it (in volleys, evolved). */
+function standGuard(world: IWorld, grid: IGrid, ally: IAlly, weapon: IWeapon, events: IEvents) {
+	let target: IEnemy | null = null;
+	let best = 110 * world.numbers.area;
+	near(grid, ally.x, ally.y, best, (enemy) => {
+		const distance = Math.hypot(enemy.x - ally.x, enemy.y - ally.y);
+
+		if (distance < best) {
+			best = distance;
+			target = enemy;
+		}
+	});
+
+	if (!target) {
+		return;
+	}
+
+	const { x, y, radius } = target as IEnemy;
+	const aim = Math.atan2(y - radius * 0.8 - (ally.y - 8), x - ally.x);
+	ally.angle = aim;
+
+	if (world.time < ally.readyAt) {
+		return;
+	}
+
+	const damage = 9 + 3 * past(weapon.level, 2, 5, 8) + (weapon.evolved ? 4 : 0);
+
+	for (const fan of weapon.evolved ? [-0.15, 0, 0.15] : [0]) {
+		world.shots.push({
+			x: ally.x + Math.cos(aim) * 5,
+			y: ally.y - 8 + Math.sin(aim) * 5,
+			vx: Math.cos(aim + fan) * 220,
+			vy: Math.sin(aim + fan) * 220,
+			until: world.time + 0.7,
+			damage,
+			pierce: 0,
+			radius: 1.5,
+			weapon: "soldiers",
+			hostile: false,
+			kind: "pellet",
+			struck: new Set(),
+		});
+	}
+
+	ally.shotAt = world.time;
+	ally.readyAt = world.time + 0.8 * world.numbers.cooldown;
+	events.volley = true;
+}
+
+/** The things that move with the elf: snow globes circling, minions running, Saint Lucia's flames; and toy soldiers on guard. */
 export function moveAllies(world: IWorld, grid: IGrid, dt: number, events: IEvents) {
 	const { player, numbers } = world;
 	const globeWeapon = player.weapons.find((weapon) => weapon.id === "globes");
 	const minionWeapon = player.weapons.find((weapon) => weapon.id === "minions");
+	const soldierWeapon = player.weapons.find((weapon) => weapon.id === "soldiers");
 
 	world.allies = world.allies.filter((ally) => {
 		if (world.time >= ally.until) {
@@ -672,6 +772,10 @@ export function moveAllies(world: IWorld, grid: IGrid, dt: number, events: IEven
 
 		if (ally.kind === "minion" && minionWeapon) {
 			moveMinion(world, grid, ally, minionWeapon, dt, events);
+		}
+
+		if (ally.kind === "soldier" && soldierWeapon) {
+			standGuard(world, grid, ally, soldierWeapon, events);
 		}
 
 		return true;

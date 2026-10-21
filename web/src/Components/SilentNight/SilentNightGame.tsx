@@ -14,7 +14,7 @@ import GearSlots from "Components/SilentNight/GearSlots";
 import Menu from "Components/SilentNight/Menu";
 import NightOver, { clock } from "Components/SilentNight/NightOver";
 import Prompt from "Components/SilentNight/Prompt";
-import { addEvents, playNightEvents, startNightMusic } from "Components/SilentNight/sound";
+import { addEvents, enableSounds, playNightEvents, playPause, startNightMusic } from "Components/SilentNight/sound";
 import { makeSprites } from "Components/SilentNight/sprites";
 import { PASSIVES } from "Components/SilentNight/stats";
 import {
@@ -209,6 +209,7 @@ export default function SilentNightGame({
 				event.preventDefault();
 				pausedRef.current = !pausedRef.current;
 				setPaused(pausedRef.current);
+				playPause(pausedRef.current);
 
 				return;
 			}
@@ -371,7 +372,8 @@ export default function SilentNightGame({
 			}
 
 			if (time !== shown.time && timeRef.current) {
-				timeRef.current.textContent = world.dawn ? "Dawn" : clock(time);
+				// Counting down to dawn.
+				timeRef.current.textContent = world.dawn ? "Dawn" : clock(Math.max(0, NIGHT_SECONDS - time));
 			}
 
 			if (world.kills !== shown.kills && killsRef.current) {
@@ -446,6 +448,10 @@ export default function SilentNightGame({
 	}, [fullscreen]);
 
 	const pause = (on: boolean) => {
+		if (pausedRef.current !== on) {
+			playPause(on);
+		}
+
 		pausedRef.current = on;
 		setPaused(on);
 	};
@@ -584,6 +590,7 @@ export default function SilentNightGame({
 		}
 
 		saveSoundOn(!soundOn);
+		enableSounds(!soundOn);
 		soundOnRef.current = !soundOn;
 		setSoundOn(!soundOn);
 	};
@@ -672,8 +679,7 @@ export default function SilentNightGame({
 						</div>
 					</div>
 					<div className={classes.clock}>
-						<span ref={timeRef}>0:00</span>
-						<span className={classes.clockOf}> / {clock(NIGHT_SECONDS)}</span>
+						<span ref={timeRef}>{clock(NIGHT_SECONDS)}</span>
 					</div>
 					<div ref={bossRef} className={classes.boss}>
 						<span ref={bossNameRef} className={classes.bossName} />

@@ -10,7 +10,7 @@ import type { IGearStat, IPassiveId, IPlayer } from "Components/SilentNight/type
 
 export type IPassive = { id: IPassiveId; name: string; description: string; maxLevel: number; effect: string };
 
-/** The passives, in the order they're shown. Each pairs with a weapon for its evolution (weapons.ts). */
+/** The passives, in the order they're shown. Each pairs with a weapon for its evolution (weapons.ts, guns.ts). */
 export const PASSIVES: IPassive[] = [
 	{
 		id: "peppermint",
@@ -74,6 +74,13 @@ export const PASSIVES: IPassive[] = [
 		description: "A wider ring of light in the dark.",
 		maxLevel: 5,
 		effect: "+12% light a level",
+	},
+	{
+		id: "advent",
+		name: "Advent calendar",
+		description: "A little more learned every day.",
+		maxLevel: 5,
+		effect: "+10% experience a level",
 	},
 ];
 
@@ -186,7 +193,9 @@ export function stats(player: IPlayer): IStats {
 			(bargain(player, "naughtyList") ? 0.25 : 0) +
 			byRank(player, "ribbons", [0.05, 0.1, 0.15]) +
 			gear("crit"),
-		experience: (1 + 0.25 * rank(player, "smallThings") + gear("experience")) * (bargain(player, "sack") ? 1.5 : 1),
+		experience:
+			(1 + 0.1 * level(player, "advent") + 0.25 * rank(player, "smallThings") + gear("experience")) *
+			(bargain(player, "sack") ? 1.5 : 1),
 		healing: bargain(player, "chains")
 			? 0
 			: (1 + 0.5 * rank(player, "gentleHands") + (wearing(player, "warmHearted") ? 0.5 : 0)) * (1 + gear("healing")),

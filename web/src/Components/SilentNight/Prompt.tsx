@@ -17,6 +17,7 @@ import { bargainInfo, KRAMPUS_LINE } from "Components/SilentNight/bargains";
 import { iconUrl } from "Components/SilentNight/icons";
 import { banish, choiceKey, closeChest, reroll, skip, take, takeGear } from "Components/SilentNight/levelUp";
 import { portraitUrl, type IPortraitId } from "Components/SilentNight/portraits";
+import { playEquip, playMorph, playSelect } from "Components/SilentNight/sound";
 import { PASSIVES } from "Components/SilentNight/stats";
 import type { IChoice, IGear, IPatronId, IPrompt, IWorld } from "Components/SilentNight/types";
 import { weaponInfo } from "Components/SilentNight/weapons";
@@ -27,6 +28,12 @@ type IPromptProps = {
 	prompt: IPrompt;
 	/** Called after any choice, so the game shows whatever the night waits on next (or carries on). */
 	onChange: () => void;
+};
+
+/** A choice that makes its sound as it's taken. */
+const withSound = (sound: () => void, action: () => void) => () => {
+	sound();
+	action();
 };
 
 /** What a level-up choice is, says and looks like. */
@@ -131,23 +138,27 @@ function GearDetails({ gear, label, replacing }: { gear: IGear; label?: string; 
  * gear) at his altar. On a keyboard, the number keys pick a card.
  */
 export default function Prompt({ world, prompt, onChange }: IPromptProps) {
-	const act = (action: () => void) => {
+	// Each choice with its sound (a tick, a heavy chord for a gun's morph, wool and a buckle for gear);
+	// the buttons that aren't cards, a tick.
+	const act = (action: () => void, sound: (() => void) | null = playSelect) => {
+		sound?.();
 		action();
 		onChange();
 	};
-
 	const cards: Array<() => void> =
 		prompt.kind === "levelUp"
-			? prompt.choices.map((choice) => () => take(world, choice))
+			? prompt.choices.map((choice) =>
+					withSound(choice.kind === "morph" ? playMorph : playSelect, () => take(world, choice)),
+				)
 			: prompt.kind === "shrine"
-				? prompt.choices.map((id) => () => takeBlessing(world, id))
+				? prompt.choices.map((id) => withSound(playSelect, () => takeBlessing(world, id)))
 				: prompt.kind === "altar"
 					? [
-							...prompt.choices.map((id) => () => takeBargain(world, id)),
-							...(prompt.gear ? [() => takeCursedGear(world)] : []),
+							...prompt.choices.map((id) => withSound(playSelect, () => takeBargain(world, id))),
+							...(prompt.gear ? [withSound(playEquip, () => takeCursedGear(world))] : []),
 						]
 					: prompt.kind === "gear"
-						? [() => takeGear(world), () => closeChest(world)]
+						? [withSound(playEquip, () => takeGear(world)), withSound(playSelect, () => closeChest(world))]
 						: [];
 
 	useEffect(() => {
@@ -177,7 +188,7 @@ export default function Prompt({ world, prompt, onChange }: IPromptProps) {
 				<GearSlots gear={world.player.gear} incoming={prompt.gear} />
 				<div className={classes.cards}>
 					<div className={classes.cardHolder}>
-						<button type="button" className={classes.card} onClick={() => act(cards[0])}>
+						<button type="button" className={classes.card} onClick={() => act(cards[0], null)}>
 							<GearDetails gear={prompt.gear} label="New" />
 						</button>
 					</div>
@@ -190,8 +201,8 @@ export default function Prompt({ world, prompt, onChange }: IPromptProps) {
 					)}
 				</div>
 				<div className={classes.promptButtons}>
-					<Button onClick={() => act(cards[0])}>{worn ? "Wear it instead" : "Wear it"}</Button>
-					<Button variant="subtle" onClick={() => act(cards[1])}>
+					<Button onClick={() => act(cards[0], null)}>{worn ? "Wear it instead" : "Wear it"}</Button>
+					<Button variant="subtle" onClick={() => act(cards[1], null)}>
 						Leave it
 					</Button>
 				</div>
@@ -214,7 +225,7 @@ export default function Prompt({ world, prompt, onChange }: IPromptProps) {
 								<button
 									type="button"
 									className={choice.kind === "morph" ? `${classes.card} ${classes.morph}` : classes.card}
-									onClick={() => act(cards[index])}
+									onClick={() => act(cards[index], null)}
 								>
 									<span className={classes.cardHead}>
 										{icon && <img src={icon} alt="" className={classes.icon} />}
@@ -271,7 +282,7 @@ export default function Prompt({ world, prompt, onChange }: IPromptProps) {
 								type="button"
 								className={classes.card}
 								style={{ borderColor: colour }}
-								onClick={() => act(cards[index])}
+								onClick={() => act(cards[index], null)}
 							>
 								<span className={classes.cardHead}>
 									<span className={classes.cardName} style={{ color: colour }}>
@@ -309,7 +320,7 @@ export default function Prompt({ world, prompt, onChange }: IPromptProps) {
 							key={id}
 							type="button"
 							className={`${classes.card} ${classes.bargain}`}
-							onClick={() => act(cards[index])}
+							onClick={() => act(cards[index], null)}
 						>
 							<span className={classes.cardHead}>
 								<span className={classes.cardName}>{bargain.name}</span>
@@ -325,7 +336,7 @@ export default function Prompt({ world, prompt, onChange }: IPromptProps) {
 					<button
 						type="button"
 						className={`${classes.card} ${classes.bargain}`}
-						onClick={() => act(cards[prompt.choices.length])}
+						onClick={() => act(cards[prompt.choices.length], null)}
 					>
 						<GearDetails gear={prompt.gear} replacing={world.player.gear[prompt.gear.slot]} />
 					</button>

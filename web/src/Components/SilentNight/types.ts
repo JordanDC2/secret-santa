@@ -10,7 +10,17 @@ export type IVector = { x: number; y: number };
 /** The aimed guns (guns.ts), one chosen before the night: "gun" is the candy cane gun. */
 export type IGunId = "gun" | "blunderbuss" | "crossbow" | "pistols" | "romanCandle" | "snowCannon";
 
-export type IWeaponId = IGunId | "blade" | "grenades" | "whip" | "globes" | "bells" | "mortar" | "cocoa" | "minions";
+export type IWeaponId =
+	| IGunId
+	| "blade"
+	| "grenades"
+	| "whip"
+	| "globes"
+	| "bells"
+	| "mortar"
+	| "cocoa"
+	| "minions"
+	| "soldiers";
 
 export type IPassiveId =
 	| "peppermint"
@@ -21,7 +31,8 @@ export type IPassiveId =
 	| "fruitcake"
 	| "stocking"
 	| "mistletoe"
-	| "candle";
+	| "candle"
+	| "advent";
 
 export type IEnemyKind =
 	| "gingerbread"
@@ -271,9 +282,9 @@ export type IPickup = {
 	gear?: IGear;
 };
 
-/** A minion of gingerbread, or a candle flame, or an orbiting snow globe: things that move with the elf. */
+/** A minion of gingerbread, a candle flame, an orbiting snow globe, a toy soldier standing guard: the elf's allies. */
 export type IAlly = {
-	kind: "minion" | "globe" | "flame";
+	kind: "minion" | "globe" | "flame" | "soldier";
 	x: number;
 	y: number;
 	angle: number;
@@ -282,6 +293,8 @@ export type IAlly = {
 	readyAt: number;
 	/** When it last hit each enemy (by id), so it hits each only so often. */
 	hits: Map<number, number>;
+	/** A toy soldier's last shot, for its flash. */
+	shotAt?: number;
 };
 
 /** A patron's shrine, or Krampus's altar, out in the dark. */
@@ -352,6 +365,18 @@ export type IInput = {
 /** What happened in a step, for the sounds. */
 export type IEvents = {
 	shots: number;
+	/** The gun that fired, for its own sound. */
+	gun: IGunId | null;
+	/** A reload begun. */
+	reloading: boolean;
+	/** A toy soldier firing. */
+	volley: boolean;
+	/** The kinds of enemy broken, as bits by their place in ENEMY_KINDS (constants.ts), each its own sound. */
+	broken: number;
+	froze: boolean;
+	ignited: boolean;
+	bounced: boolean;
+	elite: boolean;
 	hits: number;
 	kills: number;
 	hurt: boolean;
@@ -370,6 +395,14 @@ export type IEvents = {
 export function noEvents(): IEvents {
 	return {
 		shots: 0,
+		gun: null,
+		reloading: false,
+		volley: false,
+		broken: 0,
+		froze: false,
+		ignited: false,
+		bounced: false,
+		elite: false,
 		hits: 0,
 		kills: 0,
 		hurt: false,

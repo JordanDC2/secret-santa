@@ -6,13 +6,28 @@
  * bass, then a heartbeat and strings, then a tolling bell), with drums while a boss is about.
  */
 
-import { audioNow, hiss, musicBus, tone } from "Components/ElfFling/sound";
-import { NIGHT_SECONDS } from "Components/SilentNight/constants";
-import type { IEvents } from "Components/SilentNight/types";
+import { audioNow, hiss, musicBus, readSoundOn, tone } from "Components/ElfFling/sound";
+import { ENEMY_KINDS, NIGHT_SECONDS } from "Components/SilentNight/constants";
+import type { IEnemyKind, IEvents, IGunId } from "Components/SilentNight/types";
+
+/** Whether sound's on, for the sounds played outside the night's loop (the menus, a chest). */
+let soundOn = readSoundOn();
+
+export function enableSounds(on: boolean) {
+	soundOn = on;
+}
 
 /** Adds a step's events to a frame's. */
 export function addEvents(into: IEvents, from: IEvents) {
 	into.shots += from.shots;
+	into.gun ??= from.gun;
+	into.reloading ||= from.reloading;
+	into.volley ||= from.volley;
+	into.broken |= from.broken;
+	into.froze ||= from.froze;
+	into.ignited ||= from.ignited;
+	into.bounced ||= from.bounced;
+	into.elite ||= from.elite;
 	into.hits += from.hits;
 	into.kills += from.kills;
 	into.pickups += from.pickups;
@@ -78,11 +93,111 @@ const NOTE: Record<string, number> = {
 	C6: 1046.5,
 };
 
+/** Each gun's shot, and how close together they can sound. */
+const GUN_SOUNDS: Record<IGunId, { gap: number; play: () => void }> = {
+	gun: {
+		gap: 0.06,
+		play: () => {
+			tone("square", 880, 440, 0.05, 0.035);
+			hiss("bandpass", 3000, 0.03, 0.03);
+		},
+	},
+	// A boom, and the shells rattling out.
+	blunderbuss: {
+		gap: 0.1,
+		play: () => {
+			tone("sine", 130, 45, 0.18, 0.2);
+			hiss("lowpass", 2600, 0.2, 0.14, 0, 300);
+			hiss("highpass", 5000, 0.05, 0.03, 0.03);
+		},
+	},
+	// The string's twang, and the bolt's whistle.
+	crossbow: {
+		gap: 0.1,
+		play: () => {
+			tone("triangle", 950, 320, 0.09, 0.07);
+			tone("sine", 210, 180, 0.16, 0.05);
+			hiss("highpass", 4000, 0.12, 0.03, 0.02, 9000);
+		},
+	},
+	// A little click and a bell.
+	pistols: {
+		gap: 0.045,
+		play: () => {
+			const pitch = 2300 + Math.random() * 400;
+			tone("square", 1600, 1200, 0.02, 0.018);
+			tone("sine", pitch, pitch, 0.07, 0.018, 0.01);
+		},
+	},
+	// A whoosh up, and a crackle.
+	romanCandle: {
+		gap: 0.1,
+		play: () => {
+			hiss("bandpass", 700, 0.16, 0.07, 0, 3200);
+			tone("sawtooth", 280, 620, 0.1, 0.02);
+			hiss("highpass", 6000, 0.08, 0.025, 0.1);
+		},
+	},
+	// A deep, soft whump.
+	snowCannon: {
+		gap: 0.15,
+		play: () => {
+			tone("sine", 95, 42, 0.22, 0.22);
+			hiss("lowpass", 700, 0.2, 0.1, 0, 120);
+		},
+	},
+};
+
+/** How each kind of enemy sounds as it breaks (a biscuit crunch, unless it's something else). */
+const BREAKS: Partial<Record<IEnemyKind, () => void>> = {
+	// A spring going: boing.
+	windup: () => {
+		tone("square", 500, 1800, 0.1, 0.025);
+		tone("triangle", 1300, 260, 0.14, 0.03, 0.06);
+	},
+	// Rubble.
+	golem: () => {
+		tone("sine", 75, 32, 0.32, 0.15);
+		hiss("lowpass", 500, 0.3, 0.1, 0, 100);
+	},
+	// A wail, cut short and falling.
+	caroller: () => {
+		tone("sine", 560, 250, 0.32, 0.04);
+		tone("sine", 840, 375, 0.28, 0.015);
+	},
+	// Porcelain shattering.
+	angel: () => {
+		hiss("highpass", 6500, 0.16, 0.08);
+		tone("sine", 2700, 2650, 0.12, 0.03);
+		tone("sine", 3400, 3380, 0.1, 0.025, 0.03);
+	},
+	// A shriek.
+	imp: () => {
+		tone("sawtooth", 900, 1500, 0.08, 0.025);
+	},
+};
+
 /** What happened this frame, as sound. */
 export function playNightEvents(events: IEvents) {
-	if (events.shots > 0 && ready("shot", 0.06)) {
-		tone("square", 880, 440, 0.05, 0.035);
-		hiss("bandpass", 3000, 0.03, 0.03);
+	if (events.gun && ready("shot", GUN_SOUNDS[events.gun].gap)) {
+		GUN_SOUNDS[events.gun].play();
+	}
+
+	// A grenade lobbed: a soft whoosh.
+	if (events.shots > 0 && !events.gun && ready("lob", 0.2)) {
+		hiss("bandpass", 400, 0.16, 0.04, 0, 1200);
+	}
+
+	if (events.volley && ready("volley", 0.12)) {
+		// A toy musket's crack, and a puff.
+		tone("square", 750, 220, 0.04, 0.03);
+		hiss("bandpass", 2200, 0.06, 0.03);
+	}
+
+	if (events.reloading) {
+		// The magazine out: a clack.
+		tone("square", 210, 170, 0.035, 0.05);
+		hiss("bandpass", 1800, 0.03, 0.03);
 	}
 
 	if (events.hits > 0 && ready("hit", 0.05)) {
@@ -90,9 +205,35 @@ export function playNightEvents(events: IEvents) {
 	}
 
 	if (events.kills > 0 && ready("kill", 0.07)) {
-		// A crunch, like a biscuit snapping.
-		hiss("lowpass", 1800, 0.07, 0.09, 0, 400);
-		tone("triangle", 260, 110, 0.06, 0.06);
+		const special = ENEMY_KINDS.find((kind, i) => BREAKS[kind] && events.broken & (1 << i));
+
+		if (special && ready(`break-${special}`, 0.12)) {
+			BREAKS[special]!();
+		} else {
+			// A crunch, like a biscuit snapping.
+			hiss("lowpass", 1800, 0.07, 0.09, 0, 400);
+			tone("triangle", 260, 110, 0.06, 0.06);
+		}
+	}
+
+	if (events.froze && ready("froze", 0.15)) {
+		// Ice cracking over.
+		tone("sine", 3200, 2000, 0.08, 0.03);
+		hiss("highpass", 8000, 0.12, 0.04);
+	}
+
+	if (events.ignited && ready("ignited", 0.25)) {
+		hiss("bandpass", 600, 0.22, 0.05, 0, 1800);
+	}
+
+	if (events.bounced && ready("bounced", 0.08)) {
+		tone("sine", 1800, 2700, 0.05, 0.03);
+	}
+
+	if (events.elite) {
+		// Something big coming: a low horn.
+		tone("sawtooth", NOTE.C2, NOTE.C2, 1, 0.05);
+		tone("sine", NOTE.C3, NOTE.C3 * 0.98, 1, 0.08);
 	}
 
 	if (events.pickups > 0 && ready("pickup", 0.04)) {
@@ -408,15 +549,58 @@ export function startNightMusic(night: () => { time: number; boss: boolean }): (
 
 /** A chest's reel clicking round as it spins. */
 export function playReelTick() {
-	if (ready("reelTick", 0.06)) {
+	if (soundOn && ready("reelTick", 0.06)) {
 		tone("square", 1800, 1400, 0.025, 0.025);
 	}
 }
 
 /** A reel landing on what it found: a bright chime, grander for an evolution. */
 export function playReelStop(evolved: boolean) {
+	if (!soundOn) {
+		return;
+	}
+
 	tone("triangle", NOTE.G4, NOTE.G4, 0.12, 0.08);
 	(evolved ? ["C5", "Eb5", "G5", "C6"] : ["C5", "G5"]).forEach((note, i) =>
 		tone("sine", NOTE[note], NOTE[note], 0.5, 0.1, 0.04 + i * 0.07),
 	);
+}
+
+/** Choosing something in a menu, or a card: a soft tick. */
+export function playSelect() {
+	if (soundOn) {
+		tone("triangle", 1250, 1000, 0.05, 0.05);
+	}
+}
+
+/** A gun's morph taken: a heavy, distorted chord. */
+export function playMorph() {
+	if (!soundOn) {
+		return;
+	}
+
+	for (const note of ["C3", "G3", "C4"]) {
+		tone("sawtooth", NOTE[note], NOTE[note] * 0.995, 0.7, 0.04);
+	}
+
+	tone("sine", NOTE.C2, NOTE.C2, 0.8, 0.12);
+	hiss("lowpass", 2000, 0.4, 0.05, 0, 300);
+}
+
+/** Gear put on: wool rustling, a buckle clinking. */
+export function playEquip() {
+	if (!soundOn) {
+		return;
+	}
+
+	hiss("bandpass", 1200, 0.14, 0.05);
+	tone("sine", 2300, 2280, 0.12, 0.04, 0.08);
+	tone("sine", 3100, 3080, 0.08, 0.02, 0.1);
+}
+
+/** Pausing (the night falling quiet) and carrying on. */
+export function playPause(paused: boolean) {
+	if (soundOn) {
+		tone("sine", paused ? 660 : 330, paused ? 330 : 660, 0.14, 0.05);
+	}
 }

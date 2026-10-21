@@ -140,6 +140,7 @@ export function hurtEnemy(
 	if (Math.random() < byRank(player, "kindling", [0.1, 0.2, 0.3])) {
 		enemy.burnUntil = world.time + 3;
 		enemy.burnDamage = 6;
+		events.ignited = true;
 	}
 
 	if (rank(player, "bitterCold") > 0) {
@@ -149,6 +150,7 @@ export function hurtEnemy(
 
 	if (!enemy.boss && Math.random() < byRank(player, "hoarfrost", [0.06, 0.1, 0.14])) {
 		enemy.frozenUntil = world.time + 1.5;
+		events.froze = true;
 	}
 
 	// Steam: a frozen enemy set burning bursts, scalding everything round it.
@@ -219,6 +221,7 @@ function kill(world: IWorld, grid: IGrid, enemy: IEnemy, events: IEvents) {
 	const { player } = world;
 	world.kills += 1;
 	events.kills += 1;
+	events.broken |= 1 << ENEMY_KINDS.indexOf(enemy.kind);
 	world.effects.push({
 		kind: "crumbs",
 		x: enemy.x,

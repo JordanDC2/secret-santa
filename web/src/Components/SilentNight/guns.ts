@@ -651,6 +651,7 @@ export function fireGun(
 		(weapon.ammo <= 0 || (input.reload && weapon.ammo < gun.magazine))
 	) {
 		weapon.reloadUntil = world.time + gun.reload * numbers.reload;
+		events.reloading = true;
 	}
 
 	if (!input.firing || !input.aim || weapon.reloadUntil !== null || world.time < weapon.readyAt) {
@@ -693,4 +694,5 @@ export function fireGun(
 	weapon.readyAt = world.time + gun.interval * numbers.cooldown;
 	player.lastShotAt = world.time;
 	events.shots += 1;
+	events.gun = weapon.id as IGunId;
 }

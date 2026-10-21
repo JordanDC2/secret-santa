@@ -301,6 +301,7 @@ function moveShots(world: IWorld, grid: ReturnType<typeof gridOf>, dt: number, e
 				if (hit.burn > 0) {
 					enemy.burnUntil = world.time + 3;
 					enemy.burnDamage = Math.max(enemy.burnDamage, hit.burn);
+					events.ignited = true;
 				}
 
 				if (hit.slow > 0) {
@@ -310,6 +311,7 @@ function moveShots(world: IWorld, grid: ReturnType<typeof gridOf>, dt: number, e
 
 				if (!enemy.boss && Math.random() < hit.freeze) {
 					enemy.frozenUntil = world.time + 1.2;
+					events.froze = true;
 				}
 
 				if (hit.burst?.everyHit) {
@@ -326,6 +328,7 @@ function moveShots(world: IWorld, grid: ReturnType<typeof gridOf>, dt: number, e
 			// Bouncing on to the nearest enemy it hasn't hit yet, rather than stopping.
 			if (hit && hit.bounce > 0 && bounce(world, grid, shot)) {
 				hit.bounce -= 1;
+				events.bounced = true;
 
 				return true;
 			}

@@ -179,6 +179,18 @@ export function drawWorld(
 		if (ally.kind === "minion") {
 			const frames = art.minion[Math.cos(ally.angle) >= 0 ? "right" : "left"];
 			context.drawImage(frames[Math.floor(time * 8) % 2], sx(ally.x) - 7, sy(ally.y) - 16);
+		} else if (ally.kind === "soldier") {
+			// Fading out as his guard ends; a flash at his musket's mouth as he fires.
+			const right = Math.cos(ally.angle) >= 0;
+			context.globalAlpha = Math.min(1, (ally.until - time) / 0.5);
+			context.drawImage(art.soldier[right ? "right" : "left"], sx(ally.x) - 7, sy(ally.y) - 18);
+			context.globalAlpha = 1;
+
+			if (ally.shotAt !== undefined && time - ally.shotAt < 0.06) {
+				context.fillStyle = "#ffd060";
+				context.fillRect(sx(ally.x) + (right ? 5 : -7), sy(ally.y) - 12, 2, 2);
+				glows.push({ x: ally.x + (right ? 6 : -6), y: ally.y - 11, radius: 8 });
+			}
 		} else if (ally.kind === "globe") {
 			context.drawImage(art.globe, sx(ally.x) - 4, sy(ally.y) - 5);
 		} else {

@@ -174,6 +174,7 @@ export function runTimeline(world: IWorld, dt: number, view: { width: number; he
 			const mix = MIXES.find((band) => at < band.until)!.mix;
 			const spot = offscreen(world, view);
 			spawnEnemy(world, pick(mix), spot.x, spot.y, true);
+			events.elite = true;
 		});
 	}
 
