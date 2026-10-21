@@ -90,9 +90,12 @@ export function drawChristkind(): HTMLCanvasElement {
 	}
 
 	// Golden curls behind the head, to the shoulders.
-	ellipse(78, 52, 16.5, 19, 0, "hair", 0, curls);
-	ellipse(66, 64, 6, 9, 0.2, "hair", -0.04, curls);
-	ellipse(90, 64, 6, 9, -0.2, "hair", -0.08, curls);
+	// (In shadow behind the neck, so the neck stands clear of it.)
+	const behindNeck = (x: number, y: number) =>
+		curls(x, y) - 0.3 * clamp(1 - Math.abs(x - 78) / 11) * clamp((y - 57) / 5);
+	ellipse(78, 52, 16.5, 19, 0, "hair", 0, behindNeck);
+	ellipse(66, 66, 5.4, 8, 0.2, "hair", -0.1, curls);
+	ellipse(90, 66, 5.4, 8, -0.2, "hair", -0.14, curls);
 
 	// The white robe, from the shoulders down, its sleeves wide.
 	fill(
@@ -128,8 +131,10 @@ export function drawChristkind(): HTMLCanvasElement {
 	}
 
 	// Neck and face.
-	ellipse(78, 65, 3.4, 4.5, 0, "skin", -0.12, (_x, y) => (y < 64 ? -0.1 : 0));
-	ellipse(78, 49, 11, 13.5, 0, "skin", 0.18, starlight);
+	// A slim neck, deep in the shadow of the jaw, lighter lower down.
+	ellipse(78, 66, 3, 5, 0, "skin", -0.2, (_x, y) => -0.22 * clamp((67 - y) / 4));
+	// The head, the underside of the jaw turning away from the light.
+	ellipse(78, 49, 11, 13.5, 0, "skin", 0.18, (x, y) => starlight(x, y) - 0.14 * clamp((y - 57) / 5));
 
 	// Curls over the top of the head, swept to the sides, and down past the cheeks.
 	for (let y = 34; y <= 49; y++) {
@@ -143,8 +148,8 @@ export function drawChristkind(): HTMLCanvasElement {
 		}
 	}
 
-	ellipse(66.5, 54, 2.8, 10, 0.06, "hair", 0.02, curls);
-	ellipse(89.5, 54, 2.8, 10, -0.06, "hair", -0.04, curls);
+	ellipse(66.5, 52, 2.8, 8.5, 0.06, "hair", 0.02, curls);
+	ellipse(89.5, 52, 2.8, 8.5, -0.06, "hair", -0.04, curls);
 
 	// Their face: eyes wide and kind, looking out; fine brows; a little smile.
 	for (const [cx, out] of [

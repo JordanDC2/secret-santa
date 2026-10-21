@@ -53,7 +53,17 @@ export function drawLucia(): HTMLCanvasElement {
 	// --- The figure, back to front. ---
 
 	// Her long fair hair behind her, falling past her shoulders.
-	ellipse(78, 52, 17, 20, 0, "hair", -0.02, (x, y) => strands(x, y) + warmth(x, y));
+	// (In shadow behind her neck, so her neck stands clear of it, as La Flor's does.)
+	ellipse(
+		78,
+		52,
+		17,
+		20,
+		0,
+		"hair",
+		-0.02,
+		(x, y) => strands(x, y) + warmth(x, y) - 0.3 * clamp(1 - Math.abs(x - 78) / 11) * clamp((y - 58) / 5),
+	);
 	ellipse(65, 80, 7.5, 24, 0.12, "hair", -0.1, strands);
 	ellipse(91, 80, 7.5, 24, -0.12, "hair", -0.08, strands);
 
@@ -101,8 +111,10 @@ export function drawLucia(): HTMLCanvasElement {
 	limb(88, 108, 93, 128, 2.2, 1.8, "red", -0.1);
 
 	// Her neck, a little in shadow, and her head.
-	ellipse(78, 66, 3.6, 5, 0, "skin", -0.12, (_x, y) => (y < 65 ? -0.1 : 0));
-	ellipse(78, 50, 11.5, 14.5, 0, "skin", 0.04, (x, y) => warmth(x, y) * 0.5);
+	// A slim neck, deep in the shadow of her jaw, lighter lower down.
+	ellipse(78, 67, 3, 5.5, 0, "skin", -0.2, (_x, y) => -0.22 * clamp((68 - y) / 4));
+	// Her head, the underside of her jaw turning away from the light.
+	ellipse(78, 50, 11.5, 14.5, 0, "skin", 0.04, (x, y) => warmth(x, y) * 0.5 - 0.12 * clamp((y - 59) / 5));
 
 	// Her hair over the top of her head, parted in the middle, and down past her cheeks.
 	for (let y = 35; y <= 50; y++) {
@@ -116,8 +128,8 @@ export function drawLucia(): HTMLCanvasElement {
 		}
 	}
 
-	ellipse(66.8, 55, 2.4, 11, 0.06, "hair", 0, strands);
-	ellipse(89.2, 55, 2.4, 11, -0.06, "hair", -0.06, strands);
+	ellipse(66.8, 53, 2.4, 9, 0.06, "hair", 0, strands);
+	ellipse(89.2, 53, 2.4, 9, -0.06, "hair", -0.06, strands);
 
 	// Her face: eyes closed, lowered to the candle; soft brows; a shaded nose; a gentle smile.
 	for (const [cx, out] of [
