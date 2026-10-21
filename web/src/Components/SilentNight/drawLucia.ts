@@ -16,7 +16,6 @@ import {
 	shade,
 	strands,
 	paintSwirl,
-	swirl,
 	type ISwirlItem,
 	type IPut,
 } from "Components/SilentNight/portraitKit";
@@ -54,12 +53,23 @@ const warmth = (x: number, y: number) => 0.18 * glow(x, y, 50);
 export function drawLucia(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, fill, light } = figure(RAMPS, RIM);
 
-	// Swirling round her: small lit candles, floating upright, a ring of light.
+	// A procession of candles, floating: from close by on the left, winding up behind her and away into the dark on the right, smaller as they go.
 	const drawThing = (keep: IPut, { x, y, size, front }: ISwirlItem) => {
 		limb(x, y, x, y - size * 1.3, size * 0.28, size * 0.28, "wax", front ? 0.15 : -0.1, null, keep);
 		petal(x, y - size * 1.3, size * 1.1, size * 0.32, -Math.PI / 2, "flame", front ? 0.05 : -0.15, keep);
 	};
-	const things = swirl(78, 74, 58, 40, -0.15, 7);
+	const things: ISwirlItem[] = Array.from({ length: 18 }, (_, index) => {
+		const t = index / 17;
+
+		return {
+			x: 14 + 200 * t,
+			y: 146 - 128 * t - 34 * Math.sin(Math.PI * t),
+			size: 8.5 * (1 - 0.68 * t),
+			angle: 0,
+			front: t < 0.15,
+			index,
+		};
+	});
 
 	// --- The figure, back to front. ---
 

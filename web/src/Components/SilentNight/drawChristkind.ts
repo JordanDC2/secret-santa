@@ -16,7 +16,6 @@ import {
 	shade,
 	type ITexture,
 	paintSwirl,
-	swirl,
 	type ISwirlItem,
 	type IPut,
 } from "Components/SilentNight/portraitKit";
@@ -58,9 +57,9 @@ const starlight = (x: number, y: number) => 0.2 * clamp(1 - Math.hypot(x - STAR.
 export function drawChristkind(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, fill, light } = figure(RAMPS, RIM);
 
-	// Swirling round them: white feathers, carried along the swirl.
+	// Feathers drifting down from their wings, tumbling as they fall.
 	const drawThing = (keep: IPut, { x, y, size, angle, front }: ISwirlItem) => {
-		petal(x, y, size * 2, size * 0.5, angle, "feather", front ? 0.3 : 0.08, keep);
+		petal(x, y, size * 2, size * 0.5, angle, "feather", front ? 0.5 : 0.32, keep);
 		limb(
 			x,
 			y,
@@ -74,7 +73,20 @@ export function drawChristkind(): HTMLCanvasElement {
 			keep,
 		);
 	};
-	const things = swirl(78, 76, 62, 42, -0.15, 8);
+	const things: ISwirlItem[] = Array.from({ length: 16 }, (_, index) => {
+		// Off one wing or the other, falling further the longer they've been falling.
+		const side = index % 2 === 0 ? -1 : 1;
+		const fall = hash(index, 91);
+
+		return {
+			x: 78 + side * (26 + hash(index, 92) * 40) + Math.sin(fall * 9) * 6,
+			y: 52 + fall * 100,
+			size: 6 + hash(index, 93) * 4,
+			angle: Math.PI / 2 + Math.sin(fall * 7 + index) * 0.9,
+			front: index % 4 === 1,
+			index,
+		};
+	});
 
 	// --- The figure, back to front. ---
 

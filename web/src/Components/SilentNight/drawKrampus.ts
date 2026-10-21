@@ -16,7 +16,6 @@ import {
 	shade,
 	type ITexture,
 	paintSwirl,
-	swirl,
 	type ISwirlItem,
 	type IPut,
 } from "Components/SilentNight/portraitKit";
@@ -63,7 +62,7 @@ const firelight = (_x: number, y: number) => 0.12 * clamp((y - 70) / 80);
 export function drawKrampus(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, fill, light } = figure(RAMPS, RIM);
 
-	// Swirling round him: a chain, link after link, sweeping round him.
+	// A chain coiling up round him like a serpent, link after link, out of the dark below to over his shoulder.
 	const drawThing = (keep: IPut, { x, y, size, angle, front, index }: ISwirlItem) => {
 		if (index % 2 === 0) {
 			// A link face on: a ring of iron.
@@ -86,7 +85,18 @@ export function drawKrampus(): HTMLCanvasElement {
 			);
 		}
 	};
-	const things = swirl(92, 80, 66, 42, -0.15, 4.4, 15);
+	const things: ISwirlItem[] = Array.from({ length: 70 }, (_, index) => {
+		const t = index / 69;
+		const coil = t * Math.PI * 3.2 + 0.6;
+		const reach = 44 + 14 * t;
+		const x = 92 + Math.cos(coil) * reach * 1.1;
+		const y = 156 - t * 118 + Math.sin(coil) * 10;
+		// Its direction, along the coil.
+		const dx = -Math.sin(coil) * reach * 1.1 * Math.PI * 3.2;
+		const dy = -118 + Math.cos(coil) * 10 * Math.PI * 3.2;
+
+		return { x, y, size: 3.4 + t * 1.6, angle: Math.atan2(dy, dx), front: Math.sin(coil) > 0, index };
+	});
 
 	// --- The figure, back to front. ---
 

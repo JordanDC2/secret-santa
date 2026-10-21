@@ -17,7 +17,6 @@ import {
 	shade,
 	type ITexture,
 	paintSwirl,
-	swirl,
 	type ISwirlItem,
 	type IPut,
 } from "Components/SilentNight/portraitKit";
@@ -53,7 +52,7 @@ const chill = (x: number, y: number) => 0.14 * clamp(1 - Math.hypot(x - STAR.x, 
 export function drawMoroz(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, fill, light } = figure(RAMPS, RIM);
 
-	// Swirling round him: snowflakes, six-armed, the bigger ones branched.
+	// A blizzard whirling out from the star of ice on his staff: snowflakes, six-armed, the bigger ones branched, larger as they fly out.
 	const drawThing = (keep: IPut, { x, y, size, angle, front }: ISwirlItem) => {
 		const arm = size * 1.1;
 		const bias = front ? 0.1 : -0.35;
@@ -97,7 +96,19 @@ export function drawMoroz(): HTMLCanvasElement {
 			}
 		}
 	};
-	const things = swirl(82, 76, 62, 42, -0.12, 6);
+	const things: ISwirlItem[] = Array.from({ length: 26 }, (_, index) => {
+		const turn = index * 0.62 + 0.3;
+		const reach = 9 + index * 3.6;
+
+		return {
+			x: STAR.x + Math.cos(turn) * reach * 1.25,
+			y: STAR.y + 4 + Math.sin(turn) * reach * 0.75,
+			size: 2.4 + index * 0.17,
+			angle: turn,
+			front: index % 5 === 3 && Math.sin(turn) > 0,
+			index,
+		};
+	});
 
 	// --- The figure, back to front. ---
 

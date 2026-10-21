@@ -17,7 +17,6 @@ import {
 	shade,
 	type ITexture,
 	paintSwirl,
-	swirl,
 	type ISwirlItem,
 	type IPut,
 } from "Components/SilentNight/portraitKit";
@@ -55,7 +54,7 @@ const backAt = (x: number) => 132 - 34 * Math.sqrt(Math.max(0, 1 - ((x - 58) / 5
 export function drawYuleGoat(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, filled, light } = figure(RAMPS, RIM);
 
-	// Swirling round him: loose straw, carried up and round on the heat.
+	// Loose straw carried up off the fire on the heat, turning as it rises.
 	const drawThing = (keep: IPut, { x, y, size, angle, front }: ISwirlItem) => {
 		const along = { x: Math.cos(angle), y: Math.sin(angle) };
 		limb(
@@ -83,7 +82,18 @@ export function drawYuleGoat(): HTMLCanvasElement {
 			keep,
 		);
 	};
-	const things = swirl(96, 80, 68, 42, -0.12, 8);
+	const things: ISwirlItem[] = Array.from({ length: 18 }, (_, index) => {
+		const t = index / 17;
+
+		return {
+			x: 40 + Math.sin(t * 9 + 0.5) * (8 + t * 30) + t * 10,
+			y: 100 - t * 96,
+			size: 8 * (1 - 0.45 * t),
+			angle: index * 1.1,
+			front: false,
+			index,
+		};
+	});
 
 	/** A red ribbon tied round a bundle: a band across the line from (x1, y1) to (x2, y2), at `t` along it, `half` wide. */
 	const band = (x1: number, y1: number, x2: number, y2: number, t: number, half: number) => {

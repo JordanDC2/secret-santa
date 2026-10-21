@@ -16,7 +16,6 @@ import {
 	shade,
 	type ITexture,
 	paintSwirl,
-	swirl,
 	type ISwirlItem,
 	type IPut,
 } from "Components/SilentNight/portraitKit";
@@ -136,7 +135,7 @@ const EYE = skullPoint(0.24, -4);
 export function drawMariLwyd(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, fill, light } = figure(RAMPS, RIM);
 
-	// Swirling round her: ribbons torn loose, fluttering along the swirl.
+	// Ribbons torn loose and streaming away on the wind, the way her own blow.
 	const drawThing = (keep: IPut, { x, y, size, angle, front, index }: ISwirlItem) => {
 		const material = ["red", "green", "blue", "gold"][index % 4];
 		const along = { x: Math.cos(angle), y: Math.sin(angle) };
@@ -151,7 +150,20 @@ export function drawMariLwyd(): HTMLCanvasElement {
 			limb(a.x, a.y, b.x, b.y, 0.8, 0.8, material, front ? 0.08 : -0.18, null, keep);
 		}
 	};
-	const things = swirl(96, 70, 64, 40, -0.15, 8);
+	const things: ISwirlItem[] = Array.from({ length: 12 }, (_, index) => {
+		// Three gusts, one above another, carrying them off to the left.
+		const gust = index % 3;
+		const t = Math.floor(index / 3) / 3;
+
+		return {
+			x: 70 - t * 64 - gust * 6,
+			y: 22 + gust * 30 + t * 18 + Math.sin(t * 5 + gust) * 7,
+			size: 8 - t * 2,
+			angle: Math.PI + Math.sin(t * 4 + gust) * 0.25,
+			front: false,
+			index,
+		};
+	});
 
 	// --- The figure, back to front. ---
 

@@ -16,7 +16,6 @@ import {
 	shade,
 	type ITexture,
 	paintSwirl,
-	swirl,
 	type ISwirlItem,
 	type IPut,
 } from "Components/SilentNight/portraitKit";
@@ -62,21 +61,10 @@ const candlelight = (x: number, y: number) => 0.26 * clamp(1 - Math.hypot(x - CA
 export function drawYuleLads(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, fill, light } = figure(RAMPS, RIM);
 
-	// Swirling round them: spoons they've licked clean, glinting, carried along the swirl.
-	const drawThing = (keep: IPut, { x, y, size, angle, front }: ISwirlItem) => {
+	// Spoons, licked clean and glinting, juggled in arcs over his head, tumbling end over end.
+	const drawThing = (keep: IPut, { x, y, size, angle }: ISwirlItem) => {
 		const along = { x: Math.cos(angle), y: Math.sin(angle) };
-		limb(
-			x,
-			y,
-			x - along.x * size * 1.4,
-			y - along.y * size * 1.4,
-			0.55,
-			0.45,
-			"steel",
-			front ? 0.08 : -0.18,
-			null,
-			keep,
-		);
+		limb(x, y, x - along.x * size * 1.4, y - along.y * size * 1.4, 0.55, 0.45, "steel", 0.3, null, keep);
 		ellipse(
 			x + along.x * size * 0.3,
 			y + along.y * size * 0.3,
@@ -84,12 +72,27 @@ export function drawYuleLads(): HTMLCanvasElement {
 			size * 0.3,
 			angle,
 			"steel",
-			(front ? 0.08 : -0.18) + 0.1,
+			0.42,
 			null,
 			keep,
 		);
 	};
-	const things = swirl(86, 74, 60, 40, -0.15, 7);
+	const things: ISwirlItem[] = Array.from({ length: 13 }, (_, index) => {
+		// Two arcs, one inside the other, from hand to hand.
+		const inner = index >= 8;
+		const t = inner ? (index - 8) / 4 : index / 7;
+		const width = inner ? 56 : 92;
+		const rise = inner ? 26 : 40;
+
+		return {
+			x: 86 - width / 2 + width * t,
+			y: 52 - rise * Math.sin(Math.PI * t),
+			size: inner ? 7 : 8.5,
+			angle: index * 1.3,
+			front: false,
+			index,
+		};
+	});
 
 	// --- His brothers, in the dark behind him: hunched shapes, their hoods drooping. ---
 	for (const [cx, cy, size, droop] of [

@@ -17,7 +17,6 @@ import {
 	strands,
 	type ITexture,
 	paintSwirl,
-	swirl,
 	type ISwirlItem,
 	type IPut,
 } from "Components/SilentNight/portraitKit";
@@ -79,7 +78,7 @@ const roofline = (x: number) => {
 export function drawBefana(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, fill, light } = figure(RAMPS, RIM);
 
-	// Swirling round her: wrapped sweets, carried along the swirl.
+	// Wrapped sweets flung from her side, arcing up over her and scattering as they go.
 	const drawThing = (keep: IPut, { x, y, size, angle, front, index }: ISwirlItem) => {
 		const material = ["candyRed", "candyGreen", "candyGold", "candyTeal"][index % 4];
 		const along = { x: Math.cos(angle), y: Math.sin(angle) };
@@ -98,7 +97,19 @@ export function drawBefana(): HTMLCanvasElement {
 			);
 		}
 	};
-	const things = swirl(80, 74, 58, 40, -0.15, 7);
+	const things: ISwirlItem[] = Array.from({ length: 16 }, (_, index) => {
+		const t = index / 15;
+		const scatter = 6 + t * 26;
+
+		return {
+			x: 118 - 104 * t + (hash(index, 94) - 0.5) * scatter,
+			y: 92 - 64 * Math.sin(Math.PI * Math.min(1, t * 1.1)) + 30 * t + (hash(index, 95) - 0.5) * scatter,
+			size: 7 - t * 2,
+			angle: index * 1.7,
+			front: index < 2,
+			index,
+		};
+	});
 
 	// --- The figure, back to front. ---
 
