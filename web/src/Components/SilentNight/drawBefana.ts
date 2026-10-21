@@ -1,7 +1,7 @@
 /**
  * La Befana of Italy, as her portrait (portraitKit.ts): an old woman with a kind, crinkled smile
  * and a long nose, in a wine-red headscarf knotted under her chin and a black shawl patched in
- * every colour, her broom over her shoulder. Moonlight from behind her, over the rooftops and
+ * every colour, her broom standing at her side. Moonlight from behind her, over the rooftops and
  * chimneys of a sleeping town, a teal night, and wrapped sweets tumbling round her.
  */
 
@@ -60,7 +60,7 @@ const MOON = { x: 196, y: 32 };
 /** Wool: a coarse weave. */
 const weave: ITexture = (x, y) => 0.05 * Math.sin(x * 1.4 + (y % 2) * 1.6) + 0.06 * (hash(x, y) - 0.5);
 /** Twigs: the broom's bristles, streaked. */
-const twigs: ITexture = (x, y) => 0.12 * Math.sin((x - y) * 0.9) + 0.06 * (hash(x, y) - 0.5);
+const twigs: ITexture = (x, y) => 0.12 * Math.sin(x * 1.9 - y * 0.12) + 0.06 * (hash(x, y) - 0.5);
 
 // Each house a pitched roof (some taller), with a chimney on its slope.
 const roofline = (x: number) => {
@@ -76,16 +76,6 @@ export function drawBefana(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, fill, light } = figure(RAMPS, RIM);
 
 	// --- The figure, back to front. ---
-
-	// Her broom's head, over her shoulder (its handle, in her hand, comes later, in front of her).
-	// The bristles: a bundle of twigs, bound tight at the handle and spreading to the end.
-	limb(120, 28, 131, 6, 2.4, 7, "straw", 0.06, twigs);
-
-	for (const offset of [-5, -2, 2, 5]) {
-		limb(128 + offset * 0.4, 12, 133 + offset, 2, 1, 0.6, "straw", 0.1, twigs);
-	}
-
-	limb(118, 31, 122, 25, 2.8, 2.8, "patchRed", 0.2);
 
 	// Her headscarf behind her head, hanging to her shoulders.
 	ellipse(78, 50, 15.5, 17, 0, "scarf", -0.06, weave);
@@ -139,7 +129,7 @@ export function drawBefana(): HTMLCanvasElement {
 	ellipse(88.5, 47, 2.2, 4, -0.2, "grey", 0.02, strands);
 
 	// Her face: long and lined.
-	ellipse(78, 50, 10.5, 13, 0, "skin", 0.14, (_x, y) => -0.1 * clamp((y - 61.5) / 2));
+	ellipse(78, 50, 10.5, 13, 0, "skin", 0.14, (_x, y) => -0.1 * clamp((y - 62.5) / 2));
 
 	// Her headscarf over her head, its edge low on her brow, knotted under her chin.
 	for (let y = 32; y <= 52; y++) {
@@ -185,63 +175,77 @@ export function drawBefana(): HTMLCanvasElement {
 		}
 	}
 
-	// Her long nose, hooked at the tip: lit down its near side, shadowed down the far.
+	// Her long nose, hooked a little at the tip: shadowed down its far side, as La Flor's is.
 	for (let y = 49; y <= 55; y++) {
-		put(78, y, "skin", 0.68);
-		put(80, y, "skin", 0.14);
+		put(80, y, "skin", 0.18);
 	}
 
-	ellipse(78.6, 56, 2.4, 1.9, 0, "skin", 0.28);
-	put(78, 55, "skin", 0.75);
-	put(76, 57, "skin", 0.12);
-	put(80, 57, "skin", 0.1);
-	put(78, 58, "skin", 0.08);
+	put(79, 56, "skin", 0.3);
+	put(78, 56, "skin", 0.62);
+	put(77, 57, "skin", 0.22);
+	put(79, 57, "skin", 0.2);
+	put(78, 58, "skin", 0.28);
 
-	// Rosy cheeks, the deep lines of her smile, and her thin lips smiling.
-	for (const [x, y] of [
-		[70, 54],
-		[71, 54],
-		[85, 54],
-		[86, 54],
-	]) {
-		put(x, y, "lip", 0.75);
-	}
-
-	put(73, 56, "skin", 0.14);
-	put(73, 57, "skin", 0.14);
-	put(74, 58, "skin", 0.16);
-	put(84, 56, "skin", 0.14);
-	put(84, 57, "skin", 0.14);
-	put(83, 58, "skin", 0.16);
+	// A little colour in her cheeks, the lines of her smile, and a small, soft smile.
+	put(71, 54, "lip", 0.62);
+	put(85, 54, "lip", 0.62);
+	put(73, 57, "skin", 0.26);
+	put(84, 57, "skin", 0.26);
 
 	for (const [x, y, t] of [
-		[74, 59, 0.1],
-		[83, 59, 0.1],
-		[75, 60, 0.02],
-		[76, 60, 0],
-		[77, 60, 0],
-		[78, 60, 0],
-		[79, 60, 0],
-		[80, 60, 0],
-		[81, 60, 0],
-		[82, 60, 0.02],
-		[77, 61, 0.8],
-		[78, 61, 0.85],
-		[79, 61, 0.8],
-		[80, 61, 0.7],
+		[75, 60, 0.28],
+		[81, 60, 0.28],
+		[77, 60, 0.22],
+		[78, 60, 0.18],
+		[79, 60, 0.22],
+		[76, 61, 0.3],
+		[77, 61, 0.34],
+		[78, 61, 0.38],
+		[79, 61, 0.34],
+		[80, 61, 0.3],
+		[77, 62, 0.58],
+		[78, 62, 0.64],
+		[79, 62, 0.58],
 	]) {
 		put(x, y, "lip", t);
 	}
 
-	// The broom's handle, straight across in front of her up to its head over her shoulder; her
-	// arm in its black sleeve, from her shoulder to her hand round the handle at her chest.
-	limb(52, 132, 120, 28, 1.8, 1.6, "wood", 0.08);
-	limb(92, 72, 97, 90, 5.4, 4.6, "shawl", -0.02, weave);
-	limb(97, 90, 81, 96, 4.6, 3.8, "shawl", 0.04, weave);
-	ellipse(76.5, 95, 4.4, 3.6, 0.3, "skin", 0.06);
-	put(74, 94, "skin", 0.18);
-	put(76, 95, "skin", 0.18);
-	put(78, 95, "skin", 0.18);
+	put(76, 60, "skin", 0.2);
+	put(80, 60, "skin", 0.2);
+
+	// Her broom, standing at her side: the handle up past her shoulder, and its twigs bound with
+	// cord at the bottom, flaring out to ragged ends on the ground.
+	limb(107, 24, 112, 120, 1.8, 1.8, "wood", 0.08);
+	fill(
+		118,
+		156,
+		(y) => {
+			const half = 3 + (y - 118) * 0.42;
+			const middle = 112.3 + (y - 118) * 0.06;
+
+			return [middle - half, middle + half];
+		},
+		"straw",
+		(x, y, left, right) => {
+			// Ragged at the end, each twig its own length.
+			if (y > 148 && hash(x, 7) * 8 < y - 148) {
+				return null;
+			}
+
+			const across = ((x + 0.5 - left) / (right - left)) * 2 - 1;
+
+			return 0.36 - 0.18 * across + 0.18 * Math.sqrt(Math.max(0, 1 - across * across)) + twigs(x, y);
+		},
+	);
+	limb(109.5, 119.5, 115.5, 120.5, 1.2, 1.2, "patchRed", 0.25);
+	limb(109.2, 123, 116, 124, 1, 1, "patchRed", 0.15);
+
+	// Her arm in its black sleeve, from her shoulder down to her hand round the broom's handle.
+	limb(92, 72, 100, 86, 5.4, 4.6, "shawl", -0.02, weave);
+	limb(100, 86, 106, 90, 4.6, 3.8, "shawl", 0.04, weave);
+	ellipse(109.5, 90, 3.6, 3.8, 0, "skin", 0.06);
+	put(108, 89, "skin", 0.18);
+	put(108, 91, "skin", 0.18);
 
 	// --- Light: the moon, behind her high on the right; a fade into the dark below. ---
 	const colours = light({
