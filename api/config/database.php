@@ -43,7 +43,10 @@ return [
             'busy_timeout' => (int) env('DB_BUSY_TIMEOUT', 5000),
             'journal_mode' => null,
             'synchronous' => null,
-            'transaction_mode' => 'DEFERRED',
+            // Transactions take the write lock as they begin. A deferred one that reads and then
+            // writes (as the queue does, taking its next job) can't wait for a lock: SQLite fails it
+            // at once with "database is locked", whatever the busy timeout, rather than risk a deadlock.
+            'transaction_mode' => 'IMMEDIATE',
         ],
 
         'mysql' => [
