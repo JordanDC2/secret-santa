@@ -73,6 +73,23 @@ const bark: ITexture = (x, y) => (hash(Math.floor(x / 2), Math.floor(y / 3)) > 0
 /** Where his claw grips the birch switches. */
 const GRIP = { x: 150, y: 84 };
 
+/**
+ * Where his chain is, `t` from its bottom (0) to its top (1): a wide, tilted coil climbing slowly
+ * at first, so it swings round his side in the clear below his raised arm rather than behind his
+ * claw, and steeply after; `z` is how near us it is.
+ */
+const coilAt = (t: number) => {
+	const coil = t * Math.PI * 3.2 + 0.6;
+	const reach = (44 + 14 * t) * 1.3;
+
+	return {
+		coil,
+		x: 92 + Math.cos(coil) * reach,
+		y: 160 - 120 * t ** 1.8 + Math.sin(coil) * 20,
+		z: Math.sin(coil) * reach,
+	};
+};
+
 /** The fire below brightening what it reaches. */
 const firelight = (_x: number, y: number) => 0.12 * clamp((y - 70) / 80);
 
@@ -80,11 +97,14 @@ export function drawKrampus(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, fill, light } = figure(RAMPS, RIM);
 
 	// A chain coiling up round him like a serpent, link after link, out of the dark below to over his shoulder.
-	const drawThing = (keep: IPut, { x, y, size, angle, front, index }: ISwirlItem) => {
+	const drawThing = (keep: IPut, { x, y, size: full, angle, front, index }: ISwirlItem) => {
+		// Shortened along the chain where it turns away from us, round his sides.
+		const size = full * foreshortened[index];
+
 		if (index % 2 === 0) {
 			// A link face on: a ring of iron.
-			ellipse(x, y, size, size * 0.62, angle, "steel", front ? 0.08 : -0.18, null, keep);
-			ellipse(x, y, Math.max(0.5, size - 1.6), Math.max(0.4, size * 0.62 - 1.4), angle, "mouth", 0, null, keep);
+			ellipse(x, y, size, full * 0.62, angle, "steel", front ? 0.08 : -0.18, null, keep);
+			ellipse(x, y, Math.max(0.5, size - 1.6), Math.max(0.4, full * 0.62 - 1.4), angle, "mouth", 0, null, keep);
 		} else {
 			// A link edge on: a bar of iron through the rings either side.
 			const along = { x: Math.cos(angle), y: Math.sin(angle) };
@@ -102,17 +122,23 @@ export function drawKrampus(): HTMLCanvasElement {
 			);
 		}
 	};
-	const things: ISwirlItem[] = Array.from({ length: 70 }, (_, index) => {
-		const t = index / 69;
-		const coil = t * Math.PI * 3.2 + 0.6;
-		const reach = 44 + 14 * t;
-		const x = 92 + Math.cos(coil) * reach * 1.1;
-		const y = 156 - t * 118 + Math.sin(coil) * 10;
-		// Its direction, along the coil.
-		const dx = -Math.sin(coil) * reach * 1.1 * Math.PI * 3.2;
-		const dy = -118 + Math.cos(coil) * 10 * Math.PI * 3.2;
+	const foreshortened: number[] = [];
+	const things: ISwirlItem[] = Array.from({ length: 76 }, (_, index) => {
+		const t = index / 75;
+		const here = coilAt(t);
+		const ahead = coilAt(t + 0.001);
+		const dx = ahead.x - here.x;
+		const dy = ahead.y - here.y;
+		foreshortened[index] = Math.max(0.35, Math.hypot(dx, dy) / Math.hypot(dx, dy, ahead.z - here.z));
 
-		return { x, y, size: 3.4 + t * 1.6, angle: Math.atan2(dy, dx), front: Math.sin(coil) > 0, index };
+		return {
+			x: here.x,
+			y: here.y,
+			size: 3.4 + t * 1.6,
+			angle: Math.atan2(dy, dx),
+			front: Math.sin(here.coil) > 0,
+			index,
+		};
 	});
 
 	// --- The figure, back to front. ---
