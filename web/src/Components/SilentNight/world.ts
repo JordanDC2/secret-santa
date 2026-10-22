@@ -30,6 +30,8 @@ import {
 } from "Components/SilentNight/types";
 import { burst, landShells, moveAllies, newWeapon, useWeapons } from "Components/SilentNight/weapons";
 
+import { PLAYER_RADIUS } from "Components/SilentNight/constants";
+
 export { NIGHT_SECONDS, VIEW_HEIGHT } from "Components/SilentNight/constants";
 
 const PLAYER_SPEED = 52;
@@ -186,6 +188,9 @@ function movePlayer(world: IWorld, input: IInput, dt: number, events: IEvents) {
 		player.x += move.x * PLAYER_SPEED * numbers.speed * slowed * dt;
 		player.y += move.y * PLAYER_SPEED * numbers.speed * slowed * dt;
 	}
+
+	// Walking into a lit candle knocks it over too.
+	knockCandles(world, player.x, player.y - 4, PLAYER_RADIUS);
 
 	const facingX = input.aim ? input.aim.x : move.x;
 

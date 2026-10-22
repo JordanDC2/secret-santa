@@ -1,8 +1,9 @@
 /**
  * Candles burning half buried in the snow, and burnt stumps: scattered over the ground the same
  * way every night (one spot per cell, from a hash), so nothing needs remembering until a candle's
- * knocked out. Like Vampire Survivors' braziers, a shot or a blast knocks a candle over, and it
- * leaves something behind: cocoa most often, a crystal, or now and then the Christmas star.
+ * knocked out. Like Vampire Survivors' braziers, a shot or a blast knocks a candle over (or the
+ * elf walking into it), and it leaves something behind: cocoa most often, a crystal, or now and
+ * then the Christmas star.
  */
 
 import { hash } from "Components/SilentNight/pixelArt";
@@ -25,6 +26,26 @@ export function propAt(cx: number, cy: number): IProp | null {
 	}
 
 	return roll < 0.24 ? { kind: "stump", x, y, key } : null;
+}
+
+/** The lit candles within `reach` of (x, y), for auto-aim to turn to when there's no enemy in reach. */
+export function litCandlesNear(world: IWorld, x: number, y: number, reach: number): IProp[] {
+	const found: IProp[] = [];
+	const span = Math.ceil(reach / PROP_CELL);
+	const cx = Math.floor(x / PROP_CELL);
+	const cy = Math.floor(y / PROP_CELL);
+
+	for (let ox = -span; ox <= span; ox++) {
+		for (let oy = -span; oy <= span; oy++) {
+			const prop = propAt(cx + ox, cy + oy);
+
+			if (prop?.kind === "candle" && !snuffed(world, prop) && Math.hypot(prop.x - x, prop.y - y) < reach) {
+				found.push(prop);
+			}
+		}
+	}
+
+	return found;
 }
 
 /** Whether a candle's been knocked out this night. */

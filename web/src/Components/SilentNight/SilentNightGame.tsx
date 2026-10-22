@@ -38,6 +38,7 @@ import {
 	type IWorld,
 } from "Components/SilentNight/types";
 import { drawAmmo } from "Components/SilentNight/ammo";
+import { litCandlesNear } from "Components/SilentNight/candles";
 import { gunNumbers, gunOf, isGun } from "Components/SilentNight/guns";
 import { weaponInfo } from "Components/SilentNight/weapons";
 import type { IProgress, IPurchase, IRun } from "Components/SilentNight/hooks";
@@ -348,9 +349,10 @@ export default function SilentNightGame({
 			}
 
 			// Aiming and shooting for the player, if they've asked (settings.ts), at the nearest enemy in
-			// the gun's reach. Auto-aim always aims there (nothing overrides it), or where the elf's heading
-			// with none near, and leaves the firing to the mouse button or, on a touch screen, the fire
-			// button; auto-shoot fires whenever there's an enemy in reach.
+			// the gun's reach, or with none, the nearest lit candle (for what it drops). Auto-aim always
+			// aims there (nothing overrides it), or where the elf's heading with nothing near, and leaves
+			// the firing to the mouse button or, on a touch screen, the fire button; auto-shoot fires
+			// whenever there's something in reach.
 			const { autoAim, autoShoot } = settingsRef.current;
 
 			if (autoAim || autoShoot) {
@@ -366,6 +368,21 @@ export default function SilentNightGame({
 					if (distance < best) {
 						best = distance;
 						nearest = { x: dx / distance, y: dy / distance };
+					}
+				}
+
+				if (!nearest) {
+					best = AUTO_REACH;
+
+					for (const candle of litCandlesNear(world, player.x, player.y, AUTO_REACH)) {
+						const dx = candle.x - player.x;
+						const dy = candle.y - 4 - (player.y - 8);
+						const distance = Math.hypot(dx, dy) || 1;
+
+						if (distance < best) {
+							best = distance;
+							nearest = { x: dx / distance, y: dy / distance };
+						}
 					}
 				}
 
