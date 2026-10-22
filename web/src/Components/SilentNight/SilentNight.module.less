@@ -1325,3 +1325,86 @@
 		box-shadow: 0 0 10px rgba(255, 208, 96, 0.5);
 	}
 }
+
+/* A short screen: a phone held sideways, as low as a Galaxy Z Fold's cover screen (882 × 344).
+   Last in the file, so it beats the rules above: everything over the game tightened to fit
+   without scrolling. */
+@container (max-height: 420px) {
+	.overlay {
+		gap: 6px;
+		padding: 6px 12px;
+	}
+
+	.title {
+		font-size: 22px;
+	}
+
+	.gameButton {
+		padding: 4px 16px;
+		font-size: 16px;
+	}
+
+	.gameButtonSmall {
+		padding: 2px 10px;
+		font-size: 13px;
+	}
+
+	/* The pause menu's build and gear, smaller. */
+	.pauseBuild .gearIcon {
+		width: 24px;
+		height: 24px;
+	}
+
+	.gearSlot {
+		width: 46px;
+		padding: 2px;
+	}
+
+	.gearIcon {
+		width: 26px;
+		height: 26px;
+	}
+
+	.gearSlotName {
+		font-size: 9px;
+	}
+
+	/* The night's end: the weapons two to a row. */
+	.summary {
+		padding-top: 8px;
+	}
+
+	.damage {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 2px 20px;
+		width: min(760px, 100%);
+
+		li {
+			font-size: 12px;
+		}
+	}
+
+	.settingList {
+		gap: 8px;
+		padding: 10px 14px;
+	}
+
+	.settingName {
+		font-size: 16px;
+	}
+
+	/* The meeting: thinner letterbox bars, and its words and cards a little closer. */
+	.meeting::before,
+	.meeting::after {
+		height: 3%;
+	}
+
+	.dialogue {
+		max-height: 94%;
+	}
+
+	.textBox {
+		padding: 10px 10px 4px;
+	}
+}

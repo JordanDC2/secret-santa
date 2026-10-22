@@ -865,19 +865,21 @@ export default function SilentNightGame({
 					<p className={classes.title}>Paused</p>
 					<Carried player={world.player} />
 					<GearSlots gear={world.player.gear} />
-					<GameButton onClick={() => pause(false)}>Carry on</GameButton>
-					<GameButton variant="plain" onClick={() => setShowSettings(true)}>
-						Settings
-					</GameButton>
-					<GameButton
-						variant="quiet"
-						onClick={() => {
-							worldRef.current!.over = true;
-							pause(false);
-						}}
-					>
-						Give up the night
-					</GameButton>
+					<div className={classes.promptButtons}>
+						<GameButton onClick={() => pause(false)}>Carry on</GameButton>
+						<GameButton variant="plain" onClick={() => setShowSettings(true)}>
+							Settings
+						</GameButton>
+						<GameButton
+							variant="quiet"
+							onClick={() => {
+								worldRef.current!.over = true;
+								pause(false);
+							}}
+						>
+							Give up the night
+						</GameButton>
+					</div>
 				</div>
 			)}
 
