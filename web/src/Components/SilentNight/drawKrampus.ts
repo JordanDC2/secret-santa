@@ -129,6 +129,71 @@ const RIBBON = [
 	".............2.....",
 ];
 
+const gauss = (d: number) => Math.exp(-d * d);
+
+/** His face's half-width at each row: broadest at his cheekbones, narrowing to his pointed chin. */
+const faceHalf = (y: number) => (y <= 58 ? 11.5 + (y - 44) * 0.035 : 12 - (y - 58) * 0.42 - Math.max(0, y - 76) * 0.25);
+
+/**
+ * How far his face's features stand out of it at (u, v), across it from its middle (-1 to 1) and
+ * down it (the brow near -0.3, the tip of his nose 0.37, his chin 1), carved like an old Krampus
+ * mask: a heavy brow knotted low over his nose, deep sockets, sharp cheekbones over sunken cheeks,
+ * a long hooked nose wrinkled in a snarl, deep snarl lines down to his mouth, a pointed chin.
+ */
+function relief(u: number, v: number): number {
+	const across = Math.abs(u);
+	// The brow, knotted low over his nose and rising outward.
+	const brow = -0.2 - 0.3 * Math.min(1, across / 0.7);
+	// The snarl lines, from his nostrils down to the corners of his mouth.
+	const along = clamp(((across - 0.14) * 0.34 + (v - 0.4) * 0.26) / (0.34 ** 2 + 0.26 ** 2));
+	const snarl = Math.hypot(across - 0.14 - 0.34 * along, v - 0.4 - 0.26 * along);
+	const wrinkles = [0.02, 0.09, 0.16].reduce((sum, at) => sum + gauss((v - at) / 0.018), 0) * gauss(u / 0.09);
+
+	return (
+		0.55 * gauss((v - brow) / 0.07) * clamp((0.85 - across) / 0.15) -
+		(v < -0.12 && v > -0.6 ? 0.35 * gauss(u / 0.035) : 0) -
+		0.55 * gauss(Math.hypot((across - 0.36) / 0.16, (v - brow - 0.12) / 0.08)) +
+		0.4 * gauss(Math.hypot((across - 0.58) / 0.13, (v - 0.02) / 0.09)) -
+		0.32 * gauss(Math.hypot((across - 0.48) / 0.13, (v - 0.32) / 0.13)) +
+		0.38 * gauss(u / 0.07) * clamp((v + 0.18) / 0.08) * clamp((0.38 - v) / 0.06) +
+		0.45 * gauss(Math.hypot(u / 0.12, (v - 0.37) / 0.07)) +
+		0.15 * gauss(Math.hypot((across - 0.12) / 0.06, (v - 0.38) / 0.05)) -
+		0.3 * gauss(snarl / 0.03) +
+		0.15 * gauss(Math.hypot(u / 0.5, (v - 0.5) / 0.05)) +
+		0.35 * gauss(Math.hypot(u / 0.18, (v - 1.05) / 0.12)) -
+		0.18 * wrinkles
+	);
+}
+
+/** How far his face's features stand out at the pixel position (x, y). */
+const reliefAt = (x: number, y: number) => relief((x - 92) / 12, (y - 60) / 18);
+
+/**
+ * The light on his carved face at (x, y): what stands out catching it and what's sunk in shadow,
+ * the undersides of his features lit by the fire below, his face darker towards its edges and
+ * under his hair, warmer on the fire's side.
+ */
+function carved(x: number, y: number): number {
+	const u = (x + 0.5 - 92) / 12;
+	const v = (y + 0.5 - 60) / 18;
+	const under = (reliefAt(x + 0.5, y - 0.5) - reliefAt(x + 0.5, y + 1.5)) / 2;
+
+	return (
+		0.5 +
+		0.85 * reliefAt(x + 0.5, y + 0.5) +
+		0.6 * under -
+		0.2 * u * u -
+		0.12 * Math.max(0, -v) +
+		0.06 * u +
+		0.035 * (fbm(x * 0.5, y * 0.5) - 0.5) +
+		0.02 * (hash(x, y) - 0.5)
+	);
+}
+
+/** His upper lip, drawn up in a snarl over his fangs, and his lower lip, sagging open: a wide mouth. */
+const upperLip = (x: number) => 69.4 - 1.5 * Math.exp(-(((Math.abs(x - 92) - 3.6) / 1.3) ** 2)) + 0.05 * (x - 92) ** 2;
+const lowerLip = (x: number) => 75.6 - 0.1 * (x - 92) ** 2;
+
 /** The fire below brightening what it reaches. */
 const firelight = (_x: number, y: number) => 0.12 * clamp((y - 70) / 80);
 
@@ -218,79 +283,129 @@ export function drawKrampus(): HTMLCanvasElement {
 			return 0.28 + 0.12 * across + 0.24 * Math.sqrt(Math.max(0, 1 - across * across)) + locks(x, y) + firelight(x, y);
 		},
 	);
-	ellipse(92, 60, 22, 24, 0, "fur", 0.02, shag);
+	// His hair: long black goat hair hanging from his crown like a hood, falling past his face and
+	// down over his shoulders, flaring a little as it falls; ragged tufts round the roots of his horns.
+	ellipse(92, 50, 17, 13, 0, "fur", 0.04, shag);
 
-	// His mane, bristling out round his face in shaggy locks.
-	for (let i = 0; i < 15; i++) {
-		const angle = Math.PI * (0.92 + (i / 14) * 1.16) + (hash(i, 81) - 0.5) * 0.15;
-		const length = 9 + hash(i, 82) * 6;
-		petal(
-			92 + Math.cos(angle) * 18,
-			60 + Math.sin(angle) * 20,
-			length,
-			3.4,
-			angle + (hash(i, 83) - 0.5) * 0.4,
-			"fur",
-			0.06 + hash(i, 84) * 0.06,
-			shag,
-		);
-	}
-
-	// His pointed ears, out to the sides.
-	petal(80, 52, 13, 3.6, Math.PI + 0.35, "face", -0.02);
-	petal(104, 52, 13, 3.6, -0.35, "face", -0.06);
-
-	// His face: long, dark red, a heavy brow over burning eyes.
-	ellipse(92, 58, 12.5, 15, 0, "face", 0, firelight);
-	ellipse(92, 44, 12, 4, 0, "fur", 0.06, shag);
-
-	// The brow, knotted in a scowl: low over his nose, rising outward.
 	for (const side of [-1, 1]) {
-		for (let i = 0; i < 7; i++) {
-			put(92 + side * (1 + i), 54 - Math.round(i * 0.6), "face", 0.06);
-			put(92 + side * (1 + i), 53 - Math.round(i * 0.6), "face", 0.16);
+		for (let j = 0; j < 5; j++) {
+			petal(
+				92 + side * (7 + j * 2.8),
+				40 + j * 3,
+				30 + j * 4 + hash(j, side + 61) * 6,
+				4 + hash(j, side + 62),
+				Math.PI / 2 - side * (0.1 + j * 0.05),
+				"fur",
+				0.03 + hash(j, side + 63) * 0.06,
+			);
 		}
 	}
 
-	// Deep sockets under the brow.
-	for (const side of [-1, 1]) {
-		ellipse(92 + side * 5, 56.5, 4.4, 2.4, -side * 0.25, "face", -0.08);
+	for (const [x, angle, length] of [
+		[84, -Math.PI / 2 - 0.55, 8],
+		[89, -Math.PI / 2 - 0.15, 7],
+		[95, -Math.PI / 2 + 0.2, 8],
+		[100, -Math.PI / 2 + 0.6, 7],
+	]) {
+		petal(x, 41, length, 2.4, angle, "fur", 0.08);
 	}
 
-	// His snout, a ridge down to the nostrils.
-	limb(92, 56, 92, 62, 1.6, 2.6, "face", 0.1, firelight);
-	ellipse(92, 63, 5, 4, 0, "face", 0.12, firelight);
-	put(90, 64, "mouth", 0.2);
-	put(94, 64, "mouth", 0.2);
+	// His ears: a devil's, long and pointed, sweeping out and up from under his hair to a sharp
+	// tip, dark inside.
+	for (const side of [-1, 1]) {
+		const bias = side === -1 ? 0.02 : -0.02;
+		limb(92 + side * 10, 54, 92 + side * 18, 48.5, 4.2, 2.4, "face", bias);
+		limb(92 + side * 18, 48.5, 92 + side * 24.5, 41, 2.4, 0.3, "face", bias + 0.04);
+		limb(92 + side * 11.5, 53.6, 92 + side * 18.6, 49, 2, 1, "face", -0.26);
+	}
 
-	// His mouth gaping: fangs, and his long red tongue hanging out, curling at the tip.
-	ellipse(92, 71, 8, 3.4, 0, "mouth", 0.1);
+	// His face, carved like an old Krampus mask (relief, carved): long and gaunt, a heavy brow
+	// knotted low over his nose, deep sockets, sharp cheekbones over sunken cheeks, a long hooked
+	// nose, deep snarl lines down to his mouth, his chin pointed; lit from below by the fire, dimly
+	// from the front left.
+	fill(
+		44,
+		84,
+		(y) => {
+			const half = faceHalf(y);
+
+			return half > 0 ? [92 - half, 92 + half] : null;
+		},
+		"face",
+		(x, y) => carved(x, y),
+	);
+
+	for (const side of [-1, 1]) {
+		ellipse(92 + side * 1.6, 67.6, 0.9, 0.6, 0, "mouth", 0.1);
+	}
+
+	// His mouth gaping in a snarl, wide, his lip drawn up over long yellowed fangs, his few teeth worn.
+	fill(
+		66,
+		77,
+		(y) => {
+			let left = 999;
+			let right = -999;
+
+			for (let x = 84; x <= 100; x++) {
+				if (y >= upperLip(x + 0.5) && y <= lowerLip(x + 0.5)) {
+					left = Math.min(left, x);
+					right = Math.max(right, x);
+				}
+			}
+
+			return left <= right ? [left, right] : null;
+		},
+		"mouth",
+		(x, y) => (y >= upperLip(x + 0.5) && y <= lowerLip(x + 0.5) ? 0.15 + 0.3 * clamp((y - 70) / 5) : null),
+	);
+
+	for (const side of [-1, 1]) {
+		const fang = 92 + side * 3.6;
+		limb(fang, upperLip(fang) - 0.4, fang - side * 0.6, upperLip(fang) + 5, 1, 0.3, "tooth", 0.22);
+		const low = 92 + side * 4.6;
+		limb(low, lowerLip(low) + 0.4, low - side * 0.3, lowerLip(low) - 3, 0.8, 0.3, "tooth", 0.12);
+	}
 
 	for (const [dx, length] of [
-		[-6, 3],
-		[-3, 2],
-		[3, 2],
-		[6, 3],
+		[-1.6, 1.4],
+		[0.2, 1.8],
+		[1.8, 1.2],
 	]) {
-		for (let i = 0; i < length; i++) {
-			put(92 + dx, 68 + i, "tooth", 0.7 - i * 0.1);
-		}
+		const x = 92 + dx;
+		limb(x, upperLip(x) - 0.2, x, upperLip(x) + length, 0.5, 0.4, "tooth", -0.08 - length * 0.04);
 	}
 
-	for (const dx of [-5, 5]) {
-		put(92 + dx, 74, "tooth", 0.6);
-		put(92 + dx, 73, "tooth", 0.7);
+	// A ragged fringe of hair over his brow, and locks of it falling down over the edges of his face.
+	ellipse(92, 42, 13, 4.6, 0, "fur", 0.06, shag);
+
+	for (const [x, length] of [
+		[81.5, 7],
+		[85, 5],
+		[88.5, 4],
+		[95.5, 4.5],
+		[99, 5.5],
+		[102.5, 7.5],
+	]) {
+		petal(x, 43.5, length, 2.4, Math.PI / 2 + (x - 92) * 0.02, "fur", 0.08);
 	}
 
-	limb(92, 71, 93, 88, 3, 2.4, "tongue", 0.12);
-	limb(93, 88, 97, 98, 2.4, 1.8, "tongue", 0.1);
-	ellipse(98, 99, 2.6, 2, 0.4, "tongue", 0.14);
-	put(92, 75, "tongue", 0.02);
-	put(92, 78, "tongue", 0.02);
-	put(93, 82, "tongue", 0.04);
+	for (const side of [-1, 1]) {
+		petal(92 + side * 11.8, 47, 30, 3.4, Math.PI / 2 - side * 0.06, "fur", side === -1 ? 0.06 : 0.1);
+	}
 
-	// A goatee of black fur under his jaw.
-	petal(92, 72, 16, 5, Math.PI / 2 + 0.05, "fur", 0.04);
+	// His long, pointed goat beard, hanging from his chin.
+	petal(92, 79, 30, 5, Math.PI / 2 + 0.03, "fur", 0.05);
+	petal(89, 77, 22, 2.6, Math.PI / 2 + 0.12, "fur", 0.02);
+	petal(95, 77, 22, 2.6, Math.PI / 2 - 0.08, "fur", 0.07);
+
+	// His long red tongue, out over his lip and down over his beard, a groove down it, curling at the tip.
+	limb(92, 72, 92.6, 80, 2.8, 2.6, "tongue", 0.12);
+	limb(92.6, 80, 94, 90, 2.6, 2.1, "tongue", 0.1);
+	limb(94, 90, 96.6, 96.6, 2.1, 1.7, "tongue", 0.1);
+	ellipse(97.8, 98, 2.4, 1.8, 0.5, "tongue", 0.14);
+	limb(92.4, 73.5, 93.4, 83, 0.45, 0.45, "tongue", -0.14);
+	limb(93.4, 83, 94.4, 90, 0.45, 0.4, "tongue", -0.14);
 
 	// A cowbell hanging at his hip from his belt, on a broad leather strap through its loop, as the
 	// Krampus runs wear them: hammered brass, tall and boxy, a flat face between narrower sides,
