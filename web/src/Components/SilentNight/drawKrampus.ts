@@ -29,6 +29,7 @@ const RAMPS: Record<string, string[]> = {
 	steel: ["#1a1c22", "#34383f", "#5a5f68", "#8a909a", "#c4c8d0"],
 	birch: ["#1a1814", "#3a362e", "#6e6658", "#a8a090", "#d8d2c4"],
 	brass: ["#140c04", "#2e1e0a", "#523812", "#7a561c", "#a27a2c", "#c89c44"],
+	leather: ["#120a06", "#24140c", "#3a2214", "#56341e", "#744a2c"],
 	ribbon: ["#22050b", "#480b15", "#781323", "#ab1f31", "#d73648", "#f2666a"],
 	mouth: ["#040102", "#0c0204", "#1a0406"],
 	claw: ["#060406", "#16100e", "#2e2420", "#4e403a", "#7a685c"],
@@ -45,6 +46,7 @@ const RIM: Record<string, string[]> = {
 	steel: ["#d08050", "#f0b080", "#ffe0c0", "#ffffff"],
 	birch: ["#d0a070", "#f0c890", "#fff0d0", "#ffffff"],
 	brass: ["#d08030", "#f0b050", "#ffd890", "#fff4d0"],
+	leather: ["#a05a30", "#d08048", "#f0b070", "#ffe0b0"],
 };
 
 /** Shaggy fur: matted locks hanging in clumps. */
@@ -290,28 +292,47 @@ export function drawKrampus(): HTMLCanvasElement {
 	// A goatee of black fur under his jaw.
 	petal(92, 72, 16, 5, Math.PI / 2 + 0.05, "fur", 0.04);
 
-	// A cowbell hanging at his hip on a leather strap, as the Krampus runs ring them: its mouth
-	// flared and dark, its clapper hanging out of it.
-	limb(74, 90, 66, 120, 1.5, 1.5, "horn", 0.12);
-	limb(66, 120, 64, 124, 1.5, 1.5, "horn", 0.12);
+	// A cowbell hanging at his hip from his belt, on a broad leather strap through its loop, as the
+	// Krampus runs wear them: hammered brass, tall and boxy, a flat face between narrower sides,
+	// square shoulders, its mouth dark across the bottom and its clapper hanging out of it.
+	limb(67, 106, 64.5, 118, 1.8, 1.8, "leather", 0.1);
+	put(66, 110, "brass", 0.75);
+	put(67, 110, "brass", 0.6);
+	put(66, 111, "brass", 0.55);
+	put(67, 112, "brass", 0.5);
+	ellipse(64, 119, 2.4, 1.8, 0, "brass", 0.2);
+	ellipse(64, 119, 1, 0.7, 0, "mouth", 0);
 	fill(
-		123,
+		121,
 		139,
 		(y) => {
-			const half = 4.5 + (y - 123) * 0.28 + (y > 136 ? (y - 136) * 0.6 : 0);
+			const half = 5.4 + (y - 121) * 0.12 - (y < 123 ? (123 - y) * 0.9 : 0);
 
 			return [64 - half, 64 + half];
 		},
 		"brass",
 		(x, y, left, right) => {
 			const across = ((x + 0.5 - left) / (right - left)) * 2 - 1;
+			const hammered = 0.06 * (hash(Math.floor(x / 2), Math.floor(y / 2)) - 0.5);
 
-			return 0.22 + 0.22 * across + 0.18 * Math.sqrt(Math.max(0, 1 - across * across)) + 0.05 * (hash(x, y) - 0.5);
+			// The face, flat and evenly lit with a sheen down it; dark seams at its edges; the sides
+			// turned away, the right one towards the fire.
+			if (Math.abs(across) < 0.5) {
+				return (Math.abs(across + 0.2) < 0.1 ? 0.7 : 0.52) - 0.1 * ((y - 121) / 18) + hammered;
+			}
+
+			return (Math.abs(across) < 0.64 ? 0.12 : across < 0 ? 0.28 : 0.38) + hammered;
 		},
 	);
-	ellipse(64, 123, 4.6, 1.4, 0, "brass", 0.2);
-	ellipse(64, 139.5, 7, 1.6, 0, "mouth", 0.1);
-	limb(64, 138, 64, 142, 0.6, 0.6, "steel", 0.2);
+	fill(
+		137,
+		139,
+		(y) => [57.6 - (y - 137) * 0.2, 70.4 + (y - 137) * 0.2],
+		"brass",
+		(x) => (x < 64 ? 0.42 : 0.34),
+	);
+	ellipse(64, 140, 6.4, 1.1, 0, "mouth", 0.1);
+	limb(64, 139, 64, 142, 0.6, 0.6, "steel", 0.2);
 	ellipse(64, 143, 1.6, 1.5, 0, "steel", 0.28);
 
 	// His claw raised on the right, gripping a bundle of birch switches tied with red.
