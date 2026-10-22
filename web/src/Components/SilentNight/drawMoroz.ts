@@ -287,6 +287,12 @@ export function drawMoroz(): HTMLCanvasElement {
 	petal(76, 43, 8, 2.4, Math.PI + 0.32, "fur", 0.16);
 	petal(81, 43, 8, 2.4, -0.32, "fur", 0.12);
 
+	// His white hair, falling from under his hat at his temples into his beard.
+	for (const side of [-1, 1]) {
+		petal(78 + side * 11, 35.5, 16, 2.6, Math.PI / 2 - side * 0.1, "fur", side === -1 ? 0.12 : 0.06);
+		petal(78 + side * 9.4, 36.5, 13, 2, Math.PI / 2 - side * 0.06, "fur", side === -1 ? 0.08 : 0.04);
+	}
+
 	// His hat, a boyar's: a rounded crown of blue velvet in panels piped with silver, sitting down in
 	// a thick roll of white fur that wraps round his head over his brow; a silver star on its front.
 	ellipse(78, 27, 13, 11, 0, "coat", 0.04, (x, y) => chill(x, y) + 0.05 * Math.cos((x - 78) * 0.5));
@@ -316,7 +322,7 @@ export function drawMoroz(): HTMLCanvasElement {
 	// The fur: a roll round his head, bowing down a little over his brow, its ends turning away.
 	for (let y = 27; y < 42; y++) {
 		for (let x = 63; x <= 93; x++) {
-			const across = (x + 0.5 - 78) / 14.5;
+			const across = (x + 0.5 - 78) / 13.5;
 			const end = Math.abs(across) - 0.82;
 			const half = end > 0 ? 4 * Math.sqrt(Math.max(0, 1 - (end / 0.18) ** 2)) : 4;
 			const down = (y + 0.5 - (33.4 + 1.4 * (1 - across * across))) / Math.max(half, 0.01);
@@ -336,6 +342,12 @@ export function drawMoroz(): HTMLCanvasElement {
 				);
 			}
 		}
+	}
+
+	// Its shadow across his brow.
+	for (let x = 70; x <= 86; x++) {
+		const across = (x + 0.5 - 78) / 13.5;
+		put(x, Math.ceil(33.4 + 1.4 * (1 - across * across) + 4 - 0.5), "skin", 0.12);
 	}
 
 	// --- Light: the ice star's, cold, above on the right; a fade into the dark below. ---
