@@ -29,8 +29,9 @@ const RAMPS: Record<string, string[]> = {
 	steel: ["#1a1c22", "#34383f", "#5a5f68", "#8a909a", "#c4c8d0"],
 	birch: ["#1a1814", "#3a362e", "#6e6658", "#a8a090", "#d8d2c4"],
 	brass: ["#140c04", "#2e1e0a", "#523812", "#7a561c", "#a27a2c", "#c89c44"],
-	ribbon: ["#22050b", "#480b15", "#781323", "#ab1f31", "#d73648"],
+	ribbon: ["#22050b", "#480b15", "#781323", "#ab1f31", "#d73648", "#f2666a"],
 	mouth: ["#040102", "#0c0204", "#1a0406"],
+	claw: ["#060406", "#16100e", "#2e2420", "#4e403a", "#7a685c"],
 	burning: ["#a01010", "#ff4020", "#ffb040", "#fff0a0"],
 	hell: ["#040102", "#0e0204", "#1e0406", "#320808", "#4a0e08", "#6a180a", "#8a2a0c"],
 };
@@ -44,7 +45,6 @@ const RIM: Record<string, string[]> = {
 	steel: ["#d08050", "#f0b080", "#ffe0c0", "#ffffff"],
 	birch: ["#d0a070", "#f0c890", "#fff0d0", "#ffffff"],
 	brass: ["#d08030", "#f0b050", "#ffd890", "#fff4d0"],
-	ribbon: ["#d04040", "#ff7060", "#ffb090", "#ffe0c0"],
 };
 
 /** Shaggy fur: matted locks hanging in clumps. */
@@ -89,6 +89,43 @@ const coilAt = (t: number) => {
 		z: Math.sin(coil) * reach,
 	};
 };
+
+/** His fist: his skin's shades (1–5, dark to light) and his claws' (a–d). */
+const FIST = [
+	"........c345554.",
+	"...cd44443333353",
+	"..bb.2333334443.",
+	"..a..1111111111.",
+	"..cd444444555553",
+	".bb.23333334443.",
+	".a..11111111111.",
+	"...cd44444555553",
+	"..bb.2333334443.",
+	"..a..1111111111.",
+	"....cd444555553.",
+	"...bb.23334443..",
+	"...a..1111122222",
+	"...........22222",
+];
+
+/** The ribbon round his switches: its shades, 1–5, dark to light. */
+const RIBBON = [
+	"...................",
+	"2233344444.........",
+	"1122233333.........",
+	"........345........",
+	"22333444445........",
+	"11222333332433.....",
+	"...........5443....",
+	"............43.43..",
+	".............43.43.",
+	"..............3..3.",
+	".............22..22",
+	".............23..23",
+	".............23..2.",
+	".............22....",
+	".............2.....",
+];
 
 /** The fire below brightening what it reaches. */
 const firelight = (_x: number, y: number) => 0.12 * clamp((y - 70) / 80);
@@ -279,7 +316,7 @@ export function drawKrampus(): HTMLCanvasElement {
 
 	// His claw raised on the right, gripping a bundle of birch switches tied with red.
 	limb(124, 82, 146, 104, 8, 6.4, "fur", 0.04, (x, y) => shag(x, y) + firelight(x, y));
-	limb(146, 104, 150, 88, 6.4, 5, "fur", 0.08, (x, y) => shag(x, y) + firelight(x, y));
+	limb(146, 104, 154, 90, 6.4, 4.4, "fur", 0.08, (x, y) => shag(x, y) + firelight(x, y));
 
 	// Shaggy locks hanging off his arm.
 	for (const [x, y] of [
@@ -315,14 +352,33 @@ export function drawKrampus(): HTMLCanvasElement {
 		}
 	}
 
-	// Tied with a red ribbon, and his claw round them: knuckles, and long black claws curling over the front.
-	ellipse(GRIP.x, GRIP.y - 3, 4.4, 2.2, 0, "ribbon", 0.12);
-	limb(GRIP.x + 3, GRIP.y - 3, GRIP.x + 9, GRIP.y + 3, 1.2, 0.8, "ribbon", 0.06);
-	ellipse(GRIP.x, GRIP.y + 3, 5.4, 4.6, 0, "face", 0.02, firelight);
-
-	for (const dy of [0, 2.5, 5]) {
-		limb(GRIP.x - 3, GRIP.y + 1 + dy, GRIP.x - 6, GRIP.y + 3 + dy, 1, 0.5, "horn", 0.08);
+	// The butts of the switches, poking out below his fist.
+	for (const dx of [-1.2, 0, 1.2]) {
+		limb(GRIP.x - 1 + dx, 90, GRIP.x - 0.6 + dx * 1.3, 95, 0.8, 0.7, "birch", 0.04, bark);
 	}
+
+	// His fist round them, raised as a torch is, painted pixel by pixel (FIST): the back of his hand
+	// towards the fire, four fingers curled round the bundle one above another, knuckled, each
+	// ending in a black claw hooked down off its tip, and his thumb laid over the top.
+	FIST.forEach((row, y) => {
+		[...row].forEach((letter, x) => {
+			if (letter !== ".") {
+				const claw = "abcd".indexOf(letter);
+				put(GRIP.x - 8 + x, GRIP.y - 4 + y, claw < 0 ? "face" : "claw", claw < 0 ? Number(letter) / 5 : (claw + 1) / 4);
+			}
+		});
+	});
+
+	// The red ribbon binding them, painted pixel by pixel (RIBBON) and lit by hand rather than
+	// rim-lit, which would turn so thin a thing pink: twice round the bundle above his fist,
+	// knotted, its two ends hanging out past his knuckles, twisting to show their darker backs.
+	RIBBON.forEach((row, y) => {
+		[...row].forEach((step, x) => {
+			if (step !== ".") {
+				put(GRIP.x - 5 + x, GRIP.y - 10 + y, "ribbon", Number(step) / 5);
+			}
+		});
+	});
 
 	// --- Light: firelight, from below on the right; a fade into the dark at the very bottom. ---
 	const colours = light({
