@@ -81,6 +81,41 @@ type IArt = {
 	draw: (pen: Pen, step: 0 | 1) => void;
 };
 
+/** Krampus's face: his skin's shades (0–4), his mouth (m), fangs (W, w), tongue (r, R, E), the goatee (f, F) and his eyes' sockets (y). */
+const KRAMPUS_FACE: IPaintKey = {
+	"0": ["impSkin", 0],
+	"1": ["impSkin", 1],
+	"2": ["impSkin", 2],
+	"3": ["impSkin", 3],
+	"4": ["impSkin", 4],
+	m: ["dark", 0],
+	W: ["white", 3],
+	w: ["white", 2],
+	r: ["red", 3],
+	R: ["red", 4],
+	E: ["red", 5],
+	f: ["blackFur", 2],
+	F: ["blackFur", 3],
+	y: ["yellowGlow", 0],
+};
+
+/** His face from his brow (row 9) down to his tongue's tip, from x 15 (KRAMPUS_FACE). */
+const KRAMPUS_FACE_ROWS = [
+	".33.....32.",
+	".0y32023y0.",
+	".10y121y01.",
+	".221232121.",
+	".123040310.",
+	".01WmmmW10.",
+	"..0mmRrm0..",
+	"...01Rr0...",
+	"...fFRrf...",
+	"....fRrf...",
+	"....fRr....",
+	"......Rr...",
+	".......E...",
+];
+
 const ARTS: Record<IEnemyKind, IArt> = {
 	gingerbread: {
 		width: 14,
@@ -530,14 +565,17 @@ const ARTS: Record<IEnemyKind, IArt> = {
 		width: 36,
 		height: 46,
 		feet: { x: 18, y: 45 },
+		// Slanted slits, burning, as in his portrait.
 		eyes: [
+			[17, 10],
 			[18, 11],
 			[22, 11],
+			[23, 10],
 		],
-		// Burning, as in his portrait.
 		eyeColour: "#ffb040",
-		// Candlelit at the edge, but for the thin chain and switches, which it would bleach.
-		rims: { blackFur: RIMS.blackFur, impSkin: RIMS.impSkin, horn: RIMS.horn, red: RIMS.red, gold: RIMS.gold },
+		// Candlelit at the edge of his fur; his horns, face, hands and all he carries are too fine for
+		// it (it would bleach them) and are lit as they're drawn.
+		rims: { blackFur: RIMS.blackFur },
 		draw(p, step) {
 			const stride = step === 0 ? 1.2 : -0.8;
 			// Goat legs, bent back at the hock, and cloven hooves.
@@ -589,14 +627,15 @@ const ARTS: Record<IEnemyKind, IArt> = {
 			p.l(26, 18.5, 30.4, 24, 2.6, 2.2, "blackFur", 0.06);
 			p.l(30.4, 24, 32.4, 17.6, 2.2, 1.8, "blackFur", 0.1);
 
-			for (const [tx, ty] of [
-				[27.8, 5],
-				[30, 1.4],
-				[32.4, 3.4],
-				[34.2, 0.8],
-				[35.4, 5],
+			for (const [tx, ty, bias] of [
+				[29.2, 3.6, -0.1],
+				[30.4, 0.8, 0.04],
+				[32, 2.6, -0.14],
+				[33.2, 0.2, 0.02],
+				[34.6, 2.8, -0.08],
+				[35.4, 1, 0.06],
 			]) {
-				p.l(32.2, 13, tx, ty, 0.5, 0.35, "birch", 0.04);
+				p.l(32.2, 13, tx, ty, 0.45, 0.3, "birch", bias);
 			}
 
 			p.r(30.8, 12, 2.8, 1.6, "red", 0.3);
@@ -604,35 +643,59 @@ const ARTS: Record<IEnemyKind, IArt> = {
 			p.e(32.2, 15.4, 1.8, 1.7, 0, "impSkin", 0.02);
 			p.d(30, 15, "horn", 0.1);
 			p.d(30, 16, "horn", 0.1);
-			// His head: a hood of black fur, his ears, a dark red face, fangs, his long tongue.
-			p.e(19.5, 12, 6.2, 6.4, 0, "blackFur", 0.08);
-			p.l(14.4, 10.6, 12, 9.6, 1, 0.4, "impSkin", -0.04);
-			p.l(25, 10.6, 27.4, 9.6, 1, 0.4, "impSkin", -0.08);
-			p.e(20.2, 12.8, 3.6, 4, 0, "impSkin", -0.04);
-			p.r(17, 10, 7, 1, "impSkin", -0.2);
-			p.e(20.4, 13.4, 1.2, 1, 0, "impSkin", 0.1);
-			p.r(18, 14.6, 5, 1, "dark", 0.1);
-			p.d(18, 15, "white", 0.55);
-			p.d(22, 15, "white", 0.5);
-			p.l(20.4, 15.4, 21.4, 22, 1, 0.6, "red", 0.1);
-			// Great ridged horns, sweeping up and out.
+			// His head, sunk between his shoulders in a mane of black fur bristling out in shaggy locks,
+			// tufts of it between his horns.
+			p.e(20, 12, 7, 7, 0, "blackFur", 0.08);
+
+			for (let i = 0; i < 12; i++) {
+				const angle = -0.45 + (i / 11) * (Math.PI + 0.9);
+				const length = 8 + ((i * 5) % 3) * 0.6;
+				p.l(
+					20 + Math.cos(angle) * 5,
+					12 + Math.sin(angle) * 5.2,
+					20 + Math.cos(angle) * length,
+					12 + Math.sin(angle) * length + 1.4,
+					1.2,
+					0.3,
+					"blackFur",
+					0.02 + (i % 3) * 0.04,
+				);
+			}
+
+			for (const [x, lean, top] of [
+				[18, -1.4, 4.2],
+				[20.6, 0.4, 3.6],
+				[22.4, 1.6, 4.8],
+			]) {
+				p.l(x, 7.4, x + lean, top, 1.3, 0.4, "blackFur", 0.06);
+			}
+
+			// His face, after his portrait's, pixel by pixel: brow ridges knotted low in a scowl over deep
+			// sockets, his eyes burning in them as slanted slits, a snout down to his nostrils, his mouth
+			// gaping with fangs at its corners, his long tongue hanging over the goatee under his jaw.
+			paint(p, KRAMPUS_FACE, KRAMPUS_FACE_ROWS, 15, 9);
+
+			// His pointed ears, out from his mane, catching the light at their tips.
 			for (const side of [-1, 1]) {
-				const path = [
-					[19.5 + side * 3.6, 8, 1.6],
-					[19.5 + side * 6, 5, 1.4],
-					[19.5 + side * 8, 2.4, 1.1],
-					[19.5 + side * 8, 0.4, 0.5],
+				p.d(20 + side * 6, 10, "impSkin", 0.25);
+				p.d(20 + side * 7, 10, "impSkin", 0.5);
+				p.d(20 + side * 8, 9, "impSkin", 0.75);
+			}
+
+			// Great ridged horns, sweeping out from his brow and up.
+			for (const side of [-1, 1]) {
+				const along = (t: number) => [
+					(1 - t) ** 2 * (20 + side * 3.6) + 2 * (1 - t) * t * (20 + side * 8.4) + t * t * (20 + side * 8.2),
+					(1 - t) ** 2 * 7.8 + 2 * (1 - t) * t * 5.6 + t * t * 0.4,
 				];
 
-				for (let i = 0; i < path.length - 1; i++) {
-					const [x1, y1, r1] = path[i];
-					const [x2, y2, r2] = path[i + 1];
-					p.l(x1, y1, x2, y2, r1, r2, "horn", i % 2 === 0 ? 0.04 : 0.14);
+				for (let i = 0; i < 6; i++) {
+					const [x1, y1] = along(i / 6);
+					const [x2, y2] = along((i + 1) / 6);
+					p.l(x1, y1, x2, y2, 1.7 - (i / 6) * 1.25, 1.7 - ((i + 1) / 6) * 1.25, "horn", i % 2 === 0 ? 0.02 : 0.14);
 				}
 			}
 
-			p.d(18, 11, "glow", 0.8);
-			p.d(22, 11, "glow", 0.8);
 			p.weather(0.14, 14);
 		},
 	},
@@ -804,15 +867,15 @@ function painted(key: IPaintKey, rows: string[], rims: IRamps = {}): HTMLCanvasE
 	return pen.sprite.render(RAMPS, rims, OUTLINE, 1);
 }
 
-/** Paints rows of letters ("." is empty) with `pen`, each an exact shade from `key`. */
-function paint(pen: Pen, key: IPaintKey, rows: string[]) {
+/** Paints rows of letters ("." is empty) with `pen`, from (`left`, `top`), each an exact shade from `key`. */
+function paint(pen: Pen, key: IPaintKey, rows: string[], left = 0, top = 0) {
 	rows.forEach((row, y) => {
 		[...row].forEach((letter, x) => {
 			const shade = key[letter];
 
 			if (shade) {
 				const [material, step] = shade;
-				pen.d(x, y, material, step / (RAMPS[material].length - 1));
+				pen.d(left + x, top + y, material, step / (RAMPS[material].length - 1));
 			}
 		});
 	});
