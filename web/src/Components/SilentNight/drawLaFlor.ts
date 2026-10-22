@@ -104,11 +104,13 @@ export function drawLaFlor(): HTMLCanvasElement {
 
 	put(78, 65, "gold", 0.95);
 	// Her face, rounded softly by the light, a shadow under her jaw. On the lit side, the light
-	// ends at a clean curve round the bottom of her cheek, rising toward her nose (falling off
-	// gradually, it dithered into a straight seam across it).
+	// ends at clean curves, round the dome of her forehead and round the bottom of her cheek
+	// rising toward her nose (falling off gradually, it dithered into seams across them).
 	ellipse(78, 44, 12, 15, 0, "skin", 0, (x, y) => {
 		const across = (x + 0.5 - 78) / 12;
-		// How far below that curve, and how near it.
+		// How far outside the round of light on her forehead; how far below the curve on her
+		// cheek, and how near it.
+		const outside = Math.hypot(x + 0.5 - 74, y + 0.5 - 34) - 5.2;
 		const below = y + 0.5 - 51 + 0.08 * (x + 0.5 - 72.5) ** 2;
 		const near = Math.exp(-((below / 2.5) ** 2) - ((x + 0.5 - 74) / 6) ** 4);
 
@@ -116,6 +118,7 @@ export function drawLaFlor(): HTMLCanvasElement {
 			0.06 * Math.sqrt(Math.max(0, 1 - across * across)) -
 			0.03 -
 			0.06 * clamp((y - 55) / 3) -
+			0.055 * Math.sign(outside) * Math.exp(-((outside / 2.5) ** 2)) -
 			0.055 * Math.sign(below) * near
 		);
 	});
