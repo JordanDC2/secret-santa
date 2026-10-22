@@ -69,6 +69,13 @@ const locksFrom =
 		);
 	};
 
+/**
+ * Where the light on her face ends at a clean line, lighter before it and darker past it (`past`
+ * is how far past), fading away from it and from where it's drawn (`aside`, in its own units):
+ * falling off gradually instead, it dithers into straight seams across her face.
+ */
+const edge = (past: number, aside = 0) => -0.055 * Math.sign(past) * Math.exp(-((past / 2.5) ** 2) - aside ** 4);
+
 /** Draws her portrait on a new 256 × 160 canvas. */
 export function drawLaFlor(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, filled, light } = figure(RAMPS, RIM);
@@ -129,16 +136,17 @@ export function drawLaFlor(): HTMLCanvasElement {
 		petal(78, 106, 56, 14, Math.PI / 2 + (i - 3) * 0.21, "red", -0.02);
 	}
 
-	// Bare shoulders and slim arms, then her bodice of deep red bracts, and bract sleeves off her shoulders.
+	// Bare shoulders and slim arms, then her bodice of deep red bracts (dark, so the flowers of her
+	// bouquet stand out against it), and bract sleeves off her shoulders.
 	ellipse(68, 72, 6.5, 4, 0.3, "skin", -0.04);
 	ellipse(88, 72, 6.5, 4, -0.3, "skin", -0.06);
 	// Her upper arms, at her sides from shoulder to elbow (her forearms come in front, later).
 	limb(67, 74, 60, 93, 4.2, 3.4, "skin", -0.04);
 	limb(89, 74, 96, 93, 4.2, 3.4, "skin", -0.06);
-	ellipse(78, 88, 11.5, 17, 0, "red", -0.26);
+	ellipse(78, 88, 11.5, 17, 0, "red", -0.42);
 
 	for (const angle of [-Math.PI / 2 - 0.38, -Math.PI / 2 - 0.13, -Math.PI / 2 + 0.13, -Math.PI / 2 + 0.38]) {
-		petal(78, 106, 32, 6.5, angle, "red", -0.22);
+		petal(78, 106, 32, 6.5, angle, "red", -0.38);
 	}
 
 	petal(69, 73, 14, 5, 2.6, "red", -0.02);
@@ -146,7 +154,7 @@ export function drawLaFlor(): HTMLCanvasElement {
 
 	// Her neck, and her face.
 	// A short, slim neck, in shadow under her chin, and a gold choker with a little poinsettia.
-	ellipse(78, 61, 3.6, 5, 0, "skin", -0.14, (x, y) => (y < 60 ? -0.12 : 0));
+	ellipse(78, 61, 3.6, 5, 0, "skin", -0.14, (x, y) => -0.12 * clamp((61 - y) / 2));
 
 	for (let x = 75; x <= 81; x++) {
 		put(x, 63, "gold", x === 78 ? 0.85 : 0.55);
@@ -162,23 +170,20 @@ export function drawLaFlor(): HTMLCanvasElement {
 	}
 
 	put(78, 65, "gold", 0.95);
-	// Her face, rounded softly by the light, a shadow under her jaw. On the lit side, the light
-	// ends at clean curves, round the dome of her forehead and round the bottom of her cheek
-	// rising toward her nose (falling off gradually, it dithered into seams across them).
+	// Her face, rounded softly by the light, a shadow under her jaw. On the lit side, the light ends
+	// at clean curves: round the dome of her forehead, round the bottom of her cheek rising toward
+	// her nose, along her jaw to the corner of her mouth, and under her chin.
 	ellipse(78, 44, 12, 15, 0, "skin", 0, (x, y) => {
 		const across = (x + 0.5 - 78) / 12;
-		// How far outside the round of light on her forehead; how far below the curve on her
-		// cheek, and how near it.
-		const outside = Math.hypot(x + 0.5 - 73.5, y + 0.5 - 34) - 5.65;
-		const below = y + 0.5 - 51 + 0.08 * (x + 0.5 - 72.5) ** 2;
-		const near = Math.exp(-((below / 2.5) ** 2) - ((x + 0.5 - 74) / 6) ** 4);
 
 		return (
 			0.06 * Math.sqrt(Math.max(0, 1 - across * across)) -
 			0.03 -
-			0.06 * clamp((y - 55) / 3) -
-			0.055 * Math.sign(outside) * Math.exp(-((outside / 2.5) ** 2)) -
-			0.055 * Math.sign(below) * near
+			0.06 * clamp((y - 55) / 3) +
+			edge(Math.hypot(x + 0.5 - 73.5, y + 0.5 - 34) - 5.65) +
+			edge(y + 0.5 - 51 + 0.08 * (x + 0.5 - 72.5) ** 2, (x + 0.5 - 74) / 6) +
+			edge(y + 0.5 - 56 + 0.045 * (x + 0.5 - 75.5) ** 2, (x + 0.5 - 73) / 4.5) +
+			edge(y + 0.5 - 58 + 0.03 * (x + 0.5 - 76) ** 2, (x + 0.5 - 77) / 5)
 		);
 	});
 
