@@ -12,11 +12,12 @@ import {
 	fbm,
 	figure,
 	hash,
+	noise,
 	paintFigure,
 	paintLayer,
 	shade,
-	strands,
 	type IPut,
+	type ITexture,
 } from "Components/SilentNight/portraitKit";
 
 const RAMPS: Record<string, string[]> = {
@@ -39,17 +40,48 @@ const RIM: Record<string, string[]> = {
 	white: ["#f2e6da", "#ffffff", "#ffffff", "#ffffff"],
 };
 
+/**
+ * Hair falling from a point (a crown, a parting) in locks that spread and wave as they fall:
+ * each lock rounded, lit down its middle and dark at its edges, two strands to it, a little
+ * lighter or darker than the next, its strands catching the light in streaks. `perLock` is the
+ * angle round the point that each lock takes.
+ */
+const locksFrom =
+	(fx: number, fy: number, perLock: number): ITexture =>
+	(x, y) => {
+		const dx = x + 0.5 - fx;
+		const dy = y + 0.5 - fy;
+		const far = Math.hypot(dx, dy);
+		// How far across the hair, in locks, waving as it falls.
+		const round = Math.atan2(-dx, dy) / perLock;
+		const across = round + 1.2 * (fbm(far * 0.035, round * 0.15) - 0.5);
+		const lock = Math.floor(across);
+		const into = across - lock;
+		const tube = Math.sin(Math.PI * into) ** 0.6;
+		const sheen = clamp((noise(lock * 1.7, far * 0.05) - 0.42) * 3);
+
+		return (
+			0.36 * (tube - 0.75) -
+			0.05 * Math.cos(4 * Math.PI * into) +
+			0.12 * (hash(lock, 7) - 0.5) +
+			0.26 * tube * tube * sheen +
+			0.02 * (hash(x, y) - 0.5)
+		);
+	};
+
 /** Draws her portrait on a new 256 × 160 canvas. */
 export function drawLaFlor(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, filled, light } = figure(RAMPS, RIM);
 
 	// --- The figure, back to front. ---
 
-	// Her hair behind her, streaming to the left in the wind.
-	ellipse(78, 52, 19, 22, 0, "hair", -0.05, strands);
-	ellipse(62, 74, 13, 24, 0.35, "hair", -0.08, strands);
-	ellipse(52, 100, 10, 22, 0.3, "hair", -0.12, strands);
-	ellipse(44, 124, 7, 18, 0.25, "hair", -0.16, strands);
+	// Her hair behind her, streaming to the left in the wind, its locks fanning out from high
+	// above her head.
+	const streaming = locksFrom(88, -40, 0.073);
+	ellipse(78, 52, 19, 22, 0, "hair", -0.05, streaming);
+	ellipse(62, 74, 13, 24, 0.35, "hair", -0.08, streaming);
+	ellipse(52, 100, 10, 22, 0.3, "hair", -0.12, streaming);
+	ellipse(44, 124, 7, 18, 0.25, "hair", -0.16, streaming);
 
 	// The poinsettia's green leaves, under the bracts of her skirt.
 	for (const [angle, len] of [
@@ -123,24 +155,27 @@ export function drawLaFlor(): HTMLCanvasElement {
 		);
 	});
 
-	// Her hair falling over her right shoulder.
-	ellipse(96, 74, 5.5, 15, -0.18, "hair", -0.02, strands);
-	ellipse(99, 92, 4.5, 11, -0.08, "hair", -0.06, strands);
+	// Her hair falling from her crown over her right shoulder.
+	const overShoulder = locksFrom(84, 20, 0.073);
+	ellipse(96, 74, 5.5, 15, -0.18, "hair", -0.02, overShoulder);
+	ellipse(99, 92, 4.5, 11, -0.08, "hair", -0.06, overShoulder);
 
-	// The fringe, parted, framing her face, and locks down either cheek.
+	// The fringe, falling from her parting to frame her face, and locks down either cheek.
+	const fringe = locksFrom(76, 20, 0.2);
+
 	for (let y = 28; y <= 44; y++) {
 		for (let x = 62; x <= 94; x++) {
 			const dx = (x + 0.5 - 78) / 13;
 			const dy = (y + 0.5 - 44) / 16;
 
 			if (dx * dx + dy * dy <= 1 && y <= 34 + Math.abs(x + 0.5 - 76) * 0.55) {
-				put(x, y, "hair", 0.28 + (x < 76 ? 0.1 : -0.04) + strands(x, y));
+				put(x, y, "hair", 0.28 + (x < 76 ? 0.1 : -0.04) + fringe(x, y));
 			}
 		}
 	}
 
-	ellipse(66.5, 48, 2.6, 11, 0.08, "hair", -0.04, strands);
-	ellipse(89.5, 48, 2.6, 11, -0.08, "hair", -0.1, strands);
+	ellipse(66.5, 48, 2.6, 11, 0.08, "hair", -0.04, locksFrom(70, 10, 0.073));
+	ellipse(89.5, 48, 2.6, 11, -0.08, "hair", -0.1, locksFrom(86, 10, 0.073));
 
 	// Her face: knowing, half-lidded eyes looking out at you; brows level and soft; a shaded
 	// nose; a soft smile.
