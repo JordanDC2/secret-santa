@@ -10,9 +10,9 @@ class RecordRun
 {
     /**
      * A finished night, kept for the leaderboards, and the coal it earned (worked out here, from
-     * config/silent_night.php) banked.
+     * config/silent_night.php, with the coal picked up during it) banked.
      *
-     * @param  array{seconds: int, kills: int, level: int, bargains: int, won: bool, bosses: int}  $run
+     * @param  array{seconds: int, kills: int, level: int, bargains: int, won: bool, bosses: int, coal_found?: int}  $run
      * @return array{coal_earned: int, progress: SilentNightProgress}
      */
     public function __invoke(User $user, array $run): array
@@ -20,7 +20,8 @@ class RecordRun
         $coal = intdiv($run['seconds'], config()->integer('silent_night.coal.seconds_per_coal'))
             + intdiv($run['kills'], config()->integer('silent_night.coal.kills_per_coal'))
             + $run['bosses'] * config()->integer('silent_night.coal.per_boss')
-            + ($run['won'] ? config()->integer('silent_night.coal.for_winning') : 0);
+            + ($run['won'] ? config()->integer('silent_night.coal.for_winning') : 0)
+            + ($run['coal_found'] ?? 0);
 
         $progress = DB::transaction(function () use ($user, $run, $coal) {
             $user->silentNightRuns()->create([

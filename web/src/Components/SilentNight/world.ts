@@ -92,6 +92,7 @@ export function newWorld(
 		patrons: [...FIRST_WAVE, ...secondWave],
 		kills: 0,
 		bosses: 0,
+		coalFound: 0,
 		spawnOwed: 0,
 		nextId: 1,
 		levelUpsOwed: 0,
@@ -138,7 +139,7 @@ export function step(world: IWorld, input: IInput, dt: number, view: { width: nu
 		(effect) =>
 			world.time < effect.until || ((effect.kind === "shell" || effect.kind === "coal") && effect.data[3] !== 1),
 	);
-	movePickups(world, dt, events);
+	movePickups(world, grid, dt, events);
 	visitShrines(world, events);
 	recover(world, dt, events);
 

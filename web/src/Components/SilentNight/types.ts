@@ -267,7 +267,18 @@ export type IEffect = {
 	data: number[];
 };
 
-export type IPickupKind = "crystal" | "bigCrystal" | "cocoa" | "star" | "chest" | "gear";
+export type IPickupKind =
+	| "crystal"
+	| "bigCrystal"
+	| "cocoa"
+	| "star"
+	| "chest"
+	| "gear"
+	// What candles leave (candles.ts): coal, by the lump or the sack; a stopped clock; a silver bell.
+	| "coal"
+	| "coalSack"
+	| "clock"
+	| "bell";
 
 export type IPickup = {
 	id: number;
@@ -340,6 +351,8 @@ export type IWorld = {
 	kills: number;
 	/** Bosses beaten this night. */
 	bosses: number;
+	/** Coal picked up this night (banked with what the night earns). */
+	coalFound: number;
 	spawnOwed: number;
 	nextId: number;
 	/** Level-ups owed but not yet chosen (they queue if several come at once). */

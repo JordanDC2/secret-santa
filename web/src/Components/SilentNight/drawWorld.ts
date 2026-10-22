@@ -138,7 +138,13 @@ export function drawWorld(
 		const bob = pickup.kind === "chest" ? 0 : Math.round(Math.sin(time * 4 + pickup.id));
 		context.drawImage(image, sx(pickup.x) - Math.floor(image.width / 2), sy(pickup.y) - image.height + bob);
 
-		if (pickup.kind === "chest" || pickup.kind === "star" || pickup.kind === "gear") {
+		if (
+			pickup.kind === "chest" ||
+			pickup.kind === "star" ||
+			pickup.kind === "gear" ||
+			pickup.kind === "clock" ||
+			pickup.kind === "bell"
+		) {
 			glows.push({ x: pickup.x, y: pickup.y - 4, radius: 16 });
 		}
 

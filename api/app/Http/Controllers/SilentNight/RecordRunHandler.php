@@ -23,6 +23,7 @@ class RecordRunHandler extends Controller
             'bargains' => $request->integer('bargains'),
             'won' => $request->boolean('won'),
             'bosses' => $request->integer('bosses'),
+            'coal_found' => $request->integer('coal_found'),
         ]);
 
         return response()->json([

@@ -63,6 +63,18 @@ class SilentNightTest extends TestCase
         $this->assertSame(462, SilentNightProgress::for($user)->coal);
     }
 
+    public function test_coal_picked_up_in_the_night_is_banked_too_but_never_more_than_a_coal_a_second(): void
+    {
+        $user = $this->player();
+
+        // 400 seconds, 900 slain and a boss (62), and 35 picked up off the snow.
+        $this->postJson(route('silent-night.runs'), $this->night(['coal_found' => 35]))->assertJsonPath('coal_earned', 97);
+
+        $this->postJson(route('silent-night.runs'), $this->night(['coal_found' => 401]))->assertJsonValidationErrors('coal_found');
+        $this->postJson(route('silent-night.runs'), $this->night(['coal_found' => -1]))->assertJsonValidationErrors('coal_found');
+        $this->assertSame(97, SilentNightProgress::for($user)->coal);
+    }
+
     public function test_the_coal_cellar_sells_upgrades_a_level_at_a_time_and_unlocks_the_cast(): void
     {
         $user = $this->player();

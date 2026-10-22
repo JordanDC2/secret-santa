@@ -508,6 +508,7 @@ export default function SilentNightGame({
 					bargains: player.bargains.length,
 					won: world.won,
 					bosses: world.bosses,
+					coal_found: world.coalFound,
 				});
 
 				return;

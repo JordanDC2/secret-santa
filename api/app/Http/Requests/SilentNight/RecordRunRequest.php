@@ -14,7 +14,8 @@ class RecordRunRequest extends FormRequest
     /**
      * A night lasts twenty minutes to dawn, has four bosses, and Krampus offers five bargains in
      * all (web/src/Components/SilentNight: constants.ts, timeline.ts and bargains.ts). Kills and
-     * levels are only kept within what any night could reach.
+     * levels are only kept within what any night could reach, and the coal picked up off the snow
+     * (candles.ts) to no more than a coal a second survived.
      *
      * @return array<string, mixed>
      */
@@ -27,6 +28,7 @@ class RecordRunRequest extends FormRequest
             'bargains' => ['required', 'integer', 'min:0', 'max:5'],
             'won' => ['required', 'boolean'],
             'bosses' => ['required', 'integer', 'min:0', 'max:4'],
+            'coal_found' => ['sometimes', 'integer', 'min:0', 'lte:seconds'],
         ];
     }
 }

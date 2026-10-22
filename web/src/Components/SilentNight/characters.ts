@@ -543,6 +543,10 @@ export type ICharacterSprites = {
 	cocoa: HTMLCanvasElement;
 	star: HTMLCanvasElement;
 	chest: HTMLCanvasElement;
+	coal: HTMLCanvasElement;
+	coalSack: HTMLCanvasElement;
+	clock: HTMLCanvasElement;
+	bell: HTMLCanvasElement;
 	/** Gear, lying in the snow: a parcel in brown paper, tied with string. */
 	gear: HTMLCanvasElement;
 	shrine: HTMLCanvasElement;
@@ -708,6 +712,38 @@ export function makeCharacters(): ICharacterSprites {
 				const angle = -Math.PI / 2 + (i / 5) * Math.PI * 2;
 				p.l(4.5, 4.5, 4.5 + Math.cos(angle) * 4.2, 4.5 + Math.sin(angle) * 4.2, 1.6, 0.3, "gold", 0.35);
 			}
+		}),
+		// A lump of coal, faceted, catching the light on its top edges.
+		coal: small(8, 7, (p) => {
+			p.e(4, 4, 3.2, 2.5, 0.3, "coal", 0.6);
+			p.d(2, 3, "steel", 0.55);
+			p.d(3, 2, "steel", 0.7);
+			p.d(4, 2, "steel", 0.45);
+			p.d(5, 5, "coal", 0.2);
+		}),
+		// A burlap sack of coal, tied at the neck with string, lumps showing at the top.
+		coalSack: small(9, 11, (p) => {
+			p.e(4.5, 7, 3.8, 3.6, 0, "cookie", 0.35);
+			p.r(3.4, 3.2, 2.2, 1.2, "birch", 0.6);
+			p.e(4.5, 2.2, 2.4, 1.4, 0, "coal", 0.6);
+			p.d(3, 2, "steel", 0.6);
+			p.d(5, 9, "cookie", 0.15);
+		}),
+		// A stopped pocket watch: a gold case, a pale face, its hands at midnight.
+		clock: small(9, 10, (p) => {
+			p.r(4, 0, 1, 1.4, "gold", 0.7);
+			p.e(4.5, 5.5, 4, 4, 0, "gold", 0.35);
+			p.e(4.5, 5.5, 3, 3, 0, "white", 0.55);
+			p.l(4.5, 5.5, 4.5, 3, 0.4, 0.3, "dark", 0.2);
+			p.d(4, 5, "dark", 0.15);
+		}),
+		// A silver bell, its clapper showing.
+		bell: small(9, 9, (p) => {
+			p.r(4, 0, 1, 1.2, "steel", 0.6);
+			p.l(4.5, 1.5, 4.5, 6, 1.6, 3.8, "steel", 0.45);
+			p.r(0.8, 6, 7.4, 1.2, "steel", 0.7);
+			p.d(4, 8, "steel", 0.3);
+			p.d(3, 3, "white", 0.9);
 		}),
 		chest: small(12, 11, (p) => {
 			p.r(1, 3, 10, 8, "red", 0.42);

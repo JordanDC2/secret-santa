@@ -2,12 +2,11 @@
  * Candles burning half buried in the snow, and burnt stumps: scattered over the ground the same
  * way every night (one spot per cell, from a hash), so nothing needs remembering until a candle's
  * knocked out. Like Vampire Survivors' braziers, a shot or a blast knocks a candle over (or the
- * elf walking into it), and it leaves something behind: cocoa most often, a crystal, or now and
- * then the Christmas star.
+ * elf walking into it), and it leaves something behind (candleDrop): coal most often.
  */
 
 import { hash } from "Components/SilentNight/pixelArt";
-import type { IWorld } from "Components/SilentNight/types";
+import type { IPickupKind, IWorld } from "Components/SilentNight/types";
 
 /** Things are scattered one per cell of this many pixels, at most. */
 export const PROP_CELL = 72;
@@ -53,6 +52,32 @@ export function snuffed(world: IWorld, prop: IProp): boolean {
 	return world.done.has(prop.key);
 }
 
+/**
+ * What a candle leaves, as Vampire Survivors' light sources do: one thing, drawn by weight, most
+ * often a lump of coal (its gold coin), then cocoa (its floor chicken) and a sack of coal (its coin
+ * bag), now and then a crystal, and rarely the Christmas star (its vacuum, from level 12), a
+ * stopped clock (its Orologion, from level 8) or a silver bell (its Rosary, from level 6). Luck
+ * makes everything but the coal likelier, as it does there.
+ */
+const DROPS: Array<{ kind: IPickupKind; weight: number; value: number; fromLevel: number }> = [
+	{ kind: "coal", weight: 50, value: 1, fromLevel: 1 },
+	{ kind: "cocoa", weight: 12, value: 30, fromLevel: 1 },
+	{ kind: "coalSack", weight: 10, value: 10, fromLevel: 1 },
+	{ kind: "bigCrystal", weight: 4, value: 10, fromLevel: 1 },
+	{ kind: "star", weight: 2, value: 0, fromLevel: 12 },
+	{ kind: "clock", weight: 2, value: 0, fromLevel: 8 },
+	{ kind: "bell", weight: 1, value: 0, fromLevel: 6 },
+];
+
+function candleDrop(world: IWorld): { kind: IPickupKind; value: number } {
+	const possible = DROPS.filter((drop) => world.player.level >= drop.fromLevel);
+	const weightOf = (drop: (typeof DROPS)[number]) =>
+		drop.kind === "coal" || drop.kind === "coalSack" ? drop.weight : drop.weight * world.numbers.luck;
+	let roll = Math.random() * possible.reduce((total, drop) => total + weightOf(drop), 0);
+
+	return possible.find((drop) => (roll -= weightOf(drop)) <= 0) ?? possible[0];
+}
+
 /** A shot or blast at (x, y), `radius` across, knocks over any lit candle it reaches. */
 export function knockCandles(world: IWorld, x: number, y: number, radius: number) {
 	const cx = Math.floor(x / PROP_CELL);
@@ -67,14 +92,13 @@ export function knockCandles(world: IWorld, x: number, y: number, radius: number
 			}
 
 			world.done.add(prop.key);
-			const roll = Math.random();
-			const kind = roll < 0.55 ? "cocoa" : roll < 0.93 ? "bigCrystal" : "star";
+			const { kind, value } = candleDrop(world);
 			world.pickups.push({
 				id: world.nextId++,
 				kind,
 				x: prop.x,
 				y: prop.y,
-				value: kind === "cocoa" ? 30 : kind === "bigCrystal" ? 10 : 0,
+				value,
 				pulled: false,
 				at: world.time,
 			});

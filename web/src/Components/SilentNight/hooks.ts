@@ -17,7 +17,16 @@ type ILeaderboardResponse = {
 };
 
 /** A finished night, as the server keeps it. */
-export type IRun = { seconds: number; kills: number; level: number; bargains: number; won: boolean; bosses: number };
+export type IRun = {
+	seconds: number;
+	kills: number;
+	level: number;
+	bargains: number;
+	won: boolean;
+	bosses: number;
+	/** Coal picked up during the night. */
+	coal_found: number;
+};
 
 /** What's kept between nights: coal, the Coal Cellar's levels, the second-wave patrons, cast and guns unlocked, and who was last played. */
 export type IProgress = {

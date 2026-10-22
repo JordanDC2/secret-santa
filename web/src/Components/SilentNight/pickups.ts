@@ -1,11 +1,13 @@
 /**
  * What the elf picks up: crystals of frost (experience), mugs of cocoa (health), the Christmas
- * star (pulls in every crystal there is), and chests and gear from elites and bosses (gear waits
- * for the player to choose whether to wear it). Things within the
+ * star (pulls in every crystal there is), coal by the lump and the sack (banked at the night's
+ * end), a stopped clock (every ordinary enemy near freezes for ten seconds), a silver bell (every
+ * ordinary enemy near is slain), and chests and gear from elites and bosses (gear waits for the
+ * player to choose whether to wear it). Things within the
  * elf's reach (stats.ts) fly to it. Too many crystals lying about merge into big ones.
  */
 
-import { heal } from "Components/SilentNight/combat";
+import { heal, hurtEnemy, type IGrid } from "Components/SilentNight/combat";
 import { experienceFor } from "Components/SilentNight/constants";
 import { openChest } from "Components/SilentNight/levelUp";
 import { rank } from "Components/SilentNight/stats";
@@ -14,7 +16,7 @@ import type { IEvents, IWorld } from "Components/SilentNight/types";
 const PULL_SPEED = 160;
 const MAX_CRYSTALS = 250;
 
-export function movePickups(world: IWorld, dt: number, events: IEvents) {
+export function movePickups(world: IWorld, grid: IGrid, dt: number, events: IEvents) {
 	const { player, numbers } = world;
 	// La Flor and Saint Lucia together: crystals come from anywhere in the light.
 	const reach = rank(player, "bloomOfLight") > 0 ? 60 * numbers.light : numbers.reach;
@@ -42,7 +44,7 @@ export function movePickups(world: IWorld, dt: number, events: IEvents) {
 			world.prompt = { kind: "gear", gear: pickup.gear };
 			events.chest = true;
 		} else {
-			collect(world, pickup.kind, pickup.value, events);
+			collect(world, grid, pickup.kind, pickup.value, events);
 		}
 
 		return false;
@@ -51,7 +53,10 @@ export function movePickups(world: IWorld, dt: number, events: IEvents) {
 	mergeCrystals(world);
 }
 
-function collect(world: IWorld, kind: string, value: number, events: IEvents) {
+/** How far round the elf a stopped clock and a silver bell reach: about as far as can be seen. */
+const AROUND = 220;
+
+function collect(world: IWorld, grid: IGrid, kind: string, value: number, events: IEvents) {
 	const { player } = world;
 	events.pickups += 1;
 
@@ -81,6 +86,52 @@ function collect(world: IWorld, kind: string, value: number, events: IEvents) {
 			break;
 		case "chest":
 			openChest(world, value, events);
+			break;
+		case "coal":
+		case "coalSack":
+			world.coalFound += value;
+			break;
+		case "clock":
+			// Time stands still for every enemy near but the bosses.
+			for (const enemy of world.enemies) {
+				if (!enemy.boss && Math.hypot(enemy.x - player.x, enemy.y - player.y) < AROUND) {
+					enemy.frozenUntil = world.time + 10;
+				}
+			}
+
+			world.effects.push({
+				kind: "frost",
+				x: player.x,
+				y: player.y - 6,
+				at: world.time,
+				until: world.time + 0.6,
+				radius: AROUND,
+				angle: 0,
+				data: [],
+			});
+			events.froze = true;
+			events.chest = true;
+			break;
+		case "bell":
+			// Every ordinary enemy near is slain (elites and bosses only shrug).
+			for (const enemy of world.enemies) {
+				if (!enemy.boss && !enemy.elite && Math.hypot(enemy.x - player.x, enemy.y - player.y) < AROUND) {
+					hurtEnemy(world, grid, enemy, enemy.health * 10 + 1000, null, null, events, 0, true);
+				}
+			}
+
+			world.effects.push({
+				kind: "ring",
+				x: player.x,
+				y: player.y - 6,
+				at: world.time,
+				until: world.time + 0.6,
+				radius: AROUND,
+				angle: 0,
+				data: [],
+			});
+			events.blasts += 1;
+			events.chest = true;
 			break;
 	}
 }
