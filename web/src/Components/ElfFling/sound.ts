@@ -58,9 +58,32 @@ function audio(): AudioContext | null {
 		master = context.createGain();
 		master.gain.value = VOLUME;
 		master.connect(context.destination);
+		document.addEventListener("visibilitychange", hushWhileHidden);
 	}
 
 	return context;
+}
+
+/** Whether the audio was stopped because the page was hidden (so it's started again on coming back). */
+let hushed = false;
+
+/**
+ * Silence while the page is hidden (on a phone, the browser in the background or the screen
+ * off): everything stops where it is, and carries on from there on coming back. Music scheduled
+ * ahead on the audio clock waits too, since the clock stops with it.
+ */
+function hushWhileHidden() {
+	if (!context) {
+		return;
+	}
+
+	if (document.hidden && context.state === "running") {
+		hushed = true;
+		context.suspend().catch(() => {});
+	} else if (!document.hidden && hushed) {
+		hushed = false;
+		context.resume().catch(() => {});
+	}
 }
 
 /** A volume of its own for some music, on the way out (so it can fade); null without audio. */
