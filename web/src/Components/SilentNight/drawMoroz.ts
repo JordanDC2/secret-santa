@@ -287,26 +287,17 @@ export function drawMoroz(): HTMLCanvasElement {
 	petal(76, 43, 8, 2.4, Math.PI + 0.32, "fur", 0.16);
 	petal(81, 43, 8, 2.4, -0.32, "fur", 0.12);
 
-	// His tall hat: blue velvet in panels piped with silver, over a broad band of white fur, a
-	// silver star on its front.
-	ellipse(78, 22, 12.5, 14, 0, "coat", 0.04, (x, y) => (y > 30 ? -1 : chill(x, y) + 0.05 * Math.cos((x - 78) * 0.5)));
+	// His hat, a boyar's: a rounded crown of blue velvet in panels piped with silver, sitting down in
+	// a thick roll of white fur that wraps round his head over his brow; a silver star on its front.
+	ellipse(78, 27, 13, 11, 0, "coat", 0.04, (x, y) => chill(x, y) + 0.05 * Math.cos((x - 78) * 0.5));
 
-	for (const offset of [-8, -3, 3, 8]) {
-		for (let y = 10; y < 30; y++) {
-			put(Math.round(78 + offset * ((y - 8) / 22)), y, "silver", 0.38 + (offset < 0 ? 0.08 : 0));
+	// The panels' piping, curving over the crown to meet at its top.
+	for (const turn of [-1.05, -0.35, 0.35, 1.05]) {
+		for (let y = 16; y < 32; y++) {
+			const width = 13 * Math.sqrt(Math.max(0, 1 - ((Math.min(y + 0.5, 27) - 27) / 11) ** 2));
+			put(Math.round(78 + width * Math.sin(turn)), y, "silver", 0.38 + (turn < 0 ? 0.08 : 0));
 		}
 	}
-	fill(
-		30,
-		37,
-		(y) => [64.5 - (y - 30) * 0.2, 91.5 + (y - 30) * 0.2],
-		"fur",
-		(x, y, left, right) => {
-			const across = ((x + 0.5 - left) / (right - left)) * 2 - 1;
-
-			return 0.36 + 0.16 * -across + 0.22 * Math.sqrt(Math.max(0, 1 - across * across)) + fur(x, y) + chill(x, y);
-		},
-	);
 
 	for (const [dx, dy, t] of [
 		[0, 0, 0.9],
@@ -319,7 +310,32 @@ export function drawMoroz(): HTMLCanvasElement {
 		[0, -3, 0.4],
 		[0, 3, 0.4],
 	]) {
-		put(78 + dx, 21 + dy, "silver", t);
+		put(78 + dx, 23 + dy, "silver", t);
+	}
+
+	// The fur: a roll round his head, bowing down a little over his brow, its ends turning away.
+	for (let y = 27; y < 42; y++) {
+		for (let x = 63; x <= 93; x++) {
+			const across = (x + 0.5 - 78) / 14.5;
+			const end = Math.abs(across) - 0.82;
+			const half = end > 0 ? 4 * Math.sqrt(Math.max(0, 1 - (end / 0.18) ** 2)) : 4;
+			const down = (y + 0.5 - (33.4 + 1.4 * (1 - across * across))) / Math.max(half, 0.01);
+
+			if (Math.abs(across) <= 1 && Math.abs(down) <= 1) {
+				put(
+					x,
+					y,
+					"fur",
+					0.34 -
+						0.2 * down +
+						0.2 * Math.sqrt(1 - down * down) +
+						0.12 * (1 - Math.abs(across)) -
+						0.1 * Math.abs(across) ** 3 +
+						fur(x, y) +
+						chill(x, y),
+				);
+			}
+		}
 	}
 
 	// --- Light: the ice star's, cold, above on the right; a fade into the dark below. ---
@@ -369,7 +385,15 @@ export function drawMoroz(): HTMLCanvasElement {
 	// The ice star's cold light hanging in the air round it.
 	paintGlow(context, STAR.x, STAR.y, 30, RAMPS.starGlow, 0.95);
 	snow(false);
-	paintSwirl(context, things, false, drawThing, RAMPS, RIM);
+	// Those behind him, but none sitting on the crown of his hat like an ornament.
+	paintSwirl(
+		context,
+		things.filter((thing) => thing.x < 60 || thing.x > 98 || thing.y > 22),
+		false,
+		drawThing,
+		RAMPS,
+		RIM,
+	);
 	paintFigure(context, colours);
 	paintSwirl(context, things, true, drawThing, RAMPS, RIM);
 
