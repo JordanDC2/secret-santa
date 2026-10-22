@@ -354,7 +354,7 @@ export function drawBefana(): HTMLCanvasElement {
 		put(x, y, "lip", t);
 	}
 
-	// Her smile, wide and turned up at its corners, a gap in her teeth, her lower lip catching the light.
+	// Her smile, wide and turned up at its corners, one tooth left in it, her lower lip catching the light.
 	for (const [x, y, material, t] of [
 		[74, 56, "lip", 0.22],
 		[82, 56, "lip", 0.22],
@@ -366,10 +366,10 @@ export function drawBefana(): HTMLCanvasElement {
 		[80, 57, "lip", 0.3],
 		[81, 57, "lip", 0.24],
 		[75, 58, "eye", 0.1],
-		[76, 58, "white", 0.8],
+		[76, 58, "eye", 0.06],
 		[77, 58, "white", 0.85],
-		[78, 58, "eye", 0.08],
-		[79, 58, "white", 0.75],
+		[78, 58, "eye", 0.06],
+		[79, 58, "eye", 0.06],
 		[80, 58, "eye", 0.1],
 		[81, 58, "eye", 0.14],
 		[76, 59, "lip", 0.5],
