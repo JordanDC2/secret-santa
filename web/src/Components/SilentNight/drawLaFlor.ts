@@ -110,7 +110,7 @@ export function drawLaFlor(): HTMLCanvasElement {
 		const across = (x + 0.5 - 78) / 12;
 		// How far outside the round of light on her forehead; how far below the curve on her
 		// cheek, and how near it.
-		const outside = Math.hypot(x + 0.5 - 74, y + 0.5 - 34) - 5.2;
+		const outside = Math.hypot(x + 0.5 - 73.5, y + 0.5 - 34) - 5.65;
 		const below = y + 0.5 - 51 + 0.08 * (x + 0.5 - 72.5) ** 2;
 		const near = Math.exp(-((below / 2.5) ** 2) - ((x + 0.5 - 74) / 6) ** 4);
 
