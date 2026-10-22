@@ -173,7 +173,6 @@ export function drawMoroz(): HTMLCanvasElement {
 	}
 
 	for (const [cx, cy, size] of [
-		[64, 98, 4],
 		[95, 112, 4.5],
 		[66, 128, 5],
 		[93, 140, 4],
@@ -195,10 +194,8 @@ export function drawMoroz(): HTMLCanvasElement {
 		put(cx, cy, "silver", 0.9);
 	}
 
-	// Fur down the front and round the hem of his sleeves.
-	limb(79, 70, 79, 160, 3.4, 4.6, "fur", 0.08, fur);
-
-	// His arms: his right (our left) at his side; his left raised to grip the staff.
+	// His arms, fur round the hems of his sleeves: his right (our left) at his side; his left raised
+	// to grip the staff.
 	limb(63, 68, 57, 100, 6, 6.4, "coat", -0.04);
 	limb(57, 100, 56, 104, 7, 7, "fur", 0.02, fur);
 	ellipse(56, 108, 4, 4.2, 0, "skin", -0.04);
