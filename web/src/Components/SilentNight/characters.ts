@@ -613,6 +613,43 @@ function soldier(): HTMLCanvasElement {
 	return p.sprite.render(RAMPS, RIMS, OUTLINE, 1);
 }
 
+/**
+ * What each letter of a painted sprite is (paintRows), as a material and a step of its ramp
+ * (palette.ts): coal's five shades, from black up (0–4); the glossy grey of its broken edges and
+ * glints (a–c, w); burlap from dark to light (D, M, L, H); and twine (t, T).
+ */
+const PAINT_KEY: Record<string, [string, number]> = {
+	"0": ["coal", 0],
+	"1": ["coal", 1],
+	"2": ["coal", 2],
+	"3": ["coal", 3],
+	"4": ["coal", 4],
+	a: ["steel", 1],
+	b: ["steel", 2],
+	c: ["steel", 3],
+	w: ["steel", 4],
+	D: ["cookie", 2],
+	M: ["cookie", 3],
+	L: ["cookie", 4],
+	H: ["cookie", 5],
+	t: ["birch", 1],
+	T: ["birch", 2],
+};
+
+/** A sprite painted pixel by pixel from rows of letters (PAINT_KEY; "." is empty), each an exact shade. */
+function paintRows(pen: Pen, rows: string[]) {
+	rows.forEach((row, y) => {
+		[...row].forEach((letter, x) => {
+			const paint = PAINT_KEY[letter];
+
+			if (paint) {
+				const [material, step] = paint;
+				pen.d(x, y, material, step / (RAMPS[material].length - 1));
+			}
+		});
+	});
+}
+
 function small(width: number, height: number, draw: (pen: Pen) => void, rim = 1): HTMLCanvasElement {
 	const pen = new Pen(width, height, 1);
 	draw(pen);
@@ -713,22 +750,49 @@ export function makeCharacters(): ICharacterSprites {
 				p.l(4.5, 4.5, 4.5 + Math.cos(angle) * 4.2, 4.5 + Math.sin(angle) * 4.2, 1.6, 0.3, "gold", 0.35);
 			}
 		}),
-		// A lump of coal, faceted, catching the light on its top edges.
-		coal: small(8, 7, (p) => {
-			p.e(4, 4, 3.2, 2.5, 0.3, "coal", 0.6);
-			p.d(2, 3, "steel", 0.55);
-			p.d(3, 2, "steel", 0.7);
-			p.d(4, 2, "steel", 0.45);
-			p.d(5, 5, "coal", 0.2);
-		}),
-		// A burlap sack of coal, tied at the neck with string, lumps showing at the top.
-		coalSack: small(9, 11, (p) => {
-			p.e(4.5, 7, 3.8, 3.6, 0, "cookie", 0.35);
-			p.r(3.4, 3.2, 2.2, 1.2, "birch", 0.6);
-			p.e(4.5, 2.2, 2.4, 1.4, 0, "coal", 0.6);
-			p.d(3, 2, "steel", 0.6);
-			p.d(5, 9, "cookie", 0.15);
-		}),
+		// A lump of coal (painted pixel by pixel, PAINT_KEY): a chipped chunk of anthracite, its top
+		// facet catching the light in a curved sheen where it broke, a glint on it, a sharp ridge down
+		// to its darker side, its front and underside falling away into black.
+		coal: small(
+			12,
+			9,
+			(p) =>
+				paintRows(p, [
+					".....bc.....",
+					"....b44c3...",
+					"...b4w44c3..",
+					"..b44c444c2.",
+					".b44c4443c21",
+					"b444c44432c1",
+					".3333cc32221",
+					"..2222222111",
+					"...11.1110..",
+				]),
+			0,
+		),
+		// A burlap sack of coal: the weave lighter on its lit side, darker round to the right, tied
+		// at the neck with twine, coal heaped in its mouth.
+		coalSack: small(
+			12,
+			13,
+			(p) =>
+				paintRows(p, [
+					".....b3.....",
+					"...b4c3.b4..",
+					"..44c32b4c3.",
+					".LL3221122DD",
+					".HLLMMMMMDD.",
+					"...DttTtD...",
+					"..LMLMMMMD..",
+					".LMLMLMMMMD.",
+					"LMLMLMMMMMDD",
+					"LLMLMMMMMMDD",
+					"LMLMMMMMMDDD",
+					".LMMMMMMDDD.",
+					"..DDDDDDDD..",
+				]),
+			0,
+		),
 		// A stopped pocket watch: a gold case, a pale face, its hands at midnight.
 		clock: small(9, 10, (p) => {
 			p.r(4, 0, 1, 1.4, "gold", 0.7);
