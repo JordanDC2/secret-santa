@@ -36,136 +36,225 @@ export const GUN_GRIP = { x: 3, y: 2 };
 export const LIGHT_RADIUS = 72;
 export const CANDLE_LIGHT_RADIUS = 24;
 
-/** The elf: green tunic and gold belt, red pointed hat with a white bobble, pointed ears. */
+/**
+ * The elf: a crumpled felt hat, its tip drooping behind with a bobble, over long pointed ears and
+ * a face in shadow; a belted green tunic with a jagged hem, one arm reaching out to hold the gun;
+ * dark woollen hose and worn leather boots, their toes curled.
+ */
 function elf(step: 0 | 1): Sprite {
 	const sprite = new Sprite(16, 22);
-	// Legs, apart or together as it walks, and its boots.
 	const spread = step === 0 ? 2 : 0.6;
-	sprite.limb(7, 15, 7 - spread, 20, 1.3, 1.2, "green", -0.12);
-	sprite.limb(9, 15, 9 + spread, 20, 1.3, 1.2, "green", -0.06);
-	sprite.ellipse(6.5 - spread, 20.6, 1.9, 1, 0, "dark", 0.5);
-	sprite.ellipse(9.5 + spread, 20.6, 1.9, 1, 0, "dark", 0.5);
-	// Tunic, with its jagged hem, and the belt.
-	sprite.ellipse(8, 12.5, 4, 4.4, 0, "green", 0);
+	// Legs, apart or together as it walks, and its boots.
+	sprite.limb(7, 15, 7 - spread, 19.6, 1.2, 1, "green", -0.24);
+	sprite.limb(9, 15, 9 + spread, 19.6, 1.2, 1, "green", -0.16);
 
-	for (const x of [4.6, 7, 9.4, 11.4]) {
-		sprite.limb(x, 15, x + 0.4, 16.6, 1.2, 0.4, "green", -0.05);
+	for (const [x, bias] of [
+		[6.4 - spread, -0.12],
+		[9.6 + spread, -0.04],
+	]) {
+		sprite.ellipse(x, 20.5, 1.9, 1.1, 0, "cookie", bias);
+		sprite.limb(x + 1.4, 20.4, x + 2.4, 19.2, 0.6, 0.35, "cookie", bias);
 	}
 
-	sprite.rect(4, 13, 8, 1, "gold", 0.55);
-	sprite.put(8, 13, "gold", 0.95);
-	// Head, ears, hat and bobble.
-	sprite.ellipse(8, 6.5, 3.4, 3.2, 0, "skin", 0.02);
-	sprite.limb(4.8, 6, 3, 4.6, 0.9, 0.3, "skin", 0);
-	sprite.limb(11.2, 6, 13, 4.6, 0.9, 0.3, "skin", -0.05);
-	sprite.limb(8, 3.6, 11.5, 0.4, 3.2, 0.5, "red", 0);
-	sprite.rect(4.6, 3.2, 7, 1, "white", 0.5);
-	sprite.ellipse(12.6, 0.9, 1.2, 1.1, 0, "white", 0.2);
-	// Eyes, looking ahead.
+	// Tunic, a fold down it, its jagged hem, and a leather belt with a brass buckle.
+	sprite.ellipse(8, 12.5, 4, 4.4, 0, "green", -0.02);
+	sprite.limb(6.6, 10.4, 6, 15.6, 0.4, 0.4, "green", -0.2);
+
+	for (const x of [4.6, 7, 9.4, 11.4]) {
+		sprite.limb(x, 15, x + 0.4, 16.6, 1.2, 0.4, "green", -0.08);
+	}
+
+	sprite.rect(4, 13, 8, 1, "cookie", 0.12);
+	sprite.put(8, 13, "gold", 0.55);
+	// Its far arm hanging, its near arm reaching out to the gun.
+	sprite.limb(4.8, 10.4, 3.8, 14, 1, 0.8, "green", -0.14);
+	sprite.ellipse(3.8, 14.6, 0.8, 0.8, 0, "skin", -0.06);
+	sprite.limb(10.6, 10.4, 10.8, 12.6, 1, 0.9, "green", 0.02);
+	sprite.ellipse(10.6, 13.2, 0.9, 0.8, 0, "skin", 0.02);
+	// Head in shadow, long ears, a sharp nose.
+	sprite.ellipse(8, 6.6, 3.3, 3.1, 0, "skin", -0.02);
+	sprite.limb(5, 6, 2.2, 3.8, 0.9, 0.25, "skin", -0.04);
+	sprite.limb(11, 6, 13.6, 4, 0.9, 0.25, "skin", -0.08);
+	sprite.put(11, 7, "skin", 0.32);
+	// Hat: worn felt, crumpled, its tip drooping behind, a bobble, a dingy fur brim.
+	sprite.limb(8, 3.6, 9.6, 0.8, 3.2, 1.1, "red", -0.06);
+	sprite.limb(9.6, 0.8, 5.2, 0.6, 1.1, 0.5, "red", -0.12);
+	sprite.ellipse(4.4, 1.2, 1.1, 1, 0, "white", -0.06);
+	sprite.rect(4.6, 3.2, 7, 1.2, "white", 0.18);
+	// Eyes, catching the light.
 	sprite.put(9, 6, "dark", 0.2);
 	sprite.put(11, 6, "dark", 0.2);
+	sprite.weather(0.14);
 
 	return sprite;
 }
 
-/** Santa: red coat trimmed white, black belt with a gold buckle, a big white beard, his hat flopping back. */
+/**
+ * Santa: weathered, his hat flopping back, a great untidy beard down his coat, the coat's fur trim
+ * gone grey, a black belt with a dull brass buckle, a mitten held out to the gun, old black boots.
+ */
 function santa(step: 0 | 1): Sprite {
 	const sprite = new Sprite(16, 22);
 	const spread = step === 0 ? 2 : 0.6;
-	sprite.limb(7, 16, 7 - spread, 20, 1.5, 1.4, "red", -0.14);
-	sprite.limb(9, 16, 9 + spread, 20, 1.5, 1.4, "red", -0.08);
-	sprite.ellipse(6.5 - spread, 20.6, 2, 1.1, 0, "dark", 0.5);
-	sprite.ellipse(9.5 + spread, 20.6, 2, 1.1, 0, "dark", 0.5);
-	// His round red coat, its white hem, and the belt.
-	sprite.ellipse(8, 13, 5, 4.8, 0, "red", 0);
-	sprite.rect(3.4, 16.4, 9.4, 1, "white", 0.55);
+	sprite.limb(7, 16, 7 - spread, 20, 1.5, 1.4, "red", -0.2);
+	sprite.limb(9, 16, 9 + spread, 20, 1.5, 1.4, "red", -0.12);
+	sprite.ellipse(6.5 - spread, 20.6, 2.1, 1.1, 0, "dark", 0.45);
+	sprite.ellipse(9.5 + spread, 20.6, 2.1, 1.1, 0, "dark", 0.5);
+	// His heavy coat, a fold in it, its grey fur hem, and the belt.
+	sprite.ellipse(8, 13, 5, 4.8, 0, "red", -0.02);
+	sprite.limb(5.4, 10.6, 4.8, 16, 0.4, 0.4, "red", -0.2);
+	sprite.rect(3.4, 16.4, 9.4, 1.2, "white", 0.2);
 	sprite.rect(3.2, 13, 9.8, 1, "dark", 0.3);
-	sprite.put(9, 13, "gold", 0.9);
-	// His face, his beard down his front, and his hat.
-	sprite.ellipse(8.5, 6.6, 3.2, 3, 0, "skin", 0.04);
-	sprite.ellipse(8.8, 10.6, 3, 2.4, 0, "white", 0.25);
-	sprite.put(10, 8, "white", 0.75);
-	sprite.put(11, 8, "white", 0.75);
-	sprite.put(12, 8, "white", 0.6);
-	sprite.limb(8, 3.6, 4.2, 2.6, 3, 0.8, "red", 0);
-	sprite.limb(4.2, 2.6, 2.6, 5.4, 0.9, 0.5, "red", -0.05);
-	sprite.ellipse(2.6, 6, 1.2, 1.1, 0, "white", 0.2);
-	sprite.rect(5, 3.4, 7, 1, "white", 0.55);
+	sprite.put(9, 13, "gold", 0.55);
+	// His far arm, and his near one held out, mittened, to the gun.
+	sprite.limb(4, 10.6, 3.2, 14.4, 1.4, 1.1, "red", -0.14);
+	sprite.ellipse(3.2, 15, 1, 0.9, 0, "dark", 0.4);
+	sprite.limb(11, 10.6, 11, 12.6, 1.3, 1.1, "red", 0.02);
+	sprite.ellipse(10.8, 13.2, 1.1, 0.9, 0, "dark", 0.45);
+	// His face, the great beard down his front, his moustache, and his hat.
+	sprite.ellipse(8.5, 6.6, 3.2, 3, 0, "skin", 0);
+	sprite.ellipse(8.8, 10.4, 3.2, 2.6, 0, "white", 0.12);
+	sprite.limb(8.4, 11.8, 8.8, 13.4, 1.6, 0.6, "white", 0.06);
+	sprite.limb(9.6, 8, 12.4, 8.4, 0.8, 0.5, "white", 0.28);
+	sprite.limb(8, 3.6, 4.2, 2.6, 3, 0.8, "red", -0.04);
+	sprite.limb(4.2, 2.6, 2.6, 5.4, 0.9, 0.5, "red", -0.1);
+	sprite.ellipse(2.6, 6, 1.2, 1.1, 0, "white", 0.06);
+	sprite.rect(5, 3.4, 7, 1.2, "white", 0.24);
 	sprite.put(10, 6, "dark", 0.2);
 	sprite.put(12, 6, "dark", 0.2);
-	sprite.put(12, 7, "pink", 0.6);
+	sprite.put(12, 7, "pink", 0.45);
+	sprite.weather(0.12, 3);
 
 	return sprite;
 }
 
-/** Mrs. Claus: a long red dress under a white apron, a green shawl, her grey hair up in a bun, little gold spectacles. */
+/**
+ * Mrs. Claus: her grey hair up in a bun, little spectacles glinting, a green wool shawl, a long red
+ * dress under a work-worn apron, a hand held out to the gun.
+ */
 function mrsClaus(step: 0 | 1): Sprite {
 	const sprite = new Sprite(16, 22);
 	const sway = step === 0 ? -0.5 : 0.5;
-	sprite.ellipse(6.5 + sway, 20.6, 1.6, 1, 0, "dark", 0.5);
+	sprite.ellipse(6.5 + sway, 20.6, 1.6, 1, 0, "dark", 0.45);
 	sprite.ellipse(9.5 - sway, 20.6, 1.6, 1, 0, "dark", 0.5);
-	// Her dress, belling out to her ankles, and her apron.
-	sprite.limb(8, 11, 8 + sway * 0.4, 18.6, 3, 5, "red", 0);
-	sprite.limb(9, 12, 9.4, 18, 1.6, 2.4, "white", 0.3);
-	// Her shawl over her shoulders.
-	sprite.ellipse(8, 10.6, 4.2, 2.2, 0, "green", 0.05);
+	// Her dress, belling out to her ankles, a fold in it, and her apron.
+	sprite.limb(8, 11, 8 + sway * 0.4, 18.6, 3, 5, "red", -0.04);
+	sprite.limb(5.6, 13, 4.4 + sway * 0.4, 19, 0.4, 0.5, "red", -0.22);
+	sprite.limb(9, 12, 9.4, 18, 1.6, 2.4, "white", 0.14);
+	// Her shawl over her shoulders, its fringe, and her hand held out.
+	sprite.ellipse(8, 10.6, 4.4, 2.3, 0, "green", 0);
+
+	for (const x of [4.4, 6.2, 8, 9.8, 11.6]) {
+		sprite.put(Math.round(x), 13, "green", -0.08);
+	}
+
+	sprite.limb(11, 11, 11, 12.8, 0.9, 0.8, "green", 0.04);
+	sprite.ellipse(10.8, 13.2, 0.9, 0.8, 0, "skin", 0.02);
 	// Her face, her spectacles, her hair and its bun.
-	sprite.ellipse(8.4, 6.6, 3.1, 3, 0, "skin", 0.04);
-	sprite.ellipse(7.6, 4.6, 3.4, 2, 0, "porcelain", 0.1);
-	sprite.ellipse(6.4, 2.4, 1.6, 1.5, 0, "porcelain", 0.15);
-	sprite.put(10, 6, "gold", 0.8);
-	sprite.put(12, 6, "gold", 0.8);
-	sprite.put(11, 6, "gold", 0.5);
-	sprite.put(11, 8, "pink", 0.45);
+	sprite.ellipse(8.4, 6.6, 3.1, 3, 0, "skin", 0);
+	sprite.ellipse(7.6, 4.6, 3.4, 2, 0, "porcelain", 0.02);
+	sprite.ellipse(6.4, 2.4, 1.6, 1.5, 0, "porcelain", 0.06);
+	sprite.put(5, 6, "porcelain", -0.04);
+	sprite.put(9, 6, "gold", 0.6);
+	sprite.put(11, 6, "gold", 0.6);
+	sprite.put(10, 6, "gold", 0.3);
+	sprite.put(11, 8, "pink", 0.4);
+	sprite.weather(0.12, 5);
 
 	return sprite;
 }
 
-/** The snowman: three balls of snow, coal eyes, a carrot nose, a red scarf, twig arms, rocking as he goes. */
+/**
+ * The snowman: three lumpy balls of old snow, grimy at the bottom, coal eyes and a crooked coal
+ * mouth, a carrot nose, a frayed red scarf, forked twig arms, rocking as he goes.
+ */
 function snowman(step: 0 | 1): Sprite {
 	const sprite = new Sprite(16, 22);
 	const rock = step === 0 ? -0.5 : 0.5;
-	sprite.ellipse(8 + rock * 0.4, 17.4, 5.2, 3.8, 0, "white", 0.05);
-	sprite.ellipse(8 + rock * 0.8, 11.4, 4, 3.4, 0, "white", 0.1);
-	sprite.ellipse(8 + rock, 6, 3.2, 3, 0, "white", 0.15);
-	// Twig arms.
-	sprite.limb(4.4 + rock, 11, 1.4, 8.6, 0.5, 0.4, "cookie", -0.1);
-	sprite.limb(11.6 + rock, 11, 14.6, 9.4, 0.5, 0.4, "cookie", -0.05);
-	// A red scarf, its end hanging.
-	sprite.rect(4.6 + rock, 8.4, 7, 1.2, "red", 0.5);
-	sprite.limb(6 + rock, 9, 5 + rock, 12, 0.7, 0.6, "red", 0.4);
-	// Coal eyes and buttons, and a carrot nose.
+	sprite.ellipse(8 + rock * 0.4, 17.4, 5.2, 3.8, 0, "white", -0.02);
+	sprite.ellipse(8 + rock * 0.8, 11.4, 4, 3.4, 0, "white", 0.04);
+	sprite.ellipse(8 + rock, 6, 3.2, 3, 0, "white", 0.1);
+	// Grime and slush round his base.
+	sprite.ellipse(8 + rock * 0.4, 20, 4.6, 1.2, 0, "white", -0.22);
+	// Twig arms, forked.
+	sprite.limb(4.4 + rock, 11, 1.4, 8.6, 0.5, 0.4, "cookie", -0.12);
+	sprite.limb(2.4 + rock, 9.4, 2, 7.6, 0.4, 0.3, "cookie", -0.12);
+	sprite.limb(11.6 + rock, 11, 14.6, 9.4, 0.5, 0.4, "cookie", -0.06);
+	sprite.limb(13.4 + rock, 10, 14.2, 8, 0.4, 0.3, "cookie", -0.06);
+	// A red scarf, its frayed end hanging.
+	sprite.rect(4.6 + rock, 8.4, 7, 1.2, "red", 0.3);
+	sprite.limb(6 + rock, 9, 5 + rock, 12, 0.7, 0.6, "red", 0.2);
+	sprite.put(Math.round(4.6 + rock), 12, "red", 0.1);
+	sprite.put(Math.round(5.6 + rock), 12, "red", 0.14);
+	// Coal eyes, a crooked coal mouth and coal buttons, and a carrot nose.
 	sprite.put(Math.round(9 + rock), 5, "coal", 0.1);
 	sprite.put(Math.round(11 + rock), 5, "coal", 0.1);
+
+	for (const [x, y] of [
+		[8.6, 7.2],
+		[9.8, 7.6],
+		[11, 7.4],
+	]) {
+		sprite.put(Math.round(x + rock), Math.round(y), "coal", 0.14);
+	}
+
 	sprite.put(Math.round(8 + rock), 11, "coal", 0.15);
 	sprite.put(Math.round(8 + rock), 13, "coal", 0.15);
-	sprite.limb(10.6 + rock, 6.4, 13.6 + rock, 6.6, 0.6, 0.3, "ember", 0.6);
+	sprite.put(Math.round(8 + rock * 0.4), 16, "coal", 0.15);
+	sprite.limb(10.6 + rock, 6.2, 13.6 + rock, 6.6, 0.6, 0.3, "ember", 0.5);
+	sprite.weather(0.16, 7);
 
 	return sprite;
 }
 
-/** The reindeer: on four legs, brown with a pale belly, antlers, and a nose that glows red. */
+/**
+ * The reindeer: on four slender legs, jointed, the far pair darker; a dark back, a pale shaggy mane
+ * under its neck, a short white tail; antlers branching into tines; dark hooves; a nose that glows red.
+ */
 function reindeer(step: 0 | 1): Sprite {
 	const sprite = new Sprite(20, 22);
 	const stride = step === 0 ? 1.4 : -1.4;
-	// Legs, the far pair darker, trotting.
-	sprite.limb(6, 15, 6 - stride, 20.4, 0.9, 0.7, "cookie", -0.2);
-	sprite.limb(13, 15, 13 + stride, 20.4, 0.9, 0.7, "cookie", -0.2);
-	sprite.limb(7, 15, 7 + stride, 20.4, 0.9, 0.7, "cookie", 0);
-	sprite.limb(14, 15, 14 - stride, 20.4, 0.9, 0.7, "cookie", 0);
-	// The body, the pale belly, a white tail.
-	sprite.ellipse(10, 13.4, 6, 3.4, 0, "cookie", 0.06);
-	sprite.ellipse(10.4, 15.4, 4, 1.2, 0, "icing", 0.1);
-	sprite.ellipse(3.6, 11.6, 1.2, 1, 0, "white", 0.4);
-	// Neck, head and snout; the antlers; the glowing nose.
-	sprite.limb(14, 12, 15.4, 7.6, 1.8, 1.4, "cookie", 0.06);
-	sprite.ellipse(16, 6.6, 2.4, 2, 0, "cookie", 0.12);
-	sprite.limb(16.6, 7.4, 18.4, 7.8, 1.2, 0.9, "cookie", 0.1);
-	sprite.limb(15.4, 4.8, 14, 1.4, 0.5, 0.4, "horn", 0.3);
-	sprite.limb(14.6, 3, 12.4, 2.2, 0.4, 0.3, "horn", 0.25);
-	sprite.limb(16.4, 4.8, 17.6, 1.6, 0.5, 0.4, "horn", 0.35);
-	sprite.put(16, 6, "dark", 0.2);
+
+	// Legs, the far pair darker, trotting, each bending at the hock or knee, with dark hooves.
+	for (const [x, sign, bias] of [
+		[6, -1, -0.22],
+		[13, 1, -0.22],
+		[7, 1, -0.02],
+		[14, -1, -0.02],
+	]) {
+		const foot = x + sign * stride;
+		sprite.limb(x, 14.6, x - 0.6 + sign * stride * 0.4, 17.6, 1, 0.7, "cookie", bias);
+		sprite.limb(x - 0.6 + sign * stride * 0.4, 17.6, foot, 20.2, 0.7, 0.55, "cookie", bias);
+		sprite.put(Math.round(foot - 0.5), 21, "dark", 0.3);
+		sprite.put(Math.round(foot + 0.5), 21, "dark", 0.3);
+	}
+
+	// The body, darker along its back, the pale belly, a short white tail.
+	sprite.ellipse(10, 13.4, 6, 3.4, 0, "cookie", 0.02);
+	sprite.limb(5, 11, 14, 10.6, 1, 1, "cookie", -0.14);
+	sprite.ellipse(10.4, 15.4, 4, 1.2, 0, "icing", 0.04);
+	sprite.ellipse(3.6, 11.6, 1.2, 1, 0, "white", 0.24);
+	// Neck with its shaggy pale mane, the head and snout, the antlers' tines, the glowing nose.
+	sprite.limb(14, 12, 15.4, 7.6, 1.8, 1.4, "cookie", 0.04);
+
+	for (const [x, y] of [
+		[13.6, 13],
+		[14.2, 11.6],
+		[14.6, 10.4],
+	]) {
+		sprite.limb(x, y, x - 0.4, y + 1.4, 0.7, 0.3, "icing", 0.06);
+	}
+
+	sprite.ellipse(16, 6.6, 2.4, 2, 0, "cookie", 0.08);
+	sprite.limb(16.6, 7.4, 18.4, 7.8, 1.2, 0.9, "cookie", 0.06);
+	sprite.limb(15.4, 4.8, 14, 1.4, 0.5, 0.4, "horn", 0.2);
+	sprite.limb(14.6, 3, 12.4, 2.2, 0.4, 0.3, "horn", 0.16);
+	sprite.limb(14.2, 1.8, 13, 0.4, 0.35, 0.25, "horn", 0.14);
+	sprite.limb(16.4, 4.8, 17.6, 1.6, 0.5, 0.4, "horn", 0.24);
+	sprite.limb(17.2, 2.6, 18.8, 1.8, 0.35, 0.25, "horn", 0.2);
+	sprite.put(15, 6, "dark", 0.2);
 	sprite.put(19, 7, "glow", 0.9);
+	sprite.weather(0.12, 11);
 
 	return sprite;
 }

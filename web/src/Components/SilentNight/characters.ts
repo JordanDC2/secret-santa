@@ -49,6 +49,11 @@ export class Pen {
 		}
 	}
 
+	/** Grime and wear (Sprite.weather). */
+	weather(amount: number, seed = 0) {
+		this.sprite.weather(amount, seed);
+	}
+
 	r(x: number, y: number, width: number, height: number, material: string, t: number) {
 		this.sprite.rect(
 			Math.floor(x * this.s),
@@ -229,6 +234,20 @@ const ARTS: Record<IEnemyKind, IArt> = {
 			p.d(9, 6, "icing", 0.4);
 			p.d(8, 4, "glow", 0.7);
 			p.d(10, 4, "glow", 0.7);
+
+			// Cracked across the chest and down a leg, burnt dark at the edges, slavering.
+			for (const [x, y] of [
+				[5, 9],
+				[6, 10],
+				[6, 11],
+				[5, 13],
+				[9, 14],
+			]) {
+				p.d(x, y, "cookie", -0.3);
+			}
+
+			p.d(8, 7, "icing", 0.2);
+			p.weather(0.2, 1);
 		},
 	},
 	windup: {
@@ -273,6 +292,22 @@ const ARTS: Record<IEnemyKind, IArt> = {
 			p.d(9, 7, "red", 0.4);
 			p.l(7.4, 2.8, 7.4, 0.4, 2.3, 2.1, "dark", 0.3);
 			p.r(5, 2, 5, 1, "gold", 0.6);
+
+			// The spring sprung from its broken shoulder, rust on its coat, its chin strap.
+			p.d(4, 7, "steel", 0.45);
+			p.d(3, 8, "steel", 0.3);
+			p.d(4, 9, "steel", 0.45);
+
+			for (const [x, y] of [
+				[8, 9],
+				[6, 12],
+				[9, 13],
+			]) {
+				p.d(x, y, "cookie", 0.05);
+			}
+
+			p.d(9, 6, "gold", 0.35);
+			p.weather(0.16, 2);
 		},
 	},
 	golem: {
@@ -314,6 +349,27 @@ const ARTS: Record<IEnemyKind, IArt> = {
 
 			p.d(11, 6, "ember", 0.9);
 			p.d(13, 6, "ember", 0.9);
+
+			// Glossy where the coal broke, and more embers through its arms.
+			for (const [x, y] of [
+				[9, 3],
+				[3, 8],
+				[16, 8],
+				[12, 15],
+			]) {
+				p.d(x, y, "steel", 0.4);
+			}
+
+			for (const [x, y] of [
+				[3, 12],
+				[2, 14],
+				[17, 12],
+				[18, 13],
+			]) {
+				p.d(x, y, "ember", 0.4);
+			}
+
+			p.weather(0.14, 3);
 		},
 	},
 	caroller: {
@@ -341,9 +397,17 @@ const ARTS: Record<IEnemyKind, IArt> = {
 			p.d(9 + sway, 5.6, "dark", 0.1);
 			p.d(8 + sway, 7.6, "dark", 0);
 			p.d(8 + sway, 8.4, "dark", 0.05);
-			// The songbook, and the pale hands holding it.
-			p.e(10.4 + sway, 11, 2, 1.4, 0.3, "porcelain", 0.15);
+			// The songbook, dark and worn, its pages pale, and the pale hands holding it.
+			p.e(10.4 + sway, 11, 2, 1.4, 0.3, "red", -0.12);
+			p.d(10 + sway, 10.4, "white", 0.2);
+			p.d(11 + sway, 10.8, "white", 0.15);
 			p.d(9 + sway, 11.5, "porcelain", 0.3);
+			p.d(12 + sway, 11.8, "porcelain", 0.2);
+
+			// Its hem in tatters.
+			p.x(3 + Math.round(sway), 18);
+			p.x(9 + Math.round(sway), 19);
+			p.weather(0.16, 4);
 		},
 	},
 	angel: {
@@ -396,6 +460,11 @@ const ARTS: Record<IEnemyKind, IArt> = {
 			// One eye painted shut; the other chipped open, glowing.
 			p.d(7, 5.4, "fur", 0.3);
 			p.d(9, 5, "frost", 0.9);
+
+			// Chips out of a wing and the hem, and grime in the porcelain.
+			p.x(1, 4 + lift * 2);
+			p.x(6, 17);
+			p.weather(0.12, 5);
 		},
 	},
 	imp: {
@@ -417,6 +486,13 @@ const ARTS: Record<IEnemyKind, IArt> = {
 			p.l(8.4, 3, 10, 0.4, 0.8, 0.3, "horn", 0.15);
 			p.d(8, 4, "yellowGlow", 0.8);
 			p.d(9, 6, "white", 0.6);
+
+			// Its tail's barbed tip, its claws and fangs.
+			p.d(0, 4, "impSkin", 0.2);
+			p.d(1, 5, "impSkin", 0.2);
+			p.d(11, 6, "horn", 0.1);
+			p.d(10, 6, "white", 0.5);
+			p.weather(0.16, 6);
 		},
 	},
 	rat: {
@@ -433,6 +509,10 @@ const ARTS: Record<IEnemyKind, IArt> = {
 			p.d(step === 0 ? 4 : 3, 6, "dark", 0.3);
 			p.d(step === 0 ? 7 : 8, 6, "dark", 0.3);
 			p.d(10, 3, "glow", 0.8);
+
+			// Mangy, its tail in rings.
+			p.d(1, 4, "pink", -0.15);
+			p.weather(0.2, 7);
 		},
 	},
 	mouseKing: {
@@ -468,6 +548,13 @@ const ARTS: Record<IEnemyKind, IArt> = {
 			p.d(17, 2, "red", 0.7);
 			p.d(20, 8, "glow", 0.8);
 			p.d(22, 13, "white", 0.6);
+
+			// A scar across his snout, his cape ragged at its hem, mangy.
+			p.d(22, 10, "pink", -0.1);
+			p.d(23, 10, "pink", -0.15);
+			p.x(6, 26);
+			p.x(8, 27);
+			p.weather(0.16, 8);
 		},
 	},
 	ghost: {
@@ -501,6 +588,11 @@ const ARTS: Record<IEnemyKind, IArt> = {
 			p.d(25, 13, "porcelain", 0.4);
 			p.d(13, 8, "frost", 0.6);
 			p.d(16, 8, "frost", 0.6);
+
+			// Its shroud rotting into tatters.
+			p.x(9, 36);
+			p.x(16, 35);
+			p.weather(0.12, 9);
 		},
 	},
 	yuleCat: {
@@ -530,6 +622,14 @@ const ARTS: Record<IEnemyKind, IArt> = {
 			p.d(36, 9, "yellowGlow", 0.8);
 			p.d(37, 13, "white", 0.6);
 			p.d(35, 13, "white", 0.5);
+
+			// Its fur bristling along its arched back, its fangs.
+			for (let x = 8; x < 30; x += 3) {
+				p.l(x, 11.4 - Math.abs(x - 18) * 0.12, x - 0.6, 9.6 - Math.abs(x - 18) * 0.12, 0.6, 0.3, "blackFur", 0.04);
+			}
+
+			p.d(36, 13, "white", 0.55);
+			p.weather(0.12, 10);
 		},
 	},
 	krampus: {
@@ -654,6 +754,8 @@ function minion(step: 0 | 1): HTMLCanvasElement {
 	p.d(7, 10, "red", 0.5);
 	p.d(7, 12, "green", 0.5);
 
+	p.weather(0.1, 13);
+
 	return p.sprite.render(RAMPS, RIMS, OUTLINE, 1);
 }
 
@@ -682,6 +784,7 @@ function soldier(): HTMLCanvasElement {
 	// The musket, held across him, pointing ahead.
 	p.l(4, 10, 12.6, 7.2, 0.6, 0.5, "steel", 0.2);
 	p.l(4, 10, 6, 9.4, 0.8, 0.8, "cookie", 0.05);
+	p.weather(0.12, 12);
 
 	return p.sprite.render(RAMPS, RIMS, OUTLINE, 1);
 }
@@ -704,13 +807,13 @@ const COAL: IPaintKey = {
 
 /**
  * A sprite painted pixel by pixel from rows of letters ("." is empty), each an exact shade from
- * `key`, with no rim light (its candlelit colour would tint the small things painted this way).
+ * `key`, rim-lit only in `rims` (the candlelight would tint small things painted this way).
  */
-function painted(key: IPaintKey, rows: string[]): HTMLCanvasElement {
+function painted(key: IPaintKey, rows: string[], rims: IRamps = {}): HTMLCanvasElement {
 	const pen = new Pen(rows[0].length, rows.length, 1);
 	paint(pen, key, rows);
 
-	return pen.sprite.render(RAMPS, RIMS, OUTLINE, 1, 0);
+	return pen.sprite.render(RAMPS, rims, OUTLINE, 1);
 }
 
 /** Paints rows of letters ("." is empty) with `pen`, each an exact shade from `key`. */
@@ -725,13 +828,6 @@ function paint(pen: Pen, key: IPaintKey, rows: string[]) {
 			}
 		});
 	});
-}
-
-function small(width: number, height: number, draw: (pen: Pen) => void, rim = 1): HTMLCanvasElement {
-	const pen = new Pen(width, height, 1);
-	draw(pen);
-
-	return pen.sprite.render(RAMPS, RIMS, OUTLINE, 1, rim);
 }
 
 export function makeCharacters(): ICharacterSprites {
@@ -755,27 +851,46 @@ export function makeCharacters(): ICharacterSprites {
 		elites,
 		minion: { right: minionRight, left: minionRight.map(flipped) },
 		soldier: { right: soldierRight, left: flipped(soldierRight) },
-		globe: small(9, 11, (p) => {
-			p.e(4.5, 4.6, 4, 4, 0, "glass", 0.1);
-			p.d(4, 3, "green", 0.5);
-			p.d(3, 4, "green", 0.4);
-			p.d(4, 4, "green", 0.5);
-			p.d(5, 4, "green", 0.4);
-			p.d(4, 5, "cookie", 0.3);
-			p.d(2, 2, "white", 0.9);
-			p.d(6, 3, "white", 0.8);
-			p.d(3, 6, "white", 0.8);
-			p.r(1.5, 8, 6, 2, "gold", 0.55);
-		}),
-		flame: small(
-			5,
-			8,
-			(p) => {
-				p.e(2.5, 5, 1.6, 2.4, 0, "ember", 0.5);
-				p.d(2, 2, "yellowGlow", 0.8);
-				p.d(2, 5, "yellowGlow", 0.9);
+		// A snow globe: a little tree with a red bauble in the snow under the glass, on a gold base.
+		globe: painted(
+			{
+				a: ["glass", 1],
+				b: ["glass", 2],
+				c: ["glass", 3],
+				X: ["white", 4],
+				W: ["white", 3],
+				g: ["green", 3],
+				G: ["green", 5],
+				T: ["cookie", 2],
+				o: ["gold", 2],
+				O: ["gold", 3],
+				y: ["gold", 4],
+				R: ["red", 4],
 			},
-			0,
+			[
+				"..abbba..",
+				".abcaXba.",
+				"abaagaaXa",
+				"aXagGgaaa",
+				"aaaGgRgaa",
+				"aaXgGGgXa",
+				".aWWTWWa.",
+				"..aaaaa..",
+				".oOyyyOo.",
+				".oOOOOOo.",
+				"..ooooo..",
+			],
+		),
+		// A flame, white-hot at its heart.
+		flame: painted(
+			{
+				y: ["yellowGlow", 1],
+				Y: ["yellowGlow", 2],
+				W: ["white", 4],
+				M: ["ember", 1],
+				m: ["ember", 0],
+			},
+			["..y..", ".yy..", ".yYy.", "yYWYy", "yYWYy", "MyYyM", ".MyM.", "..m.."],
 		),
 		// Crystals of frost: a little faceted gem, and a big one with a smaller spike broken off its side.
 		crystal: painted({ "1": ["frost", 1], "2": ["frost", 2], "3": ["frost", 3], "4": ["frost", 4] }, [
@@ -984,30 +1099,91 @@ export function makeCharacters(): ICharacterSprites {
 				"MMMDtDDDDD",
 			],
 		),
-		shrine: small(16, 24, (p) => {
-			p.r(2, 21, 12, 3, "stone", 0.3);
-			p.l(8, 10, 8, 21, 4, 4.6, "stone", 0);
-			p.e(8, 7, 5, 5, 0, "stone", 0.1);
-			p.e(8, 7.6, 2.6, 3, 0, "dark", 0.2);
-			p.d(3, 20, "white", 0.6);
-			p.d(13, 20, "white", 0.6);
-			p.d(3, 19, "yellowGlow", 0.9);
-			p.d(13, 19, "yellowGlow", 0.9);
-		}),
-		altar: small(18, 20, (p) => {
-			p.l(2, 8, 0, 3, 1.2, 0.5, "horn", 0.1);
-			p.l(16, 8, 18, 3, 1.2, 0.5, "horn", 0.15);
-			p.r(1, 9, 16, 9, "coal", 0.35);
-			p.l(1, 9, 17, 9, 1.6, 1.6, "coal", 0.2);
-
-			for (let i = 0; i < 7; i++) {
-				p.d(2 + i * 2, 13 + (i % 2), "steel", 0.5);
-			}
-
-			p.d(5, 7, "red", 0.5);
-			p.d(13, 7, "red", 0.5);
-			p.d(5, 6, "glow", 0.9);
-			p.d(13, 6, "glow", 0.9);
-		}),
+		// A wayside shrine: a stone pillar under a snow-capped gable, a candle glowing in its niche, candles and a sprig of holly in the snow at its foot.
+		shrine: painted(
+			{
+				"1": ["stone", 1],
+				"2": ["stone", 2],
+				"3": ["stone", 3],
+				"4": ["stone", 4],
+				W: ["white", 3],
+				X: ["white", 4],
+				o: ["yellowGlow", 0],
+				y: ["yellowGlow", 1],
+				Y: ["yellowGlow", 2],
+				r: ["red", 4],
+				g: ["green", 4],
+			},
+			[
+				"......XXXX......",
+				".....XWWWWX.....",
+				"....XW3443WX....",
+				"...XW344443WX...",
+				"..XW34444443WX..",
+				".22333333333322.",
+				"...2344444432...",
+				"...2311111132...",
+				"...231ooYo132...",
+				"...23ooyYyo32...",
+				"...23oooWoo32...",
+				"...23oooWoo32...",
+				"...2311111132...",
+				"...2344444432...",
+				".....234432.....",
+				".....123321.....",
+				".....234432.....",
+				".....234432.....",
+				".....123321.....",
+				"..Y..234432..Y..",
+				"..W..234432..W..",
+				".XXWWWXXrgWWXX..",
+				".23444444444443.",
+				".12222222222221.",
+			],
+			{ stone: RIMS.stone },
+		),
+		// Krampus's altar: a slab of dark stone, goat horns rising from its corners, red candles burning on it, a chain swagged across its face over a carved goat skull with red eyes.
+		altar: painted(
+			{
+				"1": ["stone", 1],
+				"2": ["stone", 2],
+				"3": ["stone", 3],
+				"4": ["stone", 4],
+				a: ["horn", 2],
+				A: ["horn", 3],
+				z: ["horn", 4],
+				R: ["red", 3],
+				y: ["yellowGlow", 1],
+				Y: ["yellowGlow", 2],
+				Q: ["porcelain", 3],
+				P: ["porcelain", 2],
+				x: ["glow", 1],
+				"6": ["steel", 2],
+				"8": ["steel", 4],
+			},
+			[
+				".A..............A.",
+				".A...Y......Y...A.",
+				"zA...y......y...zA",
+				"zA...R......R...zA",
+				".aa..R......R..Aa.",
+				".aa..R......R..Aa.",
+				".3344444444444433.",
+				".3333333333333333.",
+				"..11111111111111..",
+				"..83322222222186..",
+				"...682A22222861...",
+				"...3368AQQ86211...",
+				"...3322686xQ211...",
+				"...33222QQQ2211...",
+				"...332222P22211...",
+				"...332222222211...",
+				"...332222222211...",
+				".3333333333333333.",
+				".2222222222222222.",
+				".1111111111111111.",
+			],
+			{ stone: RIMS.stone },
+		),
 	};
 }

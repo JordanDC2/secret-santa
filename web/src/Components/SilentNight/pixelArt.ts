@@ -135,6 +135,17 @@ export class Sprite {
 		}
 	}
 
+	/** Weathers it: grime and wear darkening it unevenly, in clumps (by up to `amount`). */
+	weather(amount: number, seed = 0) {
+		for (let i = 0; i < this.brightness.length; i++) {
+			if (this.materials[i]) {
+				const x = i % this.width;
+				const y = Math.floor(i / this.width);
+				this.brightness[i] -= amount * (fbm(x * 0.45 + seed, y * 0.45 + seed * 1.7) - 0.3);
+			}
+		}
+	}
+
 	/** A filled rectangle at a flat brightness. */
 	rect(x: number, y: number, width: number, height: number, material: string, t: number) {
 		for (let py = y; py < y + height; py++) {
