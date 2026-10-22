@@ -79,7 +79,7 @@ const folds = (x: number, y: number) => {
 };
 
 /** Where her shawl's fringed hem hangs to, lowest at its point in front. */
-const hem = (x: number) => 104 + 10 * clamp(1 - Math.abs(x - 78) / 30);
+const hem = (x: number) => 106 + 12 * clamp(1 - Math.abs(x - 78) / 34);
 
 /** Whether a patch, its corner at (px, py), `w` by `h`, sewn on a little askew by `tilt`, covers (x, y). */
 const onPatch = (x: number, y: number, px: number, py: number, w: number, h: number, tilt: number) => {
@@ -87,6 +87,45 @@ const onPatch = (x: number, y: number, px: number, py: number, w: number, h: num
 	const v = y - py + (x - px) * tilt;
 
 	return u >= 0 && u < w && v >= 0 && v < h ? { u, v } : null;
+};
+
+const gauss = (d: number) => Math.exp(-d * d);
+
+/**
+ * How far her face's features stand out at (u, v), across it from its middle (-1 to 1) and down
+ * it (her eyes near -0.12, the tip of her nose 0.35, her chin 0.92): round cheeks raised in a smile, a
+ * long nose, the lines of her smile, her chin, her eyes a little sunk.
+ */
+function kindRelief(u: number, v: number): number {
+	const across = Math.abs(u);
+	// The lines of her smile, from beside her nose round the corners of her mouth.
+	const along = clamp(((across - 0.18) * 0.24 + (v - 0.38) * 0.28) / (0.24 ** 2 + 0.28 ** 2));
+	const smile = Math.hypot(across - 0.18 - 0.24 * along, v - 0.38 - 0.28 * along);
+
+	return (
+		0.35 * gauss(Math.hypot((across - 0.5) / 0.22, (v - 0.22) / 0.16)) +
+		0.3 * gauss(u / 0.08) * clamp((v + 0.2) / 0.1) * clamp((0.37 - v) / 0.08) +
+		0.35 * gauss(Math.hypot(u / 0.13, (v - 0.35) / 0.09)) -
+		0.22 * gauss(smile / 0.035) -
+		0.2 * gauss(Math.hypot((across - 0.45) / 0.18, (v + 0.12) / 0.08)) +
+		0.25 * gauss(Math.hypot(u / 0.22, (v - 0.92) / 0.12)) -
+		0.1 * gauss(Math.hypot(u / 0.3, (v - 0.62) / 0.08))
+	);
+}
+
+const kindAt = (x: number, y: number) => kindRelief((x - 78) / 10.5, (y - 50) / 13);
+
+/** The light on her face at (x, y): what stands out catching it from the front left, rounded. */
+const kindly = (x: number, y: number) => {
+	const across = (x + 0.5 - 78) / 10.5;
+
+	return (
+		0.4 +
+		0.45 * kindAt(x + 0.5, y + 0.5) +
+		0.45 * (kindAt(x + 1.2, y + 1.2) - kindAt(x - 0.2, y - 0.2)) +
+		0.08 * Math.sqrt(Math.max(0, 1 - across * across)) +
+		0.04 * across
+	);
 };
 
 // Each house a pitched roof (some taller), with a chimney on its slope.
@@ -140,17 +179,22 @@ export function drawBefana(): HTMLCanvasElement {
 	// Her headscarf behind her head, hanging to her shoulders.
 	ellipse(78, 50, 15.5, 17, 0, "scarf", -0.06, weave);
 
-	// Her black shawl, over her shoulders and round her, falling wide.
+	// Her black shawl, from her neck round over her shoulders, falling wide over her dress to its
+	// fringed hem.
 	fill(
-		62,
-		160,
+		63,
+		hem(78),
 		(y) => {
-			const half = y < 72 ? 11 + (y - 62) * 1.3 : 24 + (y - 72) * 0.12;
+			const half = y < 76 ? 8 + 17 * Math.sin(((y - 63) / 13) * (Math.PI / 2)) : 25 + (y - 76) * 0.25;
 
 			return [78 - half, 78 + half];
 		},
 		"shawl",
 		(x, y, left, right) => {
+			if (y > hem(x)) {
+				return null;
+			}
+
 			const across = ((x + 0.5 - left) / (right - left)) * 2 - 1;
 
 			return 0.3 + 0.16 * -across + 0.24 * Math.sqrt(Math.max(0, 1 - across * across)) + weave(x, y) + folds(x, y);
@@ -162,7 +206,7 @@ export function drawBefana(): HTMLCanvasElement {
 		100,
 		160,
 		(y) => {
-			const half = 24 + (y - 72) * 0.12;
+			const half = 21 + (y - 100) * 0.2;
 
 			return [78 - half, 78 + half];
 		},
@@ -187,7 +231,7 @@ export function drawBefana(): HTMLCanvasElement {
 	);
 
 	// The fringe along the shawl's hem, hanging in tassels.
-	for (let x = 56; x <= 100; x += 2) {
+	for (let x = 46; x <= 110; x += 2) {
 		const length = 3 + Math.round(hash(x, 13) * 3);
 		limb(x, hem(x), x + 0.4, hem(x) + length, 0.6, 0.5, "shawl", 0.22);
 	}
@@ -220,16 +264,25 @@ export function drawBefana(): HTMLCanvasElement {
 		}
 	}
 
+	// Her hand clutching her shawl closed at her chest, its edges overlapping in a fold below.
+	limb(73, 84, 70.5, 104, 1.2, 1.6, "shawl", -0.12, weave);
+	ellipse(73, 81, 3.4, 2.8, 0.2, "skin", 0.08);
+
+	for (const [x, y] of [
+		[71, 80],
+		[73, 80],
+		[75, 81],
+	]) {
+		put(x, y, "skin", 0.22);
+	}
+
 	// A few grey curls escaping the scarf at her temples.
 	ellipse(67.5, 47, 2.2, 4, 0.2, "grey", 0.1, strands);
 	ellipse(88.5, 47, 2.2, 4, -0.2, "grey", 0.02, strands);
 
-	// Her face: long and lined, rounded by the light, shadowed under her jaw.
-	ellipse(78, 50, 10.5, 13, 0, "skin", 0.1, (x, y) => {
-		const across = (x + 0.5 - 78) / 10.5;
-
-		return 0.04 * across + 0.08 * Math.sqrt(Math.max(0, 1 - across * across)) - 0.1 * clamp((y - 61.5) / 2);
-	});
+	// Her face: long and lined, carved by the light (kindly): round cheeks raised in her smile, a long
+	// nose, smile lines, her chin; shadowed under her jaw.
+	ellipse(78, 49.5, 10.5, 12.5, 0, "skin", 0, (x, y) => kindly(x, y) - 0.1 * clamp((y - 60.5) / 2));
 
 	// Her headscarf over her head, its edge low on her brow, knotted under her chin.
 	for (let y = 32; y <= 52; y++) {
@@ -247,71 +300,86 @@ export function drawBefana(): HTMLCanvasElement {
 	petal(77, 66, 9, 2.6, Math.PI / 2 + 0.4, "scarf", 0.02);
 	petal(79, 66, 8, 2.4, Math.PI / 2 - 0.3, "scarf", -0.04);
 
-	// Her eyes: crinkled up in her smile, a glint in each, lines at their corners.
+	// Her eyes: thin crescents, crinkled up by the smile in her cheeks, the lines at their corners.
 	for (const [cx, out] of [
 		[73, -1],
 		[83, 1],
 	]) {
-		for (let dx = -2; dx <= 2; dx++) {
-			put(cx + dx, Math.abs(dx) === 2 ? 49 : 48, "eye", 0.08);
-		}
+		put(cx - 2, 49, "eye", 0.12);
+		put(cx - 1, 48, "eye", 0.08);
+		put(cx, 48, "eye", 0.02);
+		put(cx + 1, 48, "eye", 0.08);
+		put(cx + 2, 49, "eye", 0.12);
 
-		put(cx - 1, 49, "white", 0.85);
-		put(cx, 49, "eye", 0.3);
-		put(cx + 1, 49, "eye", 0.45);
-
-		// The lower lids pushed up by her cheeks, and the lines at the corners.
+		// The lower lids pushed up into them by her cheeks, and the lines at the corners.
 		for (let dx = -1; dx <= 1; dx++) {
-			put(cx + dx, 50, "skin", 0.3);
+			put(cx + dx, 49, "skin", 0.72);
+			put(cx + dx, 50, "skin", 0.6);
 		}
 
-		put(cx + out * 3, 50, "skin", 0.2);
-		put(cx + out * 4, 51, "skin", 0.24);
-		put(cx + out * 3, 47, "skin", 0.24);
+		put(cx + out * 3, 48, "skin", 0.18);
+		put(cx + out * 3, 50, "skin", 0.18);
+		put(cx + out * 4, 51, "skin", 0.22);
 
-		// Thin grey brows.
+		// Thin grey brows, raised kindly.
 		for (let inner = -2; inner <= 2; inner++) {
-			put(cx - out * inner, inner === -2 ? 46 : 45, "grey", 0.45);
+			put(cx - out * inner, inner === 2 ? 46 : 45, "grey", 0.45);
 		}
 	}
 
-	// Her long nose, hooked a little at the tip: shadowed down its far side, as La Flor's is.
-	for (let y = 49; y <= 55; y++) {
-		put(80, y, "skin", 0.18);
+	// Her long nose, lit down its near side and shadowed down its far one, hooked at the tip, a
+	// nostril under it.
+	for (let y = 49; y <= 52; y++) {
+		put(78, y, "skin", 0.58);
+		put(79, y, "skin", 0.26);
 	}
 
-	put(79, 56, "skin", 0.3);
-	put(78, 56, "skin", 0.62);
-	put(77, 57, "skin", 0.22);
-	put(79, 57, "skin", 0.2);
-	put(78, 58, "skin", 0.28);
+	put(77, 53, "skin", 0.5);
+	put(78, 53, "skin", 0.72);
+	put(79, 53, "skin", 0.4);
+	put(78, 54, "skin", 0.56);
+	put(79, 54, "skin", 0.2);
+	put(78, 55, "skin", 0.16);
+	put(77, 55, "skin", 0.24);
 
-	// A little colour in her cheeks, the lines of her smile, and a small, soft smile.
-	put(71, 54, "lip", 0.62);
-	put(85, 54, "lip", 0.62);
-	put(73, 57, "skin", 0.26);
-	put(84, 57, "skin", 0.26);
-
+	// Rosy cheeks, round with her smile.
 	for (const [x, y, t] of [
-		[75, 60, 0.28],
-		[81, 60, 0.28],
-		[77, 60, 0.22],
-		[78, 60, 0.18],
-		[79, 60, 0.22],
-		[76, 61, 0.3],
-		[77, 61, 0.34],
-		[78, 61, 0.38],
-		[79, 61, 0.34],
-		[80, 61, 0.3],
-		[77, 62, 0.58],
-		[78, 62, 0.64],
-		[79, 62, 0.58],
+		[71, 53, 0.55],
+		[72, 54, 0.62],
+		[71, 55, 0.5],
+		[85, 53, 0.5],
+		[84, 54, 0.58],
+		[85, 55, 0.45],
 	]) {
 		put(x, y, "lip", t);
 	}
 
-	put(76, 60, "skin", 0.2);
-	put(80, 60, "skin", 0.2);
+	// Her smile, wide and turned up at its corners, a gap in her teeth, her lower lip catching the light.
+	for (const [x, y, material, t] of [
+		[74, 56, "lip", 0.22],
+		[82, 56, "lip", 0.22],
+		[75, 57, "lip", 0.26],
+		[76, 57, "lip", 0.34],
+		[77, 57, "lip", 0.36],
+		[78, 57, "lip", 0.36],
+		[79, 57, "lip", 0.34],
+		[80, 57, "lip", 0.3],
+		[81, 57, "lip", 0.24],
+		[75, 58, "eye", 0.1],
+		[76, 58, "white", 0.8],
+		[77, 58, "white", 0.85],
+		[78, 58, "eye", 0.08],
+		[79, 58, "white", 0.75],
+		[80, 58, "eye", 0.1],
+		[81, 58, "eye", 0.14],
+		[76, 59, "lip", 0.5],
+		[77, 59, "lip", 0.62],
+		[78, 59, "lip", 0.64],
+		[79, 59, "lip", 0.6],
+		[80, 59, "lip", 0.48],
+	] as const) {
+		put(x, y, material, t);
+	}
 
 	// Her broom, standing at her side: the handle up past her shoulder, and its twigs bound with
 	// cord at the bottom, flaring out to ragged ends on the ground.
