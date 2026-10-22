@@ -81,112 +81,6 @@ type IArt = {
 	draw: (pen: Pen, step: 0 | 1) => void;
 };
 
-/**
- * Krampus, painted pixel by pixel after his portrait (drawKrampus.ts): great ridged horns, a hood
- * of black fur round a dark red face with fangs and a long tongue, his chain coiled twice round
- * him with its end swinging from one claw, a cowbell on it at his hip, a sheaf of birch switches
- * bound in red raised in the other, ragged fur over goat legs. His fur's shades (1–4), his mouth
- * (p) and face's (q–t), horn (m–j), red (R–U), fangs (W, w), his eyes' sockets (Y), chain (a, b,
- * d), birch (i, I) and brass (g, G, o).
- */
-const KRAMPUS: IPaintKey = {
-	"1": ["blackFur", 1],
-	"2": ["blackFur", 2],
-	"3": ["blackFur", 3],
-	"4": ["blackFur", 4],
-	p: ["dark", 0],
-	q: ["impSkin", 1],
-	r: ["impSkin", 2],
-	s: ["impSkin", 3],
-	t: ["impSkin", 4],
-	m: ["horn", 1],
-	k: ["horn", 2],
-	j: ["horn", 3],
-	R: ["red", 4],
-	T: ["red", 3],
-	U: ["red", 2],
-	W: ["white", 4],
-	w: ["white", 3],
-	Y: ["yellowGlow", 0],
-	a: ["steel", 1],
-	b: ["steel", 2],
-	d: ["steel", 4],
-	i: ["birch", 1],
-	I: ["birch", 2],
-	g: ["gold", 1],
-	G: ["gold", 2],
-	o: ["gold", 3],
-};
-
-/** All of him down to his hem, the same in both steps of his walk. */
-const KRAMPUS_BODY = [
-	"...........j...............j........",
-	"...........k...............k..i....i",
-	"..........jjj.............jjj.i...i.",
-	"...........kjj...........jjk...i..i.",
-	"...........jjkj.........jkjj...IiIi.",
-	"............kkkj.......jkkk.i..iiI.i",
-	".............kkkj32222jkkk..i..IIi.i",
-	"..............jkkk222kkkj...i..i.I.I",
-	"..............jkjk222kjkj....I.I.i.I",
-	"..............3kk3rrrqkk2.....IiIIi.",
-	"............sr333qqqqqqq22rs...Iii..",
-	".............3r33rYqrqYq2r.....iII..",
-	".............333rssrtqqr22.....TRU..",
-	".............333rrrqtqqq22.....RRTT.",
-	"..............333rWpppW22.....krsr.R",
-	"..............333rwpRpw22.....mqrsUT",
-	".............3333322RT223333..kmqr..",
-	"..........3334223322RT3333332..444..",
-	".........33333112244RT2333333.4444..",
-	".........d33333344333R443334444444..",
-	"........43ab333344332T443344444444..",
-	"........4333d32233332U331344434444..",
-	".......443333ab233332233334443444...",
-	".......44332222dab222233333433333...",
-	"......444332442233dabd33222d33333...",
-	"......4443224411224433abdab12333....",
-	"......4a43223333443333442221222.....",
-	".....444bd11333344332244222111......",
-	".....4rsr4ab3322333322331111332.....",
-	".....kqrqk3kdab2333322333332332.....",
-	".....mk3m3GoG22dabd222333332abd.....",
-	".......d3gGoGg22334abdabdabd2.......",
-	".......b3gGoGg1122443322222122......",
-	".......a3gGoGg334433334422112.......",
-	"......d.2gpbpg2121211111212121......",
-];
-
-/** His legs and the chain's swinging end, a step of his walk each. */
-const KRAMPUS_LEGS = [
-	[
-		".......b21..21211.1221112.1121......",
-		".......a2...2111....21112..12.......",
-		".......d1..22221.....1111...1.......",
-		".......b...2222......1111...........",
-		".......a...222........111...........",
-		"..........2222........111...........",
-		"..........222..........111..........",
-		"..........22...........111..........",
-		".........222............11..........",
-		"..........jkk...........jkk.........",
-		"..........mmm...........mmm.........",
-	],
-	[
-		"......b.21...1211.1221112.1121......",
-		"......a.2....1111..221112..12.......",
-		".....d..1....2211..2211.1...1.......",
-		".....b.......2211..2211.............",
-		".....a.......221....211.............",
-		".............221....211.............",
-		".............221....21..............",
-		"..............21....21..............",
-		"..............211...21..............",
-		"..............jkk...jkk.............",
-		"..............mmm...mmm.............",
-	],
-];
-
 const ARTS: Record<IEnemyKind, IArt> = {
 	gingerbread: {
 		width: 14,
@@ -642,10 +536,104 @@ const ARTS: Record<IEnemyKind, IArt> = {
 		],
 		// Burning, as in his portrait.
 		eyeColour: "#ffb040",
-		// Only his fur takes the candlelight at its edge; everything else is painted lit already.
-		rims: { blackFur: RIMS.blackFur },
+		// Candlelit at the edge, but for the thin chain and switches, which it would bleach.
+		rims: { blackFur: RIMS.blackFur, impSkin: RIMS.impSkin, horn: RIMS.horn, red: RIMS.red, gold: RIMS.gold },
 		draw(p, step) {
-			paint(p, KRAMPUS, [...KRAMPUS_BODY, ...KRAMPUS_LEGS[step]]);
+			const stride = step === 0 ? 1.2 : -0.8;
+			// Goat legs, bent back at the hock, and cloven hooves.
+			for (const [hip, side, bias] of [
+				[14, -1, -0.08],
+				[22, 1, 0],
+			] as const) {
+				const hoof = hip + side * (1.4 + stride);
+				p.e(hip, 33, 3.4, 4.2, 0, "blackFur", bias);
+				p.l(hip, 35.4, hip + side * 0.4 - stride * 0.3, 39.6, 2, 1.5, "blackFur", bias);
+				p.l(hip + side * 0.4 - stride * 0.3, 39.6, hoof, 43.6, 1.3, 1, "blackFur", bias - 0.04);
+				p.e(hoof, 44.4, 1.6, 0.9, 0, "horn", bias - 0.1);
+				p.x(Math.round(hoof), 45);
+			}
+
+			// His shaggy body, its locks hanging ragged below.
+			p.e(18, 24, 8.6, 10, 0, "blackFur", 0.04);
+
+			for (let x = 10; x <= 27; x += 1.7) {
+				p.l(x, 31, x - 0.4, 34 + ((x * 7) % 3), 1, 0.3, "blackFur", -0.04 + ((x * 3) % 2) * 0.05);
+			}
+
+			// His left arm hanging, the chain's end swinging from his claw.
+			p.l(11, 19, 8.4, 24.4, 2.1, 1.8, "blackFur", 0.02);
+			p.l(8.4, 24.4, 7, 28, 1.8, 1.4, "blackFur", 0.04);
+			p.e(7, 28.8, 1.4, 1.2, 0, "impSkin", -0.04);
+
+			for (let i = 0; i < 6; i++) {
+				p.d(6.6 - Math.sin(i * 0.8 + step) * 0.8, 30.4 + i * 1.6, "steel", i % 2 === 0 ? 0.55 : 0.3);
+			}
+
+			// The chain coiled twice round him, sagging, link by link.
+			for (const [y0, y1] of [
+				[19, 24],
+				[26, 30],
+			]) {
+				for (let i = 0; i <= 18; i++) {
+					const t = i / 18;
+					p.d(9.4 + t * 18.6, y0 + (y1 - y0) * t + 2.5 * 4 * t * (1 - t), "steel", i % 2 === 0 ? 0.6 : 0.32);
+				}
+			}
+
+			// The cowbell on the lower turn, at his hip: boxy, dull brass, its mouth dark.
+			p.r(9.6, 30.6, 3.6, 3.6, "gold", 0.26);
+			p.r(10.4, 30.6, 1.4, 3.4, "gold", 0.42);
+			p.r(9.4, 34, 4, 0.8, "dark", 0.3);
+			p.d(11, 34, "steel", 0.3);
+			// His right arm raised, a sheaf of birch switches bound in red in his fist.
+			p.l(26, 18.5, 30.4, 24, 2.6, 2.2, "blackFur", 0.06);
+			p.l(30.4, 24, 32.4, 17.6, 2.2, 1.8, "blackFur", 0.1);
+
+			for (const [tx, ty] of [
+				[27.8, 5],
+				[30, 1.4],
+				[32.4, 3.4],
+				[34.2, 0.8],
+				[35.4, 5],
+			]) {
+				p.l(32.2, 13, tx, ty, 0.5, 0.35, "birch", 0.04);
+			}
+
+			p.r(30.8, 12, 2.8, 1.6, "red", 0.3);
+			p.l(33.4, 13, 35.2, 15.6, 0.5, 0.4, "red", 0.2);
+			p.e(32.2, 15.4, 1.8, 1.7, 0, "impSkin", 0.02);
+			p.d(30, 15, "horn", 0.1);
+			p.d(30, 16, "horn", 0.1);
+			// His head: a hood of black fur, his ears, a dark red face, fangs, his long tongue.
+			p.e(19.5, 12, 6.2, 6.4, 0, "blackFur", 0.08);
+			p.l(14.4, 10.6, 12, 9.6, 1, 0.4, "impSkin", -0.04);
+			p.l(25, 10.6, 27.4, 9.6, 1, 0.4, "impSkin", -0.08);
+			p.e(20.2, 12.8, 3.6, 4, 0, "impSkin", -0.04);
+			p.r(17, 10, 7, 1, "impSkin", -0.2);
+			p.e(20.4, 13.4, 1.2, 1, 0, "impSkin", 0.1);
+			p.r(18, 14.6, 5, 1, "dark", 0.1);
+			p.d(18, 15, "white", 0.55);
+			p.d(22, 15, "white", 0.5);
+			p.l(20.4, 15.4, 21.4, 22, 1, 0.6, "red", 0.1);
+			// Great ridged horns, sweeping up and out.
+			for (const side of [-1, 1]) {
+				const path = [
+					[19.5 + side * 3.6, 8, 1.6],
+					[19.5 + side * 6, 5, 1.4],
+					[19.5 + side * 8, 2.4, 1.1],
+					[19.5 + side * 8, 0.4, 0.5],
+				];
+
+				for (let i = 0; i < path.length - 1; i++) {
+					const [x1, y1, r1] = path[i];
+					const [x2, y2, r2] = path[i + 1];
+					p.l(x1, y1, x2, y2, r1, r2, "horn", i % 2 === 0 ? 0.04 : 0.14);
+				}
+			}
+
+			p.d(18, 11, "glow", 0.8);
+			p.d(22, 11, "glow", 0.8);
+			p.weather(0.14, 14);
 		},
 	},
 };
@@ -828,6 +816,13 @@ function paint(pen: Pen, key: IPaintKey, rows: string[]) {
 			}
 		});
 	});
+}
+
+function small(width: number, height: number, draw: (pen: Pen) => void, rim = 1): HTMLCanvasElement {
+	const pen = new Pen(width, height, 1);
+	draw(pen);
+
+	return pen.sprite.render(RAMPS, RIMS, OUTLINE, 1, rim);
 }
 
 export function makeCharacters(): ICharacterSprites {
@@ -1099,91 +1094,66 @@ export function makeCharacters(): ICharacterSprites {
 				"MMMDtDDDDD",
 			],
 		),
-		// A wayside shrine: a stone pillar under a snow-capped gable, a candle glowing in its niche, candles and a sprig of holly in the snow at its foot.
-		shrine: painted(
-			{
-				"1": ["stone", 1],
-				"2": ["stone", 2],
-				"3": ["stone", 3],
-				"4": ["stone", 4],
-				W: ["white", 3],
-				X: ["white", 4],
-				o: ["yellowGlow", 0],
-				y: ["yellowGlow", 1],
-				Y: ["yellowGlow", 2],
-				r: ["red", 4],
-				g: ["green", 4],
-			},
-			[
-				"......XXXX......",
-				".....XWWWWX.....",
-				"....XW3443WX....",
-				"...XW344443WX...",
-				"..XW34444443WX..",
-				".22333333333322.",
-				"...2344444432...",
-				"...2311111132...",
-				"...231ooYo132...",
-				"...23ooyYyo32...",
-				"...23oooWoo32...",
-				"...23oooWoo32...",
-				"...2311111132...",
-				"...2344444432...",
-				".....234432.....",
-				".....123321.....",
-				".....234432.....",
-				".....234432.....",
-				".....123321.....",
-				"..Y..234432..Y..",
-				"..W..234432..W..",
-				".XXWWWXXrgWWXX..",
-				".23444444444443.",
-				".12222222222221.",
-			],
-			{ stone: RIMS.stone },
-		),
-		// Krampus's altar: a slab of dark stone, goat horns rising from its corners, red candles burning on it, a chain swagged across its face over a carved goat skull with red eyes.
-		altar: painted(
-			{
-				"1": ["stone", 1],
-				"2": ["stone", 2],
-				"3": ["stone", 3],
-				"4": ["stone", 4],
-				a: ["horn", 2],
-				A: ["horn", 3],
-				z: ["horn", 4],
-				R: ["red", 3],
-				y: ["yellowGlow", 1],
-				Y: ["yellowGlow", 2],
-				Q: ["porcelain", 3],
-				P: ["porcelain", 2],
-				x: ["glow", 1],
-				"6": ["steel", 2],
-				"8": ["steel", 4],
-			},
-			[
-				".A..............A.",
-				".A...Y......Y...A.",
-				"zA...y......y...zA",
-				"zA...R......R...zA",
-				".aa..R......R..Aa.",
-				".aa..R......R..Aa.",
-				".3344444444444433.",
-				".3333333333333333.",
-				"..11111111111111..",
-				"..83322222222186..",
-				"...682A22222861...",
-				"...3368AQQ86211...",
-				"...3322686xQ211...",
-				"...33222QQQ2211...",
-				"...332222P22211...",
-				"...332222222211...",
-				"...332222222211...",
-				".3333333333333333.",
-				".2222222222222222.",
-				".1111111111111111.",
-			],
-			{ stone: RIMS.stone },
-		),
+		// A wayside shrine: a weathered stone pillar under a snow-laden gable, a candle guttering in its
+		// niche, stubs of candles and a sprig of holly in the snow at its foot.
+		shrine: small(16, 24, (p) => {
+			p.r(1.5, 21, 13, 3, "stone", 0.36);
+			p.r(1.5, 20.6, 13, 0.8, "white", 0.3);
+			p.l(8, 12, 8, 21, 2.6, 2.8, "stone", 0.02);
+
+			for (const y of [14, 17]) {
+				p.r(5.4, y, 5.2, 0.6, "stone", -0.2);
+			}
+
+			p.r(3, 6, 10, 7, "stone", 0.08);
+			p.e(8, 9.4, 2.6, 2.8, 0, "yellowGlow", -0.2);
+			p.e(8, 9.8, 1.8, 1.9, 0, "yellowGlow", 0.25);
+			p.r(7.6, 9.4, 1, 2.2, "white", 0.45);
+			p.d(8, 8, "yellowGlow", 0.9);
+			p.l(1.4, 6, 8, 1.2, 1.1, 1.1, "stone", 0.12);
+			p.l(14.6, 6, 8, 1.2, 1.1, 1.1, "stone", 0.04);
+			p.l(1.4, 5.2, 8, 0.4, 0.8, 0.8, "white", 0.2);
+			p.l(14.6, 5.2, 8, 0.4, 0.8, 0.8, "white", 0.12);
+
+			for (const x of [3, 13]) {
+				p.r(x - 0.5, 19, 1, 2, "white", 0.4);
+				p.d(x, 18, "yellowGlow", 0.8);
+			}
+
+			p.d(10, 20, "green", 0.4);
+			p.d(11, 20, "red", 0.5);
+			p.weather(0.14, 16);
+		}),
+		// Krampus's altar: a slab of black stone, goat horns rising from its corners, red candles burning
+		// on it, a chain swagged across its face over a goat skull carved with red eyes.
+		altar: small(18, 20, (p) => {
+			p.l(2.4, 7, 1, 3, 1.2, 0.8, "horn", 0.08);
+			p.l(1, 3, 1.6, 0.3, 0.8, 0.4, "horn", 0.16);
+			p.l(15.6, 7, 17, 3, 1.2, 0.8, "horn", 0.12);
+			p.l(17, 3, 16.4, 0.3, 0.8, 0.4, "horn", 0.2);
+
+			for (const x of [5, 12]) {
+				p.r(x - 0.5, 3, 1.2, 4, "red", 0.3);
+				p.d(x, 2, "yellowGlow", 0.7);
+				p.d(x, 1, "yellowGlow", 0.95);
+			}
+
+			p.r(1, 6, 16, 2, "stone", 0.26);
+			p.r(2.4, 8, 13.2, 9, "stone", 0.06);
+			p.r(1, 17, 16, 3, "stone", 0.16);
+			p.e(9, 12.4, 2.2, 1.8, 0, "porcelain", 0.04);
+			p.d(8, 12, "glow", 0.7);
+			p.d(10, 12, "glow", 0.7);
+			p.d(9, 14, "porcelain", 0.1);
+			p.l(6.6, 10.6, 5.6, 9.6, 0.4, 0.3, "horn", 0.1);
+			p.l(11.4, 10.6, 12.4, 9.6, 0.4, 0.3, "horn", 0.1);
+
+			for (let i = 0; i <= 14; i++) {
+				const t = i / 14;
+				p.d(2 + 13 * t, 9 + 3.2 * Math.sin(Math.PI * t), "steel", i % 2 === 0 ? 0.55 : 0.3);
+			}
+
+			p.weather(0.18, 17);
+		}),
 	};
 }
