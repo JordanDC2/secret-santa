@@ -613,12 +613,11 @@ function soldier(): HTMLCanvasElement {
 	return p.sprite.render(RAMPS, RIMS, OUTLINE, 1);
 }
 
-/**
- * What each letter of a painted sprite is (paintRows), as a material and a step of its ramp
- * (palette.ts): coal's five shades, from black up (0–4); the glossy grey of its broken edges and
- * glints (a–c, w); burlap from dark to light (D, M, L, H); and twine (t, T).
- */
-const PAINT_KEY: Record<string, [string, number]> = {
+/** A painted sprite's colours, by letter: a material and a step of its ramp (palette.ts). */
+type IPaintKey = Record<string, [string, number]>;
+
+/** Coal's five shades from black up (0–4), and the glossy grey of its broken edges and glints (a–c, w). */
+const COAL: IPaintKey = {
 	"0": ["coal", 0],
 	"1": ["coal", 1],
 	"2": ["coal", 2],
@@ -628,19 +627,18 @@ const PAINT_KEY: Record<string, [string, number]> = {
 	b: ["steel", 2],
 	c: ["steel", 3],
 	w: ["steel", 4],
-	D: ["cookie", 2],
-	M: ["cookie", 3],
-	L: ["cookie", 4],
-	H: ["cookie", 5],
-	t: ["birch", 1],
-	T: ["birch", 2],
 };
 
-/** A sprite painted pixel by pixel from rows of letters (PAINT_KEY; "." is empty), each an exact shade. */
-function paintRows(pen: Pen, rows: string[]) {
+/**
+ * A sprite painted pixel by pixel from rows of letters ("." is empty), each an exact shade from
+ * `key`, with no rim light (its candlelit colour would tint the small things painted this way).
+ */
+function painted(key: IPaintKey, rows: string[]): HTMLCanvasElement {
+	const pen = new Pen(rows[0].length, rows.length, 1);
+
 	rows.forEach((row, y) => {
 		[...row].forEach((letter, x) => {
-			const paint = PAINT_KEY[letter];
+			const paint = key[letter];
 
 			if (paint) {
 				const [material, step] = paint;
@@ -648,6 +646,8 @@ function paintRows(pen: Pen, rows: string[]) {
 			}
 		});
 	});
+
+	return pen.sprite.render(RAMPS, RIMS, OUTLINE, 1, 0);
 }
 
 function small(width: number, height: number, draw: (pen: Pen) => void, rim = 1): HTMLCanvasElement {
@@ -700,130 +700,213 @@ export function makeCharacters(): ICharacterSprites {
 			},
 			0,
 		),
-		// Crystals of frost: small blue gems with a glint, lit only a little at the rim so they stay blue.
-		crystal: small(
-			5,
-			7,
-			(p) => {
-				// A little diamond, lighter on its upper left facets, with a glint.
-				for (const [x, y, t] of [
-					[2, 1, 0.75],
-					[1, 2, 0.7],
-					[2, 2, 0.6],
-					[3, 2, 0.45],
-					[1, 3, 0.55],
-					[2, 3, 0.45],
-					[3, 3, 0.3],
-					[1, 4, 0.4],
-					[2, 4, 0.3],
-					[3, 4, 0.2],
-					[2, 5, 0.15],
-				]) {
-					p.d(x, y, "frost", t);
-				}
-
-				p.d(1, 2, "frost", 0.95);
+		// Crystals of frost: a little faceted gem, and a big one with a smaller spike broken off its side.
+		crystal: painted({ "1": ["frost", 1], "2": ["frost", 2], "3": ["frost", 3], "4": ["frost", 4] }, [
+			"..4..",
+			".432.",
+			"43321",
+			"43221",
+			"43221",
+			".321.",
+			"..1..",
+		]),
+		bigCrystal: painted({ "1": ["frost", 1], "2": ["frost", 2], "3": ["frost", 3], "4": ["frost", 4] }, [
+			"...3.....",
+			"..432....",
+			".43321...",
+			".43221...",
+			".43221.4.",
+			".4322143.",
+			".43221432",
+			".43214321",
+			".43213221",
+			"..2112110",
+		]),
+		// A red mug of cocoa, steaming, a marshmallow afloat.
+		cocoa: painted(
+			{
+				P: ["red", 5],
+				R: ["red", 4],
+				r: ["red", 3],
+				d: ["red", 2],
+				e: ["red", 1],
+				L: ["cookie", 3],
+				C: ["cookie", 2],
+				m: ["icing", 3],
+				s: ["white", 1],
 			},
-			0.3,
+			[
+				"...s..s....",
+				"....s..s...",
+				"...s..s....",
+				".RRRRRRr...",
+				".rLmmLCr...",
+				".RRRRRrrdd.",
+				".RPRRrrd.d.",
+				".RPRRrrd.d.",
+				".RPRrrrddd.",
+				".RRrrrrd...",
+				"..eeeee....",
+			],
 		),
-		bigCrystal: small(
-			8,
-			10,
-			(p) => {
-				p.e(3.5, 5, 2.4, 4, 0, "frost", -0.05);
-				p.e(5.8, 6.6, 1.4, 2.5, 0.4, "frost", -0.15);
-				p.d(3, 3, "frost", 0.95);
-			},
-			0.3,
-		),
-		cocoa: small(8, 8, (p) => {
-			p.r(1, 3, 5, 5, "red", 0.5);
-			p.r(1, 3, 5, 1, "cookie", 0.45);
-			p.d(6, 4, "red", 0.45);
-			p.d(7, 5, "red", 0.4);
-			p.d(6, 6, "red", 0.45);
-			p.d(3, 2, "white", 0.8);
-		}),
-		star: small(9, 9, (p) => {
-			for (let i = 0; i < 5; i++) {
-				const angle = -Math.PI / 2 + (i / 5) * Math.PI * 2;
-				p.l(4.5, 4.5, 4.5 + Math.cos(angle) * 4.2, 4.5 + Math.sin(angle) * 4.2, 1.6, 0.3, "gold", 0.35);
-			}
-		}),
-		// A lump of coal (painted pixel by pixel, PAINT_KEY): a chipped chunk of anthracite, its top
-		// facet catching the light in a curved sheen where it broke, a glint on it, a sharp ridge down
-		// to its darker side, its front and underside falling away into black.
-		coal: small(
-			12,
-			9,
-			(p) =>
-				paintRows(p, [
-					".....bc.....",
-					"....b44c3...",
-					"...b4w44c3..",
-					"..b44c444c2.",
-					".b44c4443c21",
-					"b444c44432c1",
-					".3333cc32221",
-					"..2222222111",
-					"...11.1110..",
-				]),
-			0,
-		),
+		// A gold star, each point bevelled, light on its upper left halves.
+		star: painted({ "1": ["gold", 1], "2": ["gold", 2], "3": ["gold", 3], "4": ["gold", 4], W: ["white", 4] }, [
+			".....4.....",
+			".....43....",
+			"....443....",
+			"44444W33322",
+			".444443332.",
+			"..4443322..",
+			"..4433322..",
+			".4433.3322.",
+			".443...322.",
+			".43.....22.",
+		]),
+		// A lump of coal: a chipped chunk of anthracite, its top facet catching the light in a curved
+		// sheen where it broke, a glint on it, a sharp ridge down to its darker side, its front and
+		// underside falling away into black.
+		coal: painted(COAL, [
+			".....bc.....",
+			"....b44c3...",
+			"...b4w44c3..",
+			"..b44c444c2.",
+			".b44c4443c21",
+			"b444c44432c1",
+			".3333cc32221",
+			"..2222222111",
+			"...11.1110..",
+		]),
 		// A burlap sack of coal: the weave lighter on its lit side, darker round to the right, tied
 		// at the neck with twine, coal heaped in its mouth.
-		coalSack: small(
-			12,
-			13,
-			(p) =>
-				paintRows(p, [
-					".....b3.....",
-					"...b4c3.b4..",
-					"..44c32b4c3.",
-					".LL3221122DD",
-					".HLLMMMMMDD.",
-					"...DttTtD...",
-					"..LMLMMMMD..",
-					".LMLMLMMMMD.",
-					"LMLMLMMMMMDD",
-					"LLMLMMMMMMDD",
-					"LMLMMMMMMDDD",
-					".LMMMMMMDDD.",
-					"..DDDDDDDD..",
-				]),
-			0,
+		coalSack: painted(
+			{
+				...COAL,
+				D: ["cookie", 2],
+				M: ["cookie", 3],
+				L: ["cookie", 4],
+				H: ["cookie", 5],
+				t: ["birch", 1],
+				T: ["birch", 2],
+			},
+			[
+				".....b3.....",
+				"...b4c3.b4..",
+				"..44c32b4c3.",
+				".LL3221122DD",
+				".HLLMMMMMDD.",
+				"...DttTtD...",
+				"..LMLMMMMD..",
+				".LMLMLMMMMD.",
+				"LMLMLMMMMMDD",
+				"LLMLMMMMMMDD",
+				"LMLMMMMMMDDD",
+				".LMMMMMMDDD.",
+				"..DDDDDDDD..",
+			],
 		),
-		// A stopped pocket watch: a gold case, a pale face, its hands at midnight.
-		clock: small(9, 10, (p) => {
-			p.r(4, 0, 1, 1.4, "gold", 0.7);
-			p.e(4.5, 5.5, 4, 4, 0, "gold", 0.35);
-			p.e(4.5, 5.5, 3, 3, 0, "white", 0.55);
-			p.l(4.5, 5.5, 4.5, 3, 0.4, 0.3, "dark", 0.2);
-			p.d(4, 5, "dark", 0.15);
-		}),
-		// A silver bell, its clapper showing.
-		bell: small(9, 9, (p) => {
-			p.r(4, 0, 1, 1.2, "steel", 0.6);
-			p.l(4.5, 1.5, 4.5, 6, 1.6, 3.8, "steel", 0.45);
-			p.r(0.8, 6, 7.4, 1.2, "steel", 0.7);
-			p.d(4, 8, "steel", 0.3);
-			p.d(3, 3, "white", 0.9);
-		}),
-		chest: small(12, 11, (p) => {
-			p.r(1, 3, 10, 8, "red", 0.42);
-			p.r(0, 2, 12, 3, "red", 0.55);
-			p.r(5, 2, 2, 9, "gold", 0.6);
-			p.r(0, 6, 12, 1, "gold", 0.5);
-			p.e(4.4, 1.2, 1.6, 1.1, -0.4, "gold", 0.2);
-			p.e(7.6, 1.2, 1.6, 1.1, 0.4, "gold", 0.3);
-		}),
-		gear: small(10, 9, (p) => {
-			p.r(1, 2, 8, 7, "cookie", 0.45);
-			p.r(4.5, 2, 1, 7, "white", 0.6);
-			p.r(1, 5, 8, 1, "white", 0.55);
-			p.d(4, 1, "white", 0.7);
-			p.d(5, 1, "white", 0.6);
-		}),
+		// A stopped pocket watch: a gold case on its bow, a pale face with its hours marked, both
+		// hands at midnight.
+		clock: painted(
+			{
+				"0": ["gold", 0],
+				"1": ["gold", 1],
+				"2": ["gold", 2],
+				"3": ["gold", 3],
+				"4": ["gold", 4],
+				W: ["white", 4],
+				w: ["white", 3],
+				v: ["white", 2],
+				k: ["dark", 0],
+			},
+			[
+				"....434....",
+				"...4...2...",
+				"....323....",
+				"...44432...",
+				".344443322.",
+				".44WWkWw32.",
+				"43WWWkWWw21",
+				"43WWWkWWw21",
+				"34vWW1WWv21",
+				"33WWWWWww11",
+				"22wWWvWww11",
+				".22wwwww11.",
+				".122221110.",
+				"...11100...",
+			],
+		),
+		// A silver bell under a red bow, a bright streak down it, its clapper hanging below.
+		bell: painted(
+			{
+				"0": ["steel", 0],
+				"1": ["steel", 1],
+				"2": ["steel", 2],
+				"3": ["steel", 3],
+				"4": ["steel", 4],
+				w: ["white", 4],
+				P: ["red", 5],
+				R: ["red", 4],
+				r: ["red", 3],
+				d: ["red", 2],
+			},
+			[
+				".RRr...rRd.",
+				"R..rRPRr..d",
+				".RRdrRrdrd.",
+				"...r434d...",
+				"...3w432...",
+				"...3w432...",
+				"..23w4321..",
+				"..34w4321..",
+				".234w43211.",
+				".34w443321.",
+				"34444443322",
+				"..1000001..",
+				"....232....",
+			],
+		),
+		// A present: red, its lid overhanging, a gold ribbon and bow.
+		chest: painted(
+			{
+				P: ["red", 5],
+				R: ["red", 4],
+				r: ["red", 3],
+				d: ["red", 2],
+				e: ["red", 1],
+				G: ["gold", 4],
+				g: ["gold", 3],
+				o: ["gold", 2],
+				b: ["gold", 1],
+			},
+			[
+				"...GG..GG...",
+				"..GobGGboG..",
+				"...ggGGgg...",
+				"PRRRRGGRRRRr",
+				"rrrrrgorrrrd",
+				".eeeeobeeee.",
+				".RRRRgorrrd.",
+				".RRRRgorrrd.",
+				".RRRrgorrdd.",
+				".RRrrgordde.",
+				".ddddbbeeee.",
+			],
+		),
+		// Gear: a parcel in brown paper, tied with string in a bow.
+		gear: painted(
+			{ H: ["cookie", 5], L: ["cookie", 4], M: ["cookie", 3], D: ["cookie", 2], T: ["birch", 3], t: ["birch", 2] },
+			[
+				"..TT..TT..",
+				"...tTTt...",
+				"HHHHTtHHHL",
+				"LLLLTtLLLM",
+				"TTTTTtTTTt",
+				"LLLLTtLMMD",
+				"LLLMTtMMMD",
+				"LMMMTtMMDD",
+				"MMMDtDDDDD",
+			],
+		),
 		shrine: small(16, 24, (p) => {
 			p.r(2, 21, 12, 3, "stone", 0.3);
 			p.l(8, 10, 8, 21, 4, 4.6, "stone", 0);
