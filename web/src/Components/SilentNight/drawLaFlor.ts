@@ -25,7 +25,7 @@ const RAMPS: Record<string, string[]> = {
 	red: ["#22050b", "#480b15", "#781323", "#ab1f31", "#d73648", "#f2666a"],
 	leaf: ["#05120c", "#0c2416", "#163b22", "#245630", "#387640", "#589a56"],
 	gold: ["#3a2408", "#6e460e", "#a87018", "#dca02c", "#ffd060", "#fff0a8"],
-	eye: ["#0b0507", "#1e0f0a", "#3a2010", "#5a3418"],
+	eye: ["#0b0507", "#1e0f0a", "#2e150b", "#3e1d0d", "#4e2712", "#62321a"],
 	white: ["#8a7a72", "#c9b8ac", "#f2e6da"],
 };
 // Candlelight from behind her, on the right: each material's rim.
@@ -135,44 +135,57 @@ export function drawLaFlor(): HTMLCanvasElement {
 		[73, -1],
 		[84, 1],
 	]) {
+		// Every shade here is exactly one of its ramp's, never dithered between two: the dither's
+		// pattern isn't mirrored, so it would draw each eye's lashes differently.
+
 		// A crease above the eye, and the upper lid, heavy and lashed, flicking up at the outer corner.
 		for (let dx = -2; dx <= 2; dx++) {
-			put(cx + dx, 42, "skin", 0.2);
-			put(cx + dx, 43, "eye", 0.05);
-			put(cx + dx, 44, "eye", Math.abs(dx) === 2 ? 0.1 : 0.16);
+			put(cx + dx, 42, "skin", 1 / 5);
+			put(cx + dx, 43, "eye", 0);
 		}
 
-		put(cx - 3, 44, "eye", 0.1);
-		put(cx + 3, 44, "eye", 0.1);
+		for (const dx of [-3, -2, 2, 3]) {
+			put(cx + dx, 44, "eye", 0);
+		}
+
 		put(cx + out * 3, 43, "eye", 0);
-		put(cx + out * 4, 42, "eye", 0.05);
-		// Under the lid: a little white at the corners, a dark brown iris looking straight out, a catchlight.
-		put(cx - 2, 45, "white", 0.1);
-		put(cx + 2, 45, "white", 0.08);
-		put(cx - 1, 45, "white", 0.95);
-		put(cx, 45, "eye", 0.15);
-		put(cx + 1, 45, "eye", 0.5);
+		put(cx + out * 4, 42, "eye", 0);
+		// Under the lid, deep brown eyes looking straight out at you: each iris darker in the lid's
+		// shadow and glowing warmer at the bottom, across from a bright glint of the light, round a
+		// pupil of a darker brown; a little white at the corners.
+		put(cx - 1, 44, "white", 1);
+		put(cx, 44, "eye", 3 / 5);
+		put(cx + 1, 44, "eye", 2 / 5);
+		put(cx - 1, 45, "eye", 4 / 5);
+		put(cx, 45, "eye", 1 / 5);
+		put(cx + 1, 45, "eye", 1);
+		put(cx - 2, 45, "white", 0);
+		put(cx + 2, 45, "white", 0);
 
 		// The lower lid, a soft shadow.
 		for (let dx = -2; dx <= 2; dx++) {
-			put(cx + dx, 46, "skin", 0.2);
+			put(cx + dx, 46, "skin", 1 / 5);
 		}
 
 		// The brow: full and level from its inner end by her nose, tapering down to a fine tail,
 		// in her soft hair brown, close over the eye. (`inner` counts toward her nose.)
-		for (const [inner, y, t] of [
-			[2, 39, 0.34],
-			[2, 40, 0.42],
-			[1, 39, 0.3],
-			[1, 40, 0.42],
-			[0, 39, 0.32],
-			[0, 40, 0.44],
-			[-1, 39, 0.36],
-			[-2, 39, 0.42],
-			[-3, 40, 0.48],
+		for (const [inner, y] of [
+			[2, 39],
+			[2, 40],
+			[1, 39],
+			[1, 40],
+			[0, 39],
+			[0, 40],
+			[-1, 39],
+			[-2, 39],
+			[-3, 40],
 		]) {
-			put(cx - out * inner, y, "hair", t);
+			put(cx - out * inner, y, "hair", 2 / 5);
 		}
+
+		// A soft shadow under the brow's tail.
+		put(cx + out, 40, "skin", 2 / 5);
+		put(cx + out * 2, 40, "skin", 2 / 5);
 	}
 
 	// The nose: shadow down the side away from the light, a soft tip, nostrils.
