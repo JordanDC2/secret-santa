@@ -591,8 +591,17 @@ const ARTS: Record<IEnemyKind, IArt> = {
 				p.x(Math.round(hoof), 45);
 			}
 
-			// His shaggy body, its locks hanging ragged below.
+			// His shaggy body, long locks of his pelt hanging down it, ragged below.
 			p.e(18, 24, 8.6, 10, 0, "blackFur", 0.04);
+
+			for (const [x, bias] of [
+				[12, 0.08],
+				[14.6, -0.06],
+				[24.6, 0.06],
+				[26.8, -0.04],
+			]) {
+				p.l(x, 17, x - 0.6, 30, 0.8, 0.4, "blackFur", 0.04 + bias);
+			}
 
 			for (let x = 10; x <= 27; x += 1.7) {
 				p.l(x, 31, x - 0.4, 34 + ((x * 7) % 3), 1, 0.3, "blackFur", -0.04 + ((x * 3) % 2) * 0.05);
@@ -643,23 +652,24 @@ const ARTS: Record<IEnemyKind, IArt> = {
 			p.e(32.2, 15.4, 1.8, 1.7, 0, "impSkin", 0.02);
 			p.d(30, 15, "horn", 0.1);
 			p.d(30, 16, "horn", 0.1);
-			// His head, sunk between his shoulders in a mane of black fur bristling out in shaggy locks,
-			// tufts of it between his horns.
-			p.e(20, 12, 7, 7, 0, "blackFur", 0.08);
+			// His head, sunk between his shoulders, long black goat hair hanging from his crown like a
+			// hood and falling down his sides onto his shoulders, as in his portrait; tufts of it
+			// between his horns.
+			p.e(20, 11.4, 6.6, 6.6, 0, "blackFur", 0.08);
 
-			for (let i = 0; i < 12; i++) {
-				const angle = -0.45 + (i / 11) * (Math.PI + 0.9);
-				const length = 8 + ((i * 5) % 3) * 0.6;
-				p.l(
-					20 + Math.cos(angle) * 5,
-					12 + Math.sin(angle) * 5.2,
-					20 + Math.cos(angle) * length,
-					12 + Math.sin(angle) * length + 1.4,
-					1.2,
-					0.3,
-					"blackFur",
-					0.02 + (i % 3) * 0.04,
-				);
+			for (const side of [-1, 1]) {
+				for (let j = 0; j < 3; j++) {
+					p.l(
+						20 + side * (4.6 + j * 1.3),
+						7.6 + j * 2.4,
+						20 + side * (6 + j * 1.8),
+						18.6 + j * 2.6,
+						1.3,
+						0.4,
+						"blackFur",
+						0.03 + j * 0.03,
+					);
+				}
 			}
 
 			for (const [x, lean, top] of [
@@ -675,11 +685,13 @@ const ARTS: Record<IEnemyKind, IArt> = {
 			// gaping with fangs at its corners, his long tongue hanging over the goatee under his jaw.
 			paint(p, KRAMPUS_FACE, KRAMPUS_FACE_ROWS, 15, 9);
 
-			// His pointed ears, out from his mane, catching the light at their tips.
+			// His long pointed ears, a devil's, sweeping out and up from his hair, catching the light at
+			// their tips.
 			for (const side of [-1, 1]) {
 				p.d(20 + side * 6, 10, "impSkin", 0.25);
 				p.d(20 + side * 7, 10, "impSkin", 0.5);
-				p.d(20 + side * 8, 9, "impSkin", 0.75);
+				p.d(20 + side * 8, 9, "impSkin", 0.5);
+				p.d(20 + side * 9, 8, "impSkin", 0.75);
 			}
 
 			// Great ridged horns, sweeping out from his brow and up.
