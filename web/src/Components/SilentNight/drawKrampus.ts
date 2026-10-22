@@ -52,18 +52,9 @@ const RIM: Record<string, string[]> = {
 /** Shaggy fur: matted locks hanging in clumps. */
 const shag: ITexture = (x, y) =>
 	0.11 * Math.sin(x * 0.7 + 4 * fbm(x * 0.06, y * 0.03)) + 0.06 * fbm(x * 0.3, y * 0.15) + 0.04 * (hash(x, y) - 0.5);
-/** His pelt: long locks of goat hair hanging in overlapping rows, each tapering to a point. */
-const locks: ITexture = (x, y) => {
-	const shifted = x + 1.5 * Math.sin(y * 0.15);
-	const column = Math.floor(shifted / 6);
-	const along = y + hash(column, 9) * 13;
-	const row = Math.floor(along / 13);
-	const across = 2 * Math.abs((shifted % 6) / 6 - 0.5);
-	const down = (along % 13) / 13;
-	const tone = 0.06 * (hash(column, row) - 0.5);
+/** His body's half-width at each row: hulking shoulders hunched up round his head, tapering a little below. */
+const bodyHalf = (y: number) => (y < 82 ? 18 + Math.sqrt(Math.max(0, y - 70) / 12) * 26 : 44 - (y - 82) * 0.07);
 
-	return (across < 1 - down * 0.7 ? 0.08 * (1 - across) - 0.05 * down : -0.07) + tone + 0.6 * shag(x, y);
-};
 /** A ragged edge: a jag of up to `size` pixels, changing every couple of rows. */
 const jag = (y: number, size: number) => (hash(Math.floor(y / 2), 41) - 0.5) * size;
 
@@ -265,24 +256,64 @@ export function drawKrampus(): HTMLCanvasElement {
 		}
 	}
 
-	// The shaggy black fur of his shoulders and chest, and his mane round his face.
+	// His body under his pelt: hulking shoulders hunched up round his head, tapering a little below.
 	fill(
 		70,
 		160,
 		(y) => {
-			// Hulking shoulders, hunched up round his head, tapering a little below; locks of fur hanging off his sides.
-			const half = y < 82 ? 18 + Math.sqrt((y - 70) / 12) * 26 : 44 - (y - 82) * 0.07;
 			const hanging = (side: number) => 2.5 * Math.sin(y * 0.45 + side) + jag(y + side * 7, 5);
 
-			return [92 - half - hanging(-1), 92 + half + hanging(1)];
+			return [92 - bodyHalf(y) - hanging(-1), 92 + bodyHalf(y) + hanging(1)];
 		},
 		"fur",
 		(x, y, left, right) => {
 			const across = ((x + 0.5 - left) / (right - left)) * 2 - 1;
 
-			return 0.28 + 0.12 * across + 0.24 * Math.sqrt(Math.max(0, 1 - across * across)) + locks(x, y) + firelight(x, y);
+			return 0.2 + 0.1 * across + 0.2 * Math.sqrt(Math.max(0, 1 - across * across)) + shag(x, y) + firelight(x, y);
 		},
 	);
+
+	// His pelt: long locks of black goat hair layered from his shoulders down in tiers, like a
+	// Krampus's coat, each lock its own length and shade, spreading a little as they fall; those at
+	// his sides breaking his outline; the fire catching them from below.
+	for (let tier = 0; tier < 6; tier++) {
+		const y = 72 + tier * 14;
+		const half = bodyHalf(y);
+		const count = Math.round(half / 3.2);
+
+		for (let i = 0; i <= count; i++) {
+			const across = (i / count) * 2 - 1;
+			const x = 92 + across * (half + 2) + (hash(i, tier + 71) - 0.5) * 3;
+			petal(
+				x,
+				y + (hash(i, tier + 72) - 0.5) * 4,
+				20 + hash(i, tier + 73) * 12,
+				3.2 + hash(i, tier + 74) * 2,
+				Math.PI / 2 - across * 0.18 + (hash(i, tier + 75) - 0.5) * 0.12,
+				"fur",
+				0.02 + hash(i, tier + 76) * 0.08 + firelight(x, y) * 0.8 - tier * 0.01,
+			);
+		}
+	}
+
+	// Stray locks sticking out along his right flank at odd lengths and angles, the fire catching
+	// them, ragging his outline.
+	for (let y = 84; y < 158; y += 5 + Math.floor(hash(y, 91) * 4)) {
+		if (hash(y, 95) < 0.25) {
+			continue;
+		}
+
+		petal(
+			92 + bodyHalf(y) + 2 + hash(y, 96) * 2,
+			y,
+			8 + hash(y, 91) * 10,
+			1.6 + hash(y, 92) * 1.2,
+			Math.PI / 2 - (0.4 + hash(y, 93) * 0.7),
+			"fur",
+			0.04 + hash(y, 94) * 0.06 + firelight(132, y),
+		);
+	}
+
 	// His hair: long black goat hair hanging from his crown like a hood, falling past his face and
 	// down over his shoulders, flaring a little as it falls; ragged tufts round the roots of his horns.
 	ellipse(92, 50, 17, 13, 0, "fur", 0.04, shag);
@@ -407,14 +438,11 @@ export function drawKrampus(): HTMLCanvasElement {
 	limb(92.4, 73.5, 93.4, 83, 0.45, 0.45, "tongue", -0.14);
 	limb(93.4, 83, 94.4, 90, 0.45, 0.4, "tongue", -0.14);
 
-	// A cowbell hanging at his hip from his belt, on a broad leather strap through its loop, as the
-	// Krampus runs wear them: hammered brass, tall and boxy, a flat face between narrower sides,
-	// square shoulders, its mouth dark across the bottom and its clapper hanging out of it.
-	limb(67, 106, 64.5, 118, 1.8, 1.8, "leather", 0.1);
-	put(66, 110, "brass", 0.75);
-	put(67, 110, "brass", 0.6);
-	put(66, 111, "brass", 0.55);
-	put(67, 112, "brass", 0.5);
+	// A cowbell hanging at his hip from his chain on a broad leather strap (the strap, looped over
+	// a link, is painted over the chain below): hammered brass, tall and boxy, a flat face between
+	// narrower sides, square shoulders, its mouth dark across the bottom and its clapper hanging out
+	// of it, resting against his pelt, its shadow in the fur beside it.
+	ellipse(66.5, 131, 8, 11, 0, "fur", -0.2, shag);
 	ellipse(64, 119, 2.4, 1.8, 0, "brass", 0.2);
 	ellipse(64, 119, 1, 0.7, 0, "mouth", 0);
 	fill(
@@ -454,13 +482,15 @@ export function drawKrampus(): HTMLCanvasElement {
 	limb(124, 82, 146, 104, 8, 6.4, "fur", 0.04, (x, y) => shag(x, y) + firelight(x, y));
 	limb(146, 104, 154, 90, 6.4, 4.4, "fur", 0.08, (x, y) => shag(x, y) + firelight(x, y));
 
-	// Shaggy locks hanging off his arm.
-	for (const [x, y] of [
-		[136, 98],
-		[144, 106],
-		[150, 106],
+	// Long locks of his pelt hanging off his arm.
+	for (const [x, y, length] of [
+		[128, 90, 13],
+		[134, 96, 14],
+		[140, 101, 13],
+		[146, 106, 12],
+		[152, 103, 10],
 	]) {
-		petal(x, y, 9, 2.6, Math.PI / 2 + 0.2, "fur", 0.06, shag);
+		petal(x, y, length, 2.8, Math.PI / 2 + 0.18, "fur", 0.06 + firelight(x, y));
 	}
 
 	// The switches: a bundle of thin birch twigs, of different lengths, crooked, splaying from his
@@ -560,6 +590,28 @@ export function drawKrampus(): HTMLCanvasElement {
 	paintSwirl(context, things, false, drawThing, RAMPS, RIM);
 	paintFigure(context, colours);
 	paintSwirl(context, things, true, drawThing, RAMPS, RIM);
+
+	// The cowbell's strap, looped over a link of his chain and hanging down in front of it to the
+	// bell's loop, a brass buckle on it.
+	paintLayer(
+		context,
+		(keep) => {
+			ellipse(65.2, 103.4, 1.7, 1.2, 0, "leather", 0.16, null, keep);
+			limb(65.2, 103.6, 64.4, 117.6, 1.4, 1.3, "leather", 0.08, null, keep);
+			limb(65.4, 103.8, 65.2, 107, 0.5, 0.5, "leather", -0.12, null, keep);
+
+			for (const [x, y, t] of [
+				[64, 110, 0.75],
+				[65, 110, 0.6],
+				[64, 111, 0.5],
+				[65, 111, 0.3],
+			]) {
+				keep(x, y, "brass", t);
+			}
+		},
+		RAMPS,
+		null,
+	);
 
 	// His eyes, burning: slanted slits.
 	paintLayer(
