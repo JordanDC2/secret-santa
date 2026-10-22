@@ -7,7 +7,7 @@
  */
 
 import { RAMPS, RIMS, OUTLINE } from "Components/SilentNight/palette";
-import { flipped, Sprite } from "Components/SilentNight/pixelArt";
+import { flipped, Sprite, type IRamps } from "Components/SilentNight/pixelArt";
 import type { IEnemyKind } from "Components/SilentNight/types";
 
 /** Draws shapes at a scale (1 for life size, 1.5 for an elite), in life-size coordinates. */
@@ -71,8 +71,116 @@ type IArt = {
 	eyeColour: string | null;
 	/** Floats above the snow by this much, bobbing. */
 	floats?: number;
+	/** The rim lights it takes, if not every material's. */
+	rims?: IRamps;
 	draw: (pen: Pen, step: 0 | 1) => void;
 };
+
+/**
+ * Krampus, painted pixel by pixel after his portrait (drawKrampus.ts): great ridged horns, a hood
+ * of black fur round a dark red face with fangs and a long tongue, his chain coiled twice round
+ * him with its end swinging from one claw, a cowbell on it at his hip, a sheaf of birch switches
+ * bound in red raised in the other, ragged fur over goat legs. His fur's shades (1–4), his mouth
+ * (p) and face's (q–t), horn (m–j), red (R–U), fangs (W, w), his eyes' sockets (Y), chain (a, b,
+ * d), birch (i, I) and brass (g, G, o).
+ */
+const KRAMPUS: IPaintKey = {
+	"1": ["blackFur", 1],
+	"2": ["blackFur", 2],
+	"3": ["blackFur", 3],
+	"4": ["blackFur", 4],
+	p: ["dark", 0],
+	q: ["impSkin", 1],
+	r: ["impSkin", 2],
+	s: ["impSkin", 3],
+	t: ["impSkin", 4],
+	m: ["horn", 1],
+	k: ["horn", 2],
+	j: ["horn", 3],
+	R: ["red", 4],
+	T: ["red", 3],
+	U: ["red", 2],
+	W: ["white", 4],
+	w: ["white", 3],
+	Y: ["yellowGlow", 0],
+	a: ["steel", 1],
+	b: ["steel", 2],
+	d: ["steel", 4],
+	i: ["birch", 1],
+	I: ["birch", 2],
+	g: ["gold", 1],
+	G: ["gold", 2],
+	o: ["gold", 3],
+};
+
+/** All of him down to his hem, the same in both steps of his walk. */
+const KRAMPUS_BODY = [
+	"...........j...............j........",
+	"...........k...............k..i....i",
+	"..........jjj.............jjj.i...i.",
+	"...........kjj...........jjk...i..i.",
+	"...........jjkj.........jkjj...IiIi.",
+	"............kkkj.......jkkk.i..iiI.i",
+	".............kkkj32222jkkk..i..IIi.i",
+	"..............jkkk222kkkj...i..i.I.I",
+	"..............jkjk222kjkj....I.I.i.I",
+	"..............3kk3rrrqkk2.....IiIIi.",
+	"............sr333qqqqqqq22rs...Iii..",
+	".............3r33rYqrqYq2r.....iII..",
+	".............333rssrtqqr22.....TRU..",
+	".............333rrrqtqqq22.....RRTT.",
+	"..............333rWpppW22.....krsr.R",
+	"..............333rwpRpw22.....mqrsUT",
+	".............3333322RT223333..kmqr..",
+	"..........3334223322RT3333332..444..",
+	".........33333112244RT2333333.4444..",
+	".........d33333344333R443334444444..",
+	"........43ab333344332T443344444444..",
+	"........4333d32233332U331344434444..",
+	".......443333ab233332233334443444...",
+	".......44332222dab222233333433333...",
+	"......444332442233dabd33222d33333...",
+	"......4443224411224433abdab12333....",
+	"......4a43223333443333442221222.....",
+	".....444bd11333344332244222111......",
+	".....4rsr4ab3322333322331111332.....",
+	".....kqrqk33dab2333322333332332.....",
+	".....mk3m32Go22dabd222333332abd.....",
+	".......d33GooG22334abdabdabd2.......",
+	".......b33gGoG1122443322222122......",
+	".......a3gGoGgg34433334422112.......",
+	"......d.211ab12121211111212121......",
+];
+
+/** His legs and the chain's swinging end, a step of his walk each. */
+const KRAMPUS_LEGS = [
+	[
+		".......b21..21211.1221112.1121......",
+		".......a2...2111....21112..12.......",
+		".......d1..22221.....1111...1.......",
+		".......b...2222......1111...........",
+		".......a...222........111...........",
+		"..........2222........111...........",
+		"..........222..........111..........",
+		"..........22...........111..........",
+		".........222............11..........",
+		"..........jkk...........jkk.........",
+		"..........mmm...........mmm.........",
+	],
+	[
+		"......b.21...1211.1221112.1121......",
+		"......a.2....1111..221112..12.......",
+		".....d..1....2211..2211.1...1.......",
+		".....b.......2211..2211.............",
+		".....a.......221....211.............",
+		".............221....211.............",
+		".............221....21..............",
+		"..............21....21..............",
+		"..............211...21..............",
+		"..............jkk...jkk.............",
+		"..............mmm...mmm.............",
+	],
+];
 
 const ARTS: Record<IEnemyKind, IArt> = {
 	gingerbread: {
@@ -432,47 +540,12 @@ const ARTS: Record<IEnemyKind, IArt> = {
 			[18, 11],
 			[22, 11],
 		],
-		eyeColour: "#ff3b2a",
+		// Burning, as in his portrait.
+		eyeColour: "#ffb040",
+		// Only his fur takes the candlelight at its edge; everything else is painted lit already.
+		rims: { blackFur: RIMS.blackFur },
 		draw(p, step) {
-			const stride = step === 0 ? 1 : -0.6;
-			// Goat legs and hooves.
-			p.e(14, 32, 4, 5, 0, "blackFur", -0.04);
-			p.e(22, 32, 4, 5, 0, "blackFur", 0);
-			p.l(13, 36, 12 - stride, 43, 2.2, 1.4, "blackFur", -0.04);
-			p.l(23, 36, 24 + stride, 43, 2.2, 1.4, "blackFur", 0);
-			p.e(12 - stride, 44.2, 1.6, 1, 0, "horn", 0.1);
-			p.e(24 + stride, 44.2, 1.6, 1, 0, "horn", 0.15);
-			// The birch rod in one hand.
-			p.l(11, 20, 6, 30, 2.4, 2, "blackFur", -0.02);
-			p.l(6, 30, 3, 42, 1.4, 1, "birch", 0.05);
-			p.l(5, 31, 1, 40, 0.5, 0.4, "birch", 0);
-			p.l(7, 31, 6, 42, 0.5, 0.4, "birch", 0.1);
-			// His shaggy body, chains slung across it.
-			p.e(18, 24, 8, 9.5, 0, "blackFur", 0.05);
-
-			for (let i = 0; i < 8; i++) {
-				p.d(11 + i * 2, 18 + i * 1.6, "steel", i % 2 === 0 ? 0.6 : 0.4);
-			}
-
-			// The other arm, raised, a chain hanging from it.
-			p.l(25, 20, 31, 15, 2.4, 2, "blackFur", 0.04);
-
-			for (let i = 0; i < 6; i++) {
-				p.d(31 + (i % 2), 16 + i * 2, "steel", 0.5);
-			}
-
-			// His head: horns, a long red tongue, fangs.
-			p.e(19, 12, 5, 5.6, 0, "blackFur", 0.08);
-			p.e(21, 14, 3, 2.4, 0, "impSkin", -0.1);
-			p.l(21.4, 16, 22.4, 22, 1, 0.6, "red", 0.1);
-			p.d(20, 16, "white", 0.6);
-			p.d(23, 16, "white", 0.6);
-			p.l(16, 8, 11, 3, 1.6, 1, "horn", 0.05);
-			p.l(11, 3, 9, 0, 1, 0.5, "horn", 0.1);
-			p.l(22, 8, 27, 3, 1.6, 1, "horn", 0.1);
-			p.l(27, 3, 29, 0, 1, 0.5, "horn", 0.15);
-			p.d(18, 11, "glow", 0.8);
-			p.d(22, 11, "glow", 0.8);
+			paint(p, KRAMPUS, [...KRAMPUS_BODY, ...KRAMPUS_LEGS[step]]);
 		},
 	},
 };
@@ -510,7 +583,7 @@ function makeArt(art: IArt, scale: number): IEnemyArt {
 		const pen = new Pen(art.width, art.height, scale);
 		art.draw(pen, step);
 
-		return pen.sprite.render(RAMPS, RIMS, OUTLINE, 1);
+		return pen.sprite.render(RAMPS, art.rims ?? RIMS, OUTLINE, 1);
 	});
 	const flash = flatOf(right[0]);
 	const ice = flatOf(right[0], "#9ad8ff");
@@ -635,19 +708,23 @@ const COAL: IPaintKey = {
  */
 function painted(key: IPaintKey, rows: string[]): HTMLCanvasElement {
 	const pen = new Pen(rows[0].length, rows.length, 1);
+	paint(pen, key, rows);
 
+	return pen.sprite.render(RAMPS, RIMS, OUTLINE, 1, 0);
+}
+
+/** Paints rows of letters ("." is empty) with `pen`, each an exact shade from `key`. */
+function paint(pen: Pen, key: IPaintKey, rows: string[]) {
 	rows.forEach((row, y) => {
 		[...row].forEach((letter, x) => {
-			const paint = key[letter];
+			const shade = key[letter];
 
-			if (paint) {
-				const [material, step] = paint;
+			if (shade) {
+				const [material, step] = shade;
 				pen.d(x, y, material, step / (RAMPS[material].length - 1));
 			}
 		});
 	});
-
-	return pen.sprite.render(RAMPS, RIMS, OUTLINE, 1, 0);
 }
 
 function small(width: number, height: number, draw: (pen: Pen) => void, rim = 1): HTMLCanvasElement {
