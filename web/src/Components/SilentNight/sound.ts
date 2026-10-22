@@ -13,9 +13,59 @@
  * box and strings) in step while the night waits on a choice.
  */
 
-import { audioNow, hiss, musicBus, readSoundOn, tone } from "Components/ElfFling/sound";
+import { audioNow, hiss as playHiss, musicBus, readSoundOn, tone as playTone } from "Components/ElfFling/sound";
 import { ENEMY_KINDS } from "Components/SilentNight/constants";
+import { readSettings } from "Components/SilentNight/settings";
 import type { IEnemyKind, IEvents, IGunId } from "Components/SilentNight/types";
+
+/**
+ * How loud the music and the sound effects are (settings.ts): the effects through a volume of
+ * their own (every tone and hiss here that isn't given somewhere to go), each piece of music
+ * through its own bus at the music's volume, kept up to date while it plays.
+ */
+let { music: musicVolume, effects: effectsVolume } = readSettings();
+let effectsBus: GainNode | null = null;
+const musicBuses = new Set<GainNode>();
+
+function effectsOut(): AudioNode | undefined {
+	effectsBus ??= musicBus();
+
+	if (effectsBus) {
+		effectsBus.gain.value = effectsVolume;
+	}
+
+	return effectsBus ?? undefined;
+}
+
+/** A bus for some music, at the music's volume, followed until it's `released`. */
+function musicOut(): GainNode | null {
+	const bus = musicBus();
+
+	if (bus) {
+		bus.gain.value = musicVolume;
+		musicBuses.add(bus);
+	}
+
+	return bus;
+}
+
+export function setVolumes(music: number, effects: number) {
+	musicVolume = music;
+	effectsVolume = effects;
+	const now = audioNow() ?? 0;
+
+	for (const bus of musicBuses) {
+		bus.gain.setTargetAtTime(music, now, 0.05);
+	}
+
+	effectsBus?.gain.setTargetAtTime(effects, now, 0.05);
+}
+
+/** A tone or hiss (Elf Fling's), through the effects' volume unless it's given somewhere else to go (the music). */
+const tone: typeof playTone = (type, from, to, length, volume, delay = 0, output = effectsOut()) =>
+	playTone(type, from, to, length, volume, delay, output);
+const hiss: typeof playHiss = (filter, frequency, length, volume, delay = 0, sweepTo, output = effectsOut()) =>
+	playHiss(filter, frequency, length, volume, delay, sweepTo, output);
 
 /** Whether sound's on, for the sounds played outside the night's loop (the menus, a chest). */
 let soundOn = readSoundOn();
@@ -1572,7 +1622,7 @@ const CROSSFADE = 0.4;
  */
 export function startNightMusic(night: () => { time: number; boss: boolean; soft: boolean }, menu = false): () => void {
 	const started = audioNow();
-	const bus = musicBus();
+	const bus = musicOut();
 
 	if (started === null || !bus) {
 		return () => {};
@@ -1680,6 +1730,7 @@ export function startNightMusic(night: () => { time: number; boss: boolean; soft
 
 	return () => {
 		window.clearInterval(timer);
+		musicBuses.delete(bus);
 		const now = audioNow() ?? 0;
 		bus.gain.setValueAtTime(bus.gain.value, now);
 		bus.gain.linearRampToValueAtTime(0, now + 1);
@@ -1751,7 +1802,7 @@ export function playPause(paused: boolean) {
  * high to low on a music box, and a bell tolling twice.
  */
 export function playNightBegins() {
-	const bus = soundOn ? musicBus() : null;
+	const bus = soundOn ? musicOut() : null;
 
 	if (!bus) {
 		return;
@@ -1791,5 +1842,8 @@ export function playNightBegins() {
 		tone("sine", NOTE.C3 * 5.4, NOTE.C3 * 5.4, 1, 0.015, at, bus);
 	}
 
-	window.setTimeout(() => bus.disconnect(), 4000);
+	window.setTimeout(() => {
+		musicBuses.delete(bus);
+		bus.disconnect();
+	}, 4000);
 }

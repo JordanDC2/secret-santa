@@ -23,6 +23,7 @@ type IMenuProps = {
 	onStart: (character: ICastId, gun: IGunId) => void;
 	onChoose: (character: ICastId) => void;
 	onBuy: (purchase: IPurchase) => void;
+	onSettings: () => void;
 };
 
 const GUN_KEY = "silent-night-gun";
@@ -52,7 +53,7 @@ function saveGun(gun: IGunId) {
  * they carry (remembered on this device; the rest of the guns unlocked with coal too), and the Coal Cellar:
  * upgrades, which last from night to night, and the second wave of patrons.
  */
-export default function Menu({ progress, castImages, busy, error, onStart, onChoose, onBuy }: IMenuProps) {
+export default function Menu({ progress, castImages, busy, error, onStart, onChoose, onBuy, onSettings }: IMenuProps) {
 	const [view, setView] = useState<"main" | "cast" | "cellar">("main");
 	const chosen = castMember(progress.character);
 	// The gun picked, if it's theirs (one still being unlocked is picked once it is), else the candy cane gun.
@@ -90,6 +91,9 @@ export default function Menu({ progress, castImages, busy, error, onStart, onCho
 					<GameButton onClick={() => setView("cast")}>Start the longest night</GameButton>
 					<GameButton variant="plain" onClick={() => setView("cellar")}>
 						Coal Cellar
+					</GameButton>
+					<GameButton variant="plain" onClick={onSettings}>
+						Settings
 					</GameButton>
 				</div>
 				<span className={classes.coal}>{progress.coal.toLocaleString()} coal</span>

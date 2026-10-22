@@ -91,8 +91,8 @@ function SilentNight() {
 				)}
 				<MantineText size="sm" c="dimmed">
 					{touchScreen
-						? "Left thumb moves; right thumb aims and fires. Tap Dash to dart through them. Everything else fires on its own. Full screen, held sideways, is best."
-						: "WASD or the arrow keys to move, the mouse to aim, hold the mouse button to fire. Space dashes through them; R reloads; Esc pauses. Everything else fires on its own."}
+						? "Left thumb moves; right thumb aims and fires (or let the game aim, or aim and fire, for you in Settings). Tap Dash to dart through them. Everything else fires on its own. Full screen, held sideways, is best."
+						: "WASD or the arrow keys to move, the mouse to aim, hold the mouse button to fire (or let the game aim, or aim and fire, for you in Settings). Space dashes through them; R reloads; Esc pauses. Everything else fires on its own."}
 				</MantineText>
 				<SilentNightLeaderboard />
 			</Stack>

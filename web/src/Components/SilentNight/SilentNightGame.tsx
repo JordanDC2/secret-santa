@@ -22,8 +22,11 @@ import {
 	playNightBegins,
 	playNightEvents,
 	playPause,
+	setVolumes,
 	startNightMusic,
 } from "Components/SilentNight/sound";
+import { readSettings, saveSettings, type ISettings } from "Components/SilentNight/settings";
+import SettingsMenu from "Components/SilentNight/SettingsMenu";
 import { makeSprites } from "Components/SilentNight/sprites";
 import { PASSIVES } from "Components/SilentNight/stats";
 import {
@@ -44,6 +47,8 @@ import classes from "Components/SilentNight/SilentNight.module.less";
 /** The rules run in steps this long, however fast the screen refreshes, and never more than MAX_FRAME at once. */
 const STEP = 1 / 120;
 const MAX_FRAME = 0.1;
+/** How far auto-aim and auto-shoot look for an enemy (the game's pixels): about as far as the guns reach. */
+const AUTO_REACH = 150;
 /** How long the curtain takes to rise on a night (ms): it holds, then lifts off the top (SilentNight.module.less). */
 const ENTERING_MS = 2400;
 /** A thumbstick's reach on screen, in CSS pixels, and how far it has to go to count. */
@@ -158,6 +163,16 @@ export default function SilentNightGame({
 	const [prompt, setPrompt] = useState<IPrompt | null>(null);
 	const [paused, setPaused] = useState(false);
 	const pausedRef = useRef(false);
+	// The settings (settings.ts), and the same for the loop.
+	const [settings, setSettings] = useState(readSettings);
+	const settingsRef = useRef(settings);
+	const changeSettings = (next: ISettings) => {
+		settingsRef.current = next;
+		setSettings(next);
+		saveSettings(next);
+		setVolumes(next.music, next.effects);
+	};
+	const [showSettings, setShowSettings] = useState(false);
 	// The curtain rising as a night begins.
 	const [entering, setEntering] = useState(false);
 	const enteringRef = useRef(false);
@@ -176,6 +191,8 @@ export default function SilentNightGame({
 	const moveStickRef = useRef<IStick>(null);
 	const aimStickRef = useRef<IStick>(null);
 	const dashRef = useRef(false);
+	// The fire button held (on a touch screen, with auto-aim but not auto-shoot).
+	const fireRef = useRef(false);
 	const reloadRef = useRef(false);
 	// The counters, updated straight from the loop.
 	const healthRef = useRef<HTMLDivElement>(null);
@@ -328,6 +345,38 @@ export default function SilentNightGame({
 				const length = Math.hypot(dx, dy) || 1;
 				aim = { x: dx / length, y: dy / length };
 				firing = mouseRef.current.down;
+			}
+
+			// Aiming and shooting for the player, if they've asked (settings.ts), at the nearest enemy in
+			// the gun's reach. Auto-aim always aims there (nothing overrides it), or where the elf's heading
+			// with none near, and leaves the firing to the mouse button or, on a touch screen, the fire
+			// button; auto-shoot fires whenever there's an enemy in reach.
+			const { autoAim, autoShoot } = settingsRef.current;
+
+			if (autoAim || autoShoot) {
+				const { player } = world;
+				let nearest: { x: number; y: number } | null = null;
+				let best = AUTO_REACH;
+
+				for (const enemy of world.enemies) {
+					const dx = enemy.x - player.x;
+					const dy = enemy.y - enemy.radius * 0.8 - (player.y - 8);
+					const distance = Math.hypot(dx, dy);
+
+					if (distance < best) {
+						best = distance;
+						nearest = { x: dx / distance, y: dy / distance };
+					}
+				}
+
+				if (autoAim) {
+					aim = nearest ?? player.heading;
+					firing = fireRef.current || (mouseRef.current?.down ?? false);
+				}
+
+				if (autoShoot) {
+					firing = nearest !== null && aim !== null;
+				}
 			}
 
 			const result: IInput = { move, aim, firing, dash: dashRef.current, reload: reloadRef.current };
@@ -520,9 +569,12 @@ export default function SilentNightGame({
 		if (x < box.width / 2) {
 			moveStickRef.current = stick;
 			showStick(moveStickView.current, stick);
-		} else {
+		} else if (!settingsRef.current.autoAim) {
+			// (With auto-aim, there's no aiming by hand: the fire button fires.)
 			aimStickRef.current = stick;
 			showStick(aimStickView.current, stick);
+		} else {
+			return;
 		}
 
 		event.currentTarget.setPointerCapture(event.pointerId);
@@ -623,11 +675,12 @@ export default function SilentNightGame({
 		setSoundOn(!soundOn);
 	};
 
-	// Sticks let go when something comes up over the game, so the elf doesn't run on.
+	// Sticks (and the fire button) let go when something comes up over the game, so the elf doesn't run on.
 	useEffect(() => {
 		if (waiting) {
 			moveStickRef.current = null;
 			aimStickRef.current = null;
+			fireRef.current = false;
 			showStick(moveStickView.current, null);
 			showStick(aimStickView.current, null);
 
@@ -735,6 +788,26 @@ export default function SilentNightGame({
 				</button>
 			)}
 
+			{playing && touchScreen && !waiting && settings.autoAim && !settings.autoShoot && (
+				<button
+					type="button"
+					className={classes.fire}
+					onPointerDown={(event) => {
+						event.stopPropagation();
+						event.currentTarget.setPointerCapture(event.pointerId);
+						fireRef.current = true;
+					}}
+					onPointerUp={() => {
+						fireRef.current = false;
+					}}
+					onPointerCancel={() => {
+						fireRef.current = false;
+					}}
+				>
+					Fire
+				</button>
+			)}
+
 			{playing && !waiting && !entering && (
 				<Tooltip label="Pause (Esc)" withArrow disabled={touchScreen}>
 					<ActionIcon
@@ -793,6 +866,9 @@ export default function SilentNightGame({
 					<Carried player={world.player} />
 					<GearSlots gear={world.player.gear} />
 					<GameButton onClick={() => pause(false)}>Carry on</GameButton>
+					<GameButton variant="plain" onClick={() => setShowSettings(true)}>
+						Settings
+					</GameButton>
 					<GameButton
 						variant="quiet"
 						onClick={() => {
@@ -829,7 +905,12 @@ export default function SilentNightGame({
 					onStart={start}
 					onChoose={onChoose}
 					onBuy={onBuy}
+					onSettings={() => setShowSettings(true)}
 				/>
+			)}
+
+			{showSettings && (
+				<SettingsMenu settings={settings} onChange={changeSettings} onClose={() => setShowSettings(false)} />
 			)}
 		</div>
 	);
