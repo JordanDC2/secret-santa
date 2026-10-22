@@ -73,6 +73,24 @@ const locksFrom =
 export function drawLaFlor(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, filled, light } = figure(RAMPS, RIM);
 
+	// A wisp of her hair: a lock thinning to a fine tip as it falls, bending a little.
+	const wisp = (
+		x: number,
+		y: number,
+		dx: number,
+		dy: number,
+		bend: number,
+		bias: number,
+		locks: ITexture,
+		thick = 1.3,
+	) => {
+		const mx = x + dx / 2 - dy * bend;
+		const my = y + dy / 2 + dx * bend;
+
+		limb(x, y, mx, my, thick, thick * 0.6, "hair", bias, locks);
+		limb(mx, my, x + dx, y + dy, thick * 0.6, 0.3, "hair", bias, locks);
+	};
+
 	// --- The figure, back to front. ---
 
 	// Her hair behind her, streaming to the left in the wind, its locks fanning out from high
@@ -82,6 +100,15 @@ export function drawLaFlor(): HTMLCanvasElement {
 	ellipse(62, 74, 13, 24, 0.35, "hair", -0.08, streaming);
 	ellipse(52, 100, 10, 22, 0.3, "hair", -0.12, streaming);
 	ellipse(44, 124, 7, 18, 0.25, "hair", -0.16, streaming);
+
+	// Wisps blowing loose from it.
+	for (const [x, y, dx, dy] of [
+		[55, 60, -6, 11],
+		[50, 72, -7, 13],
+		[47, 88, -6, 11],
+	]) {
+		wisp(x, y, dx, dy, 0.05, 0.06, streaming, 0.9);
+	}
 
 	// The poinsettia's green leaves, under the bracts of her skirt.
 	for (const [angle, len] of [
@@ -159,6 +186,14 @@ export function drawLaFlor(): HTMLCanvasElement {
 	const overShoulder = locksFrom(84, 20, 0.073);
 	ellipse(96, 74, 5.5, 15, -0.18, "hair", -0.02, overShoulder);
 	ellipse(99, 92, 4.5, 11, -0.08, "hair", -0.06, overShoulder);
+
+	// Its ends, in wisps falling over her skirt.
+	for (const [x, y, dx, dy] of [
+		[95.5, 100, -1, 7],
+		[97.5, 100.5, 0, 8],
+	]) {
+		wisp(x, y, dx, dy, 0.08, -0.06, overShoulder);
+	}
 
 	// The fringe, falling from her parting to frame her face, and locks down either cheek.
 	const fringe = locksFrom(76, 20, 0.2);
@@ -285,9 +320,10 @@ export function drawLaFlor(): HTMLCanvasElement {
 	petal(74, 94, 9, 3, 3.6, "leaf", 0.05);
 	petal(82, 95, 9, 3, -0.45, "leaf", 0);
 
-	// Her forearms, from her elbows in front of her bodice, and her hands clasped round the stems.
+	// Her forearms, from her elbows in front of her bodice (her right one in the shadow of her
+	// hair by her elbow), and her hands clasped round the stems.
 	limb(60, 93, 73, 101, 3.4, 2.7, "skin", -0.02);
-	limb(96, 93, 83, 101, 3.4, 2.7, "skin", -0.05);
+	limb(96, 93, 83, 101, 3.4, 2.7, "skin", -0.05, (x) => -0.14 * clamp((x - 89) / 6));
 	// Her hands meeting round the stems, each from its own side: her left over her right, its
 	// fingers wrapped across the back of the other.
 	ellipse(75.5, 101, 4, 3.2, -0.35, "skin", -0.04);
@@ -295,6 +331,14 @@ export function drawLaFlor(): HTMLCanvasElement {
 
 	for (const y of [99.4, 101.2, 103]) {
 		limb(80, y, 75.6, y + 0.4, 0.85, 0.75, "skin", 0.1);
+	}
+
+	// Wisps of her hair over her shoulder falling over her forearm by her elbow.
+	for (const [x, y, dx, dy] of [
+		[95, 86, -1, 9],
+		[97.5, 87, -0.5, 7],
+	]) {
+		wisp(x, y, dx, dy, 0.06, 0.04, overShoulder, 0.9);
 	}
 
 	const bloom = (cx: number, cy: number, size: number, petals: number, turn: number, bias = 0, target: IPut = put) => {
