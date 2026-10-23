@@ -18,6 +18,7 @@ import {
 	paintSwirl,
 	paintGlow,
 	dither,
+	settle,
 	type ISwirlItem,
 	type IPut,
 } from "Components/SilentNight/portraitKit";
@@ -68,6 +69,8 @@ const starlight = (x: number, y: number) => 0.2 * clamp(1 - Math.hypot(x - STAR.
 
 export function drawChristkind(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, fill, light } = figure(RAMPS, RIM);
+	// Their skin settled on its shades, in clean shapes, where it would speckle as its light falls off.
+	const smooth: IPut = (x, y, material, t) => put(x, y, material, t + settle(t, RAMPS[material].length));
 
 	// Feathers drifting down from their wings, tumbling as they fall.
 	const drawThing = (keep: IPut, { x, y, size, angle, front }: ISwirlItem) => {
@@ -176,7 +179,8 @@ export function drawChristkind(): HTMLCanvasElement {
 		},
 	);
 
-	// Where the star lights the robe, it takes its gold, dithered into the white.
+	// Close round the star, its light warms the robe: a small, round glow, its edge dithered into
+	// the white.
 	fill(
 		66,
 		160,
@@ -187,13 +191,15 @@ export function drawChristkind(): HTMLCanvasElement {
 		},
 		"robeWarm",
 		(x, y, left, right) => {
-			if (starlight(x, y) * 5 < dither(x, y) + 0.12) {
+			if (Math.hypot(x + 0.5 - STAR.x, y + 0.5 - STAR.y) > 9 + 1.2 * (dither(x, y) - 0.5)) {
 				return null;
 			}
 
 			const across = ((x + 0.5 - left) / (right - left)) * 2 - 1;
+			const t =
+				0.42 + 0.16 * -across + 0.28 * Math.sqrt(Math.max(0, 1 - across * across)) + starlight(x, y) + crease(x, y);
 
-			return 0.3 + 0.16 * -across + 0.28 * Math.sqrt(Math.max(0, 1 - across * across)) + starlight(x, y) + crease(x, y);
+			return t + settle(t, RAMPS.robeWarm.length);
 		},
 	);
 
@@ -242,9 +248,9 @@ export function drawChristkind(): HTMLCanvasElement {
 
 	// Neck and face.
 	// A slim neck, deep in the shadow of the jaw, lighter lower down.
-	ellipse(78, 64.5, 3, 3.5, 0, "skin", -0.2, (_x, y) => -0.22 * clamp((66 - y) / 3));
+	ellipse(78, 64.5, 3, 3.5, 0, "skin", -0.2, (_x, y) => -0.22 * clamp((66 - y) / 3), smooth);
 	// The head, the underside of the jaw turning away from the light.
-	ellipse(78, 49, 11, 13.5, 0, "skin", 0.18, (x, y) => starlight(x, y) - 0.14 * clamp((y - 59.5) / 3));
+	ellipse(78, 49, 11, 13.5, 0, "skin", 0.18, (x, y) => starlight(x, y) - 0.14 * clamp((y - 59.5) / 3), smooth);
 
 	// Curls over the top of the head, swept to the sides, and down past the cheeks.
 	for (let y = 34; y <= 49; y++) {
@@ -261,37 +267,38 @@ export function drawChristkind(): HTMLCanvasElement {
 	ellipse(66.5, 52, 2.8, 8.5, 0.06, "hair", 0.02, curls);
 	ellipse(89.5, 52, 2.8, 8.5, -0.06, "hair", -0.04, curls);
 
-	// Their face: eyes wide and kind, looking out; fine brows; a little smile.
+	// Their face: eyes wide and kind, looking out; fine brows; a little smile. (Every shade in the
+	// eyes and brows is exactly one of its ramp's: the dither's pattern isn't mirrored, so shades
+	// between two would draw each eye differently.)
 	for (const [cx, out] of [
 		[73, -1],
 		[83, 1],
 	]) {
 		for (let dx = -2; dx <= 2; dx++) {
-			put(cx + dx, 46, "eye", Math.abs(dx) === 2 ? 0.15 : 0.08);
+			put(cx + dx, 46, "eye", 0);
 		}
 
-		put(cx + out * 3, 46, "eye", 0.1);
-		put(cx - 2, 47, "white", 0.2);
-		put(cx + 2, 47, "white", 0.15);
-		put(cx - 1, 47, "white", 0.95);
-		put(cx, 47, "eye", 0.55);
-		put(cx + 1, 47, "eye", 0.8);
-		put(cx - 1, 48, "eye", 0.45);
-		put(cx, 48, "eye", 0.7);
-		put(cx + 1, 48, "eye", 0.6);
+		put(cx + out * 3, 46, "eye", 0);
+		put(cx - 2, 47, "white", 0);
+		put(cx + 2, 47, "white", 0);
+		put(cx - 1, 47, "white", 1);
+		put(cx, 47, "eye", 2 / 3);
+		put(cx + 1, 47, "eye", 2 / 3);
+		put(cx - 1, 48, "eye", 1 / 3);
+		put(cx, 48, "eye", 2 / 3);
+		put(cx + 1, 48, "eye", 2 / 3);
+		put(cx - 1, 49, "skin", 1 / 5);
+		put(cx, 49, "skin", 2 / 5);
+		put(cx + 1, 49, "skin", 1 / 5);
 
-		for (let dx = -1; dx <= 1; dx++) {
-			put(cx + dx, 49, "skin", 0.3);
-		}
-
-		for (const [inner, y, t] of [
-			[2, 43, 0.4],
-			[1, 43, 0.42],
-			[0, 43, 0.44],
-			[-1, 43, 0.46],
-			[-2, 44, 0.5],
+		for (const [inner, y] of [
+			[2, 43],
+			[1, 43],
+			[0, 43],
+			[-1, 43],
+			[-2, 44],
 		]) {
-			put(cx - out * inner, y, "hair", t);
+			put(cx - out * inner, y, "hair", 2 / 5);
 		}
 	}
 
@@ -319,15 +326,23 @@ export function drawChristkind(): HTMLCanvasElement {
 		put(x, y, "lip", t);
 	}
 
-	for (const cx of [70, 85]) {
-		put(cx, 53, "lip", 0.8);
-		put(cx + 1, 53, "lip", 0.85);
-		put(cx + 2, 53, "lip", 0.8);
+	// A touch of blush on each cheek.
+	for (const cx of [71, 84]) {
+		put(cx, 53, "lip", 3 / 4);
+		put(cx + 1, 53, "lip", 3 / 4);
 	}
 
-	// Hands cupped round the star.
-	ellipse(73.5, 97, 4, 3.2, -0.3, "skin", 0.08, starlight);
-	ellipse(82.5, 97, 4, 3.2, 0.3, "skin", 0.06, starlight);
+	// Hands cupped round the star: their left over their right, its fingers wrapped across the
+	// front, their thumbs raised beside the star.
+	ellipse(82.5, 97, 4, 3.2, 0.3, "skin", 0.06, starlight, smooth);
+	ellipse(73.5, 97, 4, 3.2, -0.3, "skin", 0.08, starlight, smooth);
+
+	for (const y of [96.6, 98.3, 100]) {
+		limb(74, y, 81.5, y + 0.3, 0.85, 0.75, "skin", 0.12, starlight, smooth);
+	}
+
+	limb(71.2, 97, 72.2, 94, 0.8, 0.7, "skin", 0.14, starlight, smooth);
+	limb(84.8, 97.2, 83.8, 94.2, 0.8, 0.7, "skin", 0.1, starlight, smooth);
 
 	// A little crown of gold, set with red stones.
 	fill(
