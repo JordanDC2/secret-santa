@@ -269,17 +269,21 @@ export function drawBefana(): HTMLCanvasElement {
 		}
 	}
 
-	// Her hand clutching her shawl closed at her chest, its edges overlapping in a fold below.
+	// Her hand clutching her shawl closed at her chest, its edges overlapping in a fold below. Her arm
+	// in its black sleeve: her upper arm only a soft shape from halfway down, never a dark crease, her
+	// shoulder the shawl's own as on her broom side; her elbow at her side and her forearm across to
+	// her hand; her fingers curled round the fold, her thumb over them.
 	limb(73, 84, 70.5, 104, 1.2, 1.6, "shawl", -0.12, weave);
-	ellipse(73, 81, 3.4, 2.8, 0.2, "skin", 0.08);
+	const draped: IPut = (x, y, material, t) => put(x, y, material, Math.max(t, 0.42 + weave(x, y)));
+	limb(60.5, 80, 56, 87, 4.8, 4.4, "shawl", -0.08, weave, draped);
+	limb(56, 87, 70, 83.5, 4.4, 3.4, "shawl", 0.04, weave);
+	ellipse(73, 81, 3.4, 2.8, 0.2, "skin", 0.02);
 
-	for (const [x, y] of [
-		[71, 80],
-		[73, 80],
-		[75, 81],
-	]) {
-		put(x, y, "skin", 0.22);
+	for (const y of [79.6, 81, 82.4]) {
+		limb(70.8, y, 75.6, y + 0.3, 0.75, 0.65, "skin", 0.1);
 	}
+
+	limb(75.4, 80.4, 73.4, 78.6, 0.7, 0.6, "skin", 0.14);
 
 	// A few grey curls escaping the scarf at her temples.
 	ellipse(67.5, 47, 2.2, 4, 0.2, "grey", 0.1, strands);
@@ -416,9 +420,14 @@ export function drawBefana(): HTMLCanvasElement {
 	// Her arm in its black sleeve, from her shoulder down to her hand round the broom's handle.
 	limb(92, 72, 100, 86, 5.4, 4.6, "shawl", -0.02, weave);
 	limb(100, 86, 106, 90, 4.6, 3.8, "shawl", 0.04, weave);
-	ellipse(109.5, 90, 3.6, 3.8, 0, "skin", 0.06);
-	put(108, 89, "skin", 0.18);
-	put(108, 91, "skin", 0.18);
+	// Her hand round it: the back of it, her fingers wrapped round the handle, her thumb over them.
+	ellipse(109.5, 90, 3.4, 3.6, 0, "skin", 0);
+
+	for (const y of [88, 89.6, 91.2, 92.8]) {
+		limb(107.3, y, 112.3, y + 0.3, 0.8, 0.7, "skin", 0.1);
+	}
+
+	limb(107.5, 87.6, 110.6, 86.4, 0.75, 0.65, "skin", 0.14);
 
 	// --- Light: the moon, behind her high on the right; a fade into the dark below. ---
 	const colours = light({
