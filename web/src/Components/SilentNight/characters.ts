@@ -780,6 +780,10 @@ export type ICharacterSprites = {
 	poinsettia: HTMLCanvasElement[];
 	/** A poinsettia's bract flying from La Flor's seed pod: its base in the middle, pointing each of 16 ways (the first to the right). */
 	petal: HTMLCanvasElement[];
+	/** Saint Lucia's star boy, Ded Moroz's Snow Maiden and Mari Lwyd's mummer: facing right and left, in two steps of their walk. */
+	starBoy: { right: HTMLCanvasElement[]; left: HTMLCanvasElement[] };
+	maiden: { right: HTMLCanvasElement[]; left: HTMLCanvasElement[] };
+	mummer: { right: HTMLCanvasElement[]; left: HTMLCanvasElement[] };
 	crystal: HTMLCanvasElement;
 	bigCrystal: HTMLCanvasElement;
 	cocoa: HTMLCanvasElement;
@@ -966,6 +970,127 @@ function poinsettia(turn: number): HTMLCanvasElement {
 	return small(13, 13, (p) => bloom(p, 6.5, 6.5, 5.8, turn));
 }
 
+/**
+ * A star boy from Saint Lucia's procession: a long white gown with a gold tinsel belt, a tall
+ * pointed white hat with gold stars on it, sitting on his head above his face, a gold star held up
+ * on a stick.
+ */
+function starBoy(step: 0 | 1): HTMLCanvasElement {
+	const p = new Pen(14, 22, 1);
+	const spread = step === 0 ? 1.2 : 0.3;
+	// His shoes under the gown's hem.
+	p.e(6 - spread, 20.6, 1.2, 0.8, 0, "blackFur", 0.1);
+	p.e(8 + spread, 20.6, 1.2, 0.8, 0, "blackFur", 0.16);
+	// The gown, falling in folds; his far arm hanging, his near one holding up the star.
+	p.l(7, 11, 7, 19.4, 2.6, 3.6, "white", 0.06);
+	p.l(5.6, 13, 5, 19.6, 0.5, 0.5, "white", -0.18);
+	p.l(8.6, 13, 9.2, 19.6, 0.5, 0.5, "white", -0.1);
+	p.l(4.6, 11.4, 4, 15.4, 1, 0.8, "white", -0.12);
+	p.l(9.4, 11.4, 10.8, 10.2, 1, 0.8, "white", 0.1);
+	p.e(11, 9.8, 0.8, 0.8, 0, "skin", 0.1);
+	// The stick and its star.
+	p.l(11, 10, 11.6, 4.6, 0.4, 0.4, "cookie", 0.1);
+
+	for (const [dx, dy] of [
+		[0, 0],
+		[-1, 0],
+		[1, 0],
+		[0, -1],
+		[0, 1],
+	]) {
+		p.d(11.6 + dx, 3.6 + dy, "gold", dx === 0 && dy === 0 ? 0.95 : 0.6);
+	}
+
+	// The gold tinsel belt.
+	p.r(4.6, 13, 5, 1, "gold", 0.6);
+	// The tall pointed hat, gold stars on it, sitting above his face: his eyes, rosy cheeks, a fringe of hair.
+	p.l(7, 6.2, 7.6, 0.2, 2.3, 0.3, "white", 0.1);
+	p.d(7, 4, "gold", 0.8);
+	p.d(7, 2, "gold", 0.7);
+	p.e(7, 8.8, 2.1, 2, 0, "skin", 0.08);
+	p.r(5, 6.8, 4, 1, "cookie", 0.35);
+	p.d(6, 8, "dark", 0.15);
+	p.d(8, 8, "dark", 0.15);
+	p.d(5, 9, "pink", 0.5);
+	p.d(9, 9, "pink", 0.45);
+	p.weather(0.1, 17);
+
+	return p.sprite.render(RAMPS, RIMS, OUTLINE, 1);
+}
+
+/**
+ * Snegurochka, the Snow Maiden: a long blue coat trimmed with white fur, a kokoshnik of frost
+ * behind her head, a long pale braid, a hand held out with frost at its fingertips.
+ */
+function maiden(step: 0 | 1): HTMLCanvasElement {
+	const p = new Pen(14, 21, 1);
+	const spread = step === 0 ? 1 : 0.2;
+	// Her braid, down her back.
+	p.l(5.2, 7.4, 4.2, 14.6, 0.8, 0.5, "icing", -0.04);
+	// Her boots under the hem.
+	p.e(6 - spread, 19.6, 1.1, 0.8, 0, "blackFur", 0.1);
+	p.e(8 + spread, 19.6, 1.1, 0.8, 0, "blackFur", 0.16);
+	// The coat, flaring to its hem, its fur trim down the front and round the hem.
+	p.l(7, 10, 7, 18.4, 2.4, 3.8, "cloth", 0.1);
+	p.r(4, 18, 7, 1, "white", 0.45);
+	p.l(7.4, 10.6, 7.6, 17.6, 0.4, 0.4, "white", 0.4);
+	// Her far arm at her side, her near one held out, frost at its fingertips.
+	p.l(4.8, 10.6, 4.4, 14.4, 0.9, 0.8, "cloth", -0.1);
+	p.l(9.2, 10.6, 11.6, 12, 0.9, 0.8, "cloth", 0.08);
+	p.d(12, 12, "frost", 0.9);
+	p.d(13, 11, "frost", 0.7);
+	// Her pale face, her eyes and rosy cheeks; the kokoshnik behind it, pearls on its rim.
+	p.e(7, 5.4, 3, 2.4, 0, "frost", -0.1);
+	p.e(7, 7.6, 2, 2, 0, "porcelain", 0.12);
+	p.d(6, 7, "cloth", 0.15);
+	p.d(8, 7, "cloth", 0.15);
+	p.d(5, 8, "pink", 0.5);
+	p.d(9, 8, "pink", 0.45);
+
+	for (const x of [5, 7, 9]) {
+		p.d(x, 3, "white", 0.8);
+	}
+
+	p.weather(0.08, 19);
+
+	return p.sprite.render(RAMPS, RIMS, OUTLINE, 1);
+}
+
+/**
+ * A Christmas mummer, risen from the fallen: hidden under a costume of ragged strips (red, green,
+ * white and gold), a tall battered hat with strips hanging over the face.
+ */
+function mummer(step: 0 | 1): HTMLCanvasElement {
+	const p = new Pen(14, 19, 1);
+	const spread = step === 0 ? 2 : 0.6;
+	// Legs in dark trousers, running.
+	p.l(6, 13, 6 - spread, 17.6, 1, 0.9, "blackFur", 0.04);
+	p.l(8, 13, 8 + spread, 17.6, 1, 0.9, "blackFur", 0.1);
+	// The strips, hanging from the shoulders to a ragged hem, swinging as it runs.
+	const colours = ["red", "green", "white", "gold", "red", "green", "white"];
+	colours.forEach((material, i) => {
+		const x = 3.6 + i * 1.1;
+		p.l(x + 0.4, 7.6, x - (step === 0 ? 0.4 : -0.3), 14 + (i % 2), 0.7, 0.6, material, i % 2 === 0 ? 0 : -0.12);
+	});
+	// The hat: tall, battered, a red band round it, strips hanging from its brim over the face.
+	p.r(4.4, 1, 5.2, 4.2, "fur", 0.45);
+	p.r(4.4, 4, 5.2, 1, "red", 0.5);
+	p.r(3.4, 5, 7.2, 1, "fur", 0.5);
+
+	for (const [x, material] of [
+		[4.4, "red"],
+		[6, "white"],
+		[7.6, "green"],
+		[9.2, "gold"],
+	] as const) {
+		p.l(x, 6, x, 8.4, 0.5, 0.4, material, 0.1);
+	}
+
+	p.weather(0.12, 23);
+
+	return p.sprite.render(RAMPS, RIMS, OUTLINE, 1);
+}
+
 /** A nutcracker toy soldier at attention: a tall black busby, a white face with a big jaw, a red coat crossed with a white sash, black boots, his musket held across him. */
 function soldier(): HTMLCanvasElement {
 	const p = new Pen(14, 19, 1);
@@ -1060,6 +1185,9 @@ export function makeCharacters(): ICharacterSprites {
 	const minionRight = [minion(0), minion(1)];
 	const soldierRight = soldier();
 	const xoloRight = [xolo(0), xolo(1)];
+	const starBoyRight = [starBoy(0), starBoy(1)];
+	const maidenRight = [maiden(0), maiden(1)];
+	const mummerRight = [mummer(0), mummer(1)];
 
 	return {
 		enemies,
@@ -1067,6 +1195,9 @@ export function makeCharacters(): ICharacterSprites {
 		minion: { right: minionRight, left: minionRight.map(flipped) },
 		soldier: { right: soldierRight, left: flipped(soldierRight) },
 		xolo: { right: xoloRight, left: xoloRight.map(flipped) },
+		starBoy: { right: starBoyRight, left: starBoyRight.map(flipped) },
+		maiden: { right: maidenRight, left: maidenRight.map(flipped) },
+		mummer: { right: mummerRight, left: mummerRight.map(flipped) },
 		// A turn of its spin in three steps (its five bracts look the same every fifth of a turn).
 		poinsettia: [0, 1, 2].map((step) => poinsettia(-Math.PI / 2 + (step * Math.PI * 2) / 15)),
 		petal: Array.from({ length: 16 }, (_, way) => {

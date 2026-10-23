@@ -182,7 +182,7 @@ export function drawWorld(
 
 	drawElf(context, world, sprites, sx, sy);
 
-	// Allies: minions running, snow globes circling, candle flames, La Flor's xolo and poinsettias.
+	// Allies: minions running, snow globes circling, candle flames, and the patrons' helpers.
 	for (const ally of world.allies) {
 		if (ally.kind === "minion") {
 			// A ring of green light at its feet, so a friend stands out from the horde.
@@ -237,6 +237,28 @@ export function drawWorld(
 			}
 
 			context.drawImage(frames[Math.floor(time * (charging ? 16 : 8)) % 2], sx(ally.x) - 11, sy(ally.y) - 16);
+		} else if (ally.kind === "starBoy" || ally.kind === "maiden") {
+			// Walking with the elf, facing where it faces.
+			const frame = art[ally.kind][player.facing > 0 ? "right" : "left"][Math.floor(time * 6) % 2];
+			context.drawImage(frame, sx(ally.x) - 7, sy(ally.y) - frame.height + 1);
+		} else if (ally.kind === "mummer") {
+			// A ring of green light at its feet, as a minion's, fading as its ten seconds end.
+			context.globalAlpha = Math.min(1, (ally.until - time) / 0.5);
+			context.fillStyle = "rgba(111, 210, 122, 0.75)";
+
+			for (let i = 0; i < 16; i++) {
+				const angle = (i / 16) * Math.PI * 2;
+				context.fillRect(
+					Math.round(sx(ally.x) + Math.cos(angle) * 5),
+					Math.round(sy(ally.y) + Math.sin(angle) * 2),
+					1,
+					1,
+				);
+			}
+
+			const frames = art.mummer[Math.cos(ally.angle) >= 0 ? "right" : "left"];
+			context.drawImage(frames[Math.floor(time * 8) % 2], sx(ally.x) - 7, sy(ally.y) - 18);
+			context.globalAlpha = 1;
 		} else if (ally.kind === "poinsettia") {
 			context.drawImage(art.poinsettia[Math.floor(time * 30) % art.poinsettia.length], sx(ally.x) - 6, sy(ally.y) - 6);
 		} else {
@@ -645,6 +667,15 @@ function drawShot(
 			context.fillStyle = "#e0502a";
 			context.fillRect(bx(1), by(1), 1, 1);
 			break;
+		case "star":
+			// A star boy's star: gold, its heart white-hot.
+			context.fillStyle = "#dca02c";
+			context.fillRect(x - 1, y, 3, 1);
+			context.fillRect(x, y - 1, 1, 3);
+			context.fillStyle = "#fff0a8";
+			context.fillRect(x, y, 1, 1);
+			glows.push({ x: shot.x, y: shot.y, radius: 6 });
+			break;
 	}
 }
 
@@ -794,6 +825,41 @@ function drawEffect(
 			glows.push({ x: effect.x, y: effect.y - 4, radius: 8 });
 			break;
 		}
+		case "tracks": {
+			// Ded Moroz's frost tracks: ice along the snow where the elf dashed, glinting, fading.
+			const [x1, y1, x2, y2] = effect.data;
+			const steps = Math.max(1, Math.round(Math.hypot(x2 - x1, y2 - y1) / 2));
+			context.fillStyle = `rgba(200, 236, 255, ${(0.6 * (1 - t)).toFixed(3)})`;
+
+			for (let i = 0; i <= steps; i++) {
+				const px = sx(x1 + ((x2 - x1) * i) / steps);
+				const py = sy(y1 + ((y2 - y1) * i) / steps);
+				context.fillRect(px - 1, py, 3, 1);
+
+				if (hash(i, 7) > 0.6) {
+					context.fillRect(px + (i % 2 === 0 ? 2 : -3), py - 1, 1, 1);
+				}
+			}
+
+			break;
+		}
+		case "soot":
+			// La Befana's soot: smoke hanging where a coal bomb went off, ash rising from it, thinning.
+			for (let i = 0; i < 14; i++) {
+				const angle = i * 2.4 + time * 0.3;
+				const out = effect.radius * 0.8 * hash(i, 11);
+				const cx = x + Math.cos(angle) * out;
+				const cy = y + Math.sin(angle) * out * 0.6 - 3;
+				context.fillStyle = `rgba(96, 88, 100, ${(0.3 * (1 - t)).toFixed(3)})`;
+				context.beginPath();
+				context.ellipse(cx, cy, 5, 3.5, 0, 0, Math.PI * 2);
+				context.fill();
+				context.fillStyle = `rgba(170, 160, 168, ${(0.8 * (1 - t)).toFixed(3)})`;
+				context.fillRect(Math.round(cx), Math.round(cy - ((time * 6 + i) % 8)), 1, 1);
+				context.fillRect(Math.round(cx) + 2, Math.round(cy - ((time * 5 + i * 3) % 10)), 1, 1);
+			}
+
+			break;
 		case "chant":
 			context.strokeStyle = `rgba(232, 228, 220, ${(0.8 * (1 - t)).toFixed(3)})`;
 			context.lineWidth = 1;

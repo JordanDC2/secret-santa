@@ -61,6 +61,12 @@ export function frozen(world: IWorld, enemy: IEnemy): boolean {
 	return world.time < enemy.frozenUntil;
 }
 
+/** Frozen solid for `seconds` (longer with Ded Moroz's long winter). */
+export function freeze(world: IWorld, enemy: IEnemy, seconds: number) {
+	const longer = 1 + 0.5 * rank(world.player, "longWinter");
+	enemy.frozenUntil = Math.max(enemy.frozenUntil, world.time + seconds * longer);
+}
+
 export function burning(world: IWorld, enemy: IEnemy): boolean {
 	return world.time < enemy.burnUntil;
 }
@@ -86,8 +92,15 @@ export function hurtEnemy(
 
 	const { player, numbers } = world;
 	let damage = amount * numbers.damage;
+	// Christkind's guiding star: every few seconds, a certain critical hit.
+	const starred = rank(player, "guidingStar") > 0 && world.time >= player.starReadyAt;
+	const critical = starred || Math.random() < numbers.crit;
 
-	if (Math.random() < numbers.crit) {
+	if (starred) {
+		player.starReadyAt = world.time + byRank(player, "guidingStar", [5, 4, 3]);
+	}
+
+	if (critical) {
 		damage *= 2;
 	}
 
@@ -112,9 +125,29 @@ export function hurtEnemy(
 
 	damage *= 1 + byRank(player, "lateBloomer", [0.03, 0.04, 0.05]) * Math.floor(world.time / 60);
 
+	// The Yule Goat: butting heads with elites and bosses.
+	if (enemy.elite || enemy.boss) {
+		damage *= 1 + byRank(player, "buttingHeads", [0.2, 0.3, 0.4]);
+	}
+
 	enemy.health -= damage;
 	enemy.hitAt = world.time;
 	events.hits += 1;
+
+	// Ded Moroz's deep frost: frozen and nearly gone, it shatters.
+	if (
+		frozen(world, enemy) &&
+		!enemy.boss &&
+		enemy.health < enemy.maxHealth * byRank(player, "deepFrost", [0.1, 0.15, 0.2])
+	) {
+		enemy.health = 0;
+	}
+
+	// Mari Lwyd's wassail bowl: now and then a hit heals the elf a little.
+	if (Math.random() < byRank(player, "wassailBowl", [0.02, 0.04, 0.06])) {
+		heal(world, 1, events);
+		events.healed = false;
+	}
 
 	if (weapon) {
 		const carried = player.weapons.find((candidate) => candidate.id === weapon);
@@ -124,16 +157,19 @@ export function hurtEnemy(
 		}
 	}
 
-	// Knocked back (bosses and golems barely), or slammed and stunned by a Yule Lad.
+	// Knocked back (bosses and golems barely), or slammed and stunned by a Yule Lad, or (a critical
+	// hit, with the Yule Lads and the Yule Goat) thrown and stunned.
 	const heavy = enemy.boss ? 0.1 : enemy.kind === "golem" ? 0.3 : 1;
 
 	if (direction && knockback > 0) {
 		const slam = Math.random() < byRank(player, "doorSlammer", [0.08, 0.12, 0.16]) && !enemy.boss;
-		const push = knockback * heavy * (slam ? 4 : 1) * 30 * (1 + byRank(player, "horns", [0.25, 0.5, 0.75]));
+		const thrown = critical && rank(player, "hornswoggle") > 0 && !enemy.boss;
+		const push =
+			knockback * heavy * (slam ? 4 : thrown ? 3 : 1) * 30 * (1 + byRank(player, "horns", [0.25, 0.5, 0.75]));
 		enemy.push.x += direction.x * push;
 		enemy.push.y += direction.y * push;
 
-		if (slam) {
+		if (slam || thrown) {
 			enemy.stunUntil = world.time + 0.5;
 		}
 	}
@@ -151,7 +187,7 @@ export function hurtEnemy(
 	}
 
 	if (!enemy.boss && Math.random() < byRank(player, "hoarfrost", [0.06, 0.1, 0.14])) {
-		enemy.frozenUntil = world.time + 1.5;
+		freeze(world, enemy, 1.5);
 		events.froze = true;
 	}
 
@@ -269,6 +305,42 @@ function kill(world: IWorld, grid: IGrid, enemy: IEnemy, events: IEvents) {
 		});
 	}
 
+	// The Yule Lads and La Befana: a gift left in the shoe, cocoa and a big crystal both.
+	if (rank(player, "shoeInTheWindow") > 0 && Math.random() < 0.04) {
+		for (const [kind, value, dx] of [
+			["cocoa", 20, -4],
+			["bigCrystal", 10 * world.numbers.experience, 4],
+		] as const) {
+			world.pickups.push({
+				id: world.nextId++,
+				kind,
+				x: enemy.x + dx,
+				y: enemy.y,
+				value,
+				pulled: false,
+				at: world.time,
+			});
+		}
+	}
+
+	// Mari Lwyd's mummers: one that falls in the song may rise to fight for the elf a while.
+	if (
+		Math.random() < byRank(player, "mummers", [0.05, 0.1, 0.15]) &&
+		Math.hypot(enemy.x - player.x, enemy.y - player.y) < world.numbers.song &&
+		world.allies.filter((ally) => ally.kind === "mummer").length < 6
+	) {
+		world.allies.push({
+			kind: "mummer",
+			x: enemy.x,
+			y: enemy.y,
+			angle: 0,
+			targetId: null,
+			until: world.time + 10,
+			readyAt: 0,
+			hits: new Map(),
+		});
+	}
+
 	// Mari Lwyd and the Christkind: each that falls in the song heals the elf a little.
 	if (rank(player, "carolAtTheDoor") > 0 && Math.hypot(enemy.x - player.x, enemy.y - player.y) < world.numbers.song) {
 		heal(world, 0.5, events);
@@ -310,7 +382,8 @@ function kill(world: IWorld, grid: IGrid, enemy: IEnemy, events: IEvents) {
 			value: 0,
 			pulled: false,
 			at: world.time,
-			gear: newGear(world.numbers.luck, enemy.boss),
+			// More often festive or gilded for a Yule Lad's pot-scraping.
+			gear: newGear(world.numbers.luck * (1 + byRank(player, "potScraper", [0.5, 1, 1.5])), enemy.boss),
 		});
 	}
 
@@ -403,6 +476,22 @@ export function hurtPlayer(world: IWorld, amount: number, events: IEvents, from?
 		from.slow = Math.max(from.slow, 0.5);
 	}
 
+	// The Yule Goat's iron horns: what touches the elf butted back (as hard as his charge throws) and
+	// stunned, every so often.
+	if (from && rank(player, "ironHorns") > 0 && world.time >= player.hornsReadyAt) {
+		player.hornsReadyAt = world.time + byRank(player, "ironHorns", [3, 2, 1]);
+		const dx = from.x - player.x;
+		const dy = from.y - player.y;
+		const length = Math.hypot(dx, dy) || 1;
+		const heavy = from.boss ? 0.1 : from.kind === "golem" ? 0.3 : 1;
+		from.push.x += (dx / length) * 150 * heavy;
+		from.push.y += (dy / length) * 150 * heavy;
+
+		if (!from.boss) {
+			from.stunUntil = world.time + 1;
+		}
+	}
+
 	if (world.time < player.dashUntil || world.time < player.hurtUntil) {
 		return;
 	}
@@ -426,9 +515,42 @@ export function hurtPlayer(world: IWorld, amount: number, events: IEvents, from?
 	}
 
 	const { numbers } = world;
-	player.health -= amount * numbers.vulnerability * (1 - numbers.armour);
+	// The Yule Goat and Mari Lwyd: safety in the wassailing crowd, close round the elf in the song.
+	const crowd =
+		rank(player, "wassailers") > 0
+			? world.enemies.filter((enemy) => Math.hypot(enemy.x - player.x, enemy.y - player.y) < numbers.song).length
+			: 0;
+	const armour = Math.min(0.6, numbers.armour + Math.min(0.2, crowd * 0.02));
+	player.health -= amount * numbers.vulnerability * (1 - armour);
 	player.hurtUntil = world.time + 0.6;
 	events.hurt = true;
+
+	// Christkind's angel's hair: tinsel lashing back at what touched the elf.
+	if (from && rank(player, "angelsHair") > 0) {
+		const dx = from.x - player.x;
+		const dy = from.y - player.y;
+		const length = Math.hypot(dx, dy) || 1;
+		world.effects.push({
+			kind: "lash",
+			x: player.x,
+			y: player.y - 6,
+			at: world.time,
+			until: world.time + 0.2,
+			radius: Math.max(8, Math.abs(dx)),
+			angle: dx < 0 ? -1 : 1,
+			data: [],
+		});
+		hurtEnemy(
+			world,
+			gridOf(world.enemies),
+			from,
+			byRank(player, "angelsHair", [30, 45, 60]),
+			{ x: dx / length, y: dy / length },
+			null,
+			events,
+			3,
+		);
+	}
 
 	// The Yule Goat's straw catches: a burst of burning straw round the elf (secondWave.ts sets it off).
 	if (rank(player, "strawBurns") > 0) {

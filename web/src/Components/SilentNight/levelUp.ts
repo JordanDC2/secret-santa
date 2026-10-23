@@ -9,7 +9,7 @@ import { heal } from "Components/SilentNight/combat";
 import { MAX_WEAPON_LEVEL, PASSIVE_SLOTS, WEAPON_SLOTS } from "Components/SilentNight/constants";
 import { wear } from "Components/SilentNight/gear";
 import { isGun, morphsOffered } from "Components/SilentNight/guns";
-import { level, PASSIVES, rank, stats } from "Components/SilentNight/stats";
+import { byRank, level, PASSIVES, rank, stats } from "Components/SilentNight/stats";
 import {
 	noEvents,
 	type IChoice,
@@ -115,6 +115,16 @@ export function take(world: IWorld, choice: IChoice) {
 		player.passives[choice.id] = choice.level;
 	} else {
 		heal(world, 30, noEvents());
+	}
+
+	// La Befana's Epiphany Eve: now and then, a passive raised a level too.
+	const raisable = PASSIVES.filter(
+		(passive) => level(player, passive.id) > 0 && level(player, passive.id) < passive.maxLevel,
+	);
+
+	if (raisable.length > 0 && Math.random() < byRank(player, "epiphanyEve", [0.1, 0.2, 0.3])) {
+		const passive = raisable[Math.floor(Math.random() * raisable.length)];
+		player.passives[passive.id] = level(player, passive.id) + 1;
 	}
 
 	finishLevelUp(world);

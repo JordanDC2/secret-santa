@@ -80,6 +80,8 @@ export type IBlessing = {
 	ranks: string[];
 	/** For a duo: one blessing needed from each patron first. */
 	needs?: [IPatronId, IPatronId];
+	/** Offered only once one of these blessings is taken (it does nothing without them). */
+	requires?: string[];
 };
 
 export const BLESSINGS: IBlessing[] = [
@@ -181,6 +183,22 @@ export const BLESSINGS: IBlessing[] = [
 		name: "Lucia's Procession",
 		ranks: ["Two candle flames circle you, setting enemies alight", "Three flames", "Four flames"],
 	},
+	{
+		id: "starBoy",
+		patron: "lucia",
+		name: "Star Boy",
+		ranks: [
+			"A star boy walks with you, throwing a star at the nearest enemy every second for 9, setting it burning",
+			"Two star boys",
+			"Three star boys",
+		],
+	},
+	{
+		id: "saffronBuns",
+		patron: "lucia",
+		name: "Saffron Buns",
+		ranks: ["Cocoa heals 25% more and sets everything close round you burning", "Heals 50% more", "Heals 75% more"],
+	},
 	// Ded Moroz: frost.
 	{ id: "bitterCold", patron: "moroz", name: "Bitter Cold", ranks: ["Hits slow enemies by 20%", "30%", "40%"] },
 	{
@@ -196,6 +214,36 @@ export const BLESSINGS: IBlessing[] = [
 		ranks: ["Frozen enemies take 50% more damage and shatter into shards of ice", "100% more", "150% more"],
 	},
 	{ id: "frostArmour", patron: "moroz", name: "Frost Armour", ranks: ["Take 8% less damage", "14% less", "20% less"] },
+	{
+		id: "snegurochka",
+		patron: "moroz",
+		name: "Snegurochka",
+		ranks: [
+			"The Snow Maiden walks with you; every 4 seconds, everything close round her freezes solid",
+			"Every 3 seconds",
+			"Every 2 seconds",
+		],
+	},
+	{
+		id: "frostTracks",
+		patron: "moroz",
+		name: "Frost Tracks",
+		ranks: ["Dashing leaves a trail of ice for 3 seconds, slowing enemies on it by 30%", "By 40%", "By 50%"],
+	},
+	{
+		id: "longWinter",
+		patron: "moroz",
+		name: "Long Winter",
+		ranks: ["Frozen enemies stay frozen 50% longer", "100% longer"],
+		requires: ["hoarfrost", "snegurochka"],
+	},
+	{
+		id: "deepFrost",
+		patron: "moroz",
+		name: "Deep Frost",
+		ranks: ["Frozen enemies below 10% health shatter outright", "Below 15%", "Below 20%"],
+		requires: ["hoarfrost", "snegurochka"],
+	},
 	// Christkind: grace.
 	{
 		id: "halo",
@@ -217,6 +265,18 @@ export const BLESSINGS: IBlessing[] = [
 		ranks: ["Fall below 30% health and nothing can hurt you for 3 seconds (once a minute)", "4 seconds", "5 seconds"],
 	},
 	{ id: "gloria", patron: "christkind", name: "Gloria", ranks: ["Each level heals 10", "Heals 20", "Heals 30"] },
+	{
+		id: "angelsHair",
+		patron: "christkind",
+		name: "Angel's Hair",
+		ranks: ["When an enemy's touch hurts you, tinsel lashes back at it for 30", "For 45", "For 60"],
+	},
+	{
+		id: "guidingStar",
+		patron: "christkind",
+		name: "Guiding Star",
+		ranks: ["Every 5 seconds, your next hit is a certain critical hit", "Every 4 seconds", "Every 3 seconds"],
+	},
 	// The Yule Lads: tricks.
 	{
 		id: "spoonLicker",
@@ -249,6 +309,22 @@ export const BLESSINGS: IBlessing[] = [
 		ranks: ["Throws and shots have a 10% chance to go twice", "15% chance", "20% chance"],
 	},
 	{ id: "stubby", patron: "yuleLads", name: "Stubby", ranks: ["+1 reroll at level-ups", "+1 more", "+1 more"] },
+	{
+		id: "potScraper",
+		patron: "yuleLads",
+		name: "Pot-Scraper",
+		ranks: [
+			"Gear that enemies drop is 50% more likely to be festive or gilded",
+			"100% more likely",
+			"150% more likely",
+		],
+	},
+	{
+		id: "meatHook",
+		patron: "yuleLads",
+		name: "Meat-Hook",
+		ranks: ["While you dash, you pull things in from 50% further", "100% further", "150% further"],
+	},
 	// La Befana: her broom and her coal.
 	{
 		id: "broomstick",
@@ -273,6 +349,25 @@ export const BLESSINGS: IBlessing[] = [
 		patron: "befana",
 		name: "Good Witch",
 		ranks: ["Pick things up 20% further away", "40% further", "60% further"],
+	},
+	{
+		id: "sootAndAsh",
+		patron: "befana",
+		name: "Soot and Ash",
+		ranks: ["Your coal bombs leave soot for 3 seconds, slowing enemies in it by 30%", "By 40%", "By 50%"],
+		requires: ["coalBombs"],
+	},
+	{
+		id: "epiphanyEve",
+		patron: "befana",
+		name: "Epiphany Eve",
+		ranks: ["10% chance a level-up you take also raises one of your passives a level", "20% chance", "30% chance"],
+	},
+	{
+		id: "ridingTheBroom",
+		patron: "befana",
+		name: "Riding the Broom",
+		ranks: ["Dashing through an enemy makes you 20% faster for 2 seconds", "30% faster", "40% faster"],
 	},
 	// The Yule Goat: horns.
 	{
@@ -300,6 +395,28 @@ export const BLESSINGS: IBlessing[] = [
 		ranks: ["When you're hit, burning straw bursts round you for 20, setting enemies alight", "For 30", "For 40"],
 	},
 	{ id: "stubborn", patron: "yuleGoat", name: "Stubborn", ranks: ["+15 health", "+30 health", "+45 health"] },
+	{
+		id: "gavleGoat",
+		patron: "yuleGoat",
+		name: "Gävle Goat",
+		ranks: ["Once a night, when you fall, you rise again in flames with a third of your health"],
+	},
+	{
+		id: "ironHorns",
+		patron: "yuleGoat",
+		name: "Iron Horns",
+		ranks: [
+			"An enemy that touches you is butted back and stunned for a second, every 3 seconds at most",
+			"Every 2 seconds",
+			"Every second",
+		],
+	},
+	{
+		id: "buttingHeads",
+		patron: "yuleGoat",
+		name: "Butting Heads",
+		ranks: ["20% more damage to elites and bosses", "30% more", "40% more"],
+	},
 	// Mari Lwyd: the horse skull's song.
 	{
 		id: "fright",
@@ -328,6 +445,28 @@ export const BLESSINGS: IBlessing[] = [
 		patron: "mariLwyd",
 		name: "Ribbons and Bells",
 		ranks: ["+5% chance of critical hits", "+10%", "+15%"],
+	},
+	{
+		id: "snappingJaw",
+		patron: "mariLwyd",
+		name: "Snapping Jaw",
+		ranks: ["Every 2 seconds, Mari Lwyd's jaw snaps at everything right beside you for 15", "For 25", "For 35"],
+	},
+	{
+		id: "wassailBowl",
+		patron: "mariLwyd",
+		name: "Wassail Bowl",
+		ranks: ["Hits have a 2% chance to heal you 1", "4% chance", "6% chance"],
+	},
+	{
+		id: "mummers",
+		patron: "mariLwyd",
+		name: "The Mummers",
+		ranks: [
+			"5% chance an enemy that falls close round you rises as a mummer and fights for you for 10 seconds",
+			"10% chance",
+			"15% chance",
+		],
 	},
 	// Duos.
 	{
@@ -364,6 +503,55 @@ export const BLESSINGS: IBlessing[] = [
 		needs: ["mariLwyd", "christkind"],
 		name: "Carol at the Door",
 		ranks: ["Each enemy that falls close round you heals you a little"],
+	},
+	{
+		id: "shoeInTheWindow",
+		patron: ["yuleLads", "befana"],
+		needs: ["yuleLads", "befana"],
+		name: "Shoe in the Window",
+		ranks: ["4% chance an enemy leaves a gift as it falls: cocoa and a big crystal both"],
+	},
+	{
+		id: "knockAndRun",
+		patron: ["yuleLads", "mariLwyd"],
+		needs: ["yuleLads", "mariLwyd"],
+		name: "Knock and Run",
+		ranks: ["Dashing slams back everything close round you for 10, stunning it"],
+	},
+	{
+		id: "hornswoggle",
+		patron: ["yuleLads", "yuleGoat"],
+		needs: ["yuleLads", "yuleGoat"],
+		name: "Hornswoggle",
+		ranks: ["Critical hits throw enemies back and stun them"],
+	},
+	{
+		id: "nightFlight",
+		patron: ["befana", "christkind"],
+		needs: ["befana", "christkind"],
+		name: "Night Flight",
+		ranks: ["Nothing can hurt you for half a second after each dash"],
+	},
+	{
+		id: "humblestGift",
+		patron: ["laFlor", "christkind"],
+		needs: ["laFlor", "christkind"],
+		name: "The Humblest Gift",
+		ranks: ["Each crystal you pick up heals you 0.5"],
+	},
+	{
+		id: "frostFlower",
+		patron: ["laFlor", "moroz"],
+		needs: ["laFlor", "moroz"],
+		name: "Frost Flower",
+		ranks: ["Every 6 seconds, frost blooms on the nearest enemy, freezing everything close round it"],
+	},
+	{
+		id: "wassailers",
+		patron: ["yuleGoat", "mariLwyd"],
+		needs: ["yuleGoat", "mariLwyd"],
+		name: "Wassailers",
+		ranks: ["Each enemy close round you makes you take 2% less damage, up to 20%"],
 	},
 ];
 
@@ -445,8 +633,9 @@ function blessingsLeft(world: IWorld, patron: IPatronId): IBlessing[] {
 		const own = blessing.patron === patron || (Array.isArray(blessing.patron) && blessing.patron.includes(patron));
 		const room = rank(world.player, blessing.id) < blessing.ranks.length;
 		const ready = !blessing.needs || blessing.needs.every((needed) => blessedBy(world, needed));
+		const able = !blessing.requires || blessing.requires.some((id) => rank(world.player, id) > 0);
 
-		return own && room && ready;
+		return own && room && ready && able;
 	});
 }
 
@@ -524,6 +713,23 @@ export function takeBlessing(world: IWorld, id: string) {
 				world.allies.push({
 					kind: "xolo",
 					x: player.x - 12,
+					y: player.y + 2,
+					angle: 0,
+					targetId: null,
+					until: Infinity,
+					readyAt: world.time + 1,
+					hits: new Map(),
+				});
+			}
+
+			break;
+		case "starBoy":
+		case "snegurochka":
+			// A star boy more with each rank; the Snow Maiden once.
+			if (id === "starBoy" || now === 1) {
+				world.allies.push({
+					kind: id === "starBoy" ? "starBoy" : "maiden",
+					x: player.x,
 					y: player.y + 2,
 					angle: 0,
 					targetId: null,

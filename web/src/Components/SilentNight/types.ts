@@ -152,6 +152,16 @@ export type IPlayer = {
 	chantAt: number;
 	/** Enemies the Yule Goat's charge has already hit this dash. */
 	charged: Set<number>;
+	/** Christkind's guiding star: when the next certain critical hit is ready. */
+	starReadyAt: number;
+	/** La Befana's broom: faster until then. */
+	hasteUntil: number;
+	/** The Yule Goat's iron horns: when they can next butt an enemy back. */
+	hornsReadyAt: number;
+	/** Mari Lwyd's jaw: when it can next snap. */
+	jawAt: number;
+	/** La Flor and Ded Moroz's frost flower: when it next blooms. */
+	frostFlowerAt: number;
 };
 
 export type IEnemy = {
@@ -216,7 +226,8 @@ export type IShot = {
 		| "fireball"
 		| "snowball"
 		| "spark"
-		| "petal";
+		| "petal"
+		| "star";
 	/** Enemies it's already hit (so piercing shots hit each once). */
 	struck: Set<number>;
 	/** What a gun's shot does to what it hits (guns.ts); other shots just hurt. */
@@ -259,7 +270,10 @@ export type IEffect = {
 		| "levelUp"
 		// La Befana's coal bomb on the snow (data: x, y, damage, gone off, straw-fire), and Mari Lwyd's chant.
 		| "coal"
-		| "chant";
+		| "chant"
+		// Ded Moroz's frost tracks (data: from x, y to x, y), and La Befana's soot.
+		| "tracks"
+		| "soot";
 	x: number;
 	y: number;
 	at: number;
@@ -298,10 +312,11 @@ export type IPickup = {
 
 /**
  * A minion of gingerbread, a candle flame, an orbiting snow globe, a toy soldier standing guard,
- * La Flor's xolo and her poinsettias: the elf's allies.
+ * and the patrons' helpers (La Flor's xolo and her poinsettias, Saint Lucia's star boys, Ded
+ * Moroz's Snow Maiden, Mari Lwyd's mummers): the elf's allies.
  */
 export type IAlly = {
-	kind: "minion" | "globe" | "flame" | "soldier" | "xolo" | "poinsettia";
+	kind: "minion" | "globe" | "flame" | "soldier" | "xolo" | "poinsettia" | "starBoy" | "maiden" | "mummer";
 	x: number;
 	y: number;
 	angle: number;

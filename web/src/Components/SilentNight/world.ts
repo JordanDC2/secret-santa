@@ -9,12 +9,12 @@
 
 import { castMember } from "Components/SilentNight/cast";
 import { knockCandles } from "Components/SilentNight/candles";
-import { gridOf, near, hurtEnemy, heal } from "Components/SilentNight/combat";
+import { freeze, gridOf, near, hurtEnemy, heal } from "Components/SilentNight/combat";
 import { moveEnemies, moveHostileShots } from "Components/SilentNight/enemies";
 import { nextLevelUp } from "Components/SilentNight/levelUp";
 import { FIRST_WAVE, visitShrines } from "Components/SilentNight/patrons";
 import { movePickups } from "Components/SilentNight/pickups";
-import { byRank, stats } from "Components/SilentNight/stats";
+import { byRank, rank, stats } from "Components/SilentNight/stats";
 import { runTimeline } from "Components/SilentNight/timeline";
 import { dropCoalBomb, useSecondWave } from "Components/SilentNight/secondWave";
 import {
@@ -83,6 +83,11 @@ export function newWorld(
 			slowedUntil: 0,
 			chantAt: 0,
 			charged: new Set(),
+			starReadyAt: 0,
+			hasteUntil: 0,
+			hornsReadyAt: 0,
+			jawAt: 0,
+			frostFlowerAt: 0,
 		},
 		enemies: [],
 		shots: [],
@@ -144,7 +149,24 @@ export function step(world: IWorld, input: IInput, dt: number, view: { width: nu
 	visitShrines(world, events);
 	recover(world, dt, events);
 
-	if (world.player.health <= 0) {
+	if (world.player.health <= 0 && rank(world.player, "gavleGoat") > 0 && !world.done.has("gavle")) {
+		// The Gävle Goat: burned, and back again, once a night, the straw round the elf going up.
+		const { player } = world;
+		world.done.add("gavle");
+		player.health = world.numbers.maxHealth / 3;
+		player.hurtUntil = world.time + 2;
+		world.effects.push({
+			kind: "coal",
+			x: player.x,
+			y: player.y,
+			at: world.time,
+			until: world.time,
+			radius: 40 * world.numbers.area,
+			angle: 0,
+			data: [player.x, player.y, 40, 0, 1],
+		});
+		events.healed = true;
+	} else if (world.player.health <= 0) {
 		world.player.health = 0;
 		world.over = true;
 	} else if (world.dawn && world.done.has("boss-krampus") && !world.enemies.some((enemy) => enemy.kind === "krampus")) {
@@ -187,9 +209,11 @@ function movePlayer(world: IWorld, input: IInput, dt: number, events: IEvents) {
 		player.x += player.dash.x * DASH_SPEED * dt;
 		player.y += player.dash.y * DASH_SPEED * dt;
 	} else {
+		// La Befana's broom: faster a while after dashing through an enemy.
+		const haste = world.time < player.hasteUntil ? 1 + byRank(player, "ridingTheBroom", [0.2, 0.3, 0.4]) : 1;
 		events.wailed ||= slowed < 1;
-		player.x += move.x * PLAYER_SPEED * numbers.speed * slowed * dt;
-		player.y += move.y * PLAYER_SPEED * numbers.speed * slowed * dt;
+		player.x += move.x * PLAYER_SPEED * numbers.speed * slowed * haste * dt;
+		player.y += move.y * PLAYER_SPEED * numbers.speed * slowed * haste * dt;
 	}
 
 	// Walking into a lit candle knocks it over too.
@@ -318,7 +342,7 @@ function moveShots(world: IWorld, grid: ReturnType<typeof gridOf>, dt: number, e
 				}
 
 				if (!enemy.boss && Math.random() < hit.freeze) {
-					enemy.frozenUntil = world.time + 1.2;
+					freeze(world, enemy, 1.2);
 					events.froze = true;
 				}
 

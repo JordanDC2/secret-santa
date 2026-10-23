@@ -6,7 +6,7 @@
  */
 
 import { knockCandles } from "Components/SilentNight/candles";
-import { hurtEnemy, near, touches, heal, type IGrid } from "Components/SilentNight/combat";
+import { freeze, hurtEnemy, near, touches, heal, type IGrid } from "Components/SilentNight/combat";
 import { fireGun, GUNS, gunNumbers, isGun, past } from "Components/SilentNight/guns";
 import { byRank, rank } from "Components/SilentNight/stats";
 import type { IStats } from "Components/SilentNight/stats";
@@ -757,7 +757,7 @@ export function moveAllies(world: IWorld, grid: IGrid, dt: number, events: IEven
 				events,
 				(enemy) => {
 					if (globeWeapon.evolved) {
-						enemy.frozenUntil = Math.max(enemy.frozenUntil, world.time + 0.8);
+						freeze(world, enemy, 0.8);
 					}
 				},
 			);
@@ -774,7 +774,22 @@ export function moveAllies(world: IWorld, grid: IGrid, dt: number, events: IEven
 		}
 
 		if (ally.kind === "minion" && minionWeapon) {
-			moveMinion(world, grid, ally, minionWeapon, dt, events);
+			const { level, evolved } = minionWeapon;
+			const damage = (8 + 4 * past(level, 3, 6) + 6 * past(level, 8)) * (evolved ? 1.5 : 1);
+			chase(world, grid, ally, dt, events, level >= 7 ? 90 : 70, damage, level >= 4 ? 0.45 : 0.6, "minions");
+		}
+
+		// A mummer: as a gingerbread minion fresh from the oven.
+		if (ally.kind === "mummer") {
+			chase(world, grid, ally, dt, events, 70, 8, 0.6, null);
+		}
+
+		if (ally.kind === "starBoy") {
+			walkStarBoy(world, grid, ally, dt);
+		}
+
+		if (ally.kind === "maiden") {
+			walkMaiden(world, grid, ally, dt, events);
 		}
 
 		if (ally.kind === "soldier" && soldierWeapon) {
@@ -935,7 +950,18 @@ function strike(
 	});
 }
 
-function moveMinion(world: IWorld, grid: IGrid, ally: IAllyLike, weapon: IWeapon, dt: number, events: IEvents) {
+/** Running at the nearest enemy to the elf (or back to her), hurting what it touches. */
+function chase(
+	world: IWorld,
+	grid: IGrid,
+	ally: IAllyLike,
+	dt: number,
+	events: IEvents,
+	speed: number,
+	damage: number,
+	every: number,
+	weapon: IWeaponId | null,
+) {
 	const { player } = world;
 	let target =
 		ally.targetId === null
@@ -962,7 +988,6 @@ function moveMinion(world: IWorld, grid: IGrid, ally: IAllyLike, weapon: IWeapon
 	const dx = goal.x - ally.x;
 	const dy = goal.y - ally.y;
 	const distance = Math.hypot(dx, dy);
-	const speed = weapon.level >= 7 ? 90 : 70;
 
 	if (distance > 2) {
 		ally.x += (dx / distance) * Math.min(distance, speed * dt);
@@ -970,8 +995,102 @@ function moveMinion(world: IWorld, grid: IGrid, ally: IAllyLike, weapon: IWeapon
 	}
 
 	ally.angle += dt * 0.7;
-	const damage = (8 + 4 * past(weapon.level, 3, 6) + 6 * past(weapon.level, 8)) * (weapon.evolved ? 1.5 : 1);
-	strike(world, grid, ally, 4, damage, weapon.level >= 4 ? 0.45 : 0.6, "minions", events);
+	strike(world, grid, ally, 4, damage, every, weapon, events);
+}
+
+/**
+ * Walking behind the elf in procession (Saint Lucia's star boys and Ded Moroz's Snow Maiden, each in
+ * its place in the line), as fast as the xolo trots.
+ */
+function walkWith(world: IWorld, ally: IAlly, dt: number) {
+	const { player } = world;
+	const walkers = world.allies.filter((other) => other.kind === "starBoy" || other.kind === "maiden");
+	const place = walkers.indexOf(ally);
+	const dx = player.x - player.facing * (22 + place * 10) - ally.x;
+	const dy = player.y + (place % 2 === 0 ? 2 : -2) - ally.y;
+	const distance = Math.hypot(dx, dy);
+
+	if (distance > 2) {
+		ally.x += (dx / distance) * Math.min(distance, 90 * dt);
+		ally.y += (dy / distance) * Math.min(distance, 90 * dt);
+	}
+}
+
+/** The nearest enemy to (`x`, `y`) within `reach`, if any. */
+function nearestTo(grid: IGrid, x: number, y: number, reach: number): IEnemy | null {
+	let found: IEnemy | null = null;
+	let best = reach;
+	near(grid, x, y, reach, (enemy) => {
+		const distance = Math.hypot(enemy.x - x, enemy.y - y);
+
+		if (distance < best) {
+			best = distance;
+			found = enemy;
+		}
+	});
+
+	return found;
+}
+
+/**
+ * One of Saint Lucia's star boys, in the procession: walking with the elf, throwing a star at the
+ * nearest enemy in reach (as far as a toy soldier fires) every second, for as much as a walnut and
+ * setting it burning.
+ */
+function walkStarBoy(world: IWorld, grid: IGrid, ally: IAlly, dt: number) {
+	walkWith(world, ally, dt);
+	const target = world.time < ally.readyAt ? null : nearestTo(grid, ally.x, ally.y, 110 * world.numbers.area);
+
+	if (!target) {
+		return;
+	}
+
+	const aim = Math.atan2(target.y - target.radius * 0.8 - (ally.y - 10), target.x - ally.x);
+	world.shots.push({
+		x: ally.x,
+		y: ally.y - 10,
+		vx: Math.cos(aim) * 220,
+		vy: Math.sin(aim) * 220,
+		until: world.time + 0.7,
+		damage: 9,
+		pierce: 0,
+		radius: 1.5,
+		weapon: null,
+		hostile: false,
+		kind: "star",
+		struck: new Set(),
+		hit: { knockback: 2, burst: null, burn: 6, slow: 0, freeze: 0, bounce: 0, homing: 0, sparks: 0 },
+	});
+	ally.shotAt = world.time;
+	ally.readyAt = world.time + 1;
+}
+
+/** Ded Moroz's Snow Maiden: walking with the elf, every few seconds freezing everything close round her. */
+function walkMaiden(world: IWorld, grid: IGrid, ally: IAlly, dt: number, events: IEvents) {
+	walkWith(world, ally, dt);
+	const reach = 30 * world.numbers.area;
+
+	if (world.time < ally.readyAt || !nearestTo(grid, ally.x, ally.y, reach)) {
+		return;
+	}
+
+	near(grid, ally.x, ally.y, reach + 10, (enemy) => {
+		if (!enemy.boss && touches(enemy, ally.x, ally.y - 6, reach)) {
+			freeze(world, enemy, 1.5);
+		}
+	});
+	world.effects.push({
+		kind: "frost",
+		x: ally.x,
+		y: ally.y - 6,
+		at: world.time,
+		until: world.time + 0.6,
+		radius: reach,
+		angle: 0,
+		data: [],
+	});
+	ally.readyAt = world.time + byRank(world.player, "snegurochka", [4, 3, 2]);
+	events.froze = true;
 }
 
 type IAllyLike = { x: number; y: number; angle: number; targetId: number | null; hits: Map<number, number> };

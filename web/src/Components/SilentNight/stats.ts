@@ -152,7 +152,11 @@ export function stats(player: IPlayer): IStats {
 	const song =
 		rank(player, "fright") > 0
 			? byRank(player, "fright", [30, 38, 46])
-			: rank(player, "wassail") + rank(player, "carolAtTheDoor") > 0
+			: rank(player, "wassail") +
+						rank(player, "carolAtTheDoor") +
+						rank(player, "mummers") +
+						rank(player, "wassailers") >
+				  0
 				? 30
 				: 0;
 

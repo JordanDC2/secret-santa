@@ -7,10 +7,10 @@
  * elf's reach (stats.ts) fly to it. Too many crystals lying about merge into big ones.
  */
 
-import { heal, hurtEnemy, type IGrid } from "Components/SilentNight/combat";
+import { freeze, heal, hurtEnemy, near, touches, type IGrid } from "Components/SilentNight/combat";
 import { experienceFor } from "Components/SilentNight/constants";
 import { openChest } from "Components/SilentNight/levelUp";
-import { rank } from "Components/SilentNight/stats";
+import { byRank, rank } from "Components/SilentNight/stats";
 import type { IEvents, IWorld } from "Components/SilentNight/types";
 
 const PULL_SPEED = 160;
@@ -18,8 +18,10 @@ const MAX_CRYSTALS = 250;
 
 export function movePickups(world: IWorld, grid: IGrid, dt: number, events: IEvents) {
 	const { player, numbers } = world;
-	// La Flor and Saint Lucia together: crystals come from anywhere in the light.
-	const reach = rank(player, "bloomOfLight") > 0 ? 60 * numbers.light : numbers.reach;
+	// La Flor and Saint Lucia together: crystals come from anywhere in the light. A Yule Lad's meat-hook:
+	// further, while dashing.
+	const hooked = world.time < player.dashUntil ? 1 + byRank(player, "meatHook", [0.5, 1, 1.5]) : 1;
+	const reach = (rank(player, "bloomOfLight") > 0 ? 60 * numbers.light : numbers.reach) * hooked;
 
 	world.pickups = world.pickups.filter((pickup) => {
 		const dx = player.x - pickup.x;
@@ -72,9 +74,38 @@ function collect(world: IWorld, grid: IGrid, kind: string, value: number, events
 				events.levelUp = true;
 			}
 
+			// La Flor and the Christkind: every humble crystal a little healing.
+			if (rank(player, "humblestGift") > 0) {
+				heal(world, 0.5, events);
+				events.healed = false;
+			}
+
 			break;
 		case "cocoa":
-			heal(world, value * world.numbers.cocoa, events);
+			heal(world, value * world.numbers.cocoa * (1 + byRank(player, "saffronBuns", [0.25, 0.5, 0.75])), events);
+
+			// Saint Lucia's saffron buns: everything close round the elf set burning.
+			if (rank(player, "saffronBuns") > 0) {
+				const reach = 30 * world.numbers.area;
+				world.effects.push({
+					kind: "ring",
+					x: player.x,
+					y: player.y - 6,
+					at: world.time,
+					until: world.time + 0.4,
+					radius: reach,
+					angle: 0,
+					data: [],
+				});
+				near(grid, player.x, player.y, reach + 10, (enemy) => {
+					if (touches(enemy, player.x, player.y - 6, reach)) {
+						enemy.burnUntil = world.time + 3;
+						enemy.burnDamage = 6;
+					}
+				});
+				events.ignited = true;
+			}
+
 			break;
 		case "star":
 			for (const pickup of world.pickups) {
@@ -95,7 +126,7 @@ function collect(world: IWorld, grid: IGrid, kind: string, value: number, events
 			// Time stands still for every enemy near but the bosses.
 			for (const enemy of world.enemies) {
 				if (!enemy.boss && Math.hypot(enemy.x - player.x, enemy.y - player.y) < AROUND) {
-					enemy.frozenUntil = world.time + 10;
+					freeze(world, enemy, 10);
 				}
 			}
 
