@@ -16,7 +16,7 @@
 import { audioNow, hiss as playHiss, musicBus, readSoundOn, tone as playTone } from "Components/ElfFling/sound";
 import { ENEMY_KINDS } from "Components/SilentNight/constants";
 import { readSettings } from "Components/SilentNight/settings";
-import type { IEnemyKind, IEvents, IGunId } from "Components/SilentNight/types";
+import type { ICastId, IEnemyKind, IEvents, IGunId } from "Components/SilentNight/types";
 
 /**
  * How loud the music and the sound effects are (settings.ts): the effects through a volume of
@@ -1614,13 +1614,12 @@ const TICK_MS = 120;
 const CROSSFADE = 0.4;
 
 /**
- * Starts the music. In the night: the music box once, then the rest of the song over and over,
- * starting where the night's clock (`night().time`) says; the full version while playing, the soft
- * one while the night waits on a choice (`night().soft`), crossing over in step; the band in
- * whatever part it's at while a boss is about. In the menu (`menu`): the song's gentle start, the
- * music box and the strings, over and over. Returns a function that stops it, fading out.
+ * Starts the night's music: the music box once, then the rest of the song over and over, starting
+ * where the night's clock (`night().time`) says; the full version while playing, the soft one
+ * while the night waits on a choice (`night().soft`), crossing over in step; the band in whatever
+ * part it's at while a boss is about. Returns a function that stops it, fading out.
  */
-export function startNightMusic(night: () => { time: number; boss: boolean; soft: boolean }, menu = false): () => void {
+export function startNightMusic(night: () => { time: number; boss: boolean; soft: boolean }): () => void {
 	const started = audioNow();
 	const bus = musicOut();
 
@@ -1658,8 +1657,8 @@ export function startNightMusic(night: () => { time: number; boss: boolean; soft
 	};
 
 	// Each time round the loop is played another way (arrangement's variant), and every other pair
-	// of times round a whole tone up: four different passes before any comes round again. The menu
-	// only ever plays the first. Each pass's hits are kept by bar, to find those due quickly.
+	// of times round a whole tone up: four different passes before any comes round again. Each
+	// pass's hits are kept by bar, to find those due quickly.
 	const barLength = BAR * EIGHTH;
 	const passes = [0, 1, 2, 3].map((pass) => {
 		lift = pass >= 2 ? 2 ** (2 / 12) : 1;
@@ -1675,9 +1674,9 @@ export function startNightMusic(night: () => { time: number; boss: boolean; soft
 		return bars;
 	});
 	const partLength = TUNE.length * barLength;
-	// The music box plays once, then the song goes round from the strings (the menu: the first two parts, round and round).
-	const introLength = menu ? 0 : partLength;
-	const loopLength = menu ? 2 * partLength : (SONG_BARS - TUNE.length + TAIL_BARS) * barLength;
+	// The music box plays once, then the song goes round from the strings.
+	const introLength = partLength;
+	const loopLength = (SONG_BARS - TUNE.length + TAIL_BARS) * barLength;
 	// Where in the song the night is: the clock says how far it's come, so it carries on there.
 	const origin = started + 0.2 - night().time;
 	let scheduledTo = started + 0.2;
@@ -1704,7 +1703,7 @@ export function startNightMusic(night: () => { time: number; boss: boolean; soft
 
 		// The first time round always (it holds the intro, which comes before the loop starts).
 		for (let loop = firstLoop; loop === 0 || origin + introLength + loop * loopLength < until; loop++) {
-			const bars = passes[menu ? 0 : loop % passes.length];
+			const bars = passes[loop % passes.length];
 			// This time round, the loop's hits sound `shift` later (the intro's only the first time).
 			const shift = loop * loopLength;
 			const earliest = Math.max(loop === 0 ? 0 : introLength, from - origin - shift);
@@ -1764,6 +1763,215 @@ export function playSelect() {
 	}
 }
 
+/**
+ * A note that comes in over `attack` seconds and dies away (`tone` only dies away), `delay` seconds
+ * from now, through `output`: by default swelling in, for nearly half its length; quickly, to be on
+ * the beat.
+ */
+function swell(
+	output: AudioNode,
+	wave: OscillatorType,
+	pitch: number,
+	delay: number,
+	length: number,
+	volume: number,
+	attack = length * 0.45,
+) {
+	const context = output.context;
+	const start = context.currentTime + delay;
+	const oscillator = context.createOscillator();
+	const gain = context.createGain();
+	oscillator.type = wave;
+	oscillator.frequency.value = pitch;
+	gain.gain.setValueAtTime(0.0001, start);
+	gain.gain.exponentialRampToValueAtTime(volume, start + attack);
+	gain.gain.exponentialRampToValueAtTime(0.0001, start + length);
+	oscillator.connect(gain).connect(output);
+	oscillator.start(start);
+	oscillator.stop(start + length + 0.05);
+}
+
+/** A bell tolling, `delay` seconds from now: its partials, the higher dying away sooner. */
+function toll(output: AudioNode, pitch: number, delay: number, volume: number) {
+	tone("sine", pitch, pitch, 3, volume, delay, output);
+	tone("sine", pitch * 2.76, pitch * 2.76, 1.8, volume / 4, delay, output);
+	tone("sine", pitch * 5.4, pitch * 5.4, 1, volume / 8, delay, output);
+}
+
+/** A heavy hit, `delay` seconds from now, as heavy as `weight`: a sub-bass drop, a dull boom and the crack of it. */
+function impact(output: AudioNode, delay: number, weight: number) {
+	tone("sine", 120, 32, 1.1, 0.18 * weight, delay, output);
+	hiss("lowpass", 500, 0.6, 0.1 * weight, delay, 70, output);
+	hiss("highpass", 3000, 0.04, 0.04 * weight, delay, undefined, output);
+}
+
+/** Sleigh bells shaken, `delay` seconds from now for `length` seconds: the rattle of them, and their little rings. */
+function jingle(output: AudioNode, delay: number, length: number, volume: number) {
+	for (let i = 0; i < 9; i++) {
+		const at = delay + (i / 9) * length;
+		const pitch = 3000 + Math.random() * 1800;
+		hiss("bandpass", 6500, 0.07, volume, at, undefined, output);
+		tone("sine", pitch, pitch * 0.995, 0.22, volume / 2, at, output);
+	}
+}
+
+/** Dark brass: sawtooths blown in on the beat through a filter opening to `bright` Hz, closing as they die away. */
+function brass(output: AudioNode, pitches: number[], delay: number, length: number, volume: number, bright: number) {
+	const context = output.context;
+	const start = context.currentTime + delay;
+	const filter = context.createBiquadFilter();
+	filter.type = "lowpass";
+	filter.frequency.setValueAtTime(120, start);
+	filter.frequency.exponentialRampToValueAtTime(bright, start + 0.08);
+	filter.frequency.exponentialRampToValueAtTime(120, start + length);
+	filter.connect(output);
+
+	for (const pitch of pitches) {
+		swell(filter, "sawtooth", pitch, delay, length, volume, 0.03);
+		swell(filter, "sawtooth", pitch * 1.006, delay, length, volume, 0.03);
+	}
+}
+
+/** A cold hall's echo, made once: noise dying away over a couple of seconds, darker as it goes. */
+let hallEcho: AudioBuffer | null = null;
+
+function hall(context: BaseAudioContext): ConvolverNode {
+	if (!hallEcho) {
+		const length = Math.round(context.sampleRate * 2.4);
+		hallEcho = context.createBuffer(2, length, context.sampleRate);
+
+		for (let channel = 0; channel < 2; channel++) {
+			const data = hallEcho.getChannelData(channel);
+			let dark = 0;
+
+			for (let i = 0; i < length; i++) {
+				const time = i / context.sampleRate;
+				// Filtered more the longer it rings, losing its brightness as it dies.
+				dark += (0.04 + 0.6 * Math.exp(-time * 1.5)) * (Math.random() * 2 - 1 - dark);
+				data[i] = dark * Math.exp(-time * 2.8);
+			}
+		}
+	}
+
+	const echo = context.createConvolver();
+	echo.buffer = hallEcho;
+
+	return echo;
+}
+
+/** The pick sounding now (who plays, or their gun), cut short by the next. */
+let pickBus: GainNode | null = null;
+
+/** Somewhere for a pick to sound: dry, and ringing round a cold hall; the last pick cut short. */
+function pickOut(): GainNode | null {
+	const out = soundOn ? effectsOut() : undefined;
+
+	if (!out) {
+		return null;
+	}
+
+	const context = out.context;
+	pickBus?.gain.setTargetAtTime(0, context.currentTime, 0.03);
+	const bus = context.createGain();
+	const echo = context.createGain();
+	echo.gain.value = 0.3;
+	bus.connect(out);
+	bus.connect(hall(context)).connect(echo).connect(out);
+	pickBus = bus;
+	window.setTimeout(() => {
+		bus.disconnect();
+		echo.disconnect();
+	}, 5000);
+
+	return bus;
+}
+
+/** Each gun, chosen: loaded its own way. */
+const GUN_STINGS: Record<IGunId, (out: AudioNode) => void> = {
+	// Its slide racked back and forward, and a glint of peppermint.
+	gun: (out) => {
+		hiss("bandpass", 2200, 0.03, 0.08, 0, undefined, out);
+		tone("square", 420, 260, 0.03, 0.02, 0, out);
+		hiss("bandpass", 1500, 0.05, 0.1, 0.11, undefined, out);
+		tone("square", 300, 180, 0.04, 0.025, 0.11, out);
+		tone("sine", NOTE.C6 * 2, NOTE.C6 * 2, 0.9, 0.012, 0.3, out);
+	},
+	// The nutcracker's jaw clacking shut, walnut shells poured down the barrel, a heavy boom.
+	blunderbuss: (out) => {
+		tone("square", 650, 420, 0.03, 0.04, 0, out);
+		hiss("bandpass", 1000, 0.05, 0.09, 0, undefined, out);
+
+		for (let i = 0; i < 6; i++) {
+			hiss("bandpass", 3200 + Math.random() * 1500, 0.025, 0.04, 0.08 + i * 0.035, undefined, out);
+		}
+
+		hiss("lowpass", 2400, 0.5, 0.1, 0.34, 200, out);
+	},
+	// The string drawn back creaking, frost crackling along the bolt, the latch catching, and a chill.
+	crossbow: (out) => {
+		const creak = out.context.createBiquadFilter();
+		creak.type = "bandpass";
+		creak.frequency.value = 900;
+		creak.Q.value = 3;
+		creak.connect(out);
+		tone("sawtooth", 70, 105, 0.32, 0.06, 0, creak);
+
+		for (let i = 0; i < 6; i++) {
+			const pitch = 5000 + Math.random() * 2500;
+			tone("sine", pitch, pitch, 0.04, 0.015, 0.05 + i * 0.045, out);
+		}
+
+		tone("sine", 320, 150, 0.06, 0.08, 0.34, out);
+		hiss("bandpass", 1300, 0.05, 0.06, 0.34, undefined, out);
+		swell(out, "sine", NOTE.C6, 0.4, 1.6, 0.01);
+		swell(out, "sine", NOTE.G5 * 2, 0.4, 1.6, 0.008);
+	},
+	// Both cylinders spun clicking round, both hammers cocked, their bells jingling.
+	pistols: (out) => {
+		for (let i = 0; i < 12; i++) {
+			tone("square", 2600, 2200, 0.008, 0.015, 0.3 * (i / 12) ** 1.4, out);
+		}
+
+		for (const at of [0.36, 0.44]) {
+			hiss("bandpass", 2600, 0.03, 0.08, at, undefined, out);
+			tone("square", 900, 600, 0.02, 0.02, at, out);
+		}
+
+		jingle(out, 0.5, 0.25, 0.02);
+	},
+	// A match struck, the fuse fizzing and spitting, catching with a whoomph, then the fire.
+	romanCandle: (out) => {
+		hiss("bandpass", 2000, 0.12, 0.07, 0, 6000, out);
+		hiss("highpass", 5500, 0.6, 0.02, 0.1, undefined, out);
+
+		for (let i = 0; i < 8; i++) {
+			hiss("bandpass", 2500 + Math.random() * 3000, 0.012, 0.05, 0.12 + Math.random() * 0.5, undefined, out);
+		}
+
+		hiss("lowpass", 250, 0.45, 0.14, 0.62, 1800, out);
+		hiss("lowpass", 700, 1.3, 0.035, 0.7, 300, out);
+	},
+	// Snow packed in, crunch by crunch, the breech shut with a thunk, and a cold wind.
+	snowCannon: (out) => {
+		for (const at of [0, 0.1, 0.2]) {
+			hiss("lowpass", 1600, 0.07, 0.08, at, 500, out);
+			hiss("bandpass", 650, 0.05, 0.04, at, undefined, out);
+		}
+
+		tone("sine", 170, 70, 0.12, 0.14, 0.32, out);
+		hiss("bandpass", 450, 1.3, 0.035, 0.45, 1000, out);
+	},
+};
+
+/** Choosing the gun they carry: loaded its own way. */
+export function playGunChosen(id: IGunId) {
+	const out = pickOut();
+
+	if (out) {
+		GUN_STINGS[id](out);
+	}
+}
+
 /** A gun's morph taken: a heavy, distorted chord. */
 export function playMorph() {
 	if (!soundOn) {
@@ -1808,28 +2016,12 @@ export function playNightBegins() {
 		return;
 	}
 
-	const context = bus.context;
-	const now = context.currentTime + 0.05;
-	// A note that swells in and dies away (`tone` only dies away).
-	const swell = (wave: OscillatorType, pitch: number, start: number, length: number, volume: number) => {
-		const oscillator = context.createOscillator();
-		const gain = context.createGain();
-		oscillator.type = wave;
-		oscillator.frequency.value = pitch;
-		gain.gain.setValueAtTime(0.0001, now + start);
-		gain.gain.exponentialRampToValueAtTime(volume, now + start + length * 0.45);
-		gain.gain.exponentialRampToValueAtTime(0.0001, now + start + length);
-		oscillator.connect(gain).connect(bus);
-		oscillator.start(now + start);
-		oscillator.stop(now + start + length + 0.05);
-	};
-
-	swell("sine", NOTE.C2, 0, 3.4, 0.2);
-	swell("triangle", NOTE.C3, 0.1, 3.2, 0.06);
+	swell(bus, "sine", NOTE.C2, 0, 3.4, 0.2);
+	swell(bus, "triangle", NOTE.C3, 0.1, 3.2, 0.06);
 
 	for (const note of ["C4", "Eb4", "G4"]) {
-		swell("sawtooth", NOTE[note], 0.2, 3, 0.012);
-		swell("triangle", NOTE[note], 0.2, 3, 0.03);
+		swell(bus, "sawtooth", NOTE[note], 0.2, 3, 0.012);
+		swell(bus, "triangle", NOTE[note], 0.2, 3, 0.03);
 	}
 
 	["G5", "Eb5", "C5", "G4", "Eb4", "C4"].forEach((note, i) =>
@@ -1837,13 +2029,332 @@ export function playNightBegins() {
 	);
 
 	for (const at of [0, 1.9]) {
-		tone("sine", NOTE.C3, NOTE.C3, 3, 0.12, at, bus);
-		tone("sine", NOTE.C3 * 2.76, NOTE.C3 * 2.76, 1.8, 0.03, at, bus);
-		tone("sine", NOTE.C3 * 5.4, NOTE.C3 * 5.4, 1, 0.015, at, bus);
+		toll(bus, NOTE.C3, at, 0.12);
 	}
 
 	window.setTimeout(() => {
 		musicBuses.delete(bus);
 		bus.disconnect();
 	}, 4000);
+}
+
+/** A hit of the music while choosing who plays: when (in quavers from the start of the tune), and how it sounds. */
+type ICastHit = { at: number; play: (delay: number, out: AudioNode) => void };
+type IAddCastHit = (at: number, play: ICastHit["play"]) => void;
+
+/** How one of the cast plays Silent Night: each note of the tune, the rest of each bar, and coming in when chosen. */
+type ICastVoice = {
+	/** A note of the tune at quaver `at`, at its pitch as written, `time` seconds long. */
+	note: (add: IAddCastHit, at: number, pitch: number, time: number) => void;
+	/** The rest of the bar from quaver `start`: its chord's root, and the rest of the chord. */
+	bar: (add: IAddCastHit, start: number, root: number, chord: number[], index: number) => void;
+	/** Coming in, as they're chosen: an accent of their own. */
+	entrance: (out: AudioNode) => void;
+};
+
+/**
+ * Silent Night as each of the cast would play it, over the same cold drone: the elf's quick and
+ * plucked, sleigh bells shaken; Santa's low and heavy on dark brass, a deep bell tolling every bar
+ * over a timpani; Mrs. Claus's on her music box over warm strings and a soft heartbeat, as the song
+ * itself begins; the snowman's high and cold on glass, frost tinkling, the wind getting up; the
+ * reindeer's at a gallop, hooves and bells under a horn.
+ */
+const CAST_VOICES: Record<ICastId, ICastVoice> = {
+	elf: {
+		// An octave up, plucked, each note flicked into from a semitone above.
+		note: (add, at, pitch, time) => {
+			const high = pitch * 2;
+			add(at - 0.125, (delay, out) => tone("triangle", high * 1.06, high * 1.06, 0.05, 0.025, delay, out));
+			add(at, (delay, out) => {
+				tone("triangle", high, high * 0.998, Math.min(0.5, time), 0.06, delay, out);
+				tone("sine", high * 2, high * 2, 0.12, 0.012, delay, out);
+			});
+		},
+		// The chord picked out on every quaver, ticking, and sleigh bells shaken on the beats.
+		bar: (add, start, _root, chord) => {
+			for (let eighth = 0; eighth < 6; eighth++) {
+				const pitch = chord[eighth % chord.length] * 2;
+				add(start + eighth, (delay, out) => {
+					tone("triangle", pitch, pitch, 0.16, 0.02, delay, out);
+					hiss("highpass", 8000, 0.02, 0.008, delay, undefined, out);
+				});
+			}
+
+			for (const beat of [0, 3]) {
+				add(start + beat, (delay, out) => jingle(out, delay, 0.18, 0.012));
+			}
+		},
+		entrance: (out) => {
+			jingle(out, 0, 0.25, 0.02);
+			[NOTE.C5, NOTE.Eb5, NOTE.G5, NOTE.C6].forEach((pitch, i) =>
+				tone("triangle", pitch, pitch, 0.25, 0.04, i * 0.05, out),
+			);
+		},
+	},
+	santa: {
+		// An octave down, on dark brass, each note swelling.
+		note: (add, at, pitch, time) =>
+			add(at, (delay, out) => brass(out, [pitch / 2], delay, time * 1.15 + 0.1, 0.035, 700)),
+		// A deep bell tolling the root at the top of every bar, over the chord held low; a timpani on the beats.
+		bar: (add, start, root, chord) => {
+			add(start, (delay, out) => {
+				toll(out, root / 2, delay, 0.07);
+
+				for (const pitch of chord) {
+					tone("sawtooth", pitch / 2, (pitch / 2) * 1.004, BAR * EIGHTH, 0.01, delay, out);
+				}
+			});
+
+			for (const beat of [0, 3]) {
+				add(start + beat, (delay, out) => {
+					tone("sine", 110, 45, 0.5, 0.14, delay, out);
+					hiss("lowpass", 300, 0.3, 0.05, delay, 80, out);
+				});
+			}
+		},
+		entrance: (out) => {
+			impact(out, 0, 0.9);
+			toll(out, NOTE.C2, 0, 0.1);
+		},
+	},
+	mrsClaus: {
+		// On her music box.
+		note: (add, at, pitch, time) =>
+			add(at, (delay, out) => {
+				tone("sine", pitch * 2, pitch * 2 * 0.997, Math.min(2.2, time * 2), 0.07, delay, out);
+				tone("sine", pitch * 6, pitch * 6, 0.25, 0.012, delay, out);
+			}),
+		// Warm strings holding the chord, and a soft heartbeat.
+		bar: (add, start, _root, chord) => {
+			add(start, (delay, out) => {
+				for (const pitch of chord) {
+					tone("sawtooth", pitch, pitch * 1.004, BAR * EIGHTH, 0.008, delay, out);
+					tone("triangle", pitch, pitch, BAR * EIGHTH, 0.03, delay, out);
+				}
+			});
+
+			for (const beat of [0, 0.5, 3, 3.5]) {
+				add(start + beat, (delay, out) =>
+					tone("sine", beat % 3 === 0 ? 80 : 62, 40, 0.16, beat % 3 === 0 ? 0.12 : 0.08, delay, out),
+				);
+			}
+		},
+		entrance: (out) => {
+			[NOTE.C6, NOTE.G5, NOTE.Eb5].forEach((pitch, i) => tone("sine", pitch, pitch * 0.997, 1.4, 0.045, i * 0.09, out));
+		},
+	},
+	snowman: {
+		// High and cold, on glass: each note coming in softly, on the beat, a faint octave over it.
+		note: (add, at, pitch, time) =>
+			add(at, (delay, out) => {
+				swell(out, "sine", pitch * 2, delay, time + 0.6, 0.05, 0.05);
+				swell(out, "sine", pitch * 4, delay, time + 0.3, 0.01, 0.05);
+			}),
+		// An icy fifth held high over the root; snowflakes landing in time for its percussion, a soft
+		// crunch on every quaver, lighter ones leading into each beat and, on the beats, the root rung
+		// high on glass; the wind getting up every other bar.
+		bar: (add, start, root, _chord, index) => {
+			add(start, (delay, out) => {
+				swell(out, "sine", root * 8, delay, BAR * EIGHTH, 0.008);
+				swell(out, "sine", root * 12, delay, BAR * EIGHTH, 0.006);
+			});
+
+			for (const eighth of [0, 1, 2, 2.5, 3, 4, 5, 5.5]) {
+				const onBeat = eighth % 3 === 0;
+				const leading = eighth % 1 !== 0;
+				add(start + eighth, (delay, out) => {
+					hiss("highpass", 7000, 0.03, onBeat ? 0.016 : leading ? 0.006 : 0.01, delay, undefined, out);
+
+					if (onBeat) {
+						tone("sine", root * 16, root * 16, 0.3, 0.016, delay, out);
+					}
+				});
+			}
+
+			if (index % 2 === 0) {
+				add(start, (delay, out) => hiss("bandpass", 300, 2 * BAR * EIGHTH, 0.03, delay, 1100, out));
+			}
+		},
+		// Ice cracking, and snowflakes falling through the chord.
+		entrance: (out) => {
+			hiss("highpass", 1800, 0.07, 0.07, 0, undefined, out);
+			impact(out, 0, 0.5);
+			[NOTE.C6 * 2, NOTE.G5 * 2, NOTE.Eb5 * 2, NOTE.C6].forEach((pitch, i) =>
+				tone("sine", pitch, pitch, 0.5, 0.02, 0.05 + i * 0.07, out),
+			);
+		},
+	},
+	reindeer: {
+		// On a horn, bright and urgent.
+		note: (add, at, pitch, time) => add(at, (delay, out) => brass(out, [pitch], delay, time * 1.05 + 0.08, 0.03, 1700)),
+		// At a gallop: hooves pounding into each beat, landing on it with the bass, its bells ringing with them.
+		bar: (add, start, root) => {
+			for (const beat of [0, 3]) {
+				for (const [offset, accent] of [
+					[-1, 0.7],
+					[-0.5, 0.8],
+					[0, 1],
+				]) {
+					add(start + beat + offset, (delay, out) => {
+						tone("sine", 150, 60, 0.08, 0.12 * accent, delay, out);
+						hiss("lowpass", 1400, 0.04, 0.04 * accent, delay, undefined, out);
+					});
+				}
+
+				add(start + beat, (delay, out) => tone("triangle", root, root, BEAT * 0.9, 0.12, delay, out));
+				add(start + beat + 1, (delay, out) => jingle(out, delay, 0.15, 0.012));
+			}
+		},
+		entrance: (out) => {
+			for (let i = 0; i < 6; i++) {
+				tone("sine", 150, 60, 0.08, 0.1 + i * 0.01, i * 0.06, out);
+			}
+
+			jingle(out, 0, 0.36, 0.018);
+		},
+	},
+};
+
+/** Each hit of Silent Night, once through, as `id` would play it (CAST_VOICES), over a cold drone. */
+function castVoice(id: ICastId): ICastHit[] {
+	const voice = CAST_VOICES[id];
+	const hits: ICastHit[] = [];
+	const add: IAddCastHit = (at, play) => {
+		hits.push({ at, play });
+	};
+
+	TUNE.forEach((bar, index) => {
+		const start = index * BAR;
+		const [root, ...chord] = CHORDS[index].map(pitchOf);
+		add(start, (delay, out) => tone("triangle", root / 2, root / 2, BAR * EIGHTH, 0.05, delay, out));
+		voice.bar(add, start, root, chord, index);
+		let at = start;
+
+		for (const [note, length] of bar) {
+			voice.note(add, at, pitchOf(note), length * EIGHTH);
+			at += length;
+		}
+	});
+
+	return hits;
+}
+
+/** The menu's own version of the song: its gentle start, the music box and then the strings. */
+function menuVoice(): ICastHit[] {
+	const end = 2 * TUNE.length * BAR;
+
+	return arrangement(0)
+		.filter((hit) => hit.at < end && hit.stem !== "soft" && !hit.bossOnly)
+		.map((hit) => ({
+			at: hit.at,
+			play: (delay, out) => hit.play(delay, { clean: out, guitar: out, lead: out, bass: out, keys: out }),
+		}));
+}
+
+/** Changes who the menu's music is played as (startMenuMusic), while it plays. */
+let menuMusicVoice: ((voice: ICastId | null) => void) | null = null;
+
+/**
+ * Starts the menu's music: its own version of the song (menuVoice) over and over, or, while
+ * choosing who plays, the song as the one chosen would play it (castVoice), round a cold hall; each
+ * changing over to the next in time, wherever the song's got to (setMenuVoice). Returns a function
+ * that stops it, fading out.
+ */
+export function startMenuMusic(): () => void {
+	const started = audioNow();
+	const bus = musicOut();
+
+	if (started === null || !bus) {
+		return () => {};
+	}
+
+	const context = bus.context;
+	const room = context.createGain();
+	const echo = context.createGain();
+	echo.gain.value = 0.25;
+	room.connect(bus);
+	room.connect(hall(context)).connect(echo).connect(bus);
+	const own = menuVoice();
+	const origin = started + 0.2;
+	let voice: ICastId | null = null;
+	let hits = own;
+	let out = context.createGain();
+	out.connect(bus);
+	let scheduledTo = origin;
+
+	const schedule = () => {
+		const now = audioNow();
+
+		if (now === null) {
+			return;
+		}
+
+		const from = Math.max(scheduledTo, now);
+		const until = now + LOOKAHEAD;
+		// The menu's own version goes round once both its parts are through; the cast's, once the tune is.
+		const loop = (voice === null ? 2 : 1) * TUNE.length * BAR;
+
+		// Each time round that's due (a hit can come a quaver early: the elf's grace notes, the reindeer's hooves).
+		for (
+			let round = Math.max(0, Math.floor((from - origin) / (loop * EIGHTH)));
+			origin + (round * loop - 1) * EIGHTH < until;
+			round++
+		) {
+			for (const hit of hits) {
+				const when = origin + (round * loop + hit.at) * EIGHTH;
+
+				if (when >= from && when < until) {
+					hit.play(when - now, out);
+				}
+			}
+		}
+
+		scheduledTo = until;
+	};
+	const change = (next: ICastId | null) => {
+		const now = audioNow();
+
+		if (next === voice || now === null) {
+			return;
+		}
+
+		// The last version dying away under the next, which comes in now (the cast's with an accent of their own).
+		const last = out;
+		last.gain.setTargetAtTime(0, now, 0.15);
+		window.setTimeout(() => last.disconnect(), 3000);
+		out = context.createGain();
+		out.connect(next === null ? bus : room);
+		voice = next;
+		hits = next === null ? own : castVoice(next);
+
+		if (next !== null) {
+			CAST_VOICES[next].entrance(out);
+		}
+
+		scheduledTo = now;
+		schedule();
+	};
+
+	menuMusicVoice = change;
+	schedule();
+	const timer = window.setInterval(schedule, TICK_MS);
+
+	return () => {
+		window.clearInterval(timer);
+
+		if (menuMusicVoice === change) {
+			menuMusicVoice = null;
+		}
+
+		musicBuses.delete(bus);
+		const now = audioNow() ?? 0;
+		bus.gain.setValueAtTime(bus.gain.value, now);
+		bus.gain.linearRampToValueAtTime(0, now + 1);
+		window.setTimeout(() => bus.disconnect(), 1500);
+	};
+}
+
+/** Who the menu's music is played as: its own version (null), or as one of the cast would play it, in time. */
+export function setMenuVoice(voice: ICastId | null) {
+	menuMusicVoice?.(voice);
 }

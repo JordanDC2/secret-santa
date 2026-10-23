@@ -9,12 +9,17 @@ import { PATRONS } from "Components/SilentNight/patrons";
 import { portraitUrl } from "Components/SilentNight/portraits";
 import { iconUrl } from "Components/SilentNight/icons";
 import { GUNS, isGun } from "Components/SilentNight/guns";
-import { playSelect } from "Components/SilentNight/sound";
+import { playGunChosen, setMenuVoice } from "Components/SilentNight/sound";
 import type { ICastId, IGunId } from "Components/SilentNight/types";
 import { weaponInfo } from "Components/SilentNight/weapons";
 import classes from "Components/SilentNight/SilentNight.module.less";
 
+/** Which of the menu's screens is showing: the main menu, choosing who plays (and their gun), or the Coal Cellar. */
+export type IMenuView = "main" | "cast" | "cellar";
+
 type IMenuProps = {
+	view: IMenuView;
+	onView: (view: IMenuView) => void;
 	progress: IProgress;
 	/** Each of the cast standing, as an image. */
 	castImages: Record<ICastId, string>;
@@ -53,14 +58,24 @@ function saveGun(gun: IGunId) {
  * they carry (remembered on this device; the rest of the guns unlocked with coal too), and the Coal Cellar:
  * upgrades, which last from night to night, and the second wave of patrons.
  */
-export default function Menu({ progress, castImages, busy, error, onStart, onChoose, onBuy, onSettings }: IMenuProps) {
-	const [view, setView] = useState<"main" | "cast" | "cellar">("main");
+export default function Menu({
+	view,
+	onView,
+	progress,
+	castImages,
+	busy,
+	error,
+	onStart,
+	onChoose,
+	onBuy,
+	onSettings,
+}: IMenuProps) {
 	const chosen = castMember(progress.character);
 	// The gun picked, if it's theirs (one still being unlocked is picked once it is), else the candy cane gun.
 	const [picked, setPicked] = useState(readGun);
 	const gun = progress.guns.includes(picked) ? picked : "gun";
 	const chooseGun = (id: IGunId) => {
-		playSelect();
+		playGunChosen(id);
 		setPicked(id);
 		saveGun(id);
 
@@ -73,7 +88,7 @@ export default function Menu({ progress, castImages, busy, error, onStart, onCho
 			variant="quiet"
 			small
 			icon={<FontAwesomeIcon icon={faArrowLeft} />}
-			onClick={() => setView("main")}
+			onClick={() => onView("main")}
 			disabled={busy}
 		>
 			Back
@@ -88,8 +103,8 @@ export default function Menu({ progress, castImages, busy, error, onStart, onCho
 					The longest night of the year, and Krampus&apos;s horde has come out of the dark.
 				</p>
 				<div className={classes.mainButtons}>
-					<GameButton onClick={() => setView("cast")}>Start the longest night</GameButton>
-					<GameButton variant="plain" onClick={() => setView("cellar")}>
+					<GameButton onClick={() => onView("cast")}>Start the longest night</GameButton>
+					<GameButton variant="plain" onClick={() => onView("cellar")}>
 						Coal Cellar
 					</GameButton>
 					<GameButton variant="plain" onClick={onSettings}>
@@ -122,7 +137,7 @@ export default function Menu({ progress, castImages, busy, error, onStart, onCho
 									className={member.id === chosen.id ? `${classes.castCard} ${classes.chosen}` : classes.castCard}
 									disabled={busy || (!owned && progress.coal < member.price)}
 									onClick={() => {
-										playSelect();
+										setMenuVoice(member.id);
 
 										if (owned) {
 											onChoose(member.id);

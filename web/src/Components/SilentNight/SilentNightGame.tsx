@@ -13,7 +13,7 @@ import { GEAR_SLOTS, RARITY_COLOURS } from "Components/SilentNight/gear";
 import { iconUrl } from "Components/SilentNight/icons";
 import Carried from "Components/SilentNight/Carried";
 import GearSlots from "Components/SilentNight/GearSlots";
-import Menu from "Components/SilentNight/Menu";
+import Menu, { type IMenuView } from "Components/SilentNight/Menu";
 import NightOver, { clock } from "Components/SilentNight/NightOver";
 import Prompt from "Components/SilentNight/Prompt";
 import {
@@ -23,6 +23,8 @@ import {
 	playNightEvents,
 	playPause,
 	setVolumes,
+	setMenuVoice,
+	startMenuMusic,
 	startNightMusic,
 } from "Components/SilentNight/sound";
 import { readSettings, saveSettings, type ISettings } from "Components/SilentNight/settings";
@@ -174,6 +176,8 @@ export default function SilentNightGame({
 		setVolumes(next.music, next.effects);
 	};
 	const [showSettings, setShowSettings] = useState(false);
+	// Which of the menu's screens is showing (Menu.tsx).
+	const [menuView, setMenuView] = useState<IMenuView>("main");
 	// The curtain rising as a night begins.
 	const [entering, setEntering] = useState(false);
 	const enteringRef = useRef(false);
@@ -642,6 +646,7 @@ export default function SilentNightGame({
 	const waiting = playing && (prompt !== null || paused);
 	const musicOn = playing && soundOn && !entering;
 	const menuMusicOn = !started && soundOn;
+	const choosing = menuView === "cast";
 
 	// The music, while the night's going on: its soft version while the night waits on a choice or a pause.
 	useEffect(() => {
@@ -656,7 +661,8 @@ export default function SilentNightGame({
 		}));
 	}, [musicOn]);
 
-	// In the menu: the song's gentle start, the music box and then the strings, over and over.
+	// In the menu: the song's gentle start, the music box and then the strings, over and over; while
+	// choosing who plays, played as the one chosen would play it (changing over in time, both ways).
 	useEffect(() => {
 		if (!menuMusicOn) {
 			return;
@@ -666,7 +672,7 @@ export default function SilentNightGame({
 		const wake = () => wakeAudio();
 		window.addEventListener("pointerdown", wake, { once: true });
 		window.addEventListener("keydown", wake, { once: true });
-		const stop = startNightMusic(() => ({ time: 0, boss: false, soft: false }), true);
+		const stop = startMenuMusic();
 
 		return () => {
 			window.removeEventListener("pointerdown", wake);
@@ -675,11 +681,18 @@ export default function SilentNightGame({
 		};
 	}, [menuMusicOn]);
 
+	useEffect(() => {
+		if (menuMusicOn) {
+			setMenuVoice(choosing ? progress.character : null);
+		}
+	}, [menuMusicOn, choosing, progress.character]);
+
 	const backToMenu = () => {
 		worldRef.current = null;
 		setOver(false);
 		setPrompt(null);
 		setWorld(null);
+		setMenuView("main");
 	};
 
 	const toggleSound = () => {
@@ -918,6 +931,8 @@ export default function SilentNightGame({
 
 			{!started && (
 				<Menu
+					view={menuView}
+					onView={setMenuView}
 					progress={progress}
 					castImages={castImages}
 					busy={busy}
