@@ -50,6 +50,9 @@ const knit: ITexture = (x, y) => 0.05 * Math.sin(x * 2.4 + y * 0.3) + 0.04 * (ha
 /** Worn leather: creased and scuffed. */
 const worn: ITexture = (x, y) => 0.08 * (fbm(x * 0.4, y * 0.4) - 0.5) + 0.05 * (hash(x, y) - 0.5);
 
+/** Where his tunic's ragged hem hangs to. */
+const hem = (x: number) => 104 + 3 * Math.abs(((x + 2) % 6) / 3 - 1) + 3 * hash(Math.floor(x / 3), 9);
+
 export function drawElfPose(): HTMLCanvasElement {
 	const { put, ellipse, limb, petal, fill, light } = figure(RAMPS, RIM);
 	// A crease in cloth: a dark line, lit along one side.
@@ -91,7 +94,6 @@ export function drawElfPose(): HTMLCanvasElement {
 
 	// His tunic of coarse old wool, belted: broad at the chest, drawn in at the waist, his hips cocked to
 	// the right; folds pulled across him by the twist, a patch sewn on, its hem ragged.
-	const hem = (x: number) => 104 + 3 * Math.abs(((x + 2) % 6) / 3 - 1) + 3 * hash(Math.floor(x / 3), 9);
 	fill(
 		58,
 		112,

@@ -44,6 +44,9 @@ const knit: ITexture = (x, y) =>
 /** Old cloth: worn, grime in it. */
 const cloth: ITexture = (x, y) => 0.04 * (hash(x, y) - 0.5) - 0.1 * clamp((fbm(x * 0.1 + 3, y * 0.1) - 0.55) * 4);
 
+/** The middle of her dress at row y: her hips cocked to the right below her waist. */
+const middleAt = (y: number) => (y < 86 ? 126 + (y - 56) * 0.05 : 127.5 + Math.min(1, (y - 86) / 20) * 4);
+
 export function drawMrsClausPose(): HTMLCanvasElement {
 	const { put, ellipse, limb, petal, fill, light } = figure(RAMPS, RIM);
 	// A crease in cloth or skin: a dark line, lit along one side.
@@ -51,7 +54,6 @@ export function drawMrsClausPose(): HTMLCanvasElement {
 		limb(x1, y1, x2, y2, 0.6, 0.5, material, -depth);
 		limb(x1 - 0.8, y1 - 0.8, x2 - 0.8, y2 - 0.8, 0.5, 0.4, material, depth * 0.4);
 	};
-	const middleAt = (y: number) => (y < 86 ? 126 + (y - 56) * 0.05 : 127.5 + Math.min(1, (y - 86) / 20) * 4);
 
 	// --- Mrs. Claus, back to front. ---
 
