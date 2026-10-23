@@ -11,7 +11,7 @@ import { drawWorld } from "Components/SilentNight/drawWorld";
 import { ENEMIES } from "Components/SilentNight/enemies";
 import { GEAR_SLOTS, RARITY_COLOURS } from "Components/SilentNight/gear";
 import { iconUrl } from "Components/SilentNight/icons";
-import { chosenPatrons, PATRONS } from "Components/SilentNight/patrons";
+import { chosenPatrons, MAX_PATRONS, PATRONS } from "Components/SilentNight/patrons";
 import Carried from "Components/SilentNight/Carried";
 import GearSlots from "Components/SilentNight/GearSlots";
 import Menu, { type IMenuView } from "Components/SilentNight/Menu";
@@ -37,6 +37,7 @@ import {
 	type ICastId,
 	type IGunId,
 	type IInput,
+	type IPatronId,
 	type IPrompt,
 	type IWorld,
 } from "Components/SilentNight/types";
@@ -53,6 +54,8 @@ const STEP = 1 / 120;
 const MAX_FRAME = 0.1;
 /** How far auto-aim and auto-shoot look for an enemy (the game's pixels): about as far as the guns reach. */
 const AUTO_REACH = 150;
+/** A slot beside the health bar for each of the night's patrons, filling as they're chosen. */
+const PATRON_SLOTS = Array.from({ length: MAX_PATRONS }, (_, index) => `patron${index}`);
 /**
  * How long the curtain takes to rise on a night (ms): it holds, then lifts off the top
  * (SilentNight.module.less). Its sting comes after a moment's quiet, for the menu's music to die
@@ -755,8 +758,29 @@ export default function SilentNightGame({
 			{started && (
 				<>
 					<div className={classes.status}>
-						<div className={classes.health} aria-label="Health">
-							<div ref={healthRef} className={classes.healthFill} />
+						{/* Health, and beside it a slot for each of the night's patrons, empty until they're chosen. */}
+						<div className={classes.vitals}>
+							<div className={classes.health} aria-label="Health">
+								<div ref={healthRef} className={classes.healthFill} />
+							</div>
+							{PATRON_SLOTS.map((slot, index) => {
+								const patron: IPatronId | undefined = build.patrons[index];
+
+								return (
+									<span
+										key={slot}
+										className={classes.slot}
+										style={patron && { borderColor: PATRONS[patron].colour }}
+										title={patron && PATRONS[patron].name}
+									>
+										{patron ? (
+											<img src={iconUrl(patron)} alt="" className={classes.icon} />
+										) : (
+											<span className={classes.icon} />
+										)}
+									</span>
+								);
+							})}
 						</div>
 						<div className={classes.experience} aria-label="Experience">
 							<div ref={experienceRef} className={classes.experienceFill} />
@@ -785,18 +809,6 @@ export default function SilentNightGame({
 								<span key={passive.id} className={classes.slot}>
 									<img src={iconUrl(passive.id)} alt="" className={classes.icon} />
 									<span className={classes.slotLevel}>{passive.level}</span>
-								</span>
-							))}
-						</div>
-						<div className={classes.carried}>
-							{build.patrons.map((patron) => (
-								<span
-									key={patron}
-									className={classes.slot}
-									style={{ borderColor: PATRONS[patron].colour }}
-									title={PATRONS[patron].name}
-								>
-									<img src={iconUrl(patron)} alt="" className={classes.icon} />
 								</span>
 							))}
 						</div>

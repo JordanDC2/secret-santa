@@ -96,6 +96,19 @@
 	pointer-events: none;
 }
 
+.vitals {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+
+/* The health bar keeps the column's full width; the patrons' slots sit past its end. */
+.vitals .health {
+	flex: none;
+	width: 100%;
+	margin-right: 2px;
+}
+
 .health,
 .experience,
 .bossHealth {
