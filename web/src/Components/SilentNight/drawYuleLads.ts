@@ -139,41 +139,84 @@ export function drawYuleLads(): HTMLCanvasElement {
 		};
 	});
 
-	// --- His brothers, in the dark behind him: hunched in their hoods, the hoods' points drooping,
-	// one with a sack over his shoulder, one with a pot, their edges caught by the northern lights. ---
-	for (const [cx, cy, size, droop] of BROTHERS) {
-		// Hunched shoulders and back, bent forward.
-		ellipse(cx, cy + size * 3.2, size * 2, size * 2.8, droop * 0.25, "shadow", 0.1);
-		ellipse(cx + droop * size * 0.4, cy + size * 1.4, size * 1.6, size * 1.3, 0, "shadow", 0.1);
-		// The hood, its point drooping.
-		ellipse(cx, cy, size, size * 0.95, 0, "shadow", 0.1);
-		limb(
-			cx + droop * size * 0.3,
-			cy - size * 0.7,
-			cx + droop * size * 1.3,
-			cy - size * 0.4,
-			size * 0.55,
-			size * 0.3,
-			"shadow",
-			0.1,
-		);
-		limb(
-			cx + droop * size * 1.3,
-			cy - size * 0.4,
-			cx + droop * size * 1.6,
-			cy + size * 0.6,
-			size * 0.3,
-			size * 0.15,
-			"shadow",
-			0.1,
-		);
-	}
+	// --- His brothers, in the dark behind him: hunched trolls sneaking in their hoods, each hood's
+	// point flopping back to a tassel, a long nose poking out of it, a ragged cape hanging from
+	// their shoulders as they lean, their legs bent under them; one with a sack on his back, one
+	// with a pot. ---
+	BROTHERS.forEach(([cx, cy, s, droop], index) => {
+		// Each faces away from where his hood's point droops, and leans that way.
+		const facing = -droop;
+		const top = cy + s * 0.6;
+		const hem = cy + s * 4.3;
+		const middle = (y: number) => cx - facing * s * 0.6 * clamp((y - top) / (hem - top));
 
-	// Sausage-Swiper's sack over his shoulder, and Pot-Scraper's pot under his arm.
-	ellipse(150, 86, 6.5, 5, 0.4, "shadow", 0.12);
-	limb(146, 90, 152, 98, 1.4, 1.4, "shadow", 0.1);
-	ellipse(246, 112, 5, 3.6, 0, "shadow", 0.12);
-	limb(241, 109, 237, 108, 0.8, 0.8, "shadow", 0.1);
+		fill(
+			top,
+			hem + 3,
+			(y) => {
+				const half = s * (0.85 + 1.15 * Math.sqrt(clamp((y - top) / (hem - top))));
+
+				return [middle(y) - half, middle(y) + half];
+			},
+			"shadow",
+			(x, y) => (y > hem + Math.round((hash(Math.floor(x / 2), index + 7) - 0.5) * 4) ? null : 0.1),
+		);
+
+		// His legs, bent, under the hem, his feet turned the way he faces.
+		const hip = middle(hem);
+
+		for (const [out, knee] of [
+			[0.35, 0.8],
+			[-0.35, -0.4],
+		]) {
+			limb(
+				hip + facing * s * out,
+				hem - s * 0.3,
+				hip + facing * s * knee,
+				hem + s * 0.8,
+				s * 0.32,
+				s * 0.28,
+				"shadow",
+				0.1,
+			);
+			limb(
+				hip + facing * s * knee,
+				hem + s * 0.8,
+				hip + facing * s * (knee - 0.1),
+				hem + s * 1.5,
+				s * 0.28,
+				s * 0.24,
+				"shadow",
+				0.1,
+			);
+			ellipse(hip + facing * s * (knee + 0.2), hem + s * 1.6, s * 0.5, s * 0.22, 0, "shadow", 0.1);
+		}
+
+		// His hood, its point flopping back to a tassel, and his long nose poking out of it.
+		ellipse(cx, cy, s, s * 0.95, 0, "shadow", 0.1);
+		limb(cx - facing * s * 0.3, cy - s * 0.75, cx - facing * s * 1.2, cy - s * 1.45, s * 0.5, s * 0.32, "shadow", 0.1);
+		limb(cx - facing * s * 1.2, cy - s * 1.45, cx - facing * s * 2, cy - s * 0.8, s * 0.32, s * 0.18, "shadow", 0.1);
+		ellipse(cx - facing * s * 2.1, cy - s * 0.55, s * 0.32, s * 0.32, 0, "shadow", 0.1);
+		limb(
+			cx + facing * s * 0.55,
+			cy + s * 0.15,
+			cx + facing * s * 1.45,
+			cy + s * 0.55,
+			s * 0.28,
+			s * 0.14,
+			"shadow",
+			0.1,
+		);
+
+		// Sausage-Swiper's sack on his back, slung over his shoulder; Pot-Scraper's pot under his arm.
+		if (index === 1) {
+			ellipse(cx - facing * s * 1.4, cy + s * 1.9, s * 1.1, s * 1, 0.3, "shadow", 0.12);
+			limb(cx - facing * s * 1, cy + s * 1, cx + facing * s * 0.3, cy + s * 1.2, s * 0.22, s * 0.22, "shadow", 0.1);
+		} else if (index === 3) {
+			ellipse(cx + facing * s * 1.3, cy + s * 2.8, s * 0.75, s * 0.55, 0, "shadow", 0.12);
+			limb(cx + facing * s * 0.9, cy + s * 2.4, cx + facing * s * 1.7, cy + s * 2.4, s * 0.12, s * 0.12, "shadow", 0.1);
+		}
+	});
 
 	// --- Candle-Stealer, back to front. ---
 
