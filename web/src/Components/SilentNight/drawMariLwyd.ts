@@ -15,6 +15,7 @@ import {
 	paintFigure,
 	paintGlow,
 	paintLayer,
+	settle,
 	shade,
 	type ITexture,
 	paintSwirl,
@@ -63,6 +64,9 @@ const folds: ITexture = (x, y) => {
 		(crease < 0.1 ? -0.14 : crease < 0.2 ? 0.06 : 0.07 * Math.sin(crease * Math.PI)) * depth * clamp((y - 62) / 10)
 	);
 };
+
+/** How far down she sinks into the dark below her. */
+const fadeAt = (y: number) => clamp((y - 112) / 48) * 0.6;
 
 /** The cottage she has come to: its wall's left edge, its door and its window. */
 const COTTAGE = { x: 186, door: { x: 202, y: 108, w: 13 }, window: { x: 230, y: 102 } };
@@ -226,8 +230,11 @@ export function drawMariLwyd(): HTMLCanvasElement {
 		"sheet",
 		(x, y, left, right) => {
 			const across = ((x + 0.5 - left) / (right - left)) * 2 - 1;
+			const t = 0.28 + 0.14 * -across + 0.22 * Math.sqrt(Math.max(0, 1 - across * across)) + folds(x, y);
 
-			return 0.28 + 0.14 * -across + 0.22 * Math.sqrt(Math.max(0, 1 - across * across)) + folds(x, y);
+			// Settled on its shades as it sinks into the dark, so its shading follows its folds in clean
+			// shapes instead of dithering in straight rows across them.
+			return t + settle(t - fadeAt(y), RAMPS.sheet.length);
 		},
 	);
 
@@ -303,7 +310,7 @@ export function drawMariLwyd(): HTMLCanvasElement {
 	const colours = light({
 		side: 1,
 		reach: (x, y) => clamp(1 - (y - 30) / 150) * clamp((x - 40) / 50),
-		fade: (_x, y) => clamp((y - 112) / 48) * 0.6,
+		fade: (_x, y) => fadeAt(y),
 		outlineAbove: 128,
 	});
 
