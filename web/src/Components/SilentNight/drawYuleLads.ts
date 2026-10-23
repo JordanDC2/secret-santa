@@ -26,7 +26,7 @@ const RAMPS: Record<string, string[]> = {
 	nose: ["#24100e", "#44201a", "#6a3428", "#8c4a3a", "#a8604a"],
 	wool: ["#0a0908", "#1a1714", "#2a2520", "#3c342c", "#504538", "#665846"],
 	hood: ["#0c0806", "#1e140e", "#322218", "#4a3424", "#644832", "#7e5e42"],
-	hair: ["#0c0806", "#1c120c", "#2e2016", "#443222", "#5c4630"],
+	hair: ["#120604", "#2a100a", "#461c10", "#662c18", "#884024"],
 	rope: ["#2a1e10", "#4a3a20", "#6e5830", "#927a44"],
 	wood: ["#1a1008", "#3a2614", "#5e4020", "#82602e", "#a6803e", "#c49c56"],
 	wax: ["#4a3e34", "#8a7a68", "#c8b8a0", "#efe4cc", "#fff8e8"],
@@ -112,7 +112,7 @@ export function drawYuleLads(): HTMLCanvasElement {
 		}
 	};
 
-	// Wooden spoons, licked clean, juggled in arcs over his head, tumbling end over end: a long
+	// Wooden spoons, licked clean, juggled from his free hand, tumbling end over end: a long
 	// straight handle with a knob at its end, widening at the neck into an oval bowl, hollowed.
 	const drawThing = (keep: IPut, { x, y, size, angle }: ISwirlItem) => {
 		const along = { x: Math.cos(angle), y: Math.sin(angle) };
@@ -125,19 +125,16 @@ export function drawYuleLads(): HTMLCanvasElement {
 		ellipse(bowl.x, bowl.y, size * 0.6, size * 0.36, angle, "wood", 0.32, null, keep);
 		ellipse(bowl.x + along.x * 0.4, bowl.y + along.y * 0.4, size * 0.34, size * 0.17, angle, "wood", 0.02, null, keep);
 	};
-	const things: ISwirlItem[] = Array.from({ length: 13 }, (_, index) => {
-		// Two arcs, one inside the other, from hand to hand.
-		const inner = index >= 8;
-		const t = inner ? (index - 8) / 4 : index / 7;
-		const width = inner ? 46 : 70;
-		const rise = inner ? 30 : 46;
+	// Tossed up from his free hand, round and round in a loop over it, tumbling end over end.
+	const things: ISwirlItem[] = Array.from({ length: 4 }, (_, index) => {
+		const turn = -Math.PI / 2 - 0.9 + index * 1.25;
 
 		return {
-			x: 87 - width / 2 + width * t,
-			y: 62 - rise * Math.sin(Math.PI * t),
-			size: inner ? 6 : 7,
-			angle: index * 1.3,
-			front: false,
+			x: 123 + Math.cos(turn) * 9,
+			y: 30 + Math.sin(turn) * 16,
+			size: 6.5,
+			angle: index * 1.9 + 0.4,
+			front: true,
 			index,
 		};
 	});
@@ -338,13 +335,27 @@ export function drawYuleLads(): HTMLCanvasElement {
 
 	ellipse(86, 58, 19, 21, 0, "hood", 0, (x, y) => knit(x, y) + candlelight(x, y));
 
+	// The edge of his hood, rolled back round his face and catching the candlelight.
+	for (let y = 36; y <= 72; y++) {
+		for (let x = 66; x <= 106; x++) {
+			const across = (x + 0.5 - 86) / 13.5;
+			const down = (y + 0.5 - 60) / 13;
+			const out = Math.hypot(across, down);
+
+			if (out >= 1 && out < 1.17 && down < 0.35) {
+				put(x, y, "hood", 0.44 + knit(x, y) + candlelight(x, y) - 0.12 * across);
+			}
+		}
+	}
+
 	// His big ears poking out, and wild hair at the edges of the hood.
 	ellipse(69, 60, 3.2, 5.6, -0.4, "skin", 0.04, candlelight);
 	ellipse(103, 60, 3.2, 5.6, 0.4, "skin", -0.04);
 
 	// His face: broad and lumpy, under a heavy brow.
 	ellipse(86, 60, 13.5, 13, 0, "skin", 0.02, candlelight);
-	ellipse(86, 48, 12, 3.2, 0, "hair", 0.04, (x, y) => scraggle(x, y) + candlelight(x, y));
+	// His hair, scraggly under his hood, in the shadow of its edge.
+	ellipse(86, 48, 12, 3.2, 0, "hair", 0.04, (x, y) => scraggle(x, y) + candlelight(x, y) - (y < 47 ? 0.18 : 0));
 
 	// A scraggly beard round his jaw, his mouth clear of it.
 	fill(
