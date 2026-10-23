@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert } from "@mantine/core";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -9,7 +9,7 @@ import { PATRONS } from "Components/SilentNight/patrons";
 import { portraitUrl } from "Components/SilentNight/portraits";
 import { iconUrl } from "Components/SilentNight/icons";
 import { GUNS, isGun } from "Components/SilentNight/guns";
-import { playGunChosen, setMenuVoice } from "Components/SilentNight/sound";
+import { playGunChosen, setMenuGun, setMenuVoice } from "Components/SilentNight/sound";
 import type { ICastId, IGunId } from "Components/SilentNight/types";
 import { weaponInfo } from "Components/SilentNight/weapons";
 import classes from "Components/SilentNight/SilentNight.module.less";
@@ -74,6 +74,9 @@ export default function Menu({
 	// The gun picked, if it's theirs (one still being unlocked is picked once it is), else the candy cane gun.
 	const [picked, setPicked] = useState(readGun);
 	const gun = progress.guns.includes(picked) ? picked : "gun";
+
+	// The music's percussion sounding like the gun they'll carry.
+	useEffect(() => setMenuGun(gun), [gun]);
 	const chooseGun = (id: IGunId) => {
 		playGunChosen(id);
 		setPicked(id);

@@ -2048,16 +2048,93 @@ type ICastVoice = {
 	note: (add: IAddCastHit, at: number, pitch: number, time: number) => void;
 	/** The rest of the bar from quaver `start`: its chord's root, and the rest of the chord. */
 	bar: (add: IAddCastHit, start: number, root: number, chord: number[], index: number) => void;
+	/**
+	 * Their percussion's rhythm through each bar, as the gun chosen sounds it (GUN_KITS): each beat's
+	 * quaver into the bar, which kind it is, and how hard.
+	 */
+	rhythm: Array<[number, IBeat, number]>;
 	/** Coming in, as they're chosen: an accent of their own. */
 	entrance: (out: AudioNode) => void;
 };
 
+/** A beat of the percussion: on the beat, between the beats, or leading into one. */
+type IBeat = "strong" | "weak" | "lead";
+
 /**
- * Silent Night as each of the cast would play it, over the same cold drone: the elf's quick and
- * plucked, sleigh bells shaken; Santa's low and heavy on dark brass, a deep bell tolling every bar
- * over a timpani; Mrs. Claus's on her music box over warm strings and a soft heartbeat, as the song
- * itself begins; the snowman's high and cold on glass, frost tinkling, the wind getting up; the
- * reindeer's at a gallop, hooves and bells under a horn.
+ * The percussion while choosing who plays, as each gun would sound it (`accent` from 0 to 1; `root`,
+ * the bar's chord's, for anything rung): the candy cane gun's, a thump and a snap of peppermint, and
+ * candy ticking; the blunderbuss's, powder booming, walnut shells rattling and the nutcracker's jaw;
+ * the crossbow's, ice crunching, rung high on glass and thwacked by its string; the pistols', their
+ * hammers, cylinders and bells; the Roman candle's, a whoomph, sparks and the fuse fizzing; the
+ * snowball cannon's, a deep whump and snow crunching.
+ */
+const GUN_KITS: Record<IGunId, Record<IBeat, (out: AudioNode, delay: number, accent: number, root: number) => void>> = {
+	gun: {
+		strong: (out, delay, accent) => {
+			tone("sine", 140, 70, 0.12, 0.12 * accent, delay, out);
+			tone("square", 900, 500, 0.03, 0.025 * accent, delay, out);
+			hiss("bandpass", 2200, 0.04, 0.05 * accent, delay, undefined, out);
+		},
+		weak: (out, delay, accent) => hiss("highpass", 6500, 0.02, 0.016 * accent, delay, undefined, out),
+		lead: (out, delay, accent) => tone("square", 1800, 1400, 0.012, 0.015 * accent, delay, out),
+	},
+	blunderbuss: {
+		strong: (out, delay, accent) => {
+			tone("sine", 100, 40, 0.35, 0.18 * accent, delay, out);
+			hiss("lowpass", 1200, 0.25, 0.07 * accent, delay, 150, out);
+		},
+		weak: (out, delay, accent) =>
+			[3200, 4400, 3700].forEach((pitch, i) =>
+				hiss("bandpass", pitch, 0.015, 0.025 * accent, delay + i * 0.02, undefined, out),
+			),
+		lead: (out, delay, accent) => {
+			tone("square", 650, 420, 0.025, 0.03 * accent, delay, out);
+			hiss("bandpass", 1000, 0.03, 0.05 * accent, delay, undefined, out);
+		},
+	},
+	crossbow: {
+		strong: (out, delay, accent, root) => {
+			hiss("highpass", 7000, 0.03, 0.032 * accent, delay, undefined, out);
+			tone("sine", root * 16, root * 16, 0.3, 0.032 * accent, delay, out);
+			tone("triangle", 320, 120, 0.08, 0.06 * accent, delay, out);
+		},
+		weak: (out, delay, accent) => hiss("highpass", 7000, 0.03, 0.02 * accent, delay, undefined, out),
+		lead: (out, delay, accent) => hiss("highpass", 7000, 0.03, 0.012 * accent, delay, undefined, out),
+	},
+	pistols: {
+		strong: (out, delay, accent, root) => {
+			hiss("bandpass", 2600, 0.03, 0.07 * accent, delay, undefined, out);
+			tone("square", 900, 600, 0.02, 0.025 * accent, delay, out);
+			tone("sine", root * 16, root * 16 * 0.995, 0.2, 0.014 * accent, delay, out);
+		},
+		weak: (out, delay, accent) => tone("square", 2600, 2200, 0.008, 0.02 * accent, delay, out),
+		lead: (out, delay, accent) => tone("sine", NOTE.G5 * 4, NOTE.G5 * 4, 0.08, 0.012 * accent, delay, out),
+	},
+	romanCandle: {
+		strong: (out, delay, accent) => {
+			hiss("lowpass", 250, 0.25, 0.14 * accent, delay, 1400, out);
+			tone("sine", 90, 50, 0.2, 0.1 * accent, delay, out);
+		},
+		weak: (out, delay, accent) => hiss("bandpass", 4000, 0.012, 0.045 * accent, delay, undefined, out),
+		lead: (out, delay, accent) => hiss("highpass", 5500, 0.06, 0.016 * accent, delay, undefined, out),
+	},
+	snowCannon: {
+		strong: (out, delay, accent) => {
+			tone("sine", 95, 40, 0.35, 0.18 * accent, delay, out);
+			hiss("lowpass", 600, 0.25, 0.07 * accent, delay, 120, out);
+		},
+		weak: (out, delay, accent) => hiss("lowpass", 1600, 0.06, 0.035 * accent, delay, 500, out),
+		lead: (out, delay, accent) => hiss("lowpass", 1200, 0.05, 0.022 * accent, delay, 400, out),
+	},
+};
+
+/**
+ * Silent Night as each of the cast would play it, over the same cold drone, their percussion
+ * sounding like the gun chosen: the elf's quick and plucked, sleigh bells shaken, ticking along on
+ * every quaver; Santa's low and heavy on dark brass, a deep bell tolling every bar, the beats
+ * pounded; Mrs. Claus's on her music box over warm strings, to a soft heartbeat, as the song itself
+ * begins; the snowman's high and cold on glass, the wind getting up, keeping time softly on every
+ * quaver; the reindeer's at a gallop under a horn, hooves and bells.
  */
 const CAST_VOICES: Record<ICastId, ICastVoice> = {
 	elf: {
@@ -2070,20 +2147,26 @@ const CAST_VOICES: Record<ICastId, ICastVoice> = {
 				tone("sine", high * 2, high * 2, 0.12, 0.012, delay, out);
 			});
 		},
-		// The chord picked out on every quaver, ticking, and sleigh bells shaken on the beats.
+		// The chord picked out on every quaver, and sleigh bells shaken on the beats.
 		bar: (add, start, _root, chord) => {
 			for (let eighth = 0; eighth < 6; eighth++) {
 				const pitch = chord[eighth % chord.length] * 2;
-				add(start + eighth, (delay, out) => {
-					tone("triangle", pitch, pitch, 0.16, 0.02, delay, out);
-					hiss("highpass", 8000, 0.02, 0.008, delay, undefined, out);
-				});
+				add(start + eighth, (delay, out) => tone("triangle", pitch, pitch, 0.16, 0.02, delay, out));
 			}
 
 			for (const beat of [0, 3]) {
 				add(start + beat, (delay, out) => jingle(out, delay, 0.18, 0.012));
 			}
 		},
+		// Ticking along lightly on every quaver.
+		rhythm: [
+			[0, "strong", 0.5],
+			[1, "weak", 0.5],
+			[2, "weak", 0.5],
+			[3, "strong", 0.5],
+			[4, "weak", 0.5],
+			[5, "weak", 0.5],
+		],
 		entrance: (out) => {
 			jingle(out, 0, 0.25, 0.02);
 			[NOTE.C5, NOTE.Eb5, NOTE.G5, NOTE.C6].forEach((pitch, i) =>
@@ -2095,23 +2178,20 @@ const CAST_VOICES: Record<ICastId, ICastVoice> = {
 		// An octave down, on dark brass, each note swelling.
 		note: (add, at, pitch, time) =>
 			add(at, (delay, out) => brass(out, [pitch / 2], delay, time * 1.15 + 0.1, 0.035, 700)),
-		// A deep bell tolling the root at the top of every bar, over the chord held low; a timpani on the beats.
-		bar: (add, start, root, chord) => {
+		// A deep bell tolling the root at the top of every bar, over the chord held low.
+		bar: (add, start, root, chord) =>
 			add(start, (delay, out) => {
 				toll(out, root / 2, delay, 0.07);
 
 				for (const pitch of chord) {
 					tone("sawtooth", pitch / 2, (pitch / 2) * 1.004, BAR * EIGHTH, 0.01, delay, out);
 				}
-			});
-
-			for (const beat of [0, 3]) {
-				add(start + beat, (delay, out) => {
-					tone("sine", 110, 45, 0.5, 0.14, delay, out);
-					hiss("lowpass", 300, 0.3, 0.05, delay, 80, out);
-				});
-			}
-		},
+			}),
+		// The beats pounded, heavily.
+		rhythm: [
+			[0, "strong", 0.8],
+			[3, "strong", 0.8],
+		],
 		entrance: (out) => {
 			impact(out, 0, 0.9);
 			toll(out, NOTE.C2, 0, 0.1);
@@ -2124,21 +2204,21 @@ const CAST_VOICES: Record<ICastId, ICastVoice> = {
 				tone("sine", pitch * 2, pitch * 2 * 0.997, Math.min(2.2, time * 2), 0.07, delay, out);
 				tone("sine", pitch * 6, pitch * 6, 0.25, 0.012, delay, out);
 			}),
-		// Warm strings holding the chord, and a soft heartbeat.
-		bar: (add, start, _root, chord) => {
+		// Warm strings holding the chord.
+		bar: (add, start, _root, chord) =>
 			add(start, (delay, out) => {
 				for (const pitch of chord) {
 					tone("sawtooth", pitch, pitch * 1.004, BAR * EIGHTH, 0.008, delay, out);
 					tone("triangle", pitch, pitch, BAR * EIGHTH, 0.03, delay, out);
 				}
-			});
-
-			for (const beat of [0, 0.5, 3, 3.5]) {
-				add(start + beat, (delay, out) =>
-					tone("sine", beat % 3 === 0 ? 80 : 62, 40, 0.16, beat % 3 === 0 ? 0.12 : 0.08, delay, out),
-				);
-			}
-		},
+			}),
+		// A soft heartbeat on each beat.
+		rhythm: [
+			[0, "strong", 0.65],
+			[0.5, "weak", 0.45],
+			[3, "strong", 0.65],
+			[3.5, "weak", 0.45],
+		],
 		entrance: (out) => {
 			[NOTE.C6, NOTE.G5, NOTE.Eb5].forEach((pitch, i) => tone("sine", pitch, pitch * 0.997, 1.4, 0.045, i * 0.09, out));
 		},
@@ -2150,31 +2230,29 @@ const CAST_VOICES: Record<ICastId, ICastVoice> = {
 				swell(out, "sine", pitch * 2, delay, time + 0.6, 0.05, 0.05);
 				swell(out, "sine", pitch * 4, delay, time + 0.3, 0.01, 0.05);
 			}),
-		// An icy fifth held high over the root; snowflakes landing in time for its percussion, a soft
-		// crunch on every quaver, lighter ones leading into each beat and, on the beats, the root rung
-		// high on glass; the wind getting up every other bar.
+		// An icy fifth held high over the root, the wind getting up every other bar.
 		bar: (add, start, root, _chord, index) => {
 			add(start, (delay, out) => {
 				swell(out, "sine", root * 8, delay, BAR * EIGHTH, 0.008);
 				swell(out, "sine", root * 12, delay, BAR * EIGHTH, 0.006);
 			});
 
-			for (const eighth of [0, 1, 2, 2.5, 3, 4, 5, 5.5]) {
-				const onBeat = eighth % 3 === 0;
-				const leading = eighth % 1 !== 0;
-				add(start + eighth, (delay, out) => {
-					hiss("highpass", 7000, 0.03, onBeat ? 0.016 : leading ? 0.006 : 0.01, delay, undefined, out);
-
-					if (onBeat) {
-						tone("sine", root * 16, root * 16, 0.3, 0.016, delay, out);
-					}
-				});
-			}
-
 			if (index % 2 === 0) {
 				add(start, (delay, out) => hiss("bandpass", 300, 2 * BAR * EIGHTH, 0.03, delay, 1100, out));
 			}
 		},
+		// Keeping time softly on every quaver, lighter leading into each beat (with the crossbow, the
+		// snowflakes landing: a crunch of ice, and the root rung high on glass on the beats).
+		rhythm: [
+			[0, "strong", 0.5],
+			[1, "weak", 0.5],
+			[2, "weak", 0.5],
+			[2.5, "lead", 0.5],
+			[3, "strong", 0.5],
+			[4, "weak", 0.5],
+			[5, "weak", 0.5],
+			[5.5, "lead", 0.5],
+		],
 		// Ice cracking, and snowflakes falling through the chord.
 		entrance: (out) => {
 			hiss("highpass", 1800, 0.07, 0.07, 0, undefined, out);
@@ -2187,24 +2265,22 @@ const CAST_VOICES: Record<ICastId, ICastVoice> = {
 	reindeer: {
 		// On a horn, bright and urgent.
 		note: (add, at, pitch, time) => add(at, (delay, out) => brass(out, [pitch], delay, time * 1.05 + 0.08, 0.03, 1700)),
-		// At a gallop: hooves pounding into each beat, landing on it with the bass, its bells ringing with them.
+		// The bass on the beats, its bells ringing after them.
 		bar: (add, start, root) => {
 			for (const beat of [0, 3]) {
-				for (const [offset, accent] of [
-					[-1, 0.7],
-					[-0.5, 0.8],
-					[0, 1],
-				]) {
-					add(start + beat + offset, (delay, out) => {
-						tone("sine", 150, 60, 0.08, 0.12 * accent, delay, out);
-						hiss("lowpass", 1400, 0.04, 0.04 * accent, delay, undefined, out);
-					});
-				}
-
 				add(start + beat, (delay, out) => tone("triangle", root, root, BEAT * 0.9, 0.12, delay, out));
 				add(start + beat + 1, (delay, out) => jingle(out, delay, 0.15, 0.012));
 			}
 		},
+		// At a gallop: hooves pounding into each beat, landing on it with the bass.
+		rhythm: [
+			[-1, "lead", 0.7],
+			[-0.5, "lead", 0.8],
+			[0, "strong", 1],
+			[2, "lead", 0.7],
+			[2.5, "lead", 0.8],
+			[3, "strong", 1],
+		],
 		entrance: (out) => {
 			for (let i = 0; i < 6; i++) {
 				tone("sine", 150, 60, 0.08, 0.1 + i * 0.01, i * 0.06, out);
@@ -2215,9 +2291,10 @@ const CAST_VOICES: Record<ICastId, ICastVoice> = {
 	},
 };
 
-/** Each hit of Silent Night, once through, as `id` would play it (CAST_VOICES), over a cold drone. */
-function castVoice(id: ICastId): ICastHit[] {
+/** Each hit of Silent Night, once through, as `id` would play it (CAST_VOICES) over a cold drone, to `gun`'s drums. */
+function castVoice(id: ICastId, gun: IGunId): ICastHit[] {
 	const voice = CAST_VOICES[id];
+	const kit = GUN_KITS[gun];
 	const hits: ICastHit[] = [];
 	const add: IAddCastHit = (at, play) => {
 		hits.push({ at, play });
@@ -2228,6 +2305,11 @@ function castVoice(id: ICastId): ICastHit[] {
 		const [root, ...chord] = CHORDS[index].map(pitchOf);
 		add(start, (delay, out) => tone("triangle", root / 2, root / 2, BAR * EIGHTH, 0.05, delay, out));
 		voice.bar(add, start, root, chord, index);
+
+		for (const [quaver, beat, accent] of voice.rhythm) {
+			add(start + quaver, (delay, out) => kit[beat](out, delay, accent, root));
+		}
+
 		let at = start;
 
 		for (const [note, length] of bar) {
@@ -2251,14 +2333,16 @@ function menuVoice(): ICastHit[] {
 		}));
 }
 
-/** Changes who the menu's music is played as (startMenuMusic), while it plays. */
-let menuMusicVoice: ((voice: ICastId | null) => void) | null = null;
+/** The menu's music while it plays (startMenuMusic): changing who it's played as, or the gun its drums sound like. */
+let menuMusic: { voice: (voice: ICastId | null) => void; gun: () => void } | null = null;
+/** The gun chosen, which the percussion sounds like while choosing who plays (setMenuGun). */
+let menuGun: IGunId = "gun";
 
 /**
  * Starts the menu's music: its own version of the song (menuVoice) over and over, or, while
- * choosing who plays, the song as the one chosen would play it (castVoice), round a cold hall; each
- * changing over to the next in time, wherever the song's got to (setMenuVoice). Returns a function
- * that stops it, fading out.
+ * choosing who plays, the song as the one chosen would play it, to the percussion of the gun chosen
+ * (castVoice), round a cold hall; each changing over to the next in time, wherever the song's got to
+ * (setMenuVoice, setMenuGun). Returns a function that stops it, fading out.
  */
 export function startMenuMusic(): () => void {
 	const started = audioNow();
@@ -2325,7 +2409,7 @@ export function startMenuMusic(): () => void {
 		out = context.createGain();
 		out.connect(next === null ? bus : room);
 		voice = next;
-		hits = next === null ? own : castVoice(next);
+		hits = next === null ? own : castVoice(next, menuGun);
 
 		if (next !== null) {
 			CAST_VOICES[next].entrance(out);
@@ -2335,15 +2419,22 @@ export function startMenuMusic(): () => void {
 		schedule();
 	};
 
-	menuMusicVoice = change;
+	// Another gun: the percussion sounding like it from as soon as it's next due.
+	const rearm = () => {
+		if (voice !== null) {
+			hits = castVoice(voice, menuGun);
+		}
+	};
+	const playing = { voice: change, gun: rearm };
+	menuMusic = playing;
 	schedule();
 	const timer = window.setInterval(schedule, TICK_MS);
 
 	return () => {
 		window.clearInterval(timer);
 
-		if (menuMusicVoice === change) {
-			menuMusicVoice = null;
+		if (menuMusic === playing) {
+			menuMusic = null;
 		}
 
 		musicBuses.delete(bus);
@@ -2356,5 +2447,11 @@ export function startMenuMusic(): () => void {
 
 /** Who the menu's music is played as: its own version (null), or as one of the cast would play it, in time. */
 export function setMenuVoice(voice: ICastId | null) {
-	menuMusicVoice?.(voice);
+	menuMusic?.voice(voice);
+}
+
+/** The gun chosen: the percussion in the music while choosing who plays sounding like it (GUN_KITS). */
+export function setMenuGun(gun: IGunId) {
+	menuGun = gun;
+	menuMusic?.gun();
 }
