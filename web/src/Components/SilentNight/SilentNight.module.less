@@ -888,7 +888,29 @@
 
 /* The menu before a night: who plays, and the Coal Cellar. */
 .menu {
+	isolation: isolate;
 	background-color: rgba(3, 2, 8, 0.85);
+}
+
+/* Behind choosing who plays: whoever's chosen, struck in their pose (poses.ts), out of focus and
+   dimmed so the choice reads over them, fading in as they're chosen. */
+.castBackdrop {
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	image-rendering: pixelated;
+	filter: blur(3px) brightness(0.75);
+	pointer-events: none;
+	animation: castBackdropIn 0.6s ease-out;
+}
+
+@keyframes castBackdropIn {
+	from {
+		opacity: 0;
+	}
 }
 
 .menuBar {

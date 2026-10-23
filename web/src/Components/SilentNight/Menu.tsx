@@ -7,6 +7,7 @@ import GameButton from "Components/SilentNight/GameButton";
 import type { IProgress, IPurchase } from "Components/SilentNight/hooks";
 import { PATRONS } from "Components/SilentNight/patrons";
 import { portraitUrl } from "Components/SilentNight/portraits";
+import { poseUrl } from "Components/SilentNight/poses";
 import { iconUrl } from "Components/SilentNight/icons";
 import { GUNS, isGun } from "Components/SilentNight/guns";
 import { playGunChosen, setMenuGun, setMenuVoice } from "Components/SilentNight/sound";
@@ -121,6 +122,8 @@ export default function Menu({
 
 	return (
 		<div className={`${classes.overlay} ${classes.menu}`}>
+			{/* Whoever's chosen, struck in their pose, out of focus behind the choice. */}
+			{view === "cast" && <img key={chosen.id} src={poseUrl(chosen.id)} alt="" className={classes.castBackdrop} />}
 			<div className={classes.menuBar}>
 				{back}
 				<p className={classes.title}>{view === "cast" ? "Who plays?" : "Coal Cellar"}</p>
