@@ -35,9 +35,9 @@ export const PATRONS: Record<IPatronId, IPatron> = {
 	moroz: { id: "moroz", name: "Ded Moroz", from: "Russia", line: "The cold keeps what it catches.", colour: "#8fc3d9" },
 	christkind: {
 		id: "christkind",
-		name: "Christkind",
+		name: "The Christkind",
 		from: "Germany and Austria",
-		line: "No harm shall find you that I can turn aside.",
+		line: "Whatever harm comes for you, I'll turn it aside.",
 		colour: "#c9b2f2",
 	},
 	yuleLads: {
