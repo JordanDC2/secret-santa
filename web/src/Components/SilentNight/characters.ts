@@ -1019,39 +1019,64 @@ function starBoy(step: 0 | 1): HTMLCanvasElement {
 }
 
 /**
- * Snegurochka, the Snow Maiden: a long blue coat trimmed with white fur, a kokoshnik of frost
- * behind her head, a long pale braid, a hand held out with frost at its fingertips.
+ * Snegurochka, the Snow Maiden, as she's always shown: a long ice-blue coat flaring to its hem,
+ * trimmed with white fur at the collar, down the front and round the hem, snowflakes on its skirt;
+ * her hands clasped in front of her; a long golden braid over her shoulder, a blue ribbon at its end;
+ * a kokoshnik rising from her brow like a crown, pearls round its rim and a jewel of ice at its
+ * heart; rosy cheeks.
  */
 function maiden(step: 0 | 1): HTMLCanvasElement {
-	const p = new Pen(14, 21, 1);
+	const p = new Pen(14, 22, 1);
 	const spread = step === 0 ? 1 : 0.2;
-	// Her braid, down her back.
-	p.l(5.2, 7.4, 4.2, 14.6, 0.8, 0.5, "icing", -0.04);
 	// Her boots under the hem.
-	p.e(6 - spread, 19.6, 1.1, 0.8, 0, "blackFur", 0.1);
-	p.e(8 + spread, 19.6, 1.1, 0.8, 0, "blackFur", 0.16);
-	// The coat, flaring to its hem, its fur trim down the front and round the hem.
-	p.l(7, 10, 7, 18.4, 2.4, 3.8, "cloth", 0.1);
-	p.r(4, 18, 7, 1, "white", 0.45);
-	p.l(7.4, 10.6, 7.6, 17.6, 0.4, 0.4, "white", 0.4);
-	// Her far arm at her side, her near one held out, frost at its fingertips.
-	p.l(4.8, 10.6, 4.4, 14.4, 0.9, 0.8, "cloth", -0.1);
-	p.l(9.2, 10.6, 11.6, 12, 0.9, 0.8, "cloth", 0.08);
-	p.d(12, 12, "frost", 0.9);
-	p.d(13, 11, "frost", 0.7);
-	// Her pale face, her eyes and rosy cheeks; the kokoshnik behind it, pearls on its rim.
-	p.e(7, 5.4, 3, 2.4, 0, "frost", -0.1);
-	p.e(7, 7.6, 2, 2, 0, "porcelain", 0.12);
-	p.d(6, 7, "cloth", 0.15);
-	p.d(8, 7, "cloth", 0.15);
-	p.d(5, 8, "pink", 0.5);
-	p.d(9, 8, "pink", 0.45);
+	p.e(6 - spread, 20.6, 1.1, 0.7, 0, "blackFur", 0.1);
+	p.e(8 + spread, 20.6, 1.1, 0.7, 0, "blackFur", 0.16);
+	// The coat, flaring wide to its hem; snowflakes on the skirt; the fur at the hem and down the front.
+	p.l(7, 11, 7, 19.4, 2.2, 4.6, "frost", -0.14);
+	p.e(7, 11.4, 2.4, 2.4, 0, "frost", -0.1);
 
-	for (const x of [5, 7, 9]) {
-		p.d(x, 3, "white", 0.8);
+	for (const [x, y] of [
+		[4, 18],
+		[5, 15],
+		[9, 16],
+		[10, 18],
+	]) {
+		p.d(x, y, "white", 0.85);
 	}
 
-	p.weather(0.08, 19);
+	p.l(2.8, 19.8, 11.2, 19.8, 0.8, 0.8, "white", 0.4);
+	p.l(7, 13, 7, 19.4, 0.5, 0.5, "white", 0.4);
+	// Her sleeves, coming round to her hands clasped in front, white fur at the cuffs.
+	p.l(4.6, 10.6, 5.6, 13.6, 0.9, 0.8, "frost", -0.22);
+	p.l(9.4, 10.6, 8.4, 13.6, 0.9, 0.8, "frost", -0.06);
+	p.r(5.6, 13.4, 3, 1, "white", 0.5);
+	p.d(7, 14, "skin", 0.55);
+	// The fur collar.
+	p.e(7, 9.8, 2.6, 0.9, 0, "white", 0.5);
+	// The kokoshnik, rising above her brow; her fringe of golden hair under it; her face.
+	p.e(7, 3.8, 3, 2.6, 0, "frost", 0.06);
+	p.r(5, 5.6, 4, 1, "gold", 0.4);
+	p.e(7, 7.6, 2, 2, 0, "skin", 0.2);
+	p.d(6, 7, "dark", 0.15);
+	p.d(8, 7, "dark", 0.15);
+	p.d(5, 8, "pink", 0.55);
+	p.d(9, 8, "pink", 0.5);
+	// The kokoshnik's pearls and its jewel of ice.
+	for (const [x, y] of [
+		[4, 4],
+		[5, 2],
+		[7, 1],
+		[9, 2],
+		[10, 4],
+	]) {
+		p.d(x, y, "white", 0.9);
+	}
+
+	p.d(7, 3, "frost", 0.95);
+	// Her braid, over her shoulder, a ribbon at its end.
+	p.l(9, 7.6, 9.6, 15.4, 0.8, 0.5, "gold", 0.36);
+	p.d(10, 16, "frost", 0.8);
+	p.weather(0.06, 19);
 
 	return p.sprite.render(RAMPS, RIMS, OUTLINE, 1);
 }
