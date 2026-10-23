@@ -67,6 +67,28 @@ const capeEdge = (x: number) => 90 + Math.round(hash(Math.floor(x / 3), 5) * 6);
 /** The stolen candle brightening what's near it. */
 const candlelight = (x: number, y: number) => 0.26 * clamp(1 - Math.hypot(x - CANDLE.x, y - CANDLE.y) / 55);
 
+/**
+ * His belly, round and bulging out over his belt, hanging down over the middle of it: lit from the
+ * candle above it on the left, its light fading into his tunic at its sides, turning under into
+ * shadow at its bottom and casting a shadow just below that.
+ */
+const BELLY = { x: 86, y: 112, rx: 23, ry: 19 };
+const bellyAt = (x: number, y: number) => {
+	const u = (x + 0.5 - BELLY.x) / BELLY.rx;
+	const v = (y + 0.5 - BELLY.y) / BELLY.ry;
+
+	return { u, v, d: u * u + v * v };
+};
+const belly = (x: number, y: number) => {
+	const { u, v, d } = bellyAt(x, y);
+
+	if (d < 1) {
+		return Math.sqrt(1 - d) * (0.14 - 0.06 * u - 0.08 * v) - 0.12 * clamp((v - 0.4) / 0.6);
+	}
+
+	return v > 0.7 && d < 1.3 ? -0.12 : 0;
+};
+
 /** The farm's lit windows, down on the horizon: where each is. */
 const WINDOWS = [
 	{ x: 134, y: 124 },
@@ -83,6 +105,12 @@ const BROTHERS: Array<[number, number, number, number]> = [
 
 export function drawYuleLads(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, fill, light } = figure(RAMPS, RIM);
+	// What hangs from his belt, behind his belly where it bulges out over it.
+	const behindBelly: IPut = (x, y, material, t) => {
+		if (bellyAt(x, y).d >= 1) {
+			put(x, y, material, t);
+		}
+	};
 
 	// Wooden spoons, licked clean, juggled in arcs over his head, tumbling end over end: a long
 	// straight handle with a knob at its end, widening at the neck into an oval bowl, hollowed.
@@ -152,12 +180,18 @@ export function drawYuleLads(): HTMLCanvasElement {
 
 	// --- Candle-Stealer, back to front. ---
 
-	// His shoulders, hunched in a patched wool tunic, a rope round his middle.
+	// His shoulders, hunched in a patched wool tunic, a rope round his middle: his belly bulging
+	// over it, the rope pulling the tunic in, and the tunic hanging a little wider below it in folds.
 	fill(
 		76,
 		160,
 		(y) => {
-			const half = y < 90 ? 14 + (y - 76) * 1.2 : 30.8 + (y - 90) * 0.08;
+			const half =
+				y < 90
+					? 14 + (y - 76) * 1.2
+					: y < 126
+						? 30.8 + 4.5 * Math.sin((Math.PI * (y - 90)) / 36)
+						: 30 + (y - 126) * 0.12;
 
 			return [86 - half, 86 + half];
 		},
@@ -167,6 +201,8 @@ export function drawYuleLads(): HTMLCanvasElement {
 
 			// The cape's ragged edge shadowing the tunic just under it.
 			const under = y - capeEdge(x);
+			// Folds falling from under the rope: a crease, lit along one side.
+			const fold = (((x - 86) % 7) + 7) % 7;
 
 			return (
 				0.26 +
@@ -174,7 +210,9 @@ export function drawYuleLads(): HTMLCanvasElement {
 				0.2 * Math.sqrt(Math.max(0, 1 - across * across)) +
 				knit(x, y) +
 				candlelight(x, y) -
-				(under >= 0 && under < 3 ? 0.14 : 0)
+				(under >= 0 && under < 3 ? 0.14 : 0) +
+				belly(x, y) +
+				(fold === 0 ? -0.1 : fold === 1 ? 0.04 : 0) * clamp((y - 128) / 8)
 			);
 		},
 	);
@@ -186,7 +224,7 @@ export function drawYuleLads(): HTMLCanvasElement {
 	]) {
 		for (let y = py; y < py + h; y++) {
 			for (let x = px; x < px + w; x++) {
-				put(x, y, "hood", 0.26 + knit(x, y) + ((x === px || y === py) && (x + y) % 2 === 0 ? -0.12 : 0));
+				put(x, y, "hood", 0.26 + knit(x, y) + belly(x, y) + ((x === px || y === py) && (x + y) % 2 === 0 ? -0.12 : 0));
 			}
 		}
 	}
@@ -208,31 +246,41 @@ export function drawYuleLads(): HTMLCanvasElement {
 	}
 
 	// A rope belt, knotted, its end hanging; a pouch on it, stolen sausages poking out.
-	for (let x = 58; x <= 116; x++) {
-		put(x, 122 + Math.round(Math.sin(x * 0.2)), "rope", 0.45 + 0.15 * Math.sin(x * 1.4));
-		put(x, 123 + Math.round(Math.sin(x * 0.2)), "rope", 0.3 + 0.15 * Math.sin(x * 1.4 + 1));
+	for (let x = 56; x <= 116; x++) {
+		behindBelly(x, 126 + Math.round(Math.sin(x * 0.2)), "rope", 0.45 + 0.15 * Math.sin(x * 1.4));
+		behindBelly(x, 127 + Math.round(Math.sin(x * 0.2)), "rope", 0.3 + 0.15 * Math.sin(x * 1.4 + 1));
 	}
 
-	ellipse(80, 123, 2.2, 2, 0, "rope", 0.5);
-	limb(80, 124, 78, 136, 0.9, 0.7, "rope", 0.4, (x, y) => 0.12 * Math.sin(y * 1.4));
-	limb(81, 124, 84, 134, 0.9, 0.7, "rope", 0.3, (x, y) => 0.12 * Math.sin(y * 1.4 + 1));
-	ellipse(103, 126, 6, 6.5, 0, "hood", 0.08, knit);
-	limb(97, 121, 109, 121, 1, 1, "rope", 0.45);
+	ellipse(80, 127, 2.2, 2, 0, "rope", 0.5, null, behindBelly);
+	limb(80, 128, 78, 140, 0.9, 0.7, "rope", 0.4, (x, y) => 0.12 * Math.sin(y * 1.4), behindBelly);
+	limb(81, 128, 84, 138, 0.9, 0.7, "rope", 0.3, (x, y) => 0.12 * Math.sin(y * 1.4 + 1), behindBelly);
+	ellipse(103, 130, 6, 6.5, 0, "hood", 0.08, knit, behindBelly);
+	limb(97, 125, 109, 125, 1, 1, "rope", 0.45, null, behindBelly);
 
 	// A string of stolen sausages spilling out of it, hanging over its edge, tied off link by link.
 	const links = [
-		[104, 120],
-		[109, 122],
-		[112, 127],
-		[113, 133],
-		[111, 139],
+		[104, 124],
+		[109, 126],
+		[112, 131],
+		[113, 137],
+		[111, 143],
 	];
 
 	for (let i = 0; i < links.length - 1; i++) {
 		const [x1, y1] = links[i];
 		const [x2, y2] = links[i + 1];
-		ellipse((x1 + x2) / 2, (y1 + y2) / 2, 3.4, 2.2, Math.atan2(y2 - y1, x2 - x1), "sausage", 0.26 - i * 0.03);
-		put(x2, y2, "rope", 0.35);
+		ellipse(
+			(x1 + x2) / 2,
+			(y1 + y2) / 2,
+			3.4,
+			2.2,
+			Math.atan2(y2 - y1, x2 - x1),
+			"sausage",
+			0.26 - i * 0.03,
+			null,
+			behindBelly,
+		);
+		behindBelly(x2, y2, "rope", 0.35);
 	}
 
 	// His hood's long point, drooping down behind him on the right, a tassel on its end.
@@ -240,29 +288,10 @@ export function drawYuleLads(): HTMLCanvasElement {
 	limb(116, 47, 128, 60, 4.6, 2.6, "hood", -0.1, knit);
 	ellipse(129.5, 62.5, 2.8, 2.8, 0, "hood", -0.06, knit);
 
-	// One arm raised high, gripping the stolen candle, a fat tallow stub; the other up, open,
-	// catching a spoon as it comes down.
+	// His arms: from his shoulders down under his cape to his elbows, below its edge, then raised in
+	// front of it (drawn over it, below).
 	limb(72, 82, 60, 96, 6, 5.2, "wool", 0.02, (x, y) => knit(x, y) + candlelight(x, y));
-	limb(60, 96, 56, 79, 5.2, 4.6, "wool", 0.04, (x, y) => knit(x, y) + candlelight(x, y));
-	limb(58, 58, 58, 72, 2.6, 2.6, "wax", 0.14);
-	limb(59, 61, 59, 66, 0.6, 0.7, "wax", 0.45);
-	ellipse(57.5, 75, 4.6, 4, 0, "skin", 0.08, candlelight);
 	limb(100, 82, 112, 94, 6, 5.2, "wool", -0.06, knit);
-	limb(112, 94, 117, 76, 5.2, 4.6, "wool", -0.04, knit);
-	ellipse(117.5, 71.5, 4.2, 3.4, 0.2, "skin", 0.02);
-
-	for (const [dx, lean] of [
-		[-3, -0.3],
-		[-1, -0.1],
-		[1, 0.1],
-		[3, 0.3],
-	]) {
-		limb(117.5 + dx, 70, 117.5 + dx * 1.3 + lean * 2, 65.5, 0.8, 0.7, "skin", 0.04);
-	}
-
-	for (const y of [73, 75, 77]) {
-		put(61, y, "skin", 0.2);
-	}
 
 	// A ragged cape of wool over his shoulders, the hood's, its edge torn.
 	fill(
@@ -284,6 +313,28 @@ export function drawYuleLads(): HTMLCanvasElement {
 			return 0.3 + 0.14 * across + 0.2 * Math.sqrt(Math.max(0, 1 - across * across)) + knit(x, y) + candlelight(x, y);
 		},
 	);
+
+	// One arm raised high, gripping the stolen candle, a fat tallow stub; the other up, open,
+	// catching a spoon as it comes down.
+	limb(60, 96, 56, 79, 5.2, 4.6, "wool", 0.04, (x, y) => knit(x, y) + candlelight(x, y));
+	limb(58, 58, 58, 72, 2.6, 2.6, "wax", 0.14);
+	limb(59, 61, 59, 66, 0.6, 0.7, "wax", 0.45);
+	ellipse(57.5, 75, 4.6, 4, 0, "skin", 0.08, candlelight);
+	limb(112, 94, 117, 76, 5.2, 4.6, "wool", -0.04, knit);
+	ellipse(117.5, 71.5, 4.2, 3.4, 0.2, "skin", 0.02);
+
+	for (const [dx, lean] of [
+		[-3, -0.3],
+		[-1, -0.1],
+		[1, 0.1],
+		[3, 0.3],
+	]) {
+		limb(117.5 + dx, 70, 117.5 + dx * 1.3 + lean * 2, 65.5, 0.8, 0.7, "skin", 0.04);
+	}
+
+	for (const y of [73, 75, 77]) {
+		put(61, y, "skin", 0.2);
+	}
 
 	ellipse(86, 58, 19, 21, 0, "hood", 0, (x, y) => knit(x, y) + candlelight(x, y));
 
