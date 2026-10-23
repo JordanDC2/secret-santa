@@ -354,27 +354,36 @@ export function drawYuleLads(): HTMLCanvasElement {
 		},
 	);
 
-	// One arm raised high, gripping the stolen candle, a fat tallow stub; the other up, open,
-	// catching a spoon as it comes down.
-	limb(60, 96, 56, 79, 5.2, 4.6, "wool", 0.04, (x, y) => knit(x, y) + candlelight(x, y));
+	// One arm raised high, gripping the stolen candle, a fat tallow stub; the other up, tossing his
+	// spoons. His sleeves narrowing to his wrists, rolled up there in thick cuffs.
+	limb(60, 96, 56.5, 81, 5.2, 3.8, "wool", 0.04, (x, y) => knit(x, y) + candlelight(x, y));
+	limb(53.2, 81.8, 59.8, 81.4, 1.8, 1.8, "wool", 0.12, (x, y) => knit(x, y) + candlelight(x, y));
 	limb(58, 58, 58, 72, 2.6, 2.6, "wax", 0.14);
 	limb(59, 61, 59, 66, 0.6, 0.7, "wax", 0.45);
-	ellipse(57.5, 75, 4.6, 4, 0, "skin", 0.08, candlelight);
-	limb(112, 94, 117, 76, 5.2, 4.6, "wool", -0.04, knit);
-	ellipse(117.5, 71.5, 4.2, 3.4, 0.2, "skin", 0.02);
+	// His fist round it: the back of his hand, his fingers curled round it one above another, his
+	// thumb over them.
+	ellipse(57.5, 75.5, 4.4, 3.8, 0, "skin", 0.04, candlelight);
 
-	for (const [dx, lean] of [
-		[-3, -0.3],
-		[-1, -0.1],
-		[1, 0.1],
-		[3, 0.3],
+	for (const y of [72.6, 74.4, 76.2, 78]) {
+		limb(53.8, y, 61.2, y + 0.3, 0.85, 0.75, "skin", 0.1, candlelight);
+	}
+
+	limb(61.4, 72.2, 58.2, 70.8, 0.8, 0.7, "skin", 0.16, candlelight);
+	limb(112, 94, 116.5, 79, 5.2, 3.8, "wool", -0.04, knit);
+	limb(113.2, 78, 119.8, 80, 1.8, 1.8, "wool", 0.08, knit);
+	// His hand tossing them, palm up and cupped: his thumb up on one side, his fingers curled up on
+	// the other.
+	ellipse(118.6, 76, 3.9, 2.5, -0.15, "skin", 0.02);
+
+	for (const [bx, by, tx, ty] of [
+		[120, 75.2, 120.6, 71.2],
+		[121.2, 75.6, 122.2, 71.6],
+		[122.4, 76.2, 123.6, 73],
 	]) {
-		limb(117.5 + dx, 70, 117.5 + dx * 1.3 + lean * 2, 65.5, 0.8, 0.7, "skin", 0.04);
+		limb(bx, by, tx, ty, 0.9, 0.75, "skin", 0.04);
 	}
 
-	for (const y of [73, 75, 77]) {
-		put(61, y, "skin", 0.2);
-	}
+	limb(115.4, 75.2, 114.6, 71.6, 1, 0.85, "skin", 0.06);
 
 	ellipse(86, 58, 19, 21, 0, "hood", 0, (x, y) => knit(x, y) + candlelight(x, y));
 
