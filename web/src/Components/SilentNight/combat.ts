@@ -105,10 +105,12 @@ export function hurtEnemy(
 		damage *= 1 + byRank(player, "wassail", [0.1, 0.2, 0.3]);
 	}
 
-	// La Flor: the lowest-level weapon hits harder.
+	// La Flor: the lowest-level weapon hits harder; everything does as the night goes on.
 	if (weapon && rank(player, "humbleBeginnings") > 0 && lowestWeapon(world) === weapon) {
 		damage *= 1 + byRank(player, "humbleBeginnings", [0.3, 0.6, 0.9]);
 	}
+
+	damage *= 1 + byRank(player, "lateBloomer", [0.03, 0.04, 0.05]) * Math.floor(world.time / 60);
 
 	enemy.health -= damage;
 	enemy.hitAt = world.time;
@@ -345,6 +347,30 @@ function kill(world: IWorld, grid: IGrid, enemy: IEnemy, events: IEvents) {
 				weapon: null,
 				hostile: false,
 				kind: "ice",
+				struck: new Set([enemy.id]),
+			});
+		}
+	}
+
+	// La Flor's seed pod: now and then it bursts into a poinsettia's five petals, flying out as far
+	// as the shards of ice do but slower, so they're seen.
+	if (Math.random() < byRank(player, "seedPod", [0.1, 0.2, 0.3])) {
+		const turn = Math.random() * Math.PI * 2;
+
+		for (let i = 0; i < 5; i++) {
+			const angle = turn + (i / 5) * Math.PI * 2;
+			world.shots.push({
+				x: enemy.x,
+				y: enemy.y - 4,
+				vx: Math.cos(angle) * 110,
+				vy: Math.sin(angle) * 110,
+				until: world.time + 0.5,
+				damage: 12,
+				pierce: 1,
+				radius: 2,
+				weapon: null,
+				hostile: false,
+				kind: "petal",
 				struck: new Set([enemy.id]),
 			});
 		}

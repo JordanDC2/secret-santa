@@ -774,6 +774,12 @@ export type ICharacterSprites = {
 	soldier: { right: HTMLCanvasElement; left: HTMLCanvasElement };
 	globe: HTMLCanvasElement;
 	flame: HTMLCanvasElement;
+	/** La Flor's xolo, facing right and left, in two steps of its run. */
+	xolo: { right: HTMLCanvasElement[]; left: HTMLCanvasElement[] };
+	/** One of La Flor's poinsettias, in turns of its spin. */
+	poinsettia: HTMLCanvasElement[];
+	/** A poinsettia's bract flying from La Flor's seed pod: its base in the middle, pointing each of 16 ways (the first to the right). */
+	petal: HTMLCanvasElement[];
 	crystal: HTMLCanvasElement;
 	bigCrystal: HTMLCanvasElement;
 	cocoa: HTMLCanvasElement;
@@ -820,6 +826,144 @@ function minion(step: 0 | 1): HTMLCanvasElement {
 	p.weather(0.1, 13);
 
 	return p.sprite.render(RAMPS, RIMS, OUTLINE, 1);
+}
+
+/** A leaf or a poinsettia's bract, from (`x`, `y`): broadening to its middle, then narrowing to a point. */
+function leaf(
+	p: Pen,
+	x: number,
+	y: number,
+	angle: number,
+	length: number,
+	width: number,
+	material: string,
+	bias: number,
+) {
+	const mx = x + Math.cos(angle) * length * 0.45;
+	const my = y + Math.sin(angle) * length * 0.45;
+	p.l(x, y, mx, my, 0.3, width, material, bias);
+	p.l(mx, my, x + Math.cos(angle) * length, y + Math.sin(angle) * length, width, 0.15, material, bias);
+}
+
+/**
+ * A poinsettia, as it's painted on Christmas cards: five broad red bracts, pointed, in a star round
+ * the little gold-and-green flowers at its heart, its green leaves showing between them, a dark
+ * crease between each bract; turned by `turn`.
+ */
+function bloom(p: Pen, cx: number, cy: number, length: number, turn: number) {
+	const between = (i: number) => turn + ((i + 0.5) * Math.PI * 2) / 5;
+
+	for (let i = 0; i < 5; i++) {
+		leaf(p, cx, cy, between(i), length, 0.7, "green", 0.12);
+	}
+
+	for (let i = 0; i < 5; i++) {
+		const angle = turn + (i * Math.PI * 2) / 5;
+		leaf(p, cx, cy, angle, length, 1.3, "red", 0.1 - 0.05 * Math.sin(angle));
+	}
+
+	for (let i = 0; i < 5; i++) {
+		const reach = length * 0.55;
+		p.l(cx, cy, cx + Math.cos(between(i)) * reach, cy + Math.sin(between(i)) * reach, 0.3, 0.3, "red", -0.3);
+	}
+
+	const [x, y] = [Math.floor(cx - 0.5), Math.floor(cy - 0.5)];
+	p.d(x, y, "gold", 0.85);
+	p.d(x + 1, y, "green", 0.8);
+	p.d(x, y + 1, "green", 0.7);
+	p.d(x + 1, y + 1, "gold", 0.6);
+}
+
+/**
+ * La Flor's xolo, an alebrije: a lean, hairless dog with great upright ears, carved and painted
+ * near-black, patterned in Christmas colours (gold and white dots down its back, a green stripe
+ * dotted white along its flank, red and green bands on its legs, a gold star on its haunch), a
+ * poinsettia on its back and a little one at the tip of its tail, its eye glowing like a candle.
+ */
+function xolo(step: 0 | 1): HTMLCanvasElement {
+	const p = new Pen(22, 17, 1);
+	const stride = step === 0 ? 1.6 : -1.6;
+
+	// Its tail, thin and whip-like, curling up behind, a little poinsettia at its tip.
+	p.l(4.6, 8.6, 2.2, 7, 0.6, 0.45, "coal", -0.1);
+	p.l(2.2, 7, 1.6, 4.6, 0.45, 0.35, "coal", -0.08);
+
+	for (const angle of [-2.4, -1.4, -0.4, 0.8]) {
+		leaf(p, 1.6, 3.6, angle, 2, 0.6, "red", 0.18);
+	}
+
+	p.d(1, 3, "gold", 0.7);
+
+	// Legs, long and fine, the far pair darker, each painted with a red band and a green one.
+	for (const [x, sign, bias] of [
+		[6.4, -1, -0.24],
+		[14.4, 1, -0.24],
+		[7.4, 1, -0.02],
+		[15.2, -1, -0.02],
+	]) {
+		const foot = x + sign * stride;
+		const knee = x + sign * stride * 0.4;
+		p.l(x, 9.6, knee, 13, 1.3, 0.7, "coal", bias);
+		p.l(knee, 13, foot, 15.6, 0.7, 0.55, "coal", bias);
+		p.d(Math.round(knee), 13, "red", 0.55 + bias);
+		p.d(Math.round((knee + foot) / 2), 14, "green", 0.7 + bias);
+		p.d(Math.round(foot), 16, "coal", 0.2 + bias);
+	}
+
+	// Its body: a deep chest, a tucked waist, a lean haunch.
+	p.e(10.6, 9, 5.6, 2.4, -0.05, "coal", 0.04);
+	p.e(14, 9.4, 2.6, 2.6, 0, "coal", 0.06);
+	p.e(6.6, 8.6, 2.2, 2.1, 0, "coal", 0);
+
+	// Its patterns.
+	for (const [x, material] of [
+		[5, "gold"],
+		[6, "white"],
+		[7, "gold"],
+		[14, "white"],
+		[15, "gold"],
+	] as const) {
+		p.d(x, 7, material, material === "gold" ? 0.75 : 0.6);
+	}
+
+	p.l(8, 10.4, 15, 10.4, 0.5, 0.5, "green", 0.5);
+
+	for (const x of [9, 11, 13]) {
+		p.d(x, 10, "white", 0.6);
+	}
+
+	for (const [dx, dy] of [
+		[0, 0],
+		[-1, 0],
+		[1, 0],
+		[0, -1],
+		[0, 1],
+	]) {
+		p.d(6 + dx, 9 + dy, "gold", dx === 0 && dy === 0 ? 0.9 : 0.6);
+	}
+
+	bloom(p, 10.5, 4.6, 4.6, -Math.PI / 2);
+
+	// Its neck rising to its head: a long wedge of a snout, the great upright ears painted red inside.
+	p.l(15, 8, 17, 5.4, 1.6, 1.2, "coal", 0.08);
+	p.e(17.4, 4.6, 2.2, 1.9, 0, "coal", 0.1);
+	p.l(18.6, 5, 21.4, 6.2, 1.2, 0.6, "coal", 0.08);
+	p.l(16.6, 3.4, 15.6, 0.2, 0.8, 0.3, "coal", 0.02);
+	p.l(18.2, 3.2, 18.8, 0, 0.8, 0.3, "coal", 0.14);
+	p.d(16, 2, "red", 0.6);
+	p.d(18, 1, "red", 0.7);
+	p.d(19, 6, "gold", 0.65);
+	// Its eye, glowing like a candle, and its nose.
+	p.d(18, 4, "yellowGlow", 0.9);
+	p.d(21, 6, "coal", -0.3);
+	p.weather(0.1, 7);
+
+	return p.sprite.render(RAMPS, RIMS, OUTLINE, 1);
+}
+
+/** One of La Flor's poinsettias, flying as a chakram, turned by `turn`. */
+function poinsettia(turn: number): HTMLCanvasElement {
+	return small(13, 13, (p) => bloom(p, 6.5, 6.5, 5.8, turn));
 }
 
 /** A nutcracker toy soldier at attention: a tall black busby, a white face with a big jaw, a red coat crossed with a white sash, black boots, his musket held across him. */
@@ -915,12 +1059,21 @@ export function makeCharacters(): ICharacterSprites {
 
 	const minionRight = [minion(0), minion(1)];
 	const soldierRight = soldier();
+	const xoloRight = [xolo(0), xolo(1)];
 
 	return {
 		enemies,
 		elites,
 		minion: { right: minionRight, left: minionRight.map(flipped) },
 		soldier: { right: soldierRight, left: flipped(soldierRight) },
+		xolo: { right: xoloRight, left: xoloRight.map(flipped) },
+		// A turn of its spin in three steps (its five bracts look the same every fifth of a turn).
+		poinsettia: [0, 1, 2].map((step) => poinsettia(-Math.PI / 2 + (step * Math.PI * 2) / 15)),
+		petal: Array.from({ length: 16 }, (_, way) => {
+			const angle = (way / 16) * Math.PI * 2;
+
+			return small(13, 13, (p) => leaf(p, 6.5, 6.5, angle, 5, 1.3, "red", 0.1 - 0.05 * Math.sin(angle)));
+		}),
 		// A snow globe: a little tree with a red bauble in the snow under the glass, on a gold base.
 		globe: painted(
 			{

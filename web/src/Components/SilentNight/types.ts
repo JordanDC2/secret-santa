@@ -215,7 +215,8 @@ export type IShot = {
 		| "jingle"
 		| "fireball"
 		| "snowball"
-		| "spark";
+		| "spark"
+		| "petal";
 	/** Enemies it's already hit (so piercing shots hit each once). */
 	struck: Set<number>;
 	/** What a gun's shot does to what it hits (guns.ts); other shots just hurt. */
@@ -295,9 +296,12 @@ export type IPickup = {
 	gear?: IGear;
 };
 
-/** A minion of gingerbread, a candle flame, an orbiting snow globe, a toy soldier standing guard: the elf's allies. */
+/**
+ * A minion of gingerbread, a candle flame, an orbiting snow globe, a toy soldier standing guard,
+ * La Flor's xolo and her poinsettias: the elf's allies.
+ */
 export type IAlly = {
-	kind: "minion" | "globe" | "flame" | "soldier";
+	kind: "minion" | "globe" | "flame" | "soldier" | "xolo" | "poinsettia";
 	x: number;
 	y: number;
 	angle: number;
@@ -308,6 +312,8 @@ export type IAlly = {
 	hits: Map<number, number>;
 	/** A toy soldier's last shot, for its flash. */
 	shotAt?: number;
+	/** La Flor's xolo charging, until then. */
+	chargeUntil?: number;
 };
 
 /** A patron's shrine, or Krampus's altar, out in the dark. */

@@ -8,9 +8,7 @@
  */
 
 import { BARGAINS } from "Components/SilentNight/bargains";
-import { lowestWeapon } from "Components/SilentNight/combat";
 import { newGear, wear } from "Components/SilentNight/gear";
-import { MAX_WEAPON_LEVEL } from "Components/SilentNight/constants";
 import { levelTaken, nextLevelUp } from "Components/SilentNight/levelUp";
 import { rank, stats } from "Components/SilentNight/stats";
 import type { IEvents, IPatronId, IWorld } from "Components/SilentNight/types";
@@ -111,16 +109,46 @@ export const BLESSINGS: IBlessing[] = [
 		ranks: ["+10 health; heal 1 a second standing still", "+20 health; heal 2", "+30 health; heal 3"],
 	},
 	{
-		id: "bloom",
+		id: "lateBloomer",
 		patron: "laFlor",
-		name: "Nochebuena Bloom",
-		ranks: ["Your lowest-level weapon grows two levels, now"],
+		name: "Late Bloomer",
+		ranks: ["3% more damage for each minute of the night so far", "4% more", "5% more"],
+	},
+	{
+		id: "seedPod",
+		patron: "laFlor",
+		name: "Seed Pod",
+		ranks: [
+			"10% chance an enemy bursts into poinsettia petals as it falls, each cutting what it hits for 12",
+			"20% chance",
+			"30% chance",
+		],
 	},
 	{
 		id: "fullBloom",
 		patron: "laFlor",
 		name: "In Full Bloom",
 		ranks: ["A weapon at its last level can evolve without its passive"],
+	},
+	{
+		id: "xolo",
+		patron: "laFlor",
+		name: "Xolo",
+		ranks: [
+			"A painted xolo dog runs with you, charging through enemies every 4 seconds, hurting each for 20",
+			"Charging every 3 seconds",
+			"Its charge stuns what it hits",
+		],
+	},
+	{
+		id: "poinsettias",
+		patron: "laFlor",
+		name: "Poinsettia Chakram",
+		ranks: [
+			"A poinsettia flies at enemies, cutting each for 8 and slowing it by 30%, then back to you",
+			"Two poinsettias",
+			"Three poinsettias",
+		],
 	},
 	// Saint Lucia: light and fire.
 	{
@@ -488,18 +516,36 @@ export function takeBlessing(world: IWorld, id: string) {
 	const now = player.blessings[id];
 
 	switch (id) {
-		case "bloom": {
-			const lowest = lowestWeapon(world);
-			const weapon = player.weapons.find((carried) => carried.id === lowest);
-
-			if (weapon) {
-				weapon.level = Math.min(MAX_WEAPON_LEVEL, weapon.level + 2);
+		case "stubby":
+			player.rerolls += 1;
+			break;
+		case "xolo":
+			if (now === 1) {
+				world.allies.push({
+					kind: "xolo",
+					x: player.x - 12,
+					y: player.y + 2,
+					angle: 0,
+					targetId: null,
+					until: Infinity,
+					readyAt: world.time + 1,
+					hits: new Map(),
+				});
 			}
 
 			break;
-		}
-		case "stubby":
-			player.rerolls += 1;
+		case "poinsettias":
+			// One more with each rank.
+			world.allies.push({
+				kind: "poinsettia",
+				x: player.x,
+				y: player.y - 6,
+				angle: Math.random() * Math.PI * 2,
+				targetId: null,
+				until: Infinity,
+				readyAt: 0,
+				hits: new Map(),
+			});
 			break;
 		case "halo":
 			player.haloReadyAt = world.time;

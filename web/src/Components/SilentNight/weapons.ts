@@ -8,7 +8,7 @@
 import { knockCandles } from "Components/SilentNight/candles";
 import { hurtEnemy, near, touches, heal, type IGrid } from "Components/SilentNight/combat";
 import { fireGun, GUNS, gunNumbers, isGun, past } from "Components/SilentNight/guns";
-import { byRank } from "Components/SilentNight/stats";
+import { byRank, rank } from "Components/SilentNight/stats";
 import type { IStats } from "Components/SilentNight/stats";
 import type {
 	IAlly,
@@ -726,7 +726,10 @@ function standGuard(world: IWorld, grid: IGrid, ally: IAlly, weapon: IWeapon, ev
 	events.volley = true;
 }
 
-/** The things that move with the elf: snow globes circling, minions running, Saint Lucia's flames; and toy soldiers on guard. */
+/**
+ * The things that move with the elf: snow globes circling, minions running, Saint Lucia's flames,
+ * La Flor's xolo and her poinsettias; and toy soldiers on guard.
+ */
 export function moveAllies(world: IWorld, grid: IGrid, dt: number, events: IEvents) {
 	const { player, numbers } = world;
 	const globeWeapon = player.weapons.find((weapon) => weapon.id === "globes");
@@ -778,8 +781,134 @@ export function moveAllies(world: IWorld, grid: IGrid, dt: number, events: IEven
 			standGuard(world, grid, ally, soldierWeapon, events);
 		}
 
+		if (ally.kind === "xolo") {
+			runXolo(world, grid, ally, dt, events);
+		}
+
+		if (ally.kind === "poinsettia") {
+			flyPoinsettia(world, grid, ally, dt, events);
+		}
+
 		return true;
 	});
+}
+
+/** As fast as the elf's dash (world.ts). */
+const XOLO_CHARGE_SPEED = 185;
+
+/**
+ * La Flor's xolo: at the elf's side, and every few seconds charging straight at the nearest enemy,
+ * through it and whatever's beyond, each it passes through hurt once and thrown aside.
+ */
+function runXolo(world: IWorld, grid: IGrid, ally: IAlly, dt: number, events: IEvents) {
+	const { player, numbers } = world;
+
+	if (world.time < (ally.chargeUntil ?? 0)) {
+		const heading = { x: Math.cos(ally.angle), y: Math.sin(ally.angle) };
+		ally.x += heading.x * XOLO_CHARGE_SPEED * dt;
+		ally.y += heading.y * XOLO_CHARGE_SPEED * dt;
+		near(grid, ally.x, ally.y - 4, 12, (enemy) => {
+			if (ally.hits.has(enemy.id) || !touches(enemy, ally.x, ally.y - 4, 6)) {
+				return;
+			}
+
+			ally.hits.set(enemy.id, world.time);
+			const side = (enemy.x - ally.x) * heading.y - (enemy.y - ally.y) * heading.x > 0 ? 1 : -1;
+
+			// Stunned at its last rank, as by a Yule Lad's slammed door (bosses stand their ground).
+			if (rank(player, "xolo") === 3 && !enemy.boss) {
+				enemy.stunUntil = world.time + 0.5;
+			}
+
+			hurtEnemy(world, grid, enemy, 20, { x: -heading.y * side, y: heading.x * side }, null, events, 5);
+		});
+
+		return;
+	}
+
+	if (world.time >= ally.readyAt) {
+		let target: IEnemy | null = null;
+		let best = 110 * numbers.area;
+		near(grid, ally.x, ally.y, best, (enemy) => {
+			const distance = Math.hypot(enemy.x - ally.x, enemy.y - ally.y);
+
+			if (distance < best) {
+				best = distance;
+				target = enemy;
+			}
+		});
+
+		if (target) {
+			ally.angle = Math.atan2((target as IEnemy).y - ally.y, (target as IEnemy).x - ally.x);
+			ally.chargeUntil = world.time + 0.5;
+			ally.readyAt = world.time + byRank(player, "xolo", [4, 3, 3]);
+			ally.hits.clear();
+
+			return;
+		}
+	}
+
+	// Trotting back to the elf's side, whichever side it's on, as fast as the quickest gingerbread minions.
+	const goal = { x: player.x + (ally.x < player.x ? -12 : 12), y: player.y + 2 };
+	const dx = goal.x - ally.x;
+	const dy = goal.y - ally.y;
+	const distance = Math.hypot(dx, dy);
+
+	if (distance > 2) {
+		ally.angle = Math.atan2(dy, dx);
+		ally.x += (dx / distance) * Math.min(distance, 90 * dt);
+		ally.y += (dy / distance) * Math.min(distance, 90 * dt);
+	}
+}
+
+/**
+ * One of La Flor's poinsettias: flying from the elf to the nearest enemy (each to its own),
+ * cutting through it (and anything in its way) and slowing it, then back to her for the next,
+ * swooping wide from afar and turning sharply once close, so it never circles what it's after.
+ */
+function flyPoinsettia(world: IWorld, grid: IGrid, ally: IAlly, dt: number, events: IEvents) {
+	const { player, numbers } = world;
+	let target =
+		ally.targetId === null
+			? null
+			: (world.enemies.find((enemy) => enemy.id === ally.targetId && enemy.health > 0) ?? null);
+	ally.targetId = target ? target.id : null;
+
+	// Back at the elf: off to the nearest enemy in reach that no other poinsettia's after (circling
+	// her while there's none).
+	if (!target && Math.hypot(player.x - ally.x, player.y - 6 - ally.y) < 10) {
+		const taken = new Set(world.allies.map((other) => other.kind === "poinsettia" && other.targetId));
+		let best = 110 * numbers.area;
+		near(grid, player.x, player.y, best, (enemy) => {
+			const distance = Math.hypot(enemy.x - player.x, enemy.y - player.y);
+
+			if (distance < best && !taken.has(enemy.id)) {
+				best = distance;
+				target = enemy;
+			}
+		});
+		ally.targetId = target ? (target as IEnemy).id : null;
+	}
+
+	const goal = target
+		? { x: (target as IEnemy).x, y: (target as IEnemy).y - (target as IEnemy).radius * 0.8 }
+		: { x: player.x, y: player.y - 6 };
+	const distance = Math.hypot(goal.x - ally.x, goal.y - ally.y);
+	const wanted = Math.atan2(goal.y - ally.y, goal.x - ally.x);
+	const turn = Math.atan2(Math.sin(wanted - ally.angle), Math.cos(wanted - ally.angle));
+	const most = (distance < 40 ? 15 : 5) * dt;
+	ally.angle += Math.max(-most, Math.min(most, turn));
+	ally.x += Math.cos(ally.angle) * 150 * dt;
+	ally.y += Math.sin(ally.angle) * 150 * dt;
+	// Slowing by 30% for 2 seconds, as Ded Moroz's Bitter Cold does at its middle rank.
+	strike(world, grid, ally, 5, 8, 0.6, null, events, (enemy) => {
+		enemy.slowUntil = world.time + 2;
+		enemy.slow = Math.max(enemy.slow, 0.3);
+	});
+
+	if (target && touches(target, ally.x, ally.y, 5)) {
+		ally.targetId = null;
+	}
 }
 
 /** An ally touching enemies hurts each at most every `every` seconds. */

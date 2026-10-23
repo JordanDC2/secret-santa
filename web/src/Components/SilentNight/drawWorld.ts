@@ -182,7 +182,7 @@ export function drawWorld(
 
 	drawElf(context, world, sprites, sx, sy);
 
-	// Allies: minions running, snow globes circling, candle flames.
+	// Allies: minions running, snow globes circling, candle flames, La Flor's xolo and poinsettias.
 	for (const ally of world.allies) {
 		if (ally.kind === "minion") {
 			// A ring of green light at its feet, so a friend stands out from the horde.
@@ -215,6 +215,30 @@ export function drawWorld(
 			}
 		} else if (ally.kind === "globe") {
 			context.drawImage(art.globe, sx(ally.x) - 4, sy(ally.y) - 5);
+		} else if (ally.kind === "xolo") {
+			const frames = art.xolo[Math.cos(ally.angle) >= 0 ? "right" : "left"];
+			const charging = time < (ally.chargeUntil ?? 0);
+
+			// Charging: a blur of it trailing behind.
+			if (charging) {
+				for (const [back, alpha] of [
+					[12, 0.15],
+					[6, 0.35],
+				]) {
+					context.globalAlpha = alpha;
+					context.drawImage(
+						frames[0],
+						sx(ally.x - Math.cos(ally.angle) * back) - 11,
+						sy(ally.y - Math.sin(ally.angle) * back) - 16,
+					);
+				}
+
+				context.globalAlpha = 1;
+			}
+
+			context.drawImage(frames[Math.floor(time * (charging ? 16 : 8)) % 2], sx(ally.x) - 11, sy(ally.y) - 16);
+		} else if (ally.kind === "poinsettia") {
+			context.drawImage(art.poinsettia[Math.floor(time * 30) % art.poinsettia.length], sx(ally.x) - 6, sy(ally.y) - 6);
 		} else {
 			context.drawImage(art.flame, sx(ally.x) - 2, sy(ally.y) - 4);
 			glows.push({ x: ally.x, y: ally.y, radius: 14 });
@@ -222,7 +246,17 @@ export function drawWorld(
 	}
 
 	for (const shot of world.shots) {
-		if (inView(shot.x, shot.y, 8)) {
+		if (!inView(shot.x, shot.y, 8)) {
+			continue;
+		}
+
+		// La Flor's petals: a poinsettia's bracts, pointing the way they fly (bursting from the
+		// same spot, at first they're the flower's star).
+		if (shot.kind === "petal") {
+			const way = Math.round((Math.atan2(shot.vy, shot.vx) / (Math.PI * 2)) * art.petal.length);
+			const frame = art.petal[(way + art.petal.length) % art.petal.length];
+			context.drawImage(frame, sx(shot.x) - 6, sy(shot.y) - 6);
+		} else {
 			drawShot(context, shot, sx, sy, glows);
 		}
 	}
