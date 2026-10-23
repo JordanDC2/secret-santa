@@ -72,9 +72,23 @@ export default function Menu({
 	onSettings,
 }: IMenuProps) {
 	const chosen = castMember(progress.character);
-	// The gun picked, if it's theirs (one still being unlocked is picked once it is), else the candy cane gun.
+	// The gun picked, if it's theirs or it's being bought for them (until the purchase has gone through
+	// and it's theirs, or failed); else the one they held before it; else the candy cane gun.
 	const [picked, setPicked] = useState(readGun);
-	const gun = progress.guns.includes(picked) ? picked : "gun";
+	const [held, setHeld] = useState(picked);
+	const [buying, setBuying] = useState<IGunId | null>(null);
+	const [lastError, setLastError] = useState(error);
+
+	if (error !== lastError) {
+		setLastError(error);
+
+		if (error) {
+			setBuying(null);
+		}
+	}
+
+	const gun =
+		progress.guns.includes(picked) || picked === buying ? picked : progress.guns.includes(held) ? held : "gun";
 
 	// The music's percussion sounding like the gun they'll carry.
 	useEffect(() => setMenuGun(gun), [gun]);
@@ -83,7 +97,10 @@ export default function Menu({
 		setPicked(id);
 		saveGun(id);
 
-		if (!progress.guns.includes(id)) {
+		if (progress.guns.includes(id)) {
+			setHeld(id);
+		} else {
+			setBuying(id);
 			onBuy({ kind: "gun", item: id });
 		}
 	};
