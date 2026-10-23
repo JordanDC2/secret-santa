@@ -75,6 +75,7 @@ export function newWorld(
 			bargains: [],
 			rerolls: 2 + (cellar.dice ?? 0),
 			banishes: 2 + (cellar.fire ?? 0),
+			patronRerolls: cellar.prayers ?? 0,
 			banished: [],
 			haloReadyAt: null,
 			guardianReadyAt: 0,

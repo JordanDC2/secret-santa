@@ -75,4 +75,10 @@ export const CELLAR: ICellarUpgrade[] = [
 	{ id: "boots", name: "Warmer boots", effect: "+4% speed a level", prices: [40, 90, 160] },
 	{ id: "dice", name: "Second thoughts", effect: "+1 reroll at level-ups a level", prices: [50, 120, 220] },
 	{ id: "fire", name: "Into the fire", effect: "+1 banish at level-ups a level", prices: [50, 120, 220] },
+	{
+		id: "prayers",
+		name: "Louder prayers",
+		effect: "+1 reroll a night of which patron answers a level",
+		prices: [50, 120],
+	},
 ];

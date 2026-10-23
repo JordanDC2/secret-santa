@@ -4,8 +4,10 @@ import {
 	BLESSINGS,
 	blessingInfo,
 	closeShrine,
+	otherPatronsToAsk,
 	PATRONS,
 	patronsToAsk,
+	rerollPatron,
 	takeBargain,
 	takeBlessing,
 	takeCursedGear,
@@ -309,6 +311,16 @@ export default function Prompt({ world, prompt, onChange }: IPromptProps) {
 						</button>
 					);
 				})}
+				{/* Asked for help, rather than met at their shrine: another of the night's patrons answering instead. */}
+				{prompt.asked && world.player.patronRerolls > 0 && (
+					<GameButton
+						variant="plain"
+						disabled={otherPatronsToAsk(world).length === 0}
+						onClick={() => act(() => rerollPatron(world))}
+					>
+						Ask another ({world.player.patronRerolls})
+					</GameButton>
+				)}
 				<GameButton variant="quiet" onClick={() => act(() => closeShrine(world))}>
 					Leave
 				</GameButton>

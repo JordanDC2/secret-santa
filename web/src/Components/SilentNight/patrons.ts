@@ -456,7 +456,21 @@ export function askPatron(world: IWorld) {
 	const patrons = patronsToAsk(world);
 	const patron = patrons[Math.floor(Math.random() * patrons.length)];
 	levelTaken(world);
-	world.prompt = { kind: "shrine", patron, choices: offerOf(world, patron) };
+	world.prompt = { kind: "shrine", patron, choices: offerOf(world, patron), asked: true };
+}
+
+/** The other chosen patrons who could answer instead of the one asked (rerollPatron). */
+export function otherPatronsToAsk(world: IWorld): IPatronId[] {
+	const { prompt } = world;
+	return patronsToAsk(world).filter((patron) => prompt?.kind === "shrine" && patron !== prompt.patron);
+}
+
+/** Asking again: another of the chosen patrons, at random, answers instead, with their own offer. */
+export function rerollPatron(world: IWorld) {
+	const patrons = otherPatronsToAsk(world);
+	const patron = patrons[Math.floor(Math.random() * patrons.length)];
+	world.player.patronRerolls -= 1;
+	world.prompt = { kind: "shrine", patron, choices: offerOf(world, patron), asked: true };
 }
 
 export function takeBlessing(world: IWorld, id: string) {

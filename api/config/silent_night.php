@@ -29,6 +29,7 @@ return [
         'boots' => [40, 90, 160],
         'dice' => [50, 120, 220],
         'fire' => [50, 120, 220],
+        'prayers' => [50, 120],
     ],
 
     // The second wave of patrons, and the coal to unlock each (the first five are always there).
