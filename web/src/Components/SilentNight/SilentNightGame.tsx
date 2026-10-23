@@ -11,6 +11,7 @@ import { drawWorld } from "Components/SilentNight/drawWorld";
 import { ENEMIES } from "Components/SilentNight/enemies";
 import { GEAR_SLOTS, RARITY_COLOURS } from "Components/SilentNight/gear";
 import { iconUrl } from "Components/SilentNight/icons";
+import { chosenPatrons, PATRONS } from "Components/SilentNight/patrons";
 import Carried from "Components/SilentNight/Carried";
 import GearSlots from "Components/SilentNight/GearSlots";
 import Menu, { type IMenuView } from "Components/SilentNight/Menu";
@@ -125,6 +126,7 @@ function buildOf(world: IWorld) {
 			level: world.player.passives[passive.id]!,
 		})),
 		gear: GEAR_SLOTS.flatMap((slot) => world.player.gear[slot] ?? []),
+		patrons: chosenPatrons(world),
 	};
 }
 
@@ -133,7 +135,8 @@ const buildKey = (world: IWorld) =>
 	JSON.stringify(world.player.passives) +
 	Object.values(world.player.gear)
 		.map((piece) => piece.name)
-		.join();
+		.join() +
+	JSON.stringify(world.player.blessings);
 
 /**
  * Silent Night itself: the night drawn on a canvas at the game's own resolution and scaled up
@@ -187,7 +190,7 @@ export default function SilentNightGame({
 	// The curtain rising as a night begins.
 	const [entering, setEntering] = useState(false);
 	const enteringRef = useRef(false);
-	const [build, setBuild] = useState<IBuild>({ weapons: [], passives: [], gear: [] });
+	const [build, setBuild] = useState<IBuild>({ weapons: [], passives: [], gear: [], patrons: [] });
 	const [soundOn, setSoundOn] = useState(readSoundOn);
 	// The latest callback, for the loop.
 	const onNightOverRef = useRef(onNightOver);
@@ -782,6 +785,18 @@ export default function SilentNightGame({
 								<span key={passive.id} className={classes.slot}>
 									<img src={iconUrl(passive.id)} alt="" className={classes.icon} />
 									<span className={classes.slotLevel}>{passive.level}</span>
+								</span>
+							))}
+						</div>
+						<div className={classes.carried}>
+							{build.patrons.map((patron) => (
+								<span
+									key={patron}
+									className={classes.slot}
+									style={{ borderColor: PATRONS[patron].colour }}
+									title={PATRONS[patron].name}
+								>
+									<img src={iconUrl(patron)} alt="" className={classes.icon} />
 								</span>
 							))}
 						</div>

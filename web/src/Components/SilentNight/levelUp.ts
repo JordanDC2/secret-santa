@@ -142,6 +142,12 @@ export function banish(world: IWorld, choice: IChoice) {
 }
 
 function finishLevelUp(world: IWorld) {
+	levelTaken(world);
+	nextLevelUp(world);
+}
+
+/** A level-up taken (or skipped, or traded for a patron's help): Gloria's healing, and the numbers. */
+export function levelTaken(world: IWorld) {
 	world.levelUpsOwed -= 1;
 	world.prompt = null;
 	// Christkind's Gloria: a little health with each level.
@@ -152,7 +158,6 @@ function finishLevelUp(world: IWorld) {
 	}
 
 	world.numbers = stats(world.player);
-	nextLevelUp(world);
 }
 
 /** A chest: evolve what can be evolved, otherwise level things up (more from bosses). */

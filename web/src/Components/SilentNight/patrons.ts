@@ -11,7 +11,7 @@ import { BARGAINS } from "Components/SilentNight/bargains";
 import { lowestWeapon } from "Components/SilentNight/combat";
 import { newGear, wear } from "Components/SilentNight/gear";
 import { MAX_WEAPON_LEVEL } from "Components/SilentNight/constants";
-import { nextLevelUp } from "Components/SilentNight/levelUp";
+import { levelTaken, nextLevelUp } from "Components/SilentNight/levelUp";
 import { rank, stats } from "Components/SilentNight/stats";
 import type { IEvents, IPatronId, IWorld } from "Components/SilentNight/types";
 
@@ -360,7 +360,10 @@ export function placeShrine(world: IWorld, kind: "shrine" | "altar") {
 		}
 	}
 
-	const patrons = world.patrons.filter((id) => id !== lastPatron);
+	// Once the night's patrons are chosen, only theirs.
+	const chosen = chosenPatrons(world);
+	const pool = chosen.length >= MAX_PATRONS ? chosen : world.patrons;
+	const patrons = pool.filter((id) => id !== lastPatron);
 	const patron = kind === "shrine" ? patrons[Math.floor(Math.random() * patrons.length)] : null;
 
 	if (patron) {
@@ -408,18 +411,52 @@ export function visitShrines(world: IWorld, events: IEvents) {
 	}
 
 	const patron = reached.patron!;
-	const available = BLESSINGS.filter((blessing) => {
+	world.prompt = { kind: "shrine", patron, choices: offerOf(world, patron) };
+}
+
+/** The blessings `patron` still has to give: theirs (and duos with them, once ready) not yet at their top rank. */
+function blessingsLeft(world: IWorld, patron: IPatronId): IBlessing[] {
+	return BLESSINGS.filter((blessing) => {
 		const own = blessing.patron === patron || (Array.isArray(blessing.patron) && blessing.patron.includes(patron));
 		const room = rank(world.player, blessing.id) < blessing.ranks.length;
 		const ready = !blessing.needs || blessing.needs.every((needed) => blessedBy(world, needed));
 
 		return own && room && ready;
 	});
+}
 
-	// A ready duo blessing always shows.
+/** What `patron` offers when met: three of their blessings, any ready duo always among them. */
+function offerOf(world: IWorld, patron: IPatronId): string[] {
+	const available = blessingsLeft(world, patron);
 	const duos = available.filter((blessing) => blessing.needs);
 	const rest = shuffle(available.filter((blessing) => !blessing.needs));
-	world.prompt = { kind: "shrine", patron, choices: [...duos, ...rest].slice(0, 3).map((blessing) => blessing.id) };
+
+	return [...duos, ...rest].slice(0, 3).map((blessing) => blessing.id);
+}
+
+/** At most this many patrons a night (Krampus besides): once as many are chosen, only their shrines appear. */
+export const MAX_PATRONS = 3;
+
+/** The patrons chosen this night: those a blessing's been taken from at their shrine. */
+export function chosenPatrons(world: IWorld): IPatronId[] {
+	return world.patrons.filter((patron) => blessedBy(world, patron));
+}
+
+/** The chosen patrons who could still help, asked instead of a level-up's upgrades (askPatron). */
+export function patronsToAsk(world: IWorld): IPatronId[] {
+	return chosenPatrons(world).filter((patron) => blessingsLeft(world, patron).length > 0);
+}
+
+/**
+ * Asking a patron for help instead of taking a level-up's upgrades: one of those chosen this night
+ * who still has blessings to give, at random, offering them as at their shrine. The level's taken
+ * either way (leaving without a blessing gives it up, as skipping does).
+ */
+export function askPatron(world: IWorld) {
+	const patrons = patronsToAsk(world);
+	const patron = patrons[Math.floor(Math.random() * patrons.length)];
+	levelTaken(world);
+	world.prompt = { kind: "shrine", patron, choices: offerOf(world, patron) };
 }
 
 export function takeBlessing(world: IWorld, id: string) {

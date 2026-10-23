@@ -1,9 +1,11 @@
 import { useEffect, type CSSProperties, type ReactNode } from "react";
 import {
+	askPatron,
 	BLESSINGS,
 	blessingInfo,
 	closeShrine,
 	PATRONS,
+	patronsToAsk,
 	takeBargain,
 	takeBlessing,
 	takeCursedGear,
@@ -253,6 +255,12 @@ export default function Prompt({ world, prompt, onChange }: IPromptProps) {
 					})}
 				</div>
 				<div className={classes.promptButtons}>
+					{/* Instead of these, one of the night's patrons (at random) offering their blessings. */}
+					{patronsToAsk(world).length > 0 && (
+						<GameButton variant="plain" onClick={() => act(() => askPatron(world))}>
+							Ask a patron for help
+						</GameButton>
+					)}
 					<GameButton variant="plain" disabled={player.rerolls === 0} onClick={() => act(() => reroll(world))}>
 						Reroll ({player.rerolls})
 					</GameButton>

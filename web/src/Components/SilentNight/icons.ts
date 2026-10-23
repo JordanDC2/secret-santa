@@ -1,13 +1,104 @@
 /**
  * Little pictures (16 pixels square) for the weapons and passives, on the level-up cards and the
- * counters: drawn once by code in the game's style and kept as image URLs.
+ * counters, and the patrons' symbols, marking those chosen in a night: drawn once by code in the
+ * game's style and kept as image URLs.
  */
 
 import { Pen } from "Components/SilentNight/characters";
 import { OUTLINE, RAMPS, RIMS } from "Components/SilentNight/palette";
-import type { IGearSlot, IPassiveId, IWeaponId } from "Components/SilentNight/types";
+import type { IGearSlot, IPassiveId, IPatronId, IWeaponId } from "Components/SilentNight/types";
 
-type IIconId = IWeaponId | IPassiveId | IGearSlot;
+type IIconId = IWeaponId | IPassiveId | IGearSlot | IPatronId;
+
+/** What each letter paints in a symbol drawn pixel by pixel: a material and its shade. */
+const LETTERS: Record<string, [string, number]> = {
+	w: ["porcelain", 0.92],
+	p: ["porcelain", 0.62],
+	s: ["porcelain", 0.34],
+	k: ["coal", 0.15],
+	e: ["green", 0.95],
+	g: ["gold", 0.75],
+	r: ["red", 0.6],
+	v: ["green", 0.65],
+	Y: ["gold", 0.85],
+	y: ["gold", 0.6],
+	z: ["gold", 0.35],
+	h: ["cookie", 0.55],
+};
+
+/** A symbol drawn pixel by pixel, a row of letters (LETTERS) for each row of it. */
+function paintRows(p: Pen, rows: string[]) {
+	rows.forEach((row, y) =>
+		[...row].forEach((letter, x) => {
+			if (LETTERS[letter]) {
+				p.d(x, y, ...LETTERS[letter]);
+			}
+		}),
+	);
+}
+
+/** The Christkind's wings: each swept up from the shoulder, its feathers hanging apart; a halo over them. */
+const WINGS = [
+	"................",
+	"................",
+	"......gggg......",
+	".....g....g.....",
+	"ww............ww",
+	"ppww........wwpp",
+	"spppw......wppps",
+	".ssppw....wppss.",
+	".s.sppp..ppps.s.",
+	"s.s.spp..pps.s.s",
+	".s.s.sp..ps.s.s.",
+	".....s....s.....",
+	"................",
+	"................",
+	"................",
+	"................",
+];
+
+/** Mari Lwyd's skull, in profile: the long muzzle, the socket of its eye, its teeth, its ribbons. */
+const SKULL = [
+	"................",
+	"................",
+	"..........wwww..",
+	"........wwppppw.",
+	"......wwppkkkpps",
+	"....wwpppkkekpps",
+	"..wwppppppkkppsr",
+	"wwpppppppppppssr",
+	"wppppppsssspps.v",
+	".kpk.k.k.k.ps..r",
+	".wpspspspspps..v",
+	"..sppppppppps..r",
+	".....ssssppps..v",
+	"..........ss....",
+	"................",
+	"................",
+];
+
+/**
+ * The Yule Goat in profile, as the great straw goats stand: tall and square on long legs ending in
+ * stumps, its horns curling back, a beard at its chin, bound in red.
+ */
+const GOAT = [
+	"..........hhh...",
+	".........h...h..",
+	".........h..YYY.",
+	"..........hzYkYY",
+	"...........zyYYy",
+	"..........yy..z.",
+	"..y.YYrYYYyy....",
+	"...yyyryyyry....",
+	"...yyyryyyry....",
+	"...yyyryyyry....",
+	"...zzzrzzzrz....",
+	"...z.z...z.z....",
+	"...z.z...z.z....",
+	"...z.z...z.z....",
+	"...z.z...z.z....",
+	"...z.z...z.z....",
+];
 
 const DRAWINGS: Record<IIconId, (p: Pen) => void> = {
 	gun(p) {
@@ -240,6 +331,111 @@ const DRAWINGS: Record<IIconId, (p: Pen) => void> = {
 		p.d(8, 4, "gold", 0.9);
 		p.d(8, 3, "glow", 0.9);
 		p.d(8, 2, "yellowGlow", 0.9);
+	},
+
+	// The patrons' symbols, each from their portrait.
+	// La Flor: a poinsettia, its red bracts round a gold heart.
+	laFlor(p) {
+		for (let i = 0; i < 5; i++) {
+			const angle = (i / 5) * Math.PI * 2 - Math.PI / 2;
+			p.e(8 + Math.cos(angle) * 3.6, 8 + Math.sin(angle) * 3.6, 3, 1.6, angle, "red", 0.1);
+		}
+
+		p.e(8, 8, 1.6, 1.6, 0, "gold", 0.3);
+	},
+	// Saint Lucia: her crown of candles, burning, in its wreath of lingonberry leaves.
+	lucia(p) {
+		p.e(8, 12, 6.6, 2.4, 0, "green", 0.08);
+
+		for (const [x, y] of [
+			[4, 13],
+			[9, 13.5],
+			[12, 12.6],
+		]) {
+			p.d(x, y, "red", 0.6);
+		}
+
+		for (const x of [4, 8, 12]) {
+			p.r(x - 0.5, 6.5, 1.6, 5, "white", 0.55);
+			p.d(x, 5, "glow", 0.9);
+			p.d(x, 4, "yellowGlow", 0.95);
+			p.d(x, 3, "yellowGlow", 0.75);
+		}
+	},
+	// Ded Moroz: a star of ice.
+	moroz(p) {
+		for (let i = 0; i < 3; i++) {
+			const angle = (i / 3) * Math.PI;
+			p.l(
+				8 - Math.cos(angle) * 6,
+				8 - Math.sin(angle) * 6,
+				8 + Math.cos(angle) * 6,
+				8 + Math.sin(angle) * 6,
+				0.8,
+				0.8,
+				"frost",
+				0.15,
+			);
+		}
+
+		p.d(8, 8, "frost", 0.95);
+	},
+	// The Christkind: a pair of wings, feathered, a halo over them.
+	christkind(p) {
+		paintRows(p, WINGS);
+	},
+	// The Yule Lads: two wooden spoons, licked clean, crossed, seen from above: each a thin handle
+	// ending in a knob, and an egg-shaped bowl, its hollow dark, its far rim catching the light.
+	yuleLads(p) {
+		for (const side of [-1, 1]) {
+			const bx = 8 + side * 3.4;
+			const by = 4.6;
+			const hx = 8 - side * 4.8;
+			const hy = 14.2;
+			const along = Math.atan2(by - hy, bx - hx);
+			p.l(hx, hy, bx - Math.cos(along) * 3, by - Math.sin(along) * 3, 0.7, 0.6, "cookie", 0.06);
+			p.e(hx, hy, 0.9, 0.9, 0, "cookie", 0.1);
+			p.e(bx, by, 3, 2.3, along, "cookie", 0.24);
+			p.e(bx - Math.cos(along) * 0.5, by - Math.sin(along) * 0.5, 2, 1.4, along, "cookie", -0.08);
+			p.d(Math.round(bx + Math.cos(along) * 2), Math.round(by + Math.sin(along) * 2), "cookie", 0.75);
+		}
+	},
+	// La Befana: her broom: the handle, two bands of red cord, and a long bundle of twigs along the
+	// handle's line, drawn in at the cord and ragged at its end.
+	befana(p) {
+		const along = Math.atan2(6.6, -5.7);
+		p.l(14.5, 1, 8.8, 7.6, 0.7, 0.7, "cookie", 0.02);
+
+		for (let twig = -2; twig <= 2; twig++) {
+			const angle = along + twig * 0.13;
+			const length = 7.6 - Math.abs(twig) * 0.6;
+			p.l(
+				8.4,
+				8.4,
+				8.4 + Math.cos(angle) * length,
+				8.4 + Math.sin(angle) * length,
+				1,
+				0.55,
+				"gold",
+				0.14 - Math.abs(twig) * 0.04,
+			);
+		}
+
+		for (const twig of [-1, 1]) {
+			const angle = along + twig * 0.07;
+			p.l(8.6, 8.6, 8.6 + Math.cos(angle) * 6.4, 8.6 + Math.sin(angle) * 6.4, 0.3, 0.3, "cookie", 0.3);
+		}
+
+		p.l(7.6, 7.8, 9.6, 9.4, 0.7, 0.7, "red", 0.3);
+		p.l(6.8, 8.8, 8.8, 10.4, 0.6, 0.6, "red", 0.2);
+	},
+	// The Yule Goat: a goat of straw bound in red, its long horns curling back (GOAT).
+	yuleGoat(p) {
+		paintRows(p, GOAT);
+	},
+	// Mari Lwyd: a horse's skull, its eye glowing green in its socket, its teeth bared, ribbons hanging.
+	mariLwyd(p) {
+		paintRows(p, SKULL);
 	},
 };
 
