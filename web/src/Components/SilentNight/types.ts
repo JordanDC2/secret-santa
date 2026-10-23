@@ -393,6 +393,8 @@ export type IEvents = {
 	hits: number;
 	kills: number;
 	hurt: boolean;
+	/** The elf slowed by a caroller's wailing. */
+	wailed: boolean;
 	dashed: boolean;
 	reloaded: boolean;
 	pickups: number;
@@ -419,6 +421,7 @@ export function noEvents(): IEvents {
 		hits: 0,
 		kills: 0,
 		hurt: false,
+		wailed: false,
 		dashed: false,
 		reloaded: false,
 		pickups: 0,

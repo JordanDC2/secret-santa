@@ -11,6 +11,9 @@ import { hurtEnemy, hurtPlayer, near, reachesPlayer, type IGrid } from "Componen
 import { PLAYER_RADIUS } from "Components/SilentNight/constants";
 import type { IEnemy, IEnemyKind, IEvents, IWorld } from "Components/SilentNight/types";
 
+/** How far a caroller's wailing carries: the elf slowed inside it (drawn round each, drawWorld.ts). */
+export const WAIL_REACH = 56;
+
 export type IEnemyInfo = {
 	kind: IEnemyKind;
 	name: string;
@@ -234,7 +237,7 @@ export function moveEnemies(world: IWorld, grid: IGrid, dt: number, events: IEve
 		}
 
 		// A caroller's wailing slows the elf near it.
-		if (enemy.kind === "caroller" && distance < 56) {
+		if (enemy.kind === "caroller" && distance < WAIL_REACH) {
 			player.slowedUntil = world.time + 0.3;
 		}
 

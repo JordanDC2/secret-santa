@@ -186,6 +186,7 @@ function movePlayer(world: IWorld, input: IInput, dt: number, events: IEvents) {
 		player.x += player.dash.x * DASH_SPEED * dt;
 		player.y += player.dash.y * DASH_SPEED * dt;
 	} else {
+		events.wailed ||= slowed < 1;
 		player.x += move.x * PLAYER_SPEED * numbers.speed * slowed * dt;
 		player.y += move.y * PLAYER_SPEED * numbers.speed * slowed * dt;
 	}

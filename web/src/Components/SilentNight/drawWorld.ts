@@ -14,6 +14,7 @@ import { PATRONS } from "Components/SilentNight/patrons";
 import { hash, threshold } from "Components/SilentNight/pixelArt";
 import { CANDLE_LIGHT_RADIUS, CAST_FEET, GUN_GRIP, LIGHT_RADIUS, type ISprites } from "Components/SilentNight/sprites";
 import type { IEffect, IEnemy, IGunId, IWorld } from "Components/SilentNight/types";
+import { WAIL_REACH } from "Components/SilentNight/enemies";
 import { cocoaReach } from "Components/SilentNight/weapons";
 import { dashing } from "Components/SilentNight/world";
 
@@ -169,6 +170,7 @@ export function drawWorld(
 	drawTelegraphs(context, world, sx, sy);
 	drawCocoa(context, world, sx, sy);
 	drawSong(context, world, sx, sy);
+	drawWails(context, world, sx, sy);
 
 	// The enemies, back to front (the world keeps them in order of depth), then the elf over
 	// them all, so it's never lost in a crowd.
@@ -364,6 +366,51 @@ function drawEnemy(
 		context.fillStyle = Math.floor(time * 12) % 2 === 0 ? "#ffb060" : "#e0502a";
 		context.fillRect(x + Math.round(art.width * 0.3), y + 1 + flicker, 1, 2);
 		context.fillRect(x + Math.round(art.width * 0.6), y + 2 - flicker, 1, 2);
+	}
+}
+
+/**
+ * The carollers' wailing: a faint ring wavering round each, out to where it slows the elf
+ * (WAIL_REACH); and while it does, notes drifting from each caroller near enough to the elf.
+ */
+function drawWails(context: CanvasRenderingContext2D, world: IWorld, sx: IToScreen, sy: IToScreen) {
+	const { player, time } = world;
+	const slowed = time < player.slowedUntil;
+
+	for (const enemy of world.enemies) {
+		if (enemy.kind !== "caroller") {
+			continue;
+		}
+
+		const x = sx(enemy.x);
+		const y = sy(enemy.y) - 6;
+		context.fillStyle = "rgba(196, 180, 230, 0.5)";
+
+		// In dashes, so it stands apart from the snow's speckle.
+		for (let i = 0; i < 120; i++) {
+			if (i % 5 > 2) {
+				continue;
+			}
+
+			const angle = (i / 120) * Math.PI * 2;
+			const reach = WAIL_REACH + Math.sin(angle * 5 + time * 4 + enemy.stride * 9) * 2;
+			context.fillRect(Math.round(x + Math.cos(angle) * reach), Math.round(y + Math.sin(angle) * reach), 1, 1);
+		}
+
+		if (!slowed || Math.hypot(enemy.x - player.x, enemy.y - player.y) >= WAIL_REACH) {
+			continue;
+		}
+
+		// Two notes at a time, drifting from its mouth to the elf, wavering as they go.
+		context.fillStyle = "rgba(220, 208, 246, 0.85)";
+
+		for (let i = 0; i < 2; i++) {
+			const along = (time * 0.9 + i / 2 + enemy.stride) % 1;
+			const nx = Math.round(x + (sx(player.x) - x) * along + Math.sin(along * 12) * 2);
+			const ny = Math.round(y + (sy(player.y) - 8 - y) * along);
+			context.fillRect(nx, ny, 2, 1);
+			context.fillRect(nx + 1, ny - 3, 1, 3);
+		}
 	}
 }
 
@@ -751,6 +798,27 @@ function drawEffect(
 }
 
 /** The elf (blinking while it's safe after a hit, trailing ghosts as it dashes), and its gun. */
+/** Each of the elf's frames in the wailing's lilac, made as it's first needed. */
+const wailedFrames = new WeakMap<HTMLCanvasElement, HTMLCanvasElement>();
+
+function wailedOf(image: HTMLCanvasElement): HTMLCanvasElement {
+	let tinted = wailedFrames.get(image);
+
+	if (!tinted) {
+		tinted = document.createElement("canvas");
+		tinted.width = image.width;
+		tinted.height = image.height;
+		const paint = tinted.getContext("2d")!;
+		paint.drawImage(image, 0, 0);
+		paint.globalCompositeOperation = "source-atop";
+		paint.fillStyle = "#c4b4e6";
+		paint.fillRect(0, 0, tinted.width, tinted.height);
+		wailedFrames.set(image, tinted);
+	}
+
+	return tinted;
+}
+
 function drawElf(context: CanvasRenderingContext2D, world: IWorld, sprites: ISprites, sx: IToScreen, sy: IToScreen) {
 	const { player, time } = world;
 
@@ -775,6 +843,13 @@ function drawElf(context: CanvasRenderingContext2D, world: IWorld, sprites: ISpr
 	}
 
 	context.drawImage(image, x, y);
+
+	// Wavering a cold, wan lilac while a caroller's wailing slows it.
+	if (time < player.slowedUntil) {
+		context.globalAlpha = 0.5 + 0.12 * Math.sin(time * 6);
+		context.drawImage(wailedOf(image), x, y);
+		context.globalAlpha = 1;
+	}
 
 	// Christkind's halo, while it's ready to stop a hit.
 	if (player.haloReadyAt !== null && time >= player.haloReadyAt) {

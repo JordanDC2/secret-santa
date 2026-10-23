@@ -90,6 +90,7 @@ export function addEvents(into: IEvents, from: IEvents) {
 	into.pickups += from.pickups;
 	into.blasts += from.blasts;
 	into.hurt ||= from.hurt;
+	into.wailed ||= from.wailed;
 	into.dashed ||= from.dashed;
 	into.reloaded ||= from.reloaded;
 	into.levelUp ||= from.levelUp;
@@ -306,6 +307,12 @@ export function playNightEvents(events: IEvents) {
 	if (events.hurt && ready("hurt", 0.2)) {
 		tone("sawtooth", 170, 70, 0.22, 0.09);
 		tone("sine", 90, 45, 0.25, 0.2);
+	}
+
+	// Slowed by a caroller's wailing: a low moan, two voices a little out of tune so it warbles.
+	if (events.wailed && ready("wail", 0.8)) {
+		tone("triangle", 330, 294, 0.7, 0.022);
+		tone("triangle", 334, 290, 0.7, 0.018);
 	}
 
 	if (events.dashed) {
