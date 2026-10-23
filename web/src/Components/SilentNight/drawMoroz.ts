@@ -18,6 +18,7 @@ import {
 	type ITexture,
 	paintSwirl,
 	paintGlow,
+	settle,
 	type ISwirlItem,
 	type IPut,
 } from "Components/SilentNight/portraitKit";
@@ -53,6 +54,8 @@ const chill = (x: number, y: number) => 0.14 * clamp(1 - Math.hypot(x - STAR.x, 
 
 export function drawMoroz(): HTMLCanvasElement {
 	const { put, ellipse, petal, limb, fill, light } = figure(RAMPS, RIM);
+	// His skin settled on its shades, in clean shapes, where it would speckle as its light falls off.
+	const smooth: IPut = (x, y, material, t) => put(x, y, material, t + settle(t, RAMPS[material].length));
 
 	// A blizzard whirling out from the star of ice on his staff: snowflakes, six-armed, the bigger ones branched, larger as they fly out.
 	const drawThing = (keep: IPut, { x, y, size, angle, front }: ISwirlItem) => {
@@ -198,16 +201,33 @@ export function drawMoroz(): HTMLCanvasElement {
 	// to grip the staff.
 	limb(63, 68, 57, 100, 6, 6.4, "coat", -0.04);
 	limb(57, 100, 56, 104, 7, 7, "fur", 0.02, fur);
-	ellipse(56, 108, 4, 4.2, 0, "skin", -0.04);
+	// His mittens, blue velvet like his shuba, a little frost-star stitched in silver on the back of
+	// each: one hanging at his side, its thumb out; the other gripping the staff, its thumb over it.
+	const frostStar = (x: number, y: number) => {
+		put(x, y, "silver", 0.9);
+
+		for (const [dx, dy] of [
+			[-1, 0],
+			[1, 0],
+			[0, -1],
+			[0, 1],
+		]) {
+			put(x + dx, y + dy, "silver", 0.6);
+		}
+	};
+
+	ellipse(56, 108.5, 4, 4.6, 0, "coat", 0.16, fur);
+	limb(59.2, 106, 60, 109.5, 1.3, 1.1, "coat", 0.2, fur);
+	frostStar(56, 109);
 	limb(95, 68, 104, 86, 6, 5.6, "coat", -0.08);
 	limb(104, 86, 109, 80, 5.6, 5, "coat", -0.06);
 	limb(108, 81, 110, 79, 5.6, 5.6, "fur", 0.04, fur);
-	ellipse(111, 79, 4.2, 4.6, 0.3, "skin", 0);
-	put(110, 77, "skin", 0.2);
-	put(110, 80, "skin", 0.2);
+	ellipse(111, 79.5, 4.4, 4.8, 0.3, "coat", 0.2, fur);
+	limb(108.4, 77.4, 110.6, 74.4, 1.4, 1.1, "coat", 0.24, fur);
+	frostStar(111, 80);
 
 	// His face: weathered, his cheeks and nose red with cold.
-	ellipse(78, 46, 11, 13, 0, "skin", 0, chill);
+	ellipse(78, 46, 11, 13, 0, "skin", 0, chill, smooth);
 	ellipse(70.5, 50, 3, 2.2, 0, "nose", 0.08);
 	ellipse(85.5, 50, 3, 2.2, 0, "nose", 0.02);
 
