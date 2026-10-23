@@ -648,7 +648,8 @@ export default function SilentNightGame({
 	const menuMusicOn = !started && soundOn;
 	const choosing = menuView === "cast";
 
-	// The music, while the night's going on: its soft version while the night waits on a choice or a pause.
+	// The music, while the night's going on: its soft version while paused or at a patron's shrine; level-ups,
+	// chests, gear and Krampus's altars keep the full version going.
 	useEffect(() => {
 		if (!musicOn) {
 			return;
@@ -657,7 +658,7 @@ export default function SilentNightGame({
 		return startNightMusic(() => ({
 			time: worldRef.current?.time ?? 0,
 			boss: worldRef.current?.enemies.some((enemy) => enemy.boss) ?? false,
-			soft: pausedRef.current || worldRef.current?.prompt != null,
+			soft: pausedRef.current || worldRef.current?.prompt?.kind === "shrine",
 		}));
 	}, [musicOn]);
 

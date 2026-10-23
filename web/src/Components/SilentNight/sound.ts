@@ -10,7 +10,7 @@
  * again from the strings, played another way each time and lifted a whole tone every other pair
  * of times, so a night hears four different passes before any comes round again; the band in,
  * whatever the part, while a boss is about; and, as in Rogue Tower, its soft version (the music
- * box and strings) in step while the night waits on a choice.
+ * box and strings) in step while paused or at a patron's shrine.
  */
 
 import { audioNow, hiss as playHiss, musicBus, readSoundOn, tone as playTone } from "Components/ElfFling/sound";
@@ -521,7 +521,7 @@ const THIRTY_SECOND = EIGHTH / 4;
 
 /**
  * Which of the song's two versions a hit belongs to, as in Rogue Tower: the soft one (the music
- * box and the strings) plays while the night waits on a choice; the full one adds the band. Some
+ * box and the strings) plays while paused or at a patron's shrine; the full one adds the band. Some
  * hits are in both; some are the soft version's own (the music box, under the twin leads).
  */
 type IStem = "both" | "soft" | "full";
@@ -1616,7 +1616,7 @@ const CROSSFADE = 0.4;
 /**
  * Starts the night's music: the music box once, then the rest of the song over and over, starting
  * where the night's clock (`night().time`) says; the full version while playing, the soft one
- * while the night waits on a choice (`night().soft`), crossing over in step; the band in whatever
+ * while paused or at a shrine (`night().soft`), crossing over in step; the band in whatever
  * part it's at while a boss is about. Returns a function that stops it, fading out.
  */
 export function startNightMusic(night: () => { time: number; boss: boolean; soft: boolean }): () => void {
