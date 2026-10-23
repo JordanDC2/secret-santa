@@ -23,7 +23,7 @@ import {
 
 const RAMPS: Record<string, string[]> = {
 	skin: ["#1c1412", "#3a2a24", "#5a4234", "#7a5a46", "#9a765a", "#b8946e"],
-	nose: ["#24100e", "#44201a", "#6a3428", "#8c4a3a", "#a8604a"],
+	nose: ["#22110d", "#3e2018", "#5e3022", "#7e4430", "#9c5a3e"],
 	wool: ["#0a0908", "#1a1714", "#2a2520", "#3c342c", "#504538", "#665846"],
 	hood: ["#0c0806", "#1e140e", "#322218", "#4a3424", "#644832", "#7e5e42"],
 	hair: ["#120604", "#2a100a", "#461c10", "#662c18", "#884024"],
@@ -448,11 +448,14 @@ export function drawYuleLads(): HTMLCanvasElement {
 	put(78, 66, "skin", 0.2);
 	put(94, 66, "skin", 0.2);
 
-	// His big lumpy nose, hooked down, red with cold.
-	ellipse(85, 59, 3, 4.6, 0.15, "nose", 0.06, candlelight);
-	ellipse(84, 62.5, 3.4, 2.4, 0, "nose", 0.1, candlelight);
+	// His big lumpy nose, hooked down, ruddy with cold: lit down its left side by his candle, in
+	// shadow on its right, casting its shadow on his cheek.
+	const noseLight = (x: number, y: number) => candlelight(x, y) + 0.16 * clamp((85 - x) / 3, -1, 1);
+	ellipse(89.5, 61.5, 2.6, 3.6, 0.2, "skin", -0.16, candlelight);
+	ellipse(85, 59, 3, 4.6, 0.15, "nose", 0.06, noseLight);
+	ellipse(84, 62.5, 3.4, 2.4, 0, "nose", 0.1, noseLight);
 	put(82, 63, "nose", 0.05);
-	put(86, 63, "nose", 0.05);
+	put(86, 63, "nose", 0);
 
 	// --- Light: the candle's, warm, from the left; a fade into the dark below. ---
 	const colours = light({
