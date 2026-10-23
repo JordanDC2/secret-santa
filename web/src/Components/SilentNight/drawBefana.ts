@@ -61,6 +61,11 @@ const RIM: Record<string, string[]> = {
 	straw: ["#b0c098", "#d8e8c0", "#f8fff0"],
 	white: ["#e8fff8", "#ffffff", "#ffffff"],
 	gold: ["#dca02c", "#ffd060", "#fff0a8", "#ffffff"],
+	// The sweets in front of her, moonlit as her patches are.
+	candyRed: ["#b07a7a", "#d8b0b0", "#fff0f0"],
+	candyGreen: ["#8ab890", "#c0e0c4", "#f0fff0"],
+	candyGold: ["#b8b080", "#e0d8b0", "#fff8e0"],
+	candyTeal: ["#6ac0b4", "#a8e8dc", "#e8fff8"],
 };
 
 const MOON = { x: 196, y: 32 };
