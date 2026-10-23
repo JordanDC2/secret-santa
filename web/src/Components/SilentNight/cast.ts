@@ -78,7 +78,7 @@ export const CELLAR: ICellarUpgrade[] = [
 	{
 		id: "prayers",
 		name: "Louder prayers",
-		effect: "+1 reroll a night of which patron answers a level",
+		effect: "+1 reroll a night of which patron offers blessings a level",
 		prices: [50, 120],
 	},
 ];

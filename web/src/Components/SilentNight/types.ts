@@ -138,7 +138,7 @@ export type IPlayer = {
 	rerolls: number;
 	banishes: number;
 	banished: string[];
-	/** Rerolls of which patron answers when one's asked for help (askPatron), from the Coal Cellar. */
+	/** Rerolls of which patron offers their blessings, at a shrine or asked for help (rerollPatron), from the Coal Cellar. */
 	patronRerolls: number;
 	/** Christkind's halo: when it's next ready to stop a hit, or null without it. */
 	haloReadyAt: number | null;
@@ -323,7 +323,7 @@ export type IShrine = {
 export type IPrompt =
 	| { kind: "levelUp"; choices: IChoice[] }
 	| { kind: "chest"; rewards: IReward[] }
-	| { kind: "shrine"; patron: IPatronId; choices: string[]; asked?: boolean }
+	| { kind: "shrine"; patron: IPatronId; choices: string[] }
 	| { kind: "altar"; choices: string[]; gear: IGear | null }
 	| { kind: "gear"; gear: IGear };
 

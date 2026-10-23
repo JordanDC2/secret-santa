@@ -360,10 +360,7 @@ export function placeShrine(world: IWorld, kind: "shrine" | "altar") {
 		}
 	}
 
-	// Once the night's patrons are chosen, only theirs.
-	const chosen = chosenPatrons(world);
-	const pool = chosen.length >= MAX_PATRONS ? chosen : world.patrons;
-	const patrons = pool.filter((id) => id !== lastPatron);
+	const patrons = patronPool(world).filter((id) => id !== lastPatron);
 	const patron = kind === "shrine" ? patrons[Math.floor(Math.random() * patrons.length)] : null;
 
 	if (patron) {
@@ -437,6 +434,12 @@ function offerOf(world: IWorld, patron: IPatronId): string[] {
 /** At most this many patrons a night (Krampus besides): once as many are chosen, only their shrines appear. */
 export const MAX_PATRONS = 3;
 
+/** The patrons who could be met: any of the night's, until they're chosen, and then only those chosen. */
+function patronPool(world: IWorld): IPatronId[] {
+	const chosen = chosenPatrons(world);
+	return chosen.length >= MAX_PATRONS ? chosen : world.patrons;
+}
+
 /** The patrons chosen this night: those a blessing's been taken from at their shrine. */
 export function chosenPatrons(world: IWorld): IPatronId[] {
 	return world.patrons.filter((patron) => blessedBy(world, patron));
@@ -456,21 +459,27 @@ export function askPatron(world: IWorld) {
 	const patrons = patronsToAsk(world);
 	const patron = patrons[Math.floor(Math.random() * patrons.length)];
 	levelTaken(world);
-	world.prompt = { kind: "shrine", patron, choices: offerOf(world, patron), asked: true };
+	world.prompt = { kind: "shrine", patron, choices: offerOf(world, patron) };
 }
 
-/** The other chosen patrons who could answer instead of the one asked (rerollPatron). */
-export function otherPatronsToAsk(world: IWorld): IPatronId[] {
+/**
+ * The patrons who could answer instead of the one offering their blessings (rerollPatron): as for a
+ * shrine, any of the night's while there's room for another to be chosen, and then only those chosen;
+ * those with blessings left to give.
+ */
+export function otherPatrons(world: IWorld): IPatronId[] {
 	const { prompt } = world;
-	return patronsToAsk(world).filter((patron) => prompt?.kind === "shrine" && patron !== prompt.patron);
+	return patronPool(world).filter(
+		(patron) => prompt?.kind === "shrine" && patron !== prompt.patron && blessingsLeft(world, patron).length > 0,
+	);
 }
 
-/** Asking again: another of the chosen patrons, at random, answers instead, with their own offer. */
+/** Praying again, at a shrine or when asking for help: another patron, at random, answering instead with their own offer. */
 export function rerollPatron(world: IWorld) {
-	const patrons = otherPatronsToAsk(world);
+	const patrons = otherPatrons(world);
 	const patron = patrons[Math.floor(Math.random() * patrons.length)];
 	world.player.patronRerolls -= 1;
-	world.prompt = { kind: "shrine", patron, choices: offerOf(world, patron), asked: true };
+	world.prompt = { kind: "shrine", patron, choices: offerOf(world, patron) };
 }
 
 export function takeBlessing(world: IWorld, id: string) {
