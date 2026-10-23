@@ -1218,17 +1218,18 @@
 	justify-content: center;
 	background: linear-gradient(rgba(3, 2, 8, 0.97) calc(100% - 60px), rgba(3, 2, 8, 0));
 	pointer-events: none;
-	animation: curtainRises 2.4s ease-in forwards;
+	animation: curtainRises 3.2s ease-in forwards;
 
 	.title {
 		margin: 0;
-		animation: curtainWords 2.4s ease-in forwards;
+		animation: curtainWords 3.2s ease-in forwards;
 	}
 }
 
+/* It holds through a moment's quiet and the first of its sting, then lifts with the sting's swell. */
 @keyframes curtainRises {
 	0%,
-	30% {
+	48% {
 		transform: translateY(0);
 	}
 
@@ -1242,12 +1243,12 @@
 		opacity: 0;
 	}
 
-	15%,
-	40% {
+	11%,
+	55% {
 		opacity: 1;
 	}
 
-	80%,
+	85%,
 	100% {
 		opacity: 0;
 	}

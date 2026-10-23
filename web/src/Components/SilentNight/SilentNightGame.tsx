@@ -52,8 +52,14 @@ const STEP = 1 / 120;
 const MAX_FRAME = 0.1;
 /** How far auto-aim and auto-shoot look for an enemy (the game's pixels): about as far as the guns reach. */
 const AUTO_REACH = 150;
-/** How long the curtain takes to rise on a night (ms): it holds, then lifts off the top (SilentNight.module.less). */
-const ENTERING_MS = 2400;
+/**
+ * How long the curtain takes to rise on a night (ms): it holds, then lifts off the top
+ * (SilentNight.module.less). Its sting comes after a moment's quiet, for the menu's music to die
+ * away, and the night's own music the same moment after the curtain's gone (seconds behind the
+ * night's clock), for the sting to ring out.
+ */
+const ENTERING_MS = 3200;
+const QUIET = 0.8;
 /** A thumbstick's reach on screen, in CSS pixels, and how far it has to go to count. */
 const STICK_REACH = 52;
 const STICK_DEADZONE = 0.2;
@@ -555,10 +561,11 @@ export default function SilentNightGame({
 		pause(false);
 		setBuild(buildOf(fresh));
 		setWorld(fresh);
-		// The curtain rises on the night (the night waiting until it's gone), to its own few bars.
+		// The curtain rises on the night (the night waiting until it's gone), to its own few bars, after a
+		// moment's quiet.
 		enteringRef.current = true;
 		setEntering(true);
-		playNightBegins();
+		window.setTimeout(playNightBegins, QUIET * 1000);
 		window.setTimeout(() => {
 			enteringRef.current = false;
 			setEntering(false);
@@ -656,7 +663,7 @@ export default function SilentNightGame({
 		}
 
 		return startNightMusic(() => ({
-			time: worldRef.current?.time ?? 0,
+			time: (worldRef.current?.time ?? 0) - QUIET,
 			boss: worldRef.current?.enemies.some((enemy) => enemy.boss) ?? false,
 			soft: pausedRef.current || worldRef.current?.prompt?.kind === "shrine",
 		}));
