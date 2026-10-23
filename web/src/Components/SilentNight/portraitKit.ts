@@ -24,13 +24,30 @@ export const clamp = (v: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v)
 /** The dither threshold at a pixel (0 to 1). */
 export const dither = (x: number, y: number) => (bayer[y & 3][x & 3] + 0.5) / 16;
 
+/** How sharply `shade` turns from one shade to the next: it dithers only within 0.5 / this of halfway. */
+const SHARPNESS = 2.4;
+
 /** A colour from a ramp for brightness t (0 to 1), dithered only where one shade meets the next. */
 export const shade = (x: number, y: number, t: number, ramp: string[]) => {
 	const v = clamp(t) * (ramp.length - 1);
 	const i = Math.floor(v);
-	const f = clamp((v - i - 0.5) * 2.4 + 0.5);
+	const f = clamp((v - i - 0.5) * SHARPNESS + 0.5);
 
 	return ramp[Math.min(ramp.length - 1, f > dither(x, y) ? i + 1 : i)];
+};
+
+/**
+ * How much to move brightness `t`, on a ramp of `steps` shades, to settle it on a shade instead of
+ * dithering between two: where light falls off slowly, its shading then reads in clean shapes,
+ * edged where it passes halfway between shades, instead of speckled.
+ */
+export const settle = (t: number, steps: number) => {
+	const v = clamp(t) * (steps - 1);
+	const between = v - Math.floor(v);
+	const clear = 0.5 / SHARPNESS + 0.001;
+	const settled = between < 0.5 ? Math.min(between, 0.5 - clear) : Math.max(between, 0.5 + clear);
+
+	return (settled - between) / (steps - 1);
 };
 
 // Value noise, for fog, hair strands and texture.
@@ -65,6 +82,35 @@ export const strands: ITexture = (x, y) =>
 /** Fur or a beard: strands falling straight down, with tufts. */
 export const fur: ITexture = (x, y) =>
 	0.12 * Math.sin(x * 1.3 + 3 * fbm(x * 0.08, y * 0.03)) + 0.06 * (hash(x, y) - 0.5);
+
+/**
+ * Hair falling from a point (a crown, a parting) in locks that spread and wave as they fall:
+ * each lock rounded, lit down its middle and dark at its edges, two strands to it, a little
+ * lighter or darker than the next, its strands catching the light in streaks. `perLock` is the
+ * angle round the point that each lock takes.
+ */
+export const locksFrom =
+	(fx: number, fy: number, perLock: number): ITexture =>
+	(x, y) => {
+		const dx = x + 0.5 - fx;
+		const dy = y + 0.5 - fy;
+		const far = Math.hypot(dx, dy);
+		// How far across the hair, in locks, waving as it falls.
+		const round = Math.atan2(-dx, dy) / perLock;
+		const across = round + 1.2 * (fbm(far * 0.035, round * 0.15) - 0.5);
+		const lock = Math.floor(across);
+		const into = across - lock;
+		const tube = Math.sin(Math.PI * into) ** 0.6;
+		const sheen = clamp((noise(lock * 1.7, far * 0.05) - 0.42) * 3);
+
+		return (
+			0.36 * (tube - 0.75) -
+			0.05 * Math.cos(4 * Math.PI * into) +
+			0.12 * (hash(lock, 7) - 0.5) +
+			0.26 * tube * tube * sheen +
+			0.02 * (hash(x, y) - 0.5)
+		);
+	};
 
 // The key light: dim and cool, from the front left and above.
 const KEY = [-0.5, -0.85];

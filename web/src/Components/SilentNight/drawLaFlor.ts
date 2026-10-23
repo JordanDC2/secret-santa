@@ -12,7 +12,7 @@ import {
 	fbm,
 	figure,
 	hash,
-	noise,
+	locksFrom,
 	paintFigure,
 	paintLayer,
 	shade,
@@ -39,35 +39,6 @@ const RIM: Record<string, string[]> = {
 	eye: ["#3a2010", "#5a3418", "#8a5a30", "#c08a50"],
 	white: ["#f2e6da", "#ffffff", "#ffffff", "#ffffff"],
 };
-
-/**
- * Hair falling from a point (a crown, a parting) in locks that spread and wave as they fall:
- * each lock rounded, lit down its middle and dark at its edges, two strands to it, a little
- * lighter or darker than the next, its strands catching the light in streaks. `perLock` is the
- * angle round the point that each lock takes.
- */
-const locksFrom =
-	(fx: number, fy: number, perLock: number): ITexture =>
-	(x, y) => {
-		const dx = x + 0.5 - fx;
-		const dy = y + 0.5 - fy;
-		const far = Math.hypot(dx, dy);
-		// How far across the hair, in locks, waving as it falls.
-		const round = Math.atan2(-dx, dy) / perLock;
-		const across = round + 1.2 * (fbm(far * 0.035, round * 0.15) - 0.5);
-		const lock = Math.floor(across);
-		const into = across - lock;
-		const tube = Math.sin(Math.PI * into) ** 0.6;
-		const sheen = clamp((noise(lock * 1.7, far * 0.05) - 0.42) * 3);
-
-		return (
-			0.36 * (tube - 0.75) -
-			0.05 * Math.cos(4 * Math.PI * into) +
-			0.12 * (hash(lock, 7) - 0.5) +
-			0.26 * tube * tube * sheen +
-			0.02 * (hash(x, y) - 0.5)
-		);
-	};
 
 /**
  * Where the light on her face ends at a clean line, lighter before it and darker past it (`past`
