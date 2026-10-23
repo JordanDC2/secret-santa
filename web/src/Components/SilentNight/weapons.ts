@@ -6,7 +6,7 @@
  */
 
 import { knockCandles } from "Components/SilentNight/candles";
-import { freeze, hurtEnemy, near, touches, heal, type IGrid } from "Components/SilentNight/combat";
+import { freeze, hurtEnemy, near, tally, touches, heal, type IGrid } from "Components/SilentNight/combat";
 import { fireGun, GUNS, gunNumbers, isGun, past } from "Components/SilentNight/guns";
 import { byRank, rank } from "Components/SilentNight/stats";
 import type { IStats } from "Components/SilentNight/stats";
@@ -240,15 +240,18 @@ function hitWhere(
 	weapon: IWeaponId | null,
 	events: IEvents,
 	knockback = 3,
-) {
+): number {
+	let done = 0;
 	near(grid, x, y, reach, (enemy) => {
 		if (inside(enemy)) {
 			const dx = enemy.x - x;
 			const dy = enemy.y - y;
 			const length = Math.hypot(dx, dy) || 1;
-			hurtEnemy(world, grid, enemy, damage, { x: dx / length, y: dy / length }, weapon, events, knockback);
+			done += hurtEnemy(world, grid, enemy, damage, { x: dx / length, y: dy / length }, weapon, events, knockback);
 		}
 	});
+
+	return done;
 }
 
 function blade(world: IWorld, weapon: IWeapon, input: IInput, grid: IGrid, numbers: IStats, events: IEvents) {
@@ -565,7 +568,10 @@ export function landShells(world: IWorld, grid: IGrid, events: IEvents) {
 	}
 }
 
-/** A burst at (x, y) (from `weapon`, or a blessing's): its flash, knocking candles over, hurting everything in it. */
+/**
+ * A burst at (x, y) (from `weapon`, or a blessing's): its flash, knocking candles over, hurting
+ * everything in it. Returns the damage it did.
+ */
 export function burst(
 	world: IWorld,
 	grid: IGrid,
@@ -575,7 +581,7 @@ export function burst(
 	damage: number,
 	weapon: IWeaponId | null,
 	events: IEvents,
-) {
+): number {
 	world.effects.push({
 		kind: "blast",
 		x,
@@ -587,8 +593,20 @@ export function burst(
 		data: [],
 	});
 	knockCandles(world, x, y - 4, radius);
-	hitWhere(world, grid, x, y - 4, radius, (enemy) => touches(enemy, x, y - 4, radius), damage, weapon, events, 4);
 	events.blasts += 1;
+
+	return hitWhere(
+		world,
+		grid,
+		x,
+		y - 4,
+		radius,
+		(enemy) => touches(enemy, x, y - 4, radius),
+		damage,
+		weapon,
+		events,
+		4,
+	);
 }
 
 /** How far the cocoa aura reaches from the elf. */
@@ -767,10 +785,12 @@ export function moveAllies(world: IWorld, grid: IGrid, dt: number, events: IEven
 			ally.angle += 2.2 * dt;
 			ally.x = player.x + Math.cos(ally.angle) * 22;
 			ally.y = player.y - 6 + Math.sin(ally.angle) * 22;
-			strike(world, grid, ally, 5, 8, 0.6, null, events, (enemy) => {
+			const burnt = strike(world, grid, ally, 5, 8, 0.6, null, events, (enemy) => {
 				enemy.burnUntil = world.time + 3;
 				enemy.burnDamage = 6;
+				enemy.burnSource = "procession";
 			});
+			tally(world, "procession", burnt);
 		}
 
 		if (ally.kind === "minion" && minionWeapon) {
@@ -781,7 +801,7 @@ export function moveAllies(world: IWorld, grid: IGrid, dt: number, events: IEven
 
 		// A mummer: as a gingerbread minion fresh from the oven.
 		if (ally.kind === "mummer") {
-			chase(world, grid, ally, dt, events, 70, 8, 0.6, null);
+			tally(world, "mummers", chase(world, grid, ally, dt, events, 70, 8, 0.6, null));
 		}
 
 		if (ally.kind === "starBoy") {
@@ -835,7 +855,11 @@ function runXolo(world: IWorld, grid: IGrid, ally: IAlly, dt: number, events: IE
 				enemy.stunUntil = world.time + 0.5;
 			}
 
-			hurtEnemy(world, grid, enemy, 20, { x: -heading.y * side, y: heading.x * side }, null, events, 5);
+			tally(
+				world,
+				"xolo",
+				hurtEnemy(world, grid, enemy, 20, { x: -heading.y * side, y: heading.x * side }, null, events, 5),
+			);
 		});
 
 		return;
@@ -916,17 +940,18 @@ function flyPoinsettia(world: IWorld, grid: IGrid, ally: IAlly, dt: number, even
 	ally.x += Math.cos(ally.angle) * 150 * dt;
 	ally.y += Math.sin(ally.angle) * 150 * dt;
 	// Slowing by 30% for 2 seconds, as Ded Moroz's Bitter Cold does at its middle rank.
-	strike(world, grid, ally, 5, 8, 0.6, null, events, (enemy) => {
+	const cut = strike(world, grid, ally, 5, 8, 0.6, null, events, (enemy) => {
 		enemy.slowUntil = world.time + 2;
 		enemy.slow = Math.max(enemy.slow, 0.3);
 	});
+	tally(world, "poinsettias", cut);
 
 	if (target && touches(target, ally.x, ally.y, 5)) {
 		ally.targetId = null;
 	}
 }
 
-/** An ally touching enemies hurts each at most every `every` seconds. */
+/** An ally touching enemies hurts each at most every `every` seconds. Returns the damage it did. */
 function strike(
 	world: IWorld,
 	grid: IGrid,
@@ -937,7 +962,8 @@ function strike(
 	weapon: IWeaponId | null,
 	events: IEvents,
 	also?: (enemy: IEnemy) => void,
-) {
+): number {
+	let done = 0;
 	near(grid, ally.x, ally.y, radius + 10, (enemy) => {
 		if (touches(enemy, ally.x, ally.y, radius) && world.time - (ally.hits.get(enemy.id) ?? -10) >= every) {
 			ally.hits.set(enemy.id, world.time);
@@ -945,12 +971,14 @@ function strike(
 			const dy = enemy.y - ally.y;
 			const length = Math.hypot(dx, dy) || 1;
 			also?.(enemy);
-			hurtEnemy(world, grid, enemy, damage, { x: dx / length, y: dy / length }, weapon, events, 3);
+			done += hurtEnemy(world, grid, enemy, damage, { x: dx / length, y: dy / length }, weapon, events, 3);
 		}
 	});
+
+	return done;
 }
 
-/** Running at the nearest enemy to the elf (or back to her), hurting what it touches. */
+/** Running at the nearest enemy to the elf (or back to her), hurting what it touches. Returns the damage it did. */
 function chase(
 	world: IWorld,
 	grid: IGrid,
@@ -961,7 +989,7 @@ function chase(
 	damage: number,
 	every: number,
 	weapon: IWeaponId | null,
-) {
+): number {
 	const { player } = world;
 	let target =
 		ally.targetId === null
@@ -995,7 +1023,8 @@ function chase(
 	}
 
 	ally.angle += dt * 0.7;
-	strike(world, grid, ally, 4, damage, every, weapon, events);
+
+	return strike(world, grid, ally, 4, damage, every, weapon, events);
 }
 
 /**
@@ -1056,6 +1085,7 @@ function walkStarBoy(world: IWorld, grid: IGrid, ally: IAlly, dt: number) {
 		pierce: 0,
 		radius: 1.5,
 		weapon: null,
+		blessing: "starBoy",
 		hostile: false,
 		kind: "star",
 		struck: new Set(),

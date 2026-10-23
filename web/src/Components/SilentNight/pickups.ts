@@ -101,6 +101,7 @@ function collect(world: IWorld, grid: IGrid, kind: string, value: number, events
 					if (touches(enemy, player.x, player.y - 6, reach)) {
 						enemy.burnUntil = world.time + 3;
 						enemy.burnDamage = 6;
+						enemy.burnSource = "saffronBuns";
 					}
 				});
 				events.ignited = true;

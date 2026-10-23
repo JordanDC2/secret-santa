@@ -7,7 +7,7 @@
  * Krampus lashes with his chains, slams his birch rod and calls his imps.
  */
 
-import { hurtEnemy, hurtPlayer, near, reachesPlayer, type IGrid } from "Components/SilentNight/combat";
+import { hurtEnemy, hurtPlayer, near, reachesPlayer, tally, type IGrid } from "Components/SilentNight/combat";
 import { PLAYER_RADIUS } from "Components/SilentNight/constants";
 import type { IEnemy, IEnemyKind, IEvents, IWorld } from "Components/SilentNight/types";
 
@@ -146,6 +146,7 @@ export function spawnEnemy(world: IWorld, kind: IEnemyKind, x: number, y: number
 		frozenUntil: 0,
 		burnUntil: 0,
 		burnDamage: 0,
+		burnSource: null,
 		burnTickAt: 0,
 		stunUntil: 0,
 		actAt: world.time + 1.5 + Math.random(),
@@ -172,7 +173,11 @@ export function moveEnemies(world: IWorld, grid: IGrid, dt: number, events: IEve
 		// Burning: a little harm twice a second.
 		if (world.time < enemy.burnUntil && world.time >= enemy.burnTickAt) {
 			enemy.burnTickAt = world.time + 0.5;
-			hurtEnemy(world, grid, enemy, enemy.burnDamage * 0.5, null, null, events, 0, true);
+			const burnt = hurtEnemy(world, grid, enemy, enemy.burnDamage * 0.5, null, null, events, 0, true);
+
+			if (enemy.burnSource) {
+				tally(world, enemy.burnSource, burnt);
+			}
 		}
 
 		// Knocked back: carried along, slowing.

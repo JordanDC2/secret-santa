@@ -8,7 +8,7 @@
  */
 
 import { burst } from "Components/SilentNight/weapons";
-import { freeze, hurtEnemy, near, touches, type IGrid } from "Components/SilentNight/combat";
+import { freeze, hurtEnemy, near, tally, touches, type IGrid } from "Components/SilentNight/combat";
 import { byRank, rank } from "Components/SilentNight/stats";
 import type { IEnemy, IEvents, IWorld } from "Components/SilentNight/types";
 
@@ -60,11 +60,13 @@ export function useSecondWave(world: IWorld, grid: IGrid, dt: number, events: IE
 		}
 
 		effect.data[3] = 1;
+		// Its straw: 0 for a coal bomb, 1 for the Yule Goat's burning straw, 2 for the Gävle Goat's.
 		const [x, y, damage, , straw] = effect.data;
-		burst(world, grid, x, y, effect.radius, damage, null, events);
+		const source = ["coalBombs", "strawBurns", "gavleGoat"][straw];
+		tally(world, source, burst(world, grid, x, y, effect.radius, damage, null, events));
 
 		// La Befana's soot, where a coal bomb (not burning straw) went off.
-		if (straw !== 1 && rank(player, "sootAndAsh") > 0) {
+		if (straw === 0 && rank(player, "sootAndAsh") > 0) {
 			world.effects.push({
 				kind: "soot",
 				x,
@@ -77,11 +79,12 @@ export function useSecondWave(world: IWorld, grid: IGrid, dt: number, events: IE
 			});
 		}
 
-		if (straw === 1 || rank(player, "burningCoal") > 0) {
+		if (straw > 0 || rank(player, "burningCoal") > 0) {
 			near(grid, x, y - 4, effect.radius, (enemy) => {
 				if (touches(enemy, x, y - 4, effect.radius)) {
 					enemy.burnUntil = world.time + 3;
 					enemy.burnDamage = 6;
+					enemy.burnSource = straw > 0 ? source : "burningCoal";
 				}
 			});
 		}
@@ -169,7 +172,11 @@ export function useSecondWave(world: IWorld, grid: IGrid, dt: number, events: IE
 						enemy.stunUntil = world.time + 0.5;
 					}
 
-					hurtEnemy(world, grid, enemy, 10, { x: dx / length, y: dy / length }, null, events, 4);
+					tally(
+						world,
+						"knockAndRun",
+						hurtEnemy(world, grid, enemy, 10, { x: dx / length, y: dy / length }, null, events, 4),
+					);
 				}
 			});
 		}
@@ -188,7 +195,7 @@ export function useSecondWave(world: IWorld, grid: IGrid, dt: number, events: IE
 				const dx = enemy.x - player.x;
 				const dy = enemy.y - player.y;
 				const length = Math.hypot(dx, dy) || 1;
-				hurtEnemy(
+				const done = hurtEnemy(
 					world,
 					grid,
 					enemy,
@@ -198,6 +205,7 @@ export function useSecondWave(world: IWorld, grid: IGrid, dt: number, events: IE
 					events,
 					2,
 				);
+				tally(world, "snappingJaw", done);
 				bit = true;
 			}
 		});
@@ -262,7 +270,7 @@ export function useSecondWave(world: IWorld, grid: IGrid, dt: number, events: IE
 
 			player.charged.add(enemy.id);
 			const side = (enemy.x - player.x) * player.dash.y - (enemy.y - player.y) * player.dash.x > 0 ? 1 : -1;
-			hurtEnemy(
+			const done = hurtEnemy(
 				world,
 				grid,
 				enemy,
@@ -272,6 +280,7 @@ export function useSecondWave(world: IWorld, grid: IGrid, dt: number, events: IE
 				events,
 				5,
 			);
+			tally(world, "goatCharge", done);
 
 			if (rank(player, "frozenCharge") > 0 && !enemy.boss) {
 				freeze(world, enemy, 1.5);
@@ -310,7 +319,7 @@ export function useSecondWave(world: IWorld, grid: IGrid, dt: number, events: IE
 		});
 		near(grid, player.x, player.y, reach, (enemy) => {
 			if (touches(enemy, player.x, player.y - 6, reach)) {
-				hurtEnemy(world, grid, enemy, 20, null, null, events, 0);
+				tally(world, "pwnco", hurtEnemy(world, grid, enemy, 20, null, null, events, 0));
 
 				if (!enemy.boss) {
 					enemy.stunUntil = world.time + 0.6;

@@ -61,6 +61,12 @@ export function frozen(world: IWorld, enemy: IEnemy): boolean {
 	return world.time < enemy.frozenUntil;
 }
 
+/** Damage a patron's blessing (or Krampus's chains) has done, by its id, tallied for the night's end. */
+export function tally(world: IWorld, id: string, damage: number) {
+	const { damageBy } = world.player;
+	damageBy[id] = (damageBy[id] ?? 0) + damage;
+}
+
 /** Frozen solid for `seconds` (longer with Ded Moroz's long winter). */
 export function freeze(world: IWorld, enemy: IEnemy, seconds: number) {
 	const longer = 1 + 0.5 * rank(world.player, "longWinter");
@@ -140,6 +146,7 @@ export function hurtEnemy(
 		!enemy.boss &&
 		enemy.health < enemy.maxHealth * byRank(player, "deepFrost", [0.1, 0.15, 0.2])
 	) {
+		tally(world, "deepFrost", enemy.health);
 		enemy.health = 0;
 	}
 
@@ -149,7 +156,8 @@ export function hurtEnemy(
 		events.healed = false;
 	}
 
-	if (weapon) {
+	// The weapon's own hits (a leap of Krampus's chains is tallied to the chains).
+	if (weapon && !chained) {
 		const carried = player.weapons.find((candidate) => candidate.id === weapon);
 
 		if (carried) {
@@ -178,6 +186,7 @@ export function hurtEnemy(
 	if (Math.random() < byRank(player, "kindling", [0.1, 0.2, 0.3])) {
 		enemy.burnUntil = world.time + 3;
 		enemy.burnDamage = 6;
+		enemy.burnSource = "kindling";
 		events.ignited = true;
 	}
 
@@ -206,7 +215,7 @@ export function hurtEnemy(
 		});
 		near(grid, enemy.x, enemy.y, 28, (other) => {
 			if (other !== enemy && Math.hypot(other.x - enemy.x, other.y - enemy.y) < 28) {
-				hurtEnemy(world, grid, other, 25, null, null, events, 0, true);
+				tally(world, "steamBurst", hurtEnemy(world, grid, other, 25, null, null, events, 0, true));
 			}
 		});
 	}
@@ -226,7 +235,7 @@ export function hurtEnemy(
 					angle: 0,
 					data: [other.x, other.y - 4],
 				});
-				hurtEnemy(world, grid, other, amount * 0.5, null, weapon, events, 0, true);
+				tally(world, "chains", hurtEnemy(world, grid, other, amount * 0.5, null, weapon, events, 0, true));
 				leaps += 1;
 			}
 
@@ -398,6 +407,7 @@ function kill(world: IWorld, grid: IGrid, enemy: IEnemy, events: IEvents) {
 			if (Math.hypot(other.x - enemy.x, other.y - enemy.y) < reach) {
 				other.burnUntil = world.time + 3;
 				other.burnDamage = 6;
+				other.burnSource = "spreadingFlame";
 			}
 		});
 	}
@@ -418,6 +428,7 @@ function kill(world: IWorld, grid: IGrid, enemy: IEnemy, events: IEvents) {
 				pierce: 1,
 				radius: 2,
 				weapon: null,
+				blessing: "shatter",
 				hostile: false,
 				kind: "ice",
 				struck: new Set([enemy.id]),
@@ -442,6 +453,7 @@ function kill(world: IWorld, grid: IGrid, enemy: IEnemy, events: IEvents) {
 				pierce: 1,
 				radius: 2,
 				weapon: null,
+				blessing: "seedPod",
 				hostile: false,
 				kind: "petal",
 				struck: new Set([enemy.id]),
@@ -540,15 +552,19 @@ export function hurtPlayer(world: IWorld, amount: number, events: IEvents, from?
 			angle: dx < 0 ? -1 : 1,
 			data: [],
 		});
-		hurtEnemy(
+		tally(
 			world,
-			gridOf(world.enemies),
-			from,
-			byRank(player, "angelsHair", [30, 45, 60]),
-			{ x: dx / length, y: dy / length },
-			null,
-			events,
-			3,
+			"angelsHair",
+			hurtEnemy(
+				world,
+				gridOf(world.enemies),
+				from,
+				byRank(player, "angelsHair", [30, 45, 60]),
+				{ x: dx / length, y: dy / length },
+				null,
+				events,
+				3,
+			),
 		);
 	}
 

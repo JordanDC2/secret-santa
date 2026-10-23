@@ -8,7 +8,7 @@ import { Pen } from "Components/SilentNight/characters";
 import { OUTLINE, RAMPS, RIMS } from "Components/SilentNight/palette";
 import type { IGearSlot, IPassiveId, IPatronId, IWeaponId } from "Components/SilentNight/types";
 
-type IIconId = IWeaponId | IPassiveId | IGearSlot | IPatronId;
+type IIconId = IWeaponId | IPassiveId | IGearSlot | IPatronId | "chains";
 
 /** What each letter paints in a symbol drawn pixel by pixel: a material and its shade. */
 const LETTERS: Record<string, [string, number]> = {
@@ -24,6 +24,9 @@ const LETTERS: Record<string, [string, number]> = {
 	y: ["gold", 0.6],
 	z: ["gold", 0.35],
 	h: ["cookie", 0.55],
+	a: ["steel", 0.3],
+	b: ["steel", 0.55],
+	c: ["steel", 0.85],
 };
 
 /** A symbol drawn pixel by pixel, a row of letters (LETTERS) for each row of it. */
@@ -36,6 +39,29 @@ function paintRows(p: Pen, rows: string[]) {
 		}),
 	);
 }
+
+/**
+ * Krampus's chains, hanging: iron rings seen face-on, each linked to the next by one seen edge-on,
+ * passing through their holes; the last link dangling.
+ */
+const CHAINS = [
+	"......bbc.......",
+	".....b...c......",
+	".....b.bcc......",
+	"......abb.......",
+	".......bc.......",
+	"......bbc.......",
+	".....b.bcc......",
+	".....b.bcc......",
+	"......abb.......",
+	".......bc.......",
+	"......bbc.......",
+	".....b.bcc......",
+	".....b.bcc......",
+	"......abb.......",
+	".......bc.......",
+	".......ab.......",
+];
 
 /** The Christkind's wings: each swept up from the shoulder, its feathers hanging apart; a halo over them. */
 const WINGS = [
@@ -298,6 +324,9 @@ const DRAWINGS: Record<IIconId, (p: Pen) => void> = {
 		p.d(8, 12, "steel", 0.8);
 		p.l(8, 1, 8, 4, 0.6, 0.6, "red", 0.3);
 		p.d(6, 6, "white", 0.9);
+	},
+	chains(p) {
+		paintRows(p, CHAINS);
 	},
 	soldiers(p) {
 		// A nutcracker's head and shoulders: the tall busby, the white face, the red coat.

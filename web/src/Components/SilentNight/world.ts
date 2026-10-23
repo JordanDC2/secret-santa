@@ -9,7 +9,7 @@
 
 import { castMember } from "Components/SilentNight/cast";
 import { knockCandles } from "Components/SilentNight/candles";
-import { freeze, gridOf, near, hurtEnemy, heal } from "Components/SilentNight/combat";
+import { freeze, gridOf, near, hurtEnemy, heal, tally } from "Components/SilentNight/combat";
 import { moveEnemies, moveHostileShots } from "Components/SilentNight/enemies";
 import { nextLevelUp } from "Components/SilentNight/levelUp";
 import { FIRST_WAVE, visitShrines } from "Components/SilentNight/patrons";
@@ -72,6 +72,7 @@ export function newWorld(
 			weapons: [newWeapon(gun), ...(own ? [newWeapon(own)] : [])],
 			passives: {},
 			blessings: {},
+			damageBy: {},
 			bargains: [],
 			rerolls: 2 + (cellar.dice ?? 0),
 			banishes: 2 + (cellar.fire ?? 0),
@@ -163,7 +164,7 @@ export function step(world: IWorld, input: IInput, dt: number, view: { width: nu
 			until: world.time,
 			radius: 40 * world.numbers.area,
 			angle: 0,
-			data: [player.x, player.y, 40, 0, 1],
+			data: [player.x, player.y, 40, 0, 2],
 		});
 		events.healed = true;
 	} else if (world.player.health <= 0) {
@@ -318,7 +319,7 @@ function moveShots(world: IWorld, grid: ReturnType<typeof gridOf>, dt: number, e
 
 			shot.struck.add(enemy.id);
 			const speed = Math.hypot(shot.vx, shot.vy) || 1;
-			hurtEnemy(
+			const done = hurtEnemy(
 				world,
 				grid,
 				enemy,
@@ -329,10 +330,15 @@ function moveShots(world: IWorld, grid: ReturnType<typeof gridOf>, dt: number, e
 				hit?.knockback ?? 2,
 			);
 
+			if (shot.blessing) {
+				tally(world, shot.blessing, done);
+			}
+
 			if (hit) {
 				if (hit.burn > 0) {
 					enemy.burnUntil = world.time + 3;
 					enemy.burnDamage = Math.max(enemy.burnDamage, hit.burn);
+					enemy.burnSource = shot.blessing ?? null;
 					events.ignited = true;
 				}
 

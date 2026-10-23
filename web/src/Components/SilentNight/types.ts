@@ -133,6 +133,8 @@ export type IPlayer = {
 	passives: Partial<Record<IPassiveId, number>>;
 	/** The patrons' blessings, by id, at their rank. */
 	blessings: Record<string, number>;
+	/** The damage each blessing (and Krampus's chains) has done this night, by id, for the night's end. */
+	damageBy: Record<string, number>;
 	/** Krampus's bargains taken. */
 	bargains: string[];
 	rerolls: number;
@@ -190,6 +192,8 @@ export type IEnemy = {
 	burnDamage: number;
 	/** When burning next hurts it. */
 	burnTickAt: number;
+	/** The blessing that set it burning, if one did (its burning is tallied to it). */
+	burnSource: string | null;
 	stunUntil: number;
 	/** Its own clock for whatever it does (shooting, charging, teleporting). */
 	actAt: number;
@@ -212,6 +216,8 @@ export type IShot = {
 	pierce: number;
 	radius: number;
 	weapon: IWeaponId | null;
+	/** The blessing that threw it, if one did (its hits are tallied to it). */
+	blessing?: string;
 	/** Fired at the elf, by an enemy. */
 	hostile: boolean;
 	kind:
@@ -268,7 +274,8 @@ export type IEffect = {
 		| "pounce"
 		| "heal"
 		| "levelUp"
-		// La Befana's coal bomb on the snow (data: x, y, damage, gone off, straw-fire), and Mari Lwyd's chant.
+		// La Befana's coal bomb on the snow (data: x, y, damage, gone off, and straw: 0 for coal, 1 for the
+		// Yule Goat's burning straw, 2 for the Gävle Goat's), and Mari Lwyd's chant.
 		| "coal"
 		| "chant"
 		// Ded Moroz's frost tracks (data: from x, y to x, y), and La Befana's soot.
