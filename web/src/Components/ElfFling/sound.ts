@@ -140,6 +140,9 @@ export function tone(
 	oscillator.type = type;
 	oscillator.frequency.setValueAtTime(from, start);
 	oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, to), start + length);
+	// Silent until it starts: a gain is 1 until told otherwise, and a sound starting between two
+	// samples would otherwise let one sample through at full strength, a click.
+	gain.gain.value = 0;
 	gain.gain.setValueAtTime(volume, start);
 	gain.gain.exponentialRampToValueAtTime(0.0001, start + length);
 	oscillator.connect(gain).connect(output ?? master);
@@ -176,6 +179,9 @@ export function hiss(
 		shape.frequency.exponentialRampToValueAtTime(sweepTo, start + length);
 	}
 
+	// Silent until it starts: a gain is 1 until told otherwise, and a sound starting between two
+	// samples would otherwise let one sample through at full strength, a click.
+	gain.gain.value = 0;
 	gain.gain.setValueAtTime(volume, start);
 	gain.gain.exponentialRampToValueAtTime(0.0001, start + length);
 	source
